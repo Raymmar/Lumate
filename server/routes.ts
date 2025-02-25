@@ -1,6 +1,5 @@
 import type { Express } from "express";
 import { createServer } from "http";
-import { storage } from "./storage";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1/calendar';
 
@@ -33,17 +32,12 @@ export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
       const data = await lumaApiRequest('list-events');
-      console.log('Raw events response:', JSON.stringify(data, null, 2)); // Log full response
+      console.log('Raw events data:', JSON.stringify(data, null, 2)); // Detailed logging
 
-      // Check data structure and extract events
-      if (data && Array.isArray(data.entries)) {
-        const events = data.entries;
-        console.log(`Found ${events.length} events`);
-        res.json(events);
-      } else {
-        console.log('Unexpected events data structure:', data);
-        res.json([]);
-      }
+      // Extract entries array from response
+      const events = data.entries || [];
+      console.log('Sending events to client:', events); // Debug log
+      res.json(events);
     } catch (error) {
       console.error('Failed to fetch events:', error);
       res.status(500).json({ error: "Failed to fetch events from Luma API" });
