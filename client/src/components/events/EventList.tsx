@@ -10,6 +10,7 @@ interface Event {
   description: string | null;
   start_at: string;  
   end_at: string;    
+  description_md?: string;
 }
 
 function formatEventDate(dateStr: string): string {
@@ -65,10 +66,11 @@ export default function EventList() {
                 className="p-4 rounded-lg border bg-card text-card-foreground"
               >
                 <h3 className="font-semibold">{event.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {formatEventDate(event.start_at)}
-                </p>
-                <p className="text-sm mt-2">{event.description || "No description available"}</p>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <p>Starts: {formatEventDate(event.start_at)}</p>
+                  <p>Ends: {formatEventDate(event.end_at)}</p>
+                </div>
+                <p className="text-sm mt-2">{event.description_md || event.description || "No description available"}</p>
               </div>
             ))}
           </div>
