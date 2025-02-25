@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO, isFuture } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, Users } from "lucide-react";
+import { CalendarDays, Users, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -29,11 +29,25 @@ interface Event {
   };
 }
 
-interface EventDetails extends Event {
-  location?: string;
-  guest_count?: number;
-  capacity?: number;
-  is_private?: boolean;
+interface EventDetailsResponse {
+  event: {
+    api_id: string;
+    name: string;
+    description: string;
+    start_at: string;
+    end_at: string;
+    cover_url?: string;
+    geo_address_json?: string | null;
+    geo_latitude?: number | null;
+    geo_longitude?: number | null;
+    timezone?: string;
+  };
+  hosts: Array<{
+    api_id: string;
+    name: string;
+    email: string;
+    avatar_url?: string;
+  }>;
 }
 
 function formatEventDate(dateStr: string): string {
@@ -84,27 +98,29 @@ function EventDetailsModal({
   isOpen: boolean; 
   onClose: () => void;
 }) {
-  const { data: eventDetails } = useQuery<EventDetails>({
+  const { data: eventDetails, isLoading } = useQuery<EventDetailsResponse>({
     queryKey: [`/api/events/${event?.api_id}`],
     enabled: isOpen && !!event?.api_id,
   });
 
   if (!event) return null;
 
-  const eventData = eventDetails || event;
-  const description = eventData.event?.description || eventData.description || "";
+  const details = eventDetails?.event;
+  const hosts = eventDetails?.hosts || [];
+  const description = details?.description || event.event?.description || event.description || "";
+  const location = details?.geo_address_json ? JSON.parse(details.geo_address_json) : null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{eventData.event?.name || eventData.name}</DialogTitle>
+          <DialogTitle>{details?.name || event.event?.name || event.name}</DialogTitle>
         </DialogHeader>
-        {eventData.event?.cover_url && (
+        {details?.cover_url && (
           <div className="w-full h-48 md:h-64 rounded-lg overflow-hidden mb-4">
             <img
-              src={eventData.event.cover_url}
-              alt={eventData.event.name}
+              src={details.cover_url}
+              alt={details.name}
               className="w-full h-full object-cover"
             />
           </div>
@@ -113,18 +129,26 @@ function EventDetailsModal({
           <div className="flex items-center gap-2 text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
             <span>
-              {formatEventDate(eventData.event?.start_at || eventData.start_at)}
+              {formatEventDate(details?.start_at || event.event?.start_at || event.start_at)}
             </span>
           </div>
-          {eventDetails?.guest_count !== undefined && (
+
+          {location && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="h-4 w-4" />
+              <span>{typeof location === 'string' ? location : location.formatted_address}</span>
+            </div>
+          )}
+
+          {hosts.length > 0 && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Users className="h-4 w-4" />
               <span>
-                {eventDetails.guest_count} guests
-                {eventDetails.capacity && ` / ${eventDetails.capacity} capacity`}
+                Hosted by {hosts.map(host => host.name).join(", ")}
               </span>
             </div>
           )}
+
           <div className="prose dark:prose-invert max-w-none">
             <ReactMarkdown>{description}</ReactMarkdown>
           </div>
