@@ -95,13 +95,13 @@ function parseAddressJson(jsonStr: string | null | undefined): string | null {
     // Only attempt to parse if it looks like a JSON object
     if (jsonStr.trim().startsWith('{')) {
       const parsed = JSON.parse(jsonStr);
-      return parsed.formatted_address || parsed.full_address || parsed.address || parsed.toString();
+      return parsed.full_address || parsed.formatted_address || parsed.address || `${parsed.city}, ${parsed.region}`;
     }
     // If it's not a JSON object, return the string as is
     return jsonStr;
   } catch (error) {
     console.error('Failed to parse address JSON:', error);
-    return jsonStr; // Return the original string if parsing fails
+    return null; // Return null if parsing fails
   }
 }
 
@@ -124,7 +124,7 @@ function EventDetailsModal({
   const details = eventDetails?.event;
   const hosts = eventDetails?.hosts || [];
   const description = details?.description || event.event?.description || event.description || "";
-  const location = parseAddressJson(details?.geo_address_json);
+  const location = details?.geo_address_json && parseAddressJson(details.geo_address_json);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
