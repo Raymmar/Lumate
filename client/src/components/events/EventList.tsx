@@ -13,6 +13,7 @@ interface Event {
   start_at: string;  
   end_at: string;    
   cover_url?: string;
+  url?: string; // Added URL field
   event: {
     cover_url?: string;
     name: string;
@@ -24,6 +25,7 @@ interface Event {
     capacity?: number;
     waitlist_count?: number;
     geo_address_json?: string | null;
+    url?: string; // Added URL field
   };
 }
 
@@ -40,6 +42,8 @@ interface EventDetails {
     approved_guest_count: number;
     capacity?: number;
     waitlist_count?: number;
+    url?: string; // Added URL field
+
   };
   hosts: Array<{
     api_id: string;
@@ -77,8 +81,17 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
   const location = parseAddressJson(eventData.geo_address_json);
   const hosts = details?.hosts || [];
 
+  const handleClick = () => {
+    if (eventData.url) {
+      window.open(eventData.url, '_blank');
+    }
+  };
+
   return (
-    <div className="p-4 rounded-lg border bg-card text-card-foreground">
+    <div 
+      className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary cursor-pointer transition-colors"
+      onClick={handleClick}
+    >
       {eventData.cover_url && (
         <div className="mb-4 w-full h-40 rounded-lg overflow-hidden">
           <img 
@@ -103,18 +116,14 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
           </div>
         )}
 
-        {(eventData.guest_count !== undefined || eventData.approved_guest_count !== undefined) && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>
-              {eventData.guest_count || eventData.approved_guest_count || 0} attendees
-              {eventData.approved_guest_count !== undefined && eventData.approved_guest_count !== eventData.guest_count &&
-                ` (${eventData.approved_guest_count} approved)`}
-              {eventData.capacity && ` / ${eventData.capacity} capacity`}
-              {eventData.waitlist_count ? ` (${eventData.waitlist_count} waitlisted)` : ''}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Users className="h-4 w-4" />
+          <span>
+            {details?.event?.guest_count || 0} attendees
+            {details?.event?.capacity ? ` / ${details.event.capacity} capacity` : ''}
+            {details?.event?.waitlist_count ? ` (${details.event.waitlist_count} waitlisted)` : ''}
+          </span>
+        </div>
 
         {hosts.length > 0 && (
           <div className="flex items-center gap-2 text-muted-foreground">
