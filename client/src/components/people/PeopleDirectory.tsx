@@ -96,6 +96,14 @@ export default function PeopleDirectory() {
     if (data?.hasMore) setCurrentPage(prev => prev + 1);
   };
 
+  // Auto-sync if no data is available
+  useEffect(() => {
+    if (data?.items?.length === 0 && !isLoading && !syncMutation.isPending) {
+      console.log('No data available, triggering initial sync...');
+      syncMutation.mutate();
+    }
+  }, [data?.items?.length, isLoading, syncMutation]);
+
   if (error) {
     return (
       <Card className="col-span-1">

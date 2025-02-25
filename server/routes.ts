@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
+const MAX_PAGES = 50; // Safety limit for pagination
 
 // Helper function to make Luma API requests
 async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
@@ -57,41 +58,59 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // New endpoint to sync people from Luma API to our database
+  // Sync endpoint to fetch all people from Luma API and store in our database
   app.post("/api/people/sync", async (_req, res) => {
     try {
       let allPeople: any[] = [];
       let page = 1;
       let hasMore = true;
+      let totalFetched = 0;
 
-      // Fetch all pages from Luma API
-      while (hasMore) {
+      console.log('Starting people sync from Luma API...');
+
+      // Fetch all pages from Luma API with safety limit
+      while (hasMore && page <= MAX_PAGES) {
+        console.log(`Fetching page ${page}...`);
         const data = await lumaApiRequest('calendar/list-people', {
           page: page.toString(),
           limit: '50'
         });
 
         const people = data.entries || [];
-        allPeople = [...allPeople, ...people];
+        totalFetched += people.length;
+        console.log(`Received ${people.length} people on page ${page}. Total fetched: ${totalFetched}`);
 
+        allPeople = [...allPeople, ...people];
         hasMore = data.has_more;
+
+        if (hasMore && page >= MAX_PAGES) {
+          console.log(`Reached maximum page limit of ${MAX_PAGES}. Stopping pagination.`);
+          break;
+        }
+
         page++;
 
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Sync all people to our database
+      console.log(`Syncing ${allPeople.length} people to database...`);
       await storage.syncPeople(allPeople);
+      console.log('Sync completed successfully');
 
-      res.json({ message: "People synced successfully", count: allPeople.length });
+      res.json({ 
+        message: "People synced successfully", 
+        count: allPeople.length,
+        pages: page - 1,
+        maxPageReached: page >= MAX_PAGES
+      });
     } catch (error) {
       console.error('Failed to sync people:', error);
       res.status(500).json({ error: "Failed to sync people from Luma API" });
     }
   });
 
-  // Updated endpoint to get people from our database with search and pagination
+  // Get people from our database with search and pagination
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
