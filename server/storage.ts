@@ -63,7 +63,7 @@ export class DatabaseStorage implements IStorage {
       total: Number(count),
       page,
       limit,
-      hasMore: offset + items.length < Number(count),
+      hasMore: offset + transformedItems.length < Number(count),
     };
   }
 
@@ -74,43 +74,48 @@ export class DatabaseStorage implements IStorage {
 
   async syncPeople(lumaUsers: any[]): Promise<void> {
     for (const lumaUser of lumaUsers) {
-      // First, create or update the user record
-      const [user] = await db
-        .insert(users)
-        .values({
-          name: lumaUser.user.name,
-          avatarUrl: lumaUser.user.avatar_url,
-        })
-        .onConflictDoUpdate({
-          target: users.name,
-          set: {
+      try {
+        // First, create or update the user record
+        const [user] = await db
+          .insert(users)
+          .values({
+            name: lumaUser.user.name,
             avatarUrl: lumaUser.user.avatar_url,
-          },
-        })
-        .returning();
+          })
+          .onConflictDoUpdate({
+            target: users.name,
+            set: {
+              avatarUrl: lumaUser.user.avatar_url,
+            },
+          })
+          .returning();
 
-      // Then, create or update the person record
-      await db
-        .insert(people)
-        .values({
-          apiId: lumaUser.api_id,
-          email: lumaUser.email,
-          createdAt: new Date(lumaUser.created_at),
-          eventApprovedCount: lumaUser.event_approved_count,
-          eventCheckedInCount: lumaUser.event_checked_in_count,
-          revenueUsdCents: lumaUser.revenue_usd_cents,
-          userId: user.id,
-        })
-        .onConflictDoUpdate({
-          target: people.apiId,
-          set: {
+        // Then, create or update the person record
+        await db
+          .insert(people)
+          .values({
+            apiId: lumaUser.api_id,
             email: lumaUser.email,
+            createdAt: new Date(lumaUser.created_at),
             eventApprovedCount: lumaUser.event_approved_count,
             eventCheckedInCount: lumaUser.event_checked_in_count,
             revenueUsdCents: lumaUser.revenue_usd_cents,
             userId: user.id,
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: people.apiId,
+            set: {
+              email: lumaUser.email,
+              eventApprovedCount: lumaUser.event_approved_count,
+              eventCheckedInCount: lumaUser.event_checked_in_count,
+              revenueUsdCents: lumaUser.revenue_usd_cents,
+              userId: user.id,
+            },
+          });
+      } catch (error) {
+        console.error('Error syncing user:', lumaUser, error);
+        throw error;
+      }
     }
   }
 }

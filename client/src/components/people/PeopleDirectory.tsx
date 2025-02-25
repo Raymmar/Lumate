@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 
 interface Person {
   api_id: string;
@@ -31,9 +31,9 @@ interface Person {
 
 interface PeopleResponse {
   items: Person[];
+  total: number;
   page: number;
   limit: number;
-  total: number;
   hasMore: boolean;
 }
 
@@ -57,8 +57,7 @@ export default function PeopleDirectory() {
   // Sync mutation
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/people/sync', { method: 'POST' });
-      if (!response.ok) throw new Error('Failed to sync people');
+      const response = await apiRequest('POST', '/api/people/sync');
       return response.json();
     },
     onSuccess: (data) => {
@@ -86,8 +85,7 @@ export default function PeopleDirectory() {
       );
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
-    },
-    keepPreviousData: true
+    }
   });
 
   const handlePreviousPage = () => {
@@ -124,7 +122,7 @@ export default function PeopleDirectory() {
     if (!data?.items?.length) {
       return (
         <p className="text-muted-foreground p-4">
-          {debouncedSearch ? "No matching people found" : "No people available"}
+          {debouncedSearch ? "No matching people found" : "No people available. Click sync to load people from Luma."}
         </p>
       );
     }
@@ -168,9 +166,8 @@ export default function PeopleDirectory() {
             size="icon"
             onClick={() => syncMutation.mutate()}
             disabled={syncMutation.isPending}
-            className={syncMutation.isPending ? 'animate-spin' : ''}
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
           </Button>
           {isFetching && <Skeleton className="h-4 w-4 rounded-full animate-spin" />}
         </div>
