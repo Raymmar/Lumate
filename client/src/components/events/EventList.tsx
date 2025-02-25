@@ -123,7 +123,7 @@ export default function EventList() {
 
   return (
     <Card className="col-span-1">
-      <CardContent>
+      <CardContent className="pt-6">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-20" />

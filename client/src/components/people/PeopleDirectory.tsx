@@ -40,7 +40,7 @@ export default function PeopleDirectory() {
 
   return (
     <Card className="col-span-1">
-      <CardContent>
+      <CardContent className="pt-6">
         <Input
           placeholder="Search people..."
           value={searchQuery}
