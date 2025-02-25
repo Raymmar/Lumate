@@ -7,7 +7,7 @@ import { CalendarDays } from "lucide-react";
 interface Event {
   api_id: string;
   title: string;
-  description: string;
+  description: string | null;
   start_time: string;
   end_time: string;
 }
@@ -57,7 +57,7 @@ export default function EventList() {
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
           </div>
-        ) : events && events.length > 0 ? (
+        ) : events && Array.isArray(events) && events.length > 0 ? (
           <div className="space-y-4">
             {events.map((event) => (
               <div
