@@ -1,8 +1,8 @@
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO, isFuture } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, Users, MapPin } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
@@ -19,7 +19,6 @@ interface Event {
     description: string;
     start_at: string;
     end_at: string;
-    guest_count: number;
     geo_address_json?: string | null;
     url?: string;
   };
@@ -48,7 +47,7 @@ function parseAddressJson(jsonStr: string | null | undefined): string | null {
   }
 }
 
-function EventCard({ event }: { event: Event }) {
+function EventCard({ event, showCover = false }: { event: Event; showCover?: boolean }) {
   const eventData = event.event || event;
   const location = parseAddressJson(eventData.geo_address_json);
 
@@ -63,7 +62,7 @@ function EventCard({ event }: { event: Event }) {
       className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary cursor-pointer transition-colors"
       onClick={handleClick}
     >
-      {eventData.cover_url && (
+      {showCover && eventData.cover_url && (
         <div className="mb-4 w-full h-40 rounded-lg overflow-hidden">
           <img 
             src={eventData.cover_url} 
@@ -145,12 +144,6 @@ export default function EventList() {
           </div>
         ) : events && events.length > 0 ? (
           <div className="space-y-6">
-            {nextEvent && (
-              <div className="mb-4">
-                <EventCard event={nextEvent} />
-              </div>
-            )}
-
             <Tabs defaultValue="upcoming" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
@@ -158,11 +151,16 @@ export default function EventList() {
               </TabsList>
 
               <TabsContent value="upcoming" className="space-y-4 mt-4">
+                {nextEvent && (
+                  <div className="mb-4">
+                    <EventCard event={nextEvent} showCover={true} />
+                  </div>
+                )}
                 {upcomingEvents.slice(1).map((event) => (
                   <EventCard key={event.api_id} event={event} />
                 ))}
-                {upcomingEvents.length <= 1 && (
-                  <p className="text-muted-foreground">No more upcoming events</p>
+                {upcomingEvents.length === 0 && (
+                  <p className="text-muted-foreground">No upcoming events</p>
                 )}
               </TabsContent>
 
