@@ -1,49 +1,75 @@
-import { Event, InsertEvent, Person, InsertPerson } from "@shared/schema";
+import { and, eq, ilike, or, sql } from "drizzle-orm";
+import { people, users, type Person, type InsertPerson, type PersonWithUser } from "@shared/schema";
+import { db } from "./db";
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
 
 export interface IStorage {
-  // Events
-  getEvents(): Promise<Event[]>;
-  insertEvent(event: InsertEvent): Promise<Event>;
-  
-  // People
-  getPeople(): Promise<Person[]>;
+  getPeople(page: number, limit: number, search?: string): Promise<PaginatedResult<PersonWithUser>>;
   insertPerson(person: InsertPerson): Promise<Person>;
 }
 
-export class MemStorage implements IStorage {
-  private events: Map<number, Event>;
-  private people: Map<number, Person>;
-  private eventId: number;
-  private personId: number;
+export class DatabaseStorage implements IStorage {
+  async getPeople(
+    page: number = 1,
+    limit: number = 30,
+    search?: string
+  ): Promise<PaginatedResult<PersonWithUser>> {
+    const offset = (page - 1) * limit;
 
-  constructor() {
-    this.events = new Map();
-    this.people = new Map();
-    this.eventId = 1;
-    this.personId = 1;
-  }
+    // Build the base query conditions
+    const conditions = [];
+    if (search) {
+      conditions.push(
+        or(
+          ilike(people.email, `%${search}%`),
+          ilike(users.name, `%${search}%`)
+        )
+      );
+    }
 
-  async getEvents(): Promise<Event[]> {
-    return Array.from(this.events.values());
-  }
+    // Get total count
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(people)
+      .leftJoin(users, eq(people.userId, users.id))
+      .where(and(...conditions));
 
-  async insertEvent(event: InsertEvent): Promise<Event> {
-    const id = this.eventId++;
-    const newEvent = { ...event, id };
-    this.events.set(id, newEvent);
-    return newEvent;
-  }
+    // Get paginated results with user data
+    const items = await db
+      .select()
+      .from(people)
+      .leftJoin(users, eq(people.userId, users.id))
+      .where(and(...conditions))
+      .limit(limit)
+      .offset(offset)
+      .orderBy(people.createdAt);
 
-  async getPeople(): Promise<Person[]> {
-    return Array.from(this.people.values());
+    // Transform the results to match the expected format
+    const transformedItems = items.map(({ people: person, users: user }) => ({
+      ...person,
+      user: user || null,
+    }));
+
+    return {
+      items: transformedItems,
+      total: Number(count),
+      page,
+      limit,
+      hasMore: offset + items.length < Number(count),
+    };
   }
 
   async insertPerson(person: InsertPerson): Promise<Person> {
-    const id = this.personId++;
-    const newPerson = { ...person, id };
-    this.people.set(id, newPerson);
+    const [newPerson] = await db.insert(people).values(person).returning();
     return newPerson;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
