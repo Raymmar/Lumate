@@ -6,12 +6,18 @@ const LUMA_API_BASE = 'https://api.lu.ma/public/v1/calendar';
 
 // Helper function to make Luma API requests
 async function lumaApiRequest(endpoint: string) {
-  console.log(`Making request to ${LUMA_API_BASE}/${endpoint}`);
+  const url = `${LUMA_API_BASE}/${endpoint}`;
+  console.log(`Making request to ${url}`);
 
-  const response = await fetch(`${LUMA_API_BASE}/${endpoint}`, {
+  if (!process.env.LUMA_API_KEY) {
+    throw new Error('LUMA_API_KEY environment variable is not set');
+  }
+
+  const response = await fetch(url, {
+    method: 'GET',
     headers: {
       'accept': 'application/json',
-      'x-luma-api-key': process.env.LUMA_API_KEY || ''
+      'x-luma-api-key': process.env.LUMA_API_KEY
     }
   });
 
