@@ -41,6 +41,12 @@ interface EventDetailsResponse {
     geo_latitude?: number | null;
     geo_longitude?: number | null;
     timezone?: string;
+    series_api_id?: string | null;
+    duration_interval?: string;
+    guest_count?: number;
+    approved_guest_count?: number;
+    capacity?: number;
+    waitlist_count?: number;
   };
   hosts: Array<{
     api_id: string;
@@ -153,6 +159,17 @@ function EventDetailsModal({
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
               <span>{location}</span>
+            </div>
+          )}
+
+          {details && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              <span>
+                {details.approved_guest_count || details.guest_count || 0} guests
+                {details.capacity ? ` / ${details.capacity} capacity` : ''}
+                {details.waitlist_count ? ` (${details.waitlist_count} waitlisted)` : ''}
+              </span>
             </div>
           )}
 
