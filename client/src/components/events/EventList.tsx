@@ -4,6 +4,7 @@ import { format, parseISO, isFuture } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ReactMarkdown from "react-markdown";
 
 interface Event {
   api_id: string;
@@ -24,7 +25,7 @@ interface Event {
 
 function formatEventDate(dateStr: string): string {
   try {
-    return format(parseISO(dateStr), "PPP p");
+    return format(parseISO(dateStr), "MMM d, h:mm a");
   } catch (error) {
     console.error("Invalid date format:", dateStr);
     return "Date not available";
@@ -33,6 +34,8 @@ function formatEventDate(dateStr: string): string {
 
 function EventCard({ event }: { event: Event }) {
   const eventData = event.event || event;
+  const description = eventData.description_md || eventData.description || "";
+
   return (
     <div
       key={event.api_id}
@@ -49,10 +52,11 @@ function EventCard({ event }: { event: Event }) {
       )}
       <h3 className="font-semibold">{eventData.name}</h3>
       <div className="mt-2 text-sm text-muted-foreground">
-        <p>Starts: {formatEventDate(eventData.start_at)}</p>
-        <p>Ends: {formatEventDate(eventData.end_at)}</p>
+        <p>{formatEventDate(eventData.start_at)}</p>
       </div>
-      <p className="text-sm mt-2">{eventData.description_md || eventData.description || "No description available"}</p>
+      <div className="text-sm mt-2 line-clamp-3 prose prose-sm dark:prose-invert">
+        <ReactMarkdown>{description}</ReactMarkdown>
+      </div>
     </div>
   );
 }
