@@ -74,15 +74,8 @@ function parseAddressJson(jsonStr: string | null | undefined): string | null {
 
 function EventCard({ event, details }: { event: Event; details?: EventDetails }) {
   const eventData = details?.event || event.event || event;
-  const description = eventData.description || "";
   const location = parseAddressJson(eventData.geo_address_json);
   const hosts = details?.hosts || [];
-
-  // Get attendance numbers from the event details response
-  const guestCount = eventData.guest_count;
-  const approvedGuestCount = eventData.approved_guest_count;
-  const capacity = eventData.capacity;
-  const waitlistCount = eventData.waitlist_count;
 
   return (
     <div className="p-4 rounded-lg border bg-card text-card-foreground">
@@ -110,15 +103,15 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
           </div>
         )}
 
-        {(guestCount !== undefined || approvedGuestCount !== undefined) && (
+        {(eventData.guest_count !== undefined || eventData.approved_guest_count !== undefined) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4" />
             <span>
-              {guestCount || approvedGuestCount || 0} attendees
-              {approvedGuestCount !== undefined && approvedGuestCount !== guestCount &&
-                ` (${approvedGuestCount} approved)`}
-              {capacity && ` / ${capacity} capacity`}
-              {waitlistCount ? ` (${waitlistCount} waitlisted)` : ''}
+              {eventData.guest_count || eventData.approved_guest_count || 0} attendees
+              {eventData.approved_guest_count !== undefined && eventData.approved_guest_count !== eventData.guest_count &&
+                ` (${eventData.approved_guest_count} approved)`}
+              {eventData.capacity && ` / ${eventData.capacity} capacity`}
+              {eventData.waitlist_count ? ` (${eventData.waitlist_count} waitlisted)` : ''}
             </span>
           </div>
         )}
@@ -129,10 +122,6 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
             <span>Hosted by {hosts.map(host => host.name).join(", ")}</span>
           </div>
         )}
-      </div>
-
-      <div className="mt-4 text-sm prose prose-sm dark:prose-invert">
-        <ReactMarkdown>{description}</ReactMarkdown>
       </div>
     </div>
   );
