@@ -4,9 +4,11 @@ import { storage } from "./storage";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 const MAX_PAGES = 50; // Safety limit for pagination
+const INITIAL_DELAY = 1000; // 1 second
+const MAX_RETRIES = 3;
 
-// Helper function to make Luma API requests
-async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
+// Helper function to make Luma API requests with retry logic
+async function lumaApiRequest(endpoint: string, params?: Record<string, string>, retryCount = 0): Promise<any> {
   const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
@@ -19,20 +21,37 @@ async function lumaApiRequest(endpoint: string, params?: Record<string, string>)
     throw new Error('LUMA_API_KEY environment variable is not set');
   }
 
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'accept': 'application/json',
-      'x-luma-api-key': process.env.LUMA_API_KEY
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'x-luma-api-key': process.env.LUMA_API_KEY
+      }
+    });
+
+    if (response.status === 429 && retryCount < MAX_RETRIES) {
+      const delay = INITIAL_DELAY * Math.pow(2, retryCount);
+      console.log(`Rate limited. Retrying after ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return lumaApiRequest(endpoint, params, retryCount + 1);
     }
-  });
 
-  if (!response.ok) {
-    throw new Error(`Luma API error: ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`Luma API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    if (retryCount < MAX_RETRIES) {
+      const delay = INITIAL_DELAY * Math.pow(2, retryCount);
+      console.log(`Request failed. Retrying after ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return lumaApiRequest(endpoint, params, retryCount + 1);
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  return data;
 }
 
 export async function registerRoutes(app: Express) {
@@ -90,8 +109,8 @@ export async function registerRoutes(app: Express) {
 
         page++;
 
-        // Add a small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Add a larger delay between page fetches to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
 
       console.log(`Syncing ${allPeople.length} people to database...`);

@@ -68,9 +68,13 @@ export default function PeopleDirectory() {
       queryClient.invalidateQueries({ queryKey: ['/api/people'] });
     },
     onError: (error: Error) => {
+      let errorMessage = error.message;
+      if (error.message.includes('Too Many Requests')) {
+        errorMessage = 'Rate limit reached. Please wait a moment and try again.';
+      }
       toast({
         title: "Sync failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
