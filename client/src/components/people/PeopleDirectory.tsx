@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface Person {
   api_id: string;
@@ -14,19 +15,22 @@ interface Person {
 }
 
 export default function PeopleDirectory() {
+  const [searchQuery, setSearchQuery] = useState("");
   const { data: people, isLoading, error } = useQuery<Person[]>({
     queryKey: ["/api/people"],
+  });
+
+  const filteredPeople = people?.filter((person) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      person.user.name?.toLowerCase().includes(searchLower) ||
+      person.email.toLowerCase().includes(searchLower)
+    );
   });
 
   if (error) {
     return (
       <Card className="col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            People Directory
-          </CardTitle>
-        </CardHeader>
         <CardContent>
           <p className="text-destructive">Failed to load people directory</p>
         </CardContent>
@@ -36,22 +40,22 @@ export default function PeopleDirectory() {
 
   return (
     <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          People Directory
-        </CardTitle>
-      </CardHeader>
       <CardContent>
+        <Input
+          placeholder="Search people..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="mb-4"
+        />
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
           </div>
-        ) : people && Array.isArray(people) && people.length > 0 ? (
+        ) : filteredPeople && filteredPeople.length > 0 ? (
           <div className="space-y-4">
-            {people.map((person) => (
+            {filteredPeople.map((person) => (
               <div
                 key={person.api_id}
                 className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground"
@@ -74,7 +78,9 @@ export default function PeopleDirectory() {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground">No people available</p>
+          <p className="text-muted-foreground">
+            {searchQuery ? "No matching people found" : "No people available"}
+          </p>
         )}
       </CardContent>
     </Card>

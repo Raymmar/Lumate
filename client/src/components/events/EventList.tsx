@@ -98,12 +98,6 @@ export default function EventList() {
   if (error) {
     return (
       <Card className="col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
-            Events
-          </CardTitle>
-        </CardHeader>
         <CardContent>
           <p className="text-destructive">Failed to load events</p>
         </CardContent>
@@ -129,12 +123,6 @@ export default function EventList() {
 
   return (
     <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" />
-          Events
-        </CardTitle>
-      </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="space-y-4">
