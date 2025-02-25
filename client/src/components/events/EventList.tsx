@@ -78,11 +78,11 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
   const location = parseAddressJson(eventData.geo_address_json);
   const hosts = details?.hosts || [];
 
-  // Get attendance numbers from the detailed event data if available
-  const guestCount = details?.event?.guest_count ?? eventData.guest_count;
-  const approvedGuestCount = details?.event?.approved_guest_count ?? eventData.approved_guest_count;
-  const capacity = details?.event?.capacity ?? eventData.capacity;
-  const waitlistCount = details?.event?.waitlist_count ?? eventData.waitlist_count;
+  // Get attendance numbers from the event details response
+  const guestCount = eventData.guest_count;
+  const approvedGuestCount = eventData.approved_guest_count;
+  const capacity = eventData.capacity;
+  const waitlistCount = eventData.waitlist_count;
 
   return (
     <div className="p-4 rounded-lg border bg-card text-card-foreground">
@@ -110,11 +110,11 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
           </div>
         )}
 
-        {guestCount !== undefined && (
+        {(guestCount !== undefined || approvedGuestCount !== undefined) && (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Users className="h-4 w-4" />
             <span>
-              {guestCount} attendees
+              {guestCount || approvedGuestCount || 0} attendees
               {approvedGuestCount !== undefined && approvedGuestCount !== guestCount &&
                 ` (${approvedGuestCount} approved)`}
               {capacity && ` / ${capacity} capacity`}
