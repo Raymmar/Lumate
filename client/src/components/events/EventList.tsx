@@ -11,6 +11,14 @@ interface Event {
   start_at: string;  
   end_at: string;    
   description_md?: string;
+  cover_url?: string;
+  event: {
+    cover_url?: string;
+    name: string;
+    description: string;
+    start_at: string;
+    end_at: string;
+  };
 }
 
 function formatEventDate(dateStr: string): string {
@@ -68,17 +76,27 @@ export default function EventList() {
           <div className="space-y-4">
             {events.map((event) => {
               console.log('Rendering event:', event); // Debug individual event
+              const eventData = event.event || event; // Handle both nested and flat structures
               return (
                 <div
                   key={event.api_id}
                   className="p-4 rounded-lg border bg-card text-card-foreground"
                 >
-                  <h3 className="font-semibold">{event.name}</h3>
+                  {eventData.cover_url && (
+                    <div className="mb-4 w-full h-40 rounded-lg overflow-hidden">
+                      <img 
+                        src={eventData.cover_url} 
+                        alt={eventData.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <h3 className="font-semibold">{eventData.name}</h3>
                   <div className="mt-2 text-sm text-muted-foreground">
-                    <p>Starts: {formatEventDate(event.start_at)}</p>
-                    <p>Ends: {formatEventDate(event.end_at)}</p>
+                    <p>Starts: {formatEventDate(eventData.start_at)}</p>
+                    <p>Ends: {formatEventDate(eventData.end_at)}</p>
                   </div>
-                  <p className="text-sm mt-2">{event.description_md || event.description || "No description available"}</p>
+                  <p className="text-sm mt-2">{eventData.description_md || eventData.description || "No description available"}</p>
                 </div>
               );
             })}
