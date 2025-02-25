@@ -47,7 +47,7 @@ function formatEventDate(dateStr: string): string {
 
 function EventCard({ event, onClick }: { event: Event; onClick: () => void }) {
   const eventData = event.event || event;
-  const description = eventData.description_md || eventData.description || "";
+  const description = eventData.description || "";
 
   return (
     <div
