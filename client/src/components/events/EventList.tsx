@@ -43,8 +43,8 @@ interface EventDetailsResponse {
     timezone?: string;
     series_api_id?: string | null;
     duration_interval?: string;
-    guest_count?: number;
-    approved_guest_count?: number;
+    guest_count: number;
+    approved_guest_count: number;
     capacity?: number;
     waitlist_count?: number;
   };
@@ -166,7 +166,9 @@ function EventDetailsModal({
             <div className="flex items-center gap-2 text-muted-foreground">
               <Users className="h-4 w-4" />
               <span>
-                {details.approved_guest_count || details.guest_count || 0} guests
+                {details.guest_count} attendees
+                {details.approved_guest_count !== details.guest_count && 
+                  ` (${details.approved_guest_count} approved)`}
                 {details.capacity ? ` / ${details.capacity} capacity` : ''}
                 {details.waitlist_count ? ` (${details.waitlist_count} waitlisted)` : ''}
               </span>
