@@ -7,8 +7,10 @@ import { Users } from "lucide-react";
 interface Person {
   api_id: string;
   email: string;
-  full_name: string;
-  role?: string;
+  user: {
+    name: string | null;
+    avatar_url?: string;
+  };
 }
 
 export default function PeopleDirectory() {
@@ -47,31 +49,32 @@ export default function PeopleDirectory() {
             <Skeleton className="h-12" />
             <Skeleton className="h-12" />
           </div>
-        ) : (
+        ) : people && Array.isArray(people) && people.length > 0 ? (
           <div className="space-y-4">
-            {people?.map((person) => (
+            {people.map((person) => (
               <div
                 key={person.api_id}
                 className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground"
               >
                 <Avatar>
                   <AvatarFallback>
-                    {person.full_name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
+                    {person.user.name
+                      ? person.user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                      : "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{person.full_name}</p>
+                  <p className="font-medium">{person.user.name || "Anonymous"}</p>
                   <p className="text-sm text-muted-foreground">{person.email}</p>
-                  {person.role && (
-                    <p className="text-sm text-muted-foreground">{person.role}</p>
-                  )}
                 </div>
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-muted-foreground">No people available</p>
         )}
       </CardContent>
     </Card>

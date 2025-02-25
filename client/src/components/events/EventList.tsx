@@ -6,10 +6,10 @@ import { CalendarDays } from "lucide-react";
 
 interface Event {
   api_id: string;
-  title: string;
+  name: string;  
   description: string | null;
-  start_time: string;
-  end_time: string;
+  start_at: string;  
+  end_at: string;    
 }
 
 function formatEventDate(dateStr: string): string {
@@ -64,9 +64,9 @@ export default function EventList() {
                 key={event.api_id}
                 className="p-4 rounded-lg border bg-card text-card-foreground"
               >
-                <h3 className="font-semibold">{event.title}</h3>
+                <h3 className="font-semibold">{event.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {formatEventDate(event.start_time)}
+                  {formatEventDate(event.start_at)}
                 </p>
                 <p className="text-sm mt-2">{event.description || "No description available"}</p>
               </div>

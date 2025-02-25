@@ -42,6 +42,7 @@ export async function registerRoutes(app: Express) {
       const data = await lumaApiRequest('list-people');
       // Extract entries array from response
       const people = data.entries || [];
+      console.log('Raw people data:', JSON.stringify(data, null, 2)); // Detailed logging
       console.log('Sending people to client:', people); // Debug log
       res.json(people);
     } catch (error) {
