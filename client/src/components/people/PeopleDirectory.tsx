@@ -5,9 +5,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Users } from "lucide-react";
 
 interface Person {
-  id: string;
-  name: string;
+  api_id: string;
   email: string;
+  full_name: string;
   role?: string;
 }
 
@@ -51,19 +51,19 @@ export default function PeopleDirectory() {
           <div className="space-y-4">
             {people?.map((person) => (
               <div
-                key={person.id}
+                key={person.api_id}
                 className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground"
               >
                 <Avatar>
                   <AvatarFallback>
-                    {person.name
+                    {person.full_name
                       .split(" ")
                       .map((n) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{person.name}</p>
+                  <p className="font-medium">{person.full_name}</p>
                   <p className="text-sm text-muted-foreground">{person.email}</p>
                   {person.role && (
                     <p className="text-sm text-muted-foreground">{person.role}</p>

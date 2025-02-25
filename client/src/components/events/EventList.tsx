@@ -1,15 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
 
 interface Event {
-  id: string;
+  api_id: string;
   title: string;
   description: string;
-  startTime: string;
-  endTime: string;
+  start_time: string;
+  end_time: string;
+}
+
+function formatEventDate(dateStr: string): string {
+  try {
+    return format(parseISO(dateStr), "PPP p");
+  } catch (error) {
+    console.error("Invalid date format:", dateStr);
+    return "Date not available";
+  }
 }
 
 export default function EventList() {
@@ -48,21 +57,23 @@ export default function EventList() {
             <Skeleton className="h-20" />
             <Skeleton className="h-20" />
           </div>
-        ) : (
+        ) : events && events.length > 0 ? (
           <div className="space-y-4">
-            {events?.map((event) => (
+            {events.map((event) => (
               <div
-                key={event.id}
+                key={event.api_id}
                 className="p-4 rounded-lg border bg-card text-card-foreground"
               >
                 <h3 className="font-semibold">{event.title}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {format(new Date(event.startTime), "PPP p")}
+                  {formatEventDate(event.start_time)}
                 </p>
-                <p className="text-sm mt-2">{event.description}</p>
+                <p className="text-sm mt-2">{event.description || "No description available"}</p>
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-muted-foreground">No events available</p>
         )}
       </CardContent>
     </Card>
