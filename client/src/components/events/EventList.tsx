@@ -2,24 +2,25 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO, isFuture } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactMarkdown from "react-markdown";
 
 interface Event {
   api_id: string;
-  name: string;  
+  name: string;
   description: string | null;
-  start_at: string;  
-  end_at: string;    
-  description_md?: string;
+  start_at: string;
+  end_at: string;
   cover_url?: string;
+  url?: string;
   event: {
     cover_url?: string;
     name: string;
     description: string;
     start_at: string;
     end_at: string;
+    geo_address_json?: string | null;
+    url?: string;
   };
 }
 
@@ -32,16 +33,36 @@ function formatEventDate(dateStr: string): string {
   }
 }
 
-function EventCard({ event }: { event: Event }) {
+function parseAddressJson(jsonStr: string | null | undefined): string | null {
+  if (!jsonStr) return null;
+  try {
+    if (jsonStr.trim().startsWith('{')) {
+      const parsed = JSON.parse(jsonStr);
+      return parsed.full_address || parsed.formatted_address || parsed.address || `${parsed.city}, ${parsed.region}`;
+    }
+    return jsonStr;
+  } catch (error) {
+    console.error('Failed to parse address JSON:', error);
+    return null;
+  }
+}
+
+function EventCard({ event, showCover = false }: { event: Event; showCover?: boolean }) {
   const eventData = event.event || event;
-  const description = eventData.description_md || eventData.description || "";
+  const location = parseAddressJson(eventData.geo_address_json);
+
+  const handleClick = () => {
+    if (eventData.url) {
+      window.open(eventData.url, '_blank');
+    }
+  };
 
   return (
-    <div
-      key={event.api_id}
-      className="p-4 rounded-lg border bg-card text-card-foreground"
+    <div 
+      className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary cursor-pointer transition-colors"
+      onClick={handleClick}
     >
-      {eventData.cover_url && (
+      {showCover && eventData.cover_url && (
         <div className="mb-4 w-full h-40 rounded-lg overflow-hidden">
           <img 
             src={eventData.cover_url} 
@@ -51,11 +72,19 @@ function EventCard({ event }: { event: Event }) {
         </div>
       )}
       <h3 className="font-semibold">{eventData.name}</h3>
-      <div className="mt-2 text-sm text-muted-foreground">
-        <p>{formatEventDate(eventData.start_at)}</p>
-      </div>
-      <div className="text-sm mt-2 line-clamp-3 prose prose-sm dark:prose-invert">
-        <ReactMarkdown>{description}</ReactMarkdown>
+
+      <div className="mt-4 space-y-2">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <CalendarDays className="h-4 w-4" />
+          <span>{formatEventDate(eventData.start_at)}</span>
+        </div>
+
+        {location && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <MapPin className="h-4 w-4" />
+            <span>{location}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -69,12 +98,6 @@ export default function EventList() {
   if (error) {
     return (
       <Card className="col-span-1">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
-            Events
-          </CardTitle>
-        </CardHeader>
         <CardContent>
           <p className="text-destructive">Failed to load events</p>
         </CardContent>
@@ -100,13 +123,7 @@ export default function EventList() {
 
   return (
     <Card className="col-span-1">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarDays className="h-5 w-5" />
-          Events
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-20" />
@@ -115,12 +132,6 @@ export default function EventList() {
           </div>
         ) : events && events.length > 0 ? (
           <div className="space-y-6">
-            {nextEvent && (
-              <div className="mb-4">
-                <EventCard event={nextEvent} />
-              </div>
-            )}
-
             <Tabs defaultValue="upcoming" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
@@ -128,11 +139,16 @@ export default function EventList() {
               </TabsList>
 
               <TabsContent value="upcoming" className="space-y-4 mt-4">
+                {nextEvent && (
+                  <div className="mb-4">
+                    <EventCard event={nextEvent} showCover={true} />
+                  </div>
+                )}
                 {upcomingEvents.slice(1).map((event) => (
                   <EventCard key={event.api_id} event={event} />
                 ))}
-                {upcomingEvents.length <= 1 && (
-                  <p className="text-muted-foreground">No more upcoming events</p>
+                {upcomingEvents.length === 0 && (
+                  <p className="text-muted-foreground">No upcoming events</p>
                 )}
               </TabsContent>
 
