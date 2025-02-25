@@ -86,11 +86,6 @@ function EventCard({ event }: { event: Event }) {
             <span>{location}</span>
           </div>
         )}
-
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Users className="h-4 w-4" />
-          <span>{eventData.guest_count} attendees</span>
-        </div>
       </div>
     </div>
   );
