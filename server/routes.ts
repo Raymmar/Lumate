@@ -36,8 +36,8 @@ export async function registerRoutes(app: Express) {
       console.log('Raw events response:', JSON.stringify(data, null, 2)); // Log full response
 
       // Check data structure and extract events
-      if (data && Array.isArray(data.events)) {
-        const events = data.events;
+      if (data && Array.isArray(data.entries)) {
+        const events = data.entries;
         console.log(`Found ${events.length} events`);
         res.json(events);
       } else {
