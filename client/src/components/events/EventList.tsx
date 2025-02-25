@@ -116,8 +116,7 @@ export default function EventList() {
         ) : events && events.length > 0 ? (
           <div className="space-y-6">
             {nextEvent && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Next Event</h3>
+              <div className="mb-4">
                 <EventCard event={nextEvent} />
               </div>
             )}
