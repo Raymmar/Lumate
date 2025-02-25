@@ -61,14 +61,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/people", async (_req, res) => {
+  app.get("/api/people", async (req, res) => {
     try {
-      const data = await lumaApiRequest('calendar/list-people');
-      // Extract entries array from response
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      const data = await lumaApiRequest('calendar/list-people', {
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
       const people = data.entries || [];
-      console.log('Raw people data:', JSON.stringify(data, null, 2)); // Detailed logging
-      console.log('Sending people to client:', people); // Debug log
-      res.json(people);
+      const total = data.total || people.length;
+
+      res.json({
+        people,
+        page,
+        limit,
+        total,
+        hasMore: page * limit < total
+      });
     } catch (error) {
       console.error('Failed to fetch people:', error);
       res.status(500).json({ error: "Failed to fetch people from Luma API" });
