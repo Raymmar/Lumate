@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,18 +35,30 @@ interface PeopleResponse {
 
 export default function PeopleDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 20; // Reduced page size for better performance
+  const pageSize = 30; // Increased page size for better UX
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const { data, isLoading, error, isFetching } = useQuery<PeopleResponse>({
-    queryKey: ['/api/people', currentPage, searchQuery],
+    queryKey: ['/api/people', currentPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
-        `/api/people?page=${currentPage}&limit=${pageSize}${searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : ''}`
+        `/api/people?page=${currentPage}&limit=${pageSize}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`
       );
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
-    }
+    },
+    keepPreviousData: true // Keep previous data while fetching new data
   });
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
@@ -85,7 +97,7 @@ export default function PeopleDirectory() {
     if (!data?.people?.length) {
       return (
         <p className="text-muted-foreground p-4">
-          {searchQuery ? "No matching people found" : "No people available"}
+          {debouncedSearch ? "No matching people found" : "No people available"}
         </p>
       );
     }
@@ -121,10 +133,7 @@ export default function PeopleDirectory() {
           <Input
             placeholder="Search people..."
             value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1); // Reset to first page on search
-            }}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-sm"
           />
           {isFetching && <Skeleton className="h-4 w-4 rounded-full animate-spin" />}
@@ -134,13 +143,13 @@ export default function PeopleDirectory() {
           {renderPeopleList()}
         </div>
 
-        {data?.people?.length > 0 && (
+        {data?.people && data.people.length > 0 && (
           <Pagination className="mt-6">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious 
                   onClick={handlePreviousPage} 
-                  className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} ${isFetching ? 'cursor-wait' : ''}`}
                 />
               </PaginationItem>
               <PaginationItem>
@@ -151,7 +160,7 @@ export default function PeopleDirectory() {
               <PaginationItem>
                 <PaginationNext 
                   onClick={handleNextPage}
-                  className={!data?.hasMore ? 'pointer-events-none opacity-50' : ''}
+                  className={`${!data?.hasMore ? 'pointer-events-none opacity-50' : ''} ${isFetching ? 'cursor-wait' : ''}`}
                 />
               </PaginationItem>
             </PaginationContent>
