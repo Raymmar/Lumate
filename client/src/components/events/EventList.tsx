@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format, parseISO, isFuture } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -27,6 +27,28 @@ interface Event {
   };
 }
 
+interface EventDetails {
+  event: {
+    api_id: string;
+    name: string;
+    description: string;
+    start_at: string;
+    end_at: string;
+    cover_url?: string;
+    geo_address_json?: string | null;
+    guest_count: number;
+    approved_guest_count: number;
+    capacity?: number;
+    waitlist_count?: number;
+  };
+  hosts: Array<{
+    api_id: string;
+    name: string;
+    email: string;
+    avatar_url?: string;
+  }>;
+}
+
 function formatEventDate(dateStr: string): string {
   try {
     return format(parseISO(dateStr), "MMM d, h:mm a");
@@ -50,16 +72,14 @@ function parseAddressJson(jsonStr: string | null | undefined): string | null {
   }
 }
 
-function EventCard({ event }: { event: Event }) {
-  const eventData = event.event || event;
+function EventCard({ event, details }: { event: Event; details?: EventDetails }) {
+  const eventData = details?.event || event.event || event;
   const description = eventData.description || "";
   const location = parseAddressJson(eventData.geo_address_json);
+  const hosts = details?.hosts || [];
 
   return (
-    <div
-      key={event.api_id}
-      className="p-4 rounded-lg border bg-card text-card-foreground"
-    >
+    <div className="p-4 rounded-lg border bg-card text-card-foreground">
       {eventData.cover_url && (
         <div className="mb-4 w-full h-40 rounded-lg overflow-hidden">
           <img 
@@ -97,6 +117,13 @@ function EventCard({ event }: { event: Event }) {
             </span>
           </div>
         )}
+
+        {hosts.length > 0 && (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Users className="h-4 w-4" />
+            <span>Hosted by {hosts.map(host => host.name).join(", ")}</span>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 text-sm prose prose-sm dark:prose-invert">
@@ -107,9 +134,23 @@ function EventCard({ event }: { event: Event }) {
 }
 
 export default function EventList() {
-  const { data: events = [], isLoading, error } = useQuery<Event[]>({
+  const { data: events = [], isLoading: eventsLoading, error } = useQuery<Event[]>({
     queryKey: ["/api/events"]
   });
+
+  // Fetch details for all events
+  const eventQueries = useQueries({
+    queries: events.map(event => ({
+      queryKey: [`/api/events/${event.api_id}`],
+      queryFn: () => fetch(`/api/events/${event.api_id}`).then(res => res.json()),
+      enabled: !!event.api_id
+    }))
+  });
+
+  const eventsWithDetails = events.map((event, index) => ({
+    event,
+    details: eventQueries[index]?.data as EventDetails | undefined
+  }));
 
   if (error) {
     return (
@@ -127,17 +168,19 @@ export default function EventList() {
     );
   }
 
-  const sortedEvents = [...events].sort((a, b) => {
-    const dateA = parseISO((a.event || a).start_at);
-    const dateB = parseISO((b.event || b).start_at);
+  const isLoading = eventsLoading || eventQueries.some(query => query.isLoading);
+
+  const sortedEvents = [...eventsWithDetails].sort((a, b) => {
+    const dateA = parseISO((a.event.event || a.event).start_at);
+    const dateB = parseISO((b.event.event || b.event).start_at);
     return dateA.getTime() - dateB.getTime();
   });
 
   const now = new Date();
-  const upcomingEvents = sortedEvents.filter(event => 
+  const upcomingEvents = sortedEvents.filter(({ event }) => 
     isFuture(parseISO((event.event || event).start_at))
   );
-  const pastEvents = sortedEvents.filter(event => 
+  const pastEvents = sortedEvents.filter(({ event }) => 
     !isFuture(parseISO((event.event || event).start_at))
   ).reverse();
 
@@ -162,7 +205,10 @@ export default function EventList() {
           <div className="space-y-6">
             {nextEvent && (
               <div className="mb-4">
-                <EventCard event={nextEvent} />
+                <EventCard 
+                  event={nextEvent.event} 
+                  details={nextEvent.details}
+                />
               </div>
             )}
 
@@ -173,8 +219,12 @@ export default function EventList() {
               </TabsList>
 
               <TabsContent value="upcoming" className="space-y-4 mt-4">
-                {upcomingEvents.slice(1).map((event) => (
-                  <EventCard key={event.api_id} event={event} />
+                {upcomingEvents.slice(1).map(({ event, details }) => (
+                  <EventCard 
+                    key={event.api_id} 
+                    event={event}
+                    details={details}
+                  />
                 ))}
                 {upcomingEvents.length <= 1 && (
                   <p className="text-muted-foreground">No more upcoming events</p>
@@ -182,8 +232,12 @@ export default function EventList() {
               </TabsContent>
 
               <TabsContent value="past" className="space-y-4 mt-4">
-                {pastEvents.map((event) => (
-                  <EventCard key={event.api_id} event={event} />
+                {pastEvents.map(({ event, details }) => (
+                  <EventCard 
+                    key={event.api_id} 
+                    event={event}
+                    details={details}
+                  />
                 ))}
                 {pastEvents.length === 0 && (
                   <p className="text-muted-foreground">No past events</p>
