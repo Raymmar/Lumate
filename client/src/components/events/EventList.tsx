@@ -95,7 +95,7 @@ function parseAddressJson(jsonStr: string | null | undefined): string | null {
     // Only attempt to parse if it looks like a JSON object
     if (jsonStr.trim().startsWith('{')) {
       const parsed = JSON.parse(jsonStr);
-      return parsed.formatted_address || parsed.toString();
+      return parsed.formatted_address || parsed.full_address || parsed.address || parsed.toString();
     }
     // If it's not a JSON object, return the string as is
     return jsonStr;
@@ -132,11 +132,11 @@ function EventDetailsModal({
         <DialogHeader>
           <DialogTitle>{details?.name || event.event?.name || event.name}</DialogTitle>
         </DialogHeader>
-        {details?.cover_url && (
+        {(details?.cover_url || event.event?.cover_url || event.cover_url) && (
           <div className="w-full h-48 md:h-64 rounded-lg overflow-hidden mb-4">
             <img
-              src={details.cover_url}
-              alt={details.name}
+              src={details?.cover_url || event.event?.cover_url || event.cover_url}
+              alt={details?.name || event.event?.name || event.name}
               className="w-full h-full object-cover"
             />
           </div>
