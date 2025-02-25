@@ -119,9 +119,9 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
         <div className="flex items-center gap-2 text-muted-foreground">
           <Users className="h-4 w-4" />
           <span>
-            {details?.event?.guest_count || 0} attendees
-            {details?.event?.capacity ? ` / ${details.event.capacity} capacity` : ''}
-            {details?.event?.waitlist_count ? ` (${details.event.waitlist_count} waitlisted)` : ''}
+            {event.event.guest_count || 0} attendees
+            {event.event.capacity ? ` / ${event.event.capacity} capacity` : ''}
+            {event.event.waitlist_count ? ` (${event.event.waitlist_count} waitlisted)` : ''}
           </span>
         </div>
 
