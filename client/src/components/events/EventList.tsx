@@ -89,6 +89,22 @@ function EventCard({ event, onClick }: { event: Event; onClick: () => void }) {
   );
 }
 
+function parseAddressJson(jsonStr: string | null | undefined): string | null {
+  if (!jsonStr) return null;
+  try {
+    // Only attempt to parse if it looks like a JSON object
+    if (jsonStr.trim().startsWith('{')) {
+      const parsed = JSON.parse(jsonStr);
+      return parsed.formatted_address || parsed.toString();
+    }
+    // If it's not a JSON object, return the string as is
+    return jsonStr;
+  } catch (error) {
+    console.error('Failed to parse address JSON:', error);
+    return jsonStr; // Return the original string if parsing fails
+  }
+}
+
 function EventDetailsModal({ 
   event, 
   isOpen, 
@@ -108,7 +124,7 @@ function EventDetailsModal({
   const details = eventDetails?.event;
   const hosts = eventDetails?.hosts || [];
   const description = details?.description || event.event?.description || event.description || "";
-  const location = details?.geo_address_json ? JSON.parse(details.geo_address_json) : null;
+  const location = parseAddressJson(details?.geo_address_json);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -136,7 +152,7 @@ function EventDetailsModal({
           {location && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
-              <span>{typeof location === 'string' ? location : location.formatted_address}</span>
+              <span>{location}</span>
             </div>
           )}
 
