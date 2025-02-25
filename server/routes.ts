@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer } from "http";
+import { storage } from "./storage";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
@@ -37,11 +38,7 @@ export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
       const data = await lumaApiRequest('calendar/list-events');
-      console.log('Raw events data:', JSON.stringify(data, null, 2)); // Detailed logging
-
-      // Extract entries array from response
       const events = data.entries || [];
-      console.log('Sending events to client:', events); // Debug log
       res.json(events);
     } catch (error) {
       console.error('Failed to fetch events:', error);
@@ -53,7 +50,6 @@ export async function registerRoutes(app: Express) {
     try {
       const { id } = req.params;
       const data = await lumaApiRequest('event/get', { api_id: id });
-      console.log('Raw event details data:', JSON.stringify(data, null, 2)); // Detailed logging
       res.json(data);
     } catch (error) {
       console.error('Failed to fetch event details:', error);
@@ -61,29 +57,52 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // New endpoint to sync people from Luma API to our database
+  app.post("/api/people/sync", async (_req, res) => {
+    try {
+      let allPeople: any[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      // Fetch all pages from Luma API
+      while (hasMore) {
+        const data = await lumaApiRequest('calendar/list-people', {
+          page: page.toString(),
+          limit: '50'
+        });
+
+        const people = data.entries || [];
+        allPeople = [...allPeople, ...people];
+
+        hasMore = data.has_more;
+        page++;
+
+        // Add a small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Sync all people to our database
+      await storage.syncPeople(allPeople);
+
+      res.json({ message: "People synced successfully", count: allPeople.length });
+    } catch (error) {
+      console.error('Failed to sync people:', error);
+      res.status(500).json({ error: "Failed to sync people from Luma API" });
+    }
+  });
+
+  // Updated endpoint to get people from our database with search and pagination
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
+      const limit = parseInt(req.query.limit as string) || 30;
+      const search = req.query.search as string | undefined;
 
-      const data = await lumaApiRequest('calendar/list-people', {
-        page: page.toString(),
-        limit: limit.toString()
-      });
-
-      const people = data.entries || [];
-      const total = data.total || people.length;
-
-      res.json({
-        people,
-        page,
-        limit,
-        total,
-        hasMore: page * limit < total
-      });
+      const result = await storage.getPeople(page, limit, search);
+      res.json(result);
     } catch (error) {
       console.error('Failed to fetch people:', error);
-      res.status(500).json({ error: "Failed to fetch people from Luma API" });
+      res.status(500).json({ error: "Failed to fetch people from database" });
     }
   });
 

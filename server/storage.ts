@@ -1,5 +1,5 @@
 import { and, eq, ilike, or, sql } from "drizzle-orm";
-import { people, users, type Person, type InsertPerson, type PersonWithUser } from "@shared/schema";
+import { people, users, type Person, type InsertPerson, type PersonWithUser, type User, type InsertUser } from "@shared/schema";
 import { db } from "./db";
 
 export interface PaginatedResult<T> {
@@ -13,6 +13,7 @@ export interface PaginatedResult<T> {
 export interface IStorage {
   getPeople(page: number, limit: number, search?: string): Promise<PaginatedResult<PersonWithUser>>;
   insertPerson(person: InsertPerson): Promise<Person>;
+  syncPeople(lumaUsers: any[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -69,6 +70,48 @@ export class DatabaseStorage implements IStorage {
   async insertPerson(person: InsertPerson): Promise<Person> {
     const [newPerson] = await db.insert(people).values(person).returning();
     return newPerson;
+  }
+
+  async syncPeople(lumaUsers: any[]): Promise<void> {
+    for (const lumaUser of lumaUsers) {
+      // First, create or update the user record
+      const [user] = await db
+        .insert(users)
+        .values({
+          name: lumaUser.user.name,
+          avatarUrl: lumaUser.user.avatar_url,
+        })
+        .onConflictDoUpdate({
+          target: users.name,
+          set: {
+            avatarUrl: lumaUser.user.avatar_url,
+          },
+        })
+        .returning();
+
+      // Then, create or update the person record
+      await db
+        .insert(people)
+        .values({
+          apiId: lumaUser.api_id,
+          email: lumaUser.email,
+          createdAt: new Date(lumaUser.created_at),
+          eventApprovedCount: lumaUser.event_approved_count,
+          eventCheckedInCount: lumaUser.event_checked_in_count,
+          revenueUsdCents: lumaUser.revenue_usd_cents,
+          userId: user.id,
+        })
+        .onConflictDoUpdate({
+          target: people.apiId,
+          set: {
+            email: lumaUser.email,
+            eventApprovedCount: lumaUser.event_approved_count,
+            eventCheckedInCount: lumaUser.event_checked_in_count,
+            revenueUsdCents: lumaUser.revenue_usd_cents,
+            userId: user.id,
+          },
+        });
+    }
   }
 }
 

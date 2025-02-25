@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,6 +11,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { queryClient } from '@/lib/queryClient';
 
 interface Person {
   api_id: string;
@@ -26,7 +30,7 @@ interface Person {
 }
 
 interface PeopleResponse {
-  people: Person[];
+  items: Person[];
   page: number;
   limit: number;
   total: number;
@@ -34,10 +38,11 @@ interface PeopleResponse {
 }
 
 export default function PeopleDirectory() {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 30; // Increased page size for better UX
+  const pageSize = 30;
 
   // Debounce search
   useEffect(() => {
@@ -49,6 +54,30 @@ export default function PeopleDirectory() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
+  // Sync mutation
+  const syncMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/people/sync', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to sync people');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Sync successful",
+        description: `Synced ${data.count} people from Luma API`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Sync failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Query for fetching people
   const { data, isLoading, error, isFetching } = useQuery<PeopleResponse>({
     queryKey: ['/api/people', currentPage, debouncedSearch],
     queryFn: async () => {
@@ -58,10 +87,8 @@ export default function PeopleDirectory() {
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
     },
-    keepPreviousData: true // Keep previous data while fetching new data
+    keepPreviousData: true
   });
-
-  const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
 
   const handlePreviousPage = () => {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
@@ -94,7 +121,7 @@ export default function PeopleDirectory() {
       ));
     }
 
-    if (!data?.people?.length) {
+    if (!data?.items?.length) {
       return (
         <p className="text-muted-foreground p-4">
           {debouncedSearch ? "No matching people found" : "No people available"}
@@ -102,7 +129,7 @@ export default function PeopleDirectory() {
       );
     }
 
-    return data.people.map((person) => (
+    return data.items.map((person) => (
       <div
         key={person.api_id}
         className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors"
@@ -136,6 +163,15 @@ export default function PeopleDirectory() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-sm"
           />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending}
+            className={syncMutation.isPending ? 'animate-spin' : ''}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
           {isFetching && <Skeleton className="h-4 w-4 rounded-full animate-spin" />}
         </div>
 
@@ -143,7 +179,7 @@ export default function PeopleDirectory() {
           {renderPeopleList()}
         </div>
 
-        {data?.people && data.people.length > 0 && (
+        {data?.items && data.items.length > 0 && (
           <Pagination className="mt-6">
             <PaginationContent>
               <PaginationItem>
@@ -154,7 +190,7 @@ export default function PeopleDirectory() {
               </PaginationItem>
               <PaginationItem>
                 <span className="px-4">
-                  Page {currentPage} of {totalPages}
+                  Page {currentPage} of {Math.ceil(data.total / pageSize)}
                 </span>
               </PaginationItem>
               <PaginationItem>
