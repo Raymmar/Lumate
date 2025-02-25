@@ -4,53 +4,25 @@ import { format, parseISO, isFuture } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, Users, MapPin } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactMarkdown from "react-markdown";
 
 interface Event {
   api_id: string;
-  name: string;  
+  name: string;
   description: string | null;
-  start_at: string;  
-  end_at: string;    
+  start_at: string;
+  end_at: string;
   cover_url?: string;
-  url?: string; // Added URL field
+  url?: string;
   event: {
     cover_url?: string;
     name: string;
     description: string;
     start_at: string;
     end_at: string;
-    guest_count?: number;
-    approved_guest_count?: number;
-    capacity?: number;
-    waitlist_count?: number;
-    geo_address_json?: string | null;
-    url?: string; // Added URL field
-  };
-}
-
-interface EventDetails {
-  event: {
-    api_id: string;
-    name: string;
-    description: string;
-    start_at: string;
-    end_at: string;
-    cover_url?: string;
-    geo_address_json?: string | null;
     guest_count: number;
-    approved_guest_count: number;
-    capacity?: number;
-    waitlist_count?: number;
-    url?: string; // Added URL field
-
+    geo_address_json?: string | null;
+    url?: string;
   };
-  hosts: Array<{
-    api_id: string;
-    name: string;
-    email: string;
-    avatar_url?: string;
-  }>;
 }
 
 function formatEventDate(dateStr: string): string {
@@ -76,15 +48,9 @@ function parseAddressJson(jsonStr: string | null | undefined): string | null {
   }
 }
 
-function EventCard({ event, details }: { event: Event; details?: EventDetails }) {
-  const eventData = details?.event || event.event || event;
+function EventCard({ event }: { event: Event }) {
+  const eventData = event.event || event;
   const location = parseAddressJson(eventData.geo_address_json);
-  const hosts = details?.hosts || [];
-
-  // Get accurate guest count from details if available
-  const guestCount = details?.event?.guest_count ?? event.event.guest_count;
-  const capacity = details?.event?.capacity ?? event.event.capacity;
-  const waitlistCount = details?.event?.waitlist_count ?? event.event.waitlist_count;
 
   const handleClick = () => {
     if (eventData.url) {
@@ -123,42 +89,17 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
 
         <div className="flex items-center gap-2 text-muted-foreground">
           <Users className="h-4 w-4" />
-          <span>
-            {guestCount} attendees
-            {capacity ? ` / ${capacity} capacity` : ''}
-            {waitlistCount ? ` (${waitlistCount} waitlisted)` : ''}
-          </span>
+          <span>{eventData.guest_count} attendees</span>
         </div>
-
-        {hosts.length > 0 && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Users className="h-4 w-4" />
-            <span>Hosted by {hosts.map(host => host.name).join(", ")}</span>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
 export default function EventList() {
-  const { data: events = [], isLoading: eventsLoading, error } = useQuery<Event[]>({
+  const { data: events = [], isLoading, error } = useQuery<Event[]>({
     queryKey: ["/api/events"]
   });
-
-  // Fetch details for all events
-  const eventQueries = useQueries({
-    queries: events.map(event => ({
-      queryKey: [`/api/events/${event.api_id}`],
-      queryFn: () => fetch(`/api/events/${event.api_id}`).then(res => res.json()),
-      enabled: !!event.api_id
-    }))
-  });
-
-  const eventsWithDetails = events.map((event, index) => ({
-    event,
-    details: eventQueries[index]?.data as EventDetails | undefined
-  }));
 
   if (error) {
     return (
@@ -176,19 +117,17 @@ export default function EventList() {
     );
   }
 
-  const isLoading = eventsLoading || eventQueries.some(query => query.isLoading);
-
-  const sortedEvents = [...eventsWithDetails].sort((a, b) => {
-    const dateA = parseISO((a.event.event || a.event).start_at);
-    const dateB = parseISO((b.event.event || b.event).start_at);
+  const sortedEvents = [...events].sort((a, b) => {
+    const dateA = parseISO((a.event || a).start_at);
+    const dateB = parseISO((b.event || b).start_at);
     return dateA.getTime() - dateB.getTime();
   });
 
   const now = new Date();
-  const upcomingEvents = sortedEvents.filter(({ event }) => 
+  const upcomingEvents = sortedEvents.filter(event => 
     isFuture(parseISO((event.event || event).start_at))
   );
-  const pastEvents = sortedEvents.filter(({ event }) => 
+  const pastEvents = sortedEvents.filter(event => 
     !isFuture(parseISO((event.event || event).start_at))
   ).reverse();
 
@@ -213,10 +152,7 @@ export default function EventList() {
           <div className="space-y-6">
             {nextEvent && (
               <div className="mb-4">
-                <EventCard 
-                  event={nextEvent.event} 
-                  details={nextEvent.details}
-                />
+                <EventCard event={nextEvent} />
               </div>
             )}
 
@@ -227,12 +163,8 @@ export default function EventList() {
               </TabsList>
 
               <TabsContent value="upcoming" className="space-y-4 mt-4">
-                {upcomingEvents.slice(1).map(({ event, details }) => (
-                  <EventCard 
-                    key={event.api_id} 
-                    event={event}
-                    details={details}
-                  />
+                {upcomingEvents.slice(1).map((event) => (
+                  <EventCard key={event.api_id} event={event} />
                 ))}
                 {upcomingEvents.length <= 1 && (
                   <p className="text-muted-foreground">No more upcoming events</p>
@@ -240,12 +172,8 @@ export default function EventList() {
               </TabsContent>
 
               <TabsContent value="past" className="space-y-4 mt-4">
-                {pastEvents.map(({ event, details }) => (
-                  <EventCard 
-                    key={event.api_id} 
-                    event={event}
-                    details={details}
-                  />
+                {pastEvents.map((event) => (
+                  <EventCard key={event.api_id} event={event} />
                 ))}
                 {pastEvents.length === 0 && (
                   <p className="text-muted-foreground">No past events</p>
