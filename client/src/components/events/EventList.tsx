@@ -81,6 +81,11 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
   const location = parseAddressJson(eventData.geo_address_json);
   const hosts = details?.hosts || [];
 
+  // Get accurate guest count from details if available
+  const guestCount = details?.event?.guest_count ?? event.event.guest_count;
+  const capacity = details?.event?.capacity ?? event.event.capacity;
+  const waitlistCount = details?.event?.waitlist_count ?? event.event.waitlist_count;
+
   const handleClick = () => {
     if (eventData.url) {
       window.open(eventData.url, '_blank');
@@ -119,9 +124,9 @@ function EventCard({ event, details }: { event: Event; details?: EventDetails })
         <div className="flex items-center gap-2 text-muted-foreground">
           <Users className="h-4 w-4" />
           <span>
-            {event.event.guest_count || 0} attendees
-            {event.event.capacity ? ` / ${event.event.capacity} capacity` : ''}
-            {event.event.waitlist_count ? ` (${event.event.waitlist_count} waitlisted)` : ''}
+            {guestCount} attendees
+            {capacity ? ` / ${capacity} capacity` : ''}
+            {waitlistCount ? ` (${waitlistCount} waitlisted)` : ''}
           </span>
         </div>
 
