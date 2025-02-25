@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Pagination,
@@ -11,86 +12,47 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { queryClient, apiRequest } from '@/lib/queryClient';
 
 interface Person {
   api_id: string;
   email: string;
-  created_at: string;
-  event_approved_count: number;
-  event_checked_in_count: number;
-  revenue_usd_cents: number;
   user: {
     name: string | null;
-    avatar_url: string;
+    avatar_url?: string;
   };
 }
 
 interface PeopleResponse {
-  items: Person[];
-  total: number;
+  people: Person[];
   page: number;
   limit: number;
+  total: number;
   hasMore: boolean;
 }
 
 export default function PeopleDirectory() {
-  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 30;
+  const pageSize = 50;
 
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // Reset to first page on search
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Sync mutation
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/people/sync');
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Sync successful",
-        description: `Synced ${data.count} people from Luma API`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/people'] });
-    },
-    onError: (error: Error) => {
-      let errorMessage = error.message;
-      if (error.message.includes('Too Many Requests')) {
-        errorMessage = 'Rate limit reached. Please wait a moment and try again.';
-      }
-      toast({
-        title: "Sync failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Query for fetching people
-  const { data, isLoading, error, isFetching } = useQuery<PeopleResponse>({
-    queryKey: ['/api/people', currentPage, debouncedSearch],
+  const { data, isLoading, error } = useQuery<PeopleResponse>({
+    queryKey: ['/api/people', currentPage],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/people?page=${currentPage}&limit=${pageSize}${debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''}`
-      );
+      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}`);
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
     }
   });
+
+  const filteredPeople = data?.people?.filter((person) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      person.user.name?.toLowerCase().includes(searchLower) ||
+      person.email.toLowerCase().includes(searchLower)
+    );
+  });
+
+  const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
 
   const handlePreviousPage = () => {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
@@ -100,116 +62,80 @@ export default function PeopleDirectory() {
     if (data?.hasMore) setCurrentPage(prev => prev + 1);
   };
 
-  // Auto-sync if no data is available
-  useEffect(() => {
-    if (data?.items?.length === 0 && !isLoading && !syncMutation.isPending) {
-      console.log('No data available, triggering initial sync...');
-      syncMutation.mutate();
-    }
-  }, [data?.items?.length, isLoading, syncMutation]);
-
   if (error) {
     return (
       <Card className="col-span-1">
-        <CardContent className="p-6">
+        <CardContent>
           <p className="text-destructive">Failed to load people directory</p>
         </CardContent>
       </Card>
     );
   }
 
-  const renderPeopleList = () => {
-    if (isLoading) {
-      return Array(3).fill(0).map((_, i) => (
-        <div key={i} className="flex items-center gap-4 p-3">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-[200px]" />
-            <Skeleton className="h-4 w-[150px]" />
-          </div>
-        </div>
-      ));
-    }
-
-    if (!data?.items?.length) {
-      return (
-        <p className="text-muted-foreground p-4">
-          {debouncedSearch ? "No matching people found" : "No people available. Click sync to load people from Luma."}
-        </p>
-      );
-    }
-
-    return data.items.map((person) => (
-      <div
-        key={person.api_id}
-        className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground hover:bg-accent/50 transition-colors"
-      >
-        <Avatar>
-          <AvatarImage src={person.user.avatar_url} alt={person.user.name || 'User avatar'} />
-          <AvatarFallback>
-            {person.user.name
-              ? person.user.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-              : "?"}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium">{person.user.name || "Anonymous"}</p>
-          <p className="text-sm text-muted-foreground">{person.email}</p>
-        </div>
-      </div>
-    ));
-  };
-
   return (
     <Card className="col-span-1">
-      <CardContent className="p-6">
-        <div className="flex items-center space-x-2 mb-6">
-          <Input
-            placeholder="Search people..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-sm"
-          />
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => syncMutation.mutate()}
-            disabled={syncMutation.isPending}
-          >
-            <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-          </Button>
-          {isFetching && <Skeleton className="h-4 w-4 rounded-full animate-spin" />}
-        </div>
-
-        <div className="space-y-4">
-          {renderPeopleList()}
-        </div>
-
-        {data?.items && data.items.length > 0 && (
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  onClick={handlePreviousPage} 
-                  className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} ${isFetching ? 'cursor-wait' : ''}`}
-                />
-              </PaginationItem>
-              <PaginationItem>
-                <span className="px-4">
-                  Page {currentPage} of {Math.ceil(data.total / pageSize)}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <PaginationNext 
-                  onClick={handleNextPage}
-                  className={`${!data?.hasMore ? 'pointer-events-none opacity-50' : ''} ${isFetching ? 'cursor-wait' : ''}`}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+      <CardContent className="pt-6">
+        <Input
+          placeholder="Search people..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="mb-4"
+        />
+        {isLoading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+          </div>
+        ) : filteredPeople && filteredPeople.length > 0 ? (
+          <>
+            <div className="space-y-4">
+              {filteredPeople.map((person) => (
+                <div
+                  key={person.api_id}
+                  className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground"
+                >
+                  <Avatar>
+                    <AvatarFallback>
+                      {person.user.name
+                        ? person.user.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                        : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{person.user.name || "Anonymous"}</p>
+                    <p className="text-sm text-muted-foreground">{person.email}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Pagination className="mt-4">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={handlePreviousPage} 
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="px-4">Page {currentPage} of {totalPages}</span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={handleNextPage}
+                    className={!data?.hasMore ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </>
+        ) : (
+          <p className="text-muted-foreground">
+            {searchQuery ? "No matching people found" : "No people available"}
+          </p>
         )}
       </CardContent>
     </Card>
