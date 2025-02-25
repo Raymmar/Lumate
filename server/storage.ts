@@ -5,20 +5,7 @@ import {
   type AuthUser, type InsertAuthUser
 } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/node-postgres";
-import pkg from 'pg';
-const { Client } = pkg;
-
-// Create the database client
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-});
-
-// Connect to the database
-client.connect();
-
-// Create the database instance
-export const db = drizzle(client);
+import { db } from "./db";
 
 export interface IStorage {
   // Events
@@ -27,7 +14,7 @@ export interface IStorage {
   upsertEvent(event: InsertEvent): Promise<Event>;
 
   // People
-  getPeople(page?: number, limit?: number): Promise<{ people: Person[], total: number }>;
+  getPeople(page?: number, limit?: number): Promise<{ people: Person[], total: number, hasMore: boolean }>;
   getPersonByApiId(apiId: string): Promise<Person | undefined>;
   getPersonByEmail(email: string): Promise<Person | undefined>;
   upsertPerson(person: InsertPerson): Promise<Person>;
@@ -70,7 +57,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // People
-  async getPeople(page = 1, limit = 50): Promise<{ people: Person[], total: number }> {
+  async getPeople(page = 1, limit = 50): Promise<{ people: Person[], total: number, hasMore: boolean }> {
     const offset = (page - 1) * limit;
     const people_results = await db
       .select()
@@ -83,9 +70,12 @@ export class DatabaseStorage implements IStorage {
       .select({ count: sql<number>`count(*)` })
       .from(people);
 
+    const total = Number(count);
+
     return {
       people: people_results,
-      total: Number(count)
+      total,
+      hasMore: (page * limit) < total
     };
   }
 
