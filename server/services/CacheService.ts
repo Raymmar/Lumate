@@ -28,21 +28,20 @@ export class CacheService {
     let noProgressCount = 0;
     const MAX_ATTEMPTS = 1000; // Safeguard against infinite loops
     const MAX_NO_PROGRESS_ATTEMPTS = 3; // Maximum attempts without new data
-    let lastCount = 0;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
         attempts++;
-        // Build params object - only include cursor if we have one and it's different from the previous
         const params: Record<string, string> = {};
-        if (nextCursor && nextCursor !== prevCursor) {
+
+        // Only add cursor and limit for subsequent requests after first page
+        if (allPeople.length > 0 && nextCursor && nextCursor !== prevCursor) {
           params.cursor = nextCursor;
           params.limit = '50';
         }
 
-        // Log current request details
         console.log('Making request with:', {
           cursor: nextCursor,
           prevCursor,
