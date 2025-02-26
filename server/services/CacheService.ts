@@ -1,29 +1,6 @@
 import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
 
-// Types for Luma API responses
-interface LumaPersonResponse {
-  entries: LumaPerson[];
-  has_more: boolean;
-  next_cursor: string | null;
-}
-
-interface LumaPerson {
-  api_id: string;
-  email: string;
-  userName?: string;
-  user?: {
-    name?: string;
-    full_name?: string;
-    avatar_url?: string;
-    phone_number?: string;
-    bio?: string;
-    organization_name?: string;
-    job_title?: string;
-  };
-  created_at?: string;
-}
-
 export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
@@ -52,7 +29,6 @@ export class CacheService {
     const MAX_ATTEMPTS = 1000;
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
     const BACKOFF_DELAY = 1000;
-    const PAGE_LIMIT = "50";
 
     console.log("Starting to fetch all people from Luma API...");
 
@@ -60,12 +36,11 @@ export class CacheService {
         try {
             attempts++;
 
-            const params: Record<string, string> = {
-                limit: PAGE_LIMIT
-            };
-
+            // Always start with a completely fresh request on first attempt
+            const params: Record<string, string> = {};
             if (nextCursor) {
                 params.cursor = nextCursor;
+                params.limit = "50";
             }
 
             console.log("Making request with:", {
@@ -85,28 +60,35 @@ export class CacheService {
 
             const people = response.entries;
 
+            // Stop pagination if no new people are received
             if (!people.length) {
                 console.log("No people in response, stopping pagination.");
                 break;
             }
 
             const previousCount = allPeople.length;
-            const existingIds = new Set(allPeople.map(p => p.api_id));
-            const newPeople = people.filter(p => !existingIds.has(p.api_id));
+            allPeople = allPeople.concat(people);
 
-            if (newPeople.length === 0) {
+            // Detect if we're receiving duplicate results
+            if (allPeople.length === previousCount) {
                 noProgressCount++;
-                console.warn(`Received only duplicate people. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+                console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+
+                if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
+                    console.log(`Stopping after ${noProgressCount} attempts with no new people`);
+                    break;
+                }
             } else {
-                allPeople = allPeople.concat(newPeople);
                 noProgressCount = 0;
-                console.log(`Added ${newPeople.length} new people. Total: ${allPeople.length}`);
+                console.log(`Added ${allPeople.length - previousCount} new people. Total: ${allPeople.length}`);
             }
 
+            // Pagination controls
             hasMore = response.has_more === true;
             prevCursor = nextCursor;
             nextCursor = response.next_cursor;
 
+            // Detect if cursor is stuck
             if (nextCursor && nextCursor === prevCursor) {
                 console.log("Cursor is not progressing, stopping pagination.");
                 break;
@@ -122,6 +104,7 @@ export class CacheService {
                 break;
             }
 
+            // Delay with exponential backoff if we get stuck
             await new Promise((resolve) => setTimeout(resolve, BACKOFF_DELAY * (noProgressCount + 1)));
         } catch (error) {
             console.error("Failed to fetch people batch:", error);
@@ -144,7 +127,7 @@ export class CacheService {
 
     console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
     return allPeople;
-  }
+}
 
   private async fetchAllEvents(): Promise<any[]> {
     try {
@@ -157,7 +140,7 @@ export class CacheService {
       }
 
       const seenEventIds = new Set<string>();
-      const uniqueEvents = eventsData.entries.filter((entry: any) => {
+      const uniqueEvents = eventsData.entries.filter(entry => {
         const eventData = entry.event;
         if (!eventData?.api_id) {
           console.warn('Invalid event data:', eventData);
