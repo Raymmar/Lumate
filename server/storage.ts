@@ -39,7 +39,7 @@ export class PostgresStorage implements IStorage {
 
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Inserting event into database:', event);
-    const [newEvent] = await db.insert(events).values(event).returning();
+    const [newEvent] = await db.insert(events).values([event]).returning();
     console.log('Successfully inserted event:', newEvent);
     return newEvent;
   }
@@ -51,16 +51,22 @@ export class PostgresStorage implements IStorage {
   }
 
   async getPeople(): Promise<Person[]> {
-    return await db.select().from(people);
+    const result = await db.select().from(people);
+    console.log(`Found ${result.length} people in database`);
+    return result;
   }
 
   async insertPerson(person: InsertPerson): Promise<Person> {
-    const [newPerson] = await db.insert(people).values(person).returning();
+    console.log('Inserting person into database:', person);
+    const [newPerson] = await db.insert(people).values([person]).returning();
+    console.log('Successfully inserted person:', newPerson);
     return newPerson;
   }
 
   async clearPeople(): Promise<void> {
+    console.log('Clearing all people from database...');
     await db.delete(people);
+    console.log('Successfully cleared people');
   }
 
   async getLastCacheUpdate(): Promise<Date | null> {
