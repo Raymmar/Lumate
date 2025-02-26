@@ -43,7 +43,15 @@ app.use((req, res, next) => {
   console.log('Starting CacheService...');
   const CacheService = (await import('./services/CacheService')).CacheService;
   const cacheService = CacheService.getInstance();
-  console.log('CacheService initialized');
+
+  // Wait for initial cache update to complete
+  try {
+    console.log('Waiting for initial cache update...');
+    await cacheService.performInitialUpdate();
+    console.log('Initial cache update completed');
+  } catch (error) {
+    console.error('Failed to perform initial cache update:', error);
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

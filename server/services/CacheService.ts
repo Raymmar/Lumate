@@ -60,6 +60,17 @@ export class CacheService {
     return allPeople;
   }
 
+  async performInitialUpdate(): Promise<void> {
+    if (this.isCaching) {
+      console.log('Cache update already in progress, waiting...');
+      return;
+    }
+
+    console.log('Starting initial cache update...');
+    await this.updateCache();
+    console.log('Initial cache update completed');
+  }
+
   private async updateCache() {
     if (this.isCaching) {
       console.log('Cache update already in progress, skipping...');
