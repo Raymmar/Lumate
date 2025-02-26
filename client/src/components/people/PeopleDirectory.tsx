@@ -31,7 +31,7 @@ export default function PeopleDirectory() {
   const pageSize = 50;
 
   const { data, isLoading, error } = useQuery<PeopleResponse>({
-    queryKey: ['/api/people', currentPage],
+    queryKey: ['/api/people', currentPage, pageSize],
     queryFn: async () => {
       const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}`);
       if (!response.ok) throw new Error('Failed to fetch people');
@@ -54,7 +54,7 @@ export default function PeopleDirectory() {
   };
 
   const handleNextPage = () => {
-    if (data?.hasMore) setCurrentPage(prev => prev + 1);
+    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
   if (error) {
@@ -121,7 +121,7 @@ export default function PeopleDirectory() {
                 <PaginationItem>
                   <PaginationNext 
                     onClick={handleNextPage}
-                    className={!data?.hasMore ? 'pointer-events-none opacity-50' : ''}
+                    className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
                   />
                 </PaginationItem>
               </PaginationContent>

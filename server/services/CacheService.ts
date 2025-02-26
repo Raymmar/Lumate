@@ -5,6 +5,7 @@ export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
+  private readonly PEOPLE_PAGE_SIZE = 100;
 
   private constructor() {
     this.startCaching();
@@ -15,6 +16,43 @@ export class CacheService {
       this.instance = new CacheService();
     }
     return this.instance;
+  }
+
+  private async fetchAllPeople(): Promise<any[]> {
+    let currentPage = 1;
+    let hasMorePeople = true;
+    const allPeople: any[] = [];
+
+    console.log('Starting to fetch all people from Luma API...');
+
+    while (hasMorePeople) {
+      try {
+        console.log(`Fetching people page ${currentPage}...`);
+        const peopleData = await lumaApiRequest('calendar/list-people', {
+          page: currentPage.toString(),
+          limit: this.PEOPLE_PAGE_SIZE.toString()
+        });
+
+        const people = peopleData.entries || [];
+        allPeople.push(...people);
+
+        console.log(`Retrieved ${people.length} people from page ${currentPage}`);
+
+        // Check if we've reached the last page
+        hasMorePeople = people.length === this.PEOPLE_PAGE_SIZE;
+        currentPage++;
+
+        // Add a small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error(`Failed to fetch people page ${currentPage}:`, error);
+        // Break the loop if we encounter an error
+        hasMorePeople = false;
+      }
+    }
+
+    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
+    return allPeople;
   }
 
   private async updateCache() {
@@ -54,21 +92,13 @@ export class CacheService {
             continue;
           }
 
-          // Log raw event data
-          console.log('Raw event data:', {
-            name: eventData.name,
-            start_at: eventData.start_at,
-            end_at: eventData.end_at,
-            timezone: eventData.timezone
-          });
-
           // Store the timestamps with timezone information
           const newEvent = await storage.insertEvent({
             api_id: eventData.api_id,
             title: eventData.name,
             description: eventData.description || null,
-            startTime: eventData.start_at, // This is already in ISO format with UTC timezone
-            endTime: eventData.end_at,     // This is already in ISO format with UTC timezone
+            startTime: eventData.start_at,
+            endTime: eventData.end_at,
             coverUrl: eventData.cover_url || null,
             url: eventData.url || null,
             timezone: eventData.timezone || null,
@@ -99,17 +129,11 @@ export class CacheService {
         }
       }
 
-      // Process people data
-      console.log('Fetching people from Luma API...');
-      const peopleData = await lumaApiRequest('calendar/list-people', {
-        page: '1',
-        limit: '100'
-      });
+      // Fetch and process all people using pagination
+      const allPeople = await this.fetchAllPeople();
+      console.log(`Processing ${allPeople.length} total people...`);
 
-      const people = peopleData.entries || [];
-      console.log(`Processing ${people.length} people...`);
-
-      for (const person of people) {
+      for (const person of allPeople) {
         try {
           if (!person.api_id || !person.email) {
             console.warn('Missing required fields for person:', person);
