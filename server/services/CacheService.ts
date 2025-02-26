@@ -22,59 +22,95 @@ export class CacheService {
 
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
-    let cursor: string | null = null;
+    let nextCursor: string | undefined;
     const seenApiIds = new Set<string>();
+    const usedCursors = new Set<string>();
+    let failedAttempts = 0;
+    const MAX_FAILED_ATTEMPTS = 3;
+    const BATCH_SIZE = 50;  // Keep batch size reasonable
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (true) {
       try {
         const params: Record<string, string> = {
-          limit: '100'  // Use larger batch size
+          limit: BATCH_SIZE.toString()
         };
 
-        if (cursor) {
-          console.log('Using cursor for next batch:', cursor);
-          params.cursor = cursor;
+        // Only add cursor if we have one from previous request
+        if (nextCursor) {
+          // Verify we haven't used this cursor before
+          if (usedCursors.has(nextCursor)) {
+            console.log('Warning: Received a duplicate cursor:', nextCursor);
+            failedAttempts++;
+            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+              console.log(`Stopping after ${MAX_FAILED_ATTEMPTS} attempts with duplicate cursors`);
+              break;
+            }
+            // Skip this cursor and try without it
+            nextCursor = undefined;
+            continue;
+          }
+
+          params.cursor = nextCursor;
+          usedCursors.add(nextCursor);
         }
 
+        console.log('Fetching batch with params:', params);
         const peopleData = await lumaApiRequest('calendar/list-people', params);
         const people = peopleData.entries || [];
 
-        // Log detailed pagination info
-        console.log('API Response Stats:', {
-          batchSize: people.length,
-          currentTotal: allPeople.length,
-          hasMore: peopleData.has_more,
-          nextCursor: peopleData.next_cursor,
-          currentCursor: cursor
-        });
-
-        // Check for new unique people
-        const newPeople = people.filter(person => {
-          if (!person?.api_id) return false;
-          return !seenApiIds.has(person.api_id);
-        });
-
-        // Update seen IDs and add new people to collection
-        newPeople.forEach(person => seenApiIds.add(person.api_id));
-        allPeople = allPeople.concat(newPeople);
-
-        console.log('Batch Results:', {
-          totalInBatch: people.length,
-          newPeopleCount: newPeople.length,
-          totalUniqueSoFar: allPeople.length
-        });
-
-        // If we got no new people or the API says no more results, stop
-        if (newPeople.length === 0 || !peopleData.has_more) {
-          console.log('Stopping pagination:', 
-            newPeople.length === 0 ? 'No new people in batch' : 'API indicates no more results');
+        if (!people.length) {
+          console.log('No people in response, stopping pagination');
           break;
         }
 
-        // Update cursor and continue
-        cursor = peopleData.next_cursor;
+        // Process new people
+        const newPeople = people.filter(person => {
+          if (!person?.api_id) return false;
+          const isNew = !seenApiIds.has(person.api_id);
+          if (isNew) seenApiIds.add(person.api_id);
+          return isNew;
+        });
+
+        // Detailed logging
+        console.log('Batch results:', {
+          batchSize: people.length,
+          newPeopleCount: newPeople.length,
+          totalUnique: seenApiIds.size,
+          hasMore: peopleData.has_more,
+          currentCursor: nextCursor,
+          receivedNextCursor: peopleData.next_cursor
+        });
+
+        if (newPeople.length === 0) {
+          failedAttempts++;
+          console.log(`No new people in batch. Attempt ${failedAttempts}/${MAX_FAILED_ATTEMPTS}`);
+          if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+            console.log(`Stopping after ${MAX_FAILED_ATTEMPTS} attempts with no new data`);
+            break;
+          }
+        } else {
+          // Reset counter if we got new people
+          failedAttempts = 0;
+          allPeople = allPeople.concat(newPeople);
+          console.log(`Added ${newPeople.length} new people. Total: ${allPeople.length}`);
+        }
+
+        // Stop if API indicates no more results
+        if (!peopleData.has_more) {
+          console.log('API indicates no more results');
+          break;
+        }
+
+        // Update cursor for next request
+        nextCursor = peopleData.next_cursor;
+
+        // Stop if we didn't get a new cursor
+        if (!nextCursor) {
+          console.log('No next cursor provided, stopping pagination');
+          break;
+        }
 
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));

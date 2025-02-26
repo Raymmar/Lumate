@@ -11,7 +11,7 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
         url.searchParams.append(key, value);
       });
     }
-    console.log(`Making request to ${url.toString()}`);
+    console.log(`Making request to ${url.toString()} with params:`, params);
 
     if (!process.env.LUMA_API_KEY) {
       throw new Error('LUMA_API_KEY environment variable is not set');
@@ -33,12 +33,18 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 
     const data = await response.json();
 
-    // Simplified logging for pagination
+    // Enhanced logging for pagination-related fields
     if (endpoint === 'calendar/list-people') {
-      console.log('Response details:', {
+      console.log('API Response:', {
         peopleCount: data.entries?.length,
         hasMore: data.has_more,
-        nextCursor: data.next_cursor
+        nextCursor: data.next_cursor,
+        params,
+        // Log IDs to track progression
+        firstId: data.entries?.[0]?.api_id,
+        lastId: data.entries?.[data.entries?.length - 1]?.api_id,
+        // Sample some IDs from middle to verify we're getting different data
+        sampleIds: data.entries?.slice(0, 5).map(p => p.api_id)
       });
     }
 
