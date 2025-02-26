@@ -11,6 +11,8 @@ interface Event {
   description: string | null;
   startTime: string;
   endTime: string;
+  coverUrl: string | null;
+  url: string | null;
 }
 
 interface EventsResponse {
@@ -29,24 +31,40 @@ function formatEventDate(dateStr: string): string {
 
 function EventCard({ event }: { event: Event }) {
   return (
-    <div 
-      className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors"
+    <a 
+      href={event.url || "#"} 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="block"
     >
-      <h3 className="font-semibold">{event.title}</h3>
-
-      <div className="mt-4 space-y-2">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <CalendarDays className="h-4 w-4" />
-          <span>{formatEventDate(event.startTime)}</span>
-        </div>
-
-        {event.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {event.description}
-          </p>
+      <div 
+        className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group"
+      >
+        {event.coverUrl && (
+          <div className="mb-4 overflow-hidden rounded-md aspect-video">
+            <img 
+              src={event.coverUrl} 
+              alt={event.title}
+              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+            />
+          </div>
         )}
+        <h3 className="font-semibold group-hover:text-primary transition-colors">{event.title}</h3>
+
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <CalendarDays className="h-4 w-4" />
+            <span>{formatEventDate(event.startTime)}</span>
+          </div>
+
+          {event.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {event.description}
+            </p>
+          )}
+        </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -88,9 +106,9 @@ export default function EventList() {
       <CardContent className="pt-6">
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
-            <Skeleton className="h-20" />
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
           </div>
         ) : eventsArray.length > 0 ? (
           <div className="space-y-6">
