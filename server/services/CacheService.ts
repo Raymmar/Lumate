@@ -26,14 +26,8 @@ export class CacheService {
       console.log('Fetching events from Luma API...');
       const eventsData = await lumaApiRequest('calendar/list-events');
 
-      // Log the raw events data for debugging
-      console.log('Raw Luma API response:', {
-        hasData: !!eventsData,
-        entries: eventsData?.entries?.length || 0,
-        firstEntry: eventsData?.entries?.[0]
-      });
-
       // Clear existing data
+      console.log('Clearing existing events and people...');
       await storage.clearEvents();
       await storage.clearPeople();
 
@@ -41,24 +35,33 @@ export class CacheService {
       const entries = eventsData.entries || [];
       console.log(`Found ${entries.length} events to process`);
 
+      // Track successful insertions
+      let successfulInserts = 0;
+
       for (const entry of entries) {
         try {
-          // Extract event data from the nested structure
           const eventData = entry.event;
-          console.log('Processing event:', {
-            name: eventData?.name,
-            start_at: eventData?.start_at,
-            end_at: eventData?.end_at
-          });
-
-          if (!eventData || !eventData.name || !eventData.start_at || !eventData.end_at) {
-            console.warn('Skipping event - missing required fields:', eventData);
+          if (!eventData) {
+            console.warn('Event data is missing:', entry);
             continue;
           }
 
-          // Convert timestamps from Unix epoch to ISO string
+          // Log the event data we're about to process
+          console.log('Processing event:', {
+            name: eventData.name,
+            start_at: eventData.start_at,
+            end_at: eventData.end_at,
+            description: eventData.description?.substring(0, 50) + '...'
+          });
+
+          // Convert timestamps and validate dates
           const startTime = new Date(Number(eventData.start_at) * 1000);
           const endTime = new Date(Number(eventData.end_at) * 1000);
+
+          if (!eventData.name || !eventData.start_at || !eventData.end_at) {
+            console.warn('Skipping event - missing required fields:', eventData);
+            continue;
+          }
 
           if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
             console.warn('Skipping event - invalid dates:', {
@@ -68,25 +71,30 @@ export class CacheService {
             continue;
           }
 
-          console.log('Inserting event:', {
-            title: eventData.name,
-            start: startTime.toISOString(),
-            end: endTime.toISOString()
-          });
-
+          // Insert the event into our database
           const newEvent = await storage.insertEvent({
             title: eventData.name,
             description: eventData.description || null,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString()
           });
-          console.log('Successfully stored event:', newEvent);
+
+          console.log('Successfully stored event:', {
+            id: newEvent.id,
+            title: newEvent.title,
+            startTime: newEvent.startTime
+          });
+
+          successfulInserts++;
         } catch (error) {
-          console.error('Failed to process event:', error, entry);
+          console.error('Failed to process event:', error);
+          console.error('Problematic event data:', entry);
         }
       }
 
-      // Fetch people data
+      console.log(`Successfully processed ${successfulInserts} out of ${entries.length} events`);
+
+      // Process people data
       console.log('Fetching people from Luma API...');
       const peopleData = await lumaApiRequest('calendar/list-people', {
         page: '1',
@@ -95,6 +103,8 @@ export class CacheService {
 
       const people = peopleData.entries || [];
       console.log(`Processing ${people.length} people...`);
+
+      let successfulPeopleInserts = 0;
 
       for (const person of people) {
         try {
@@ -109,11 +119,20 @@ export class CacheService {
             userName: person.userName || person.user?.name || null,
             avatarUrl: person.avatarUrl || person.user?.avatar_url || null
           });
-          console.log('Successfully stored person:', newPerson);
+
+          console.log('Successfully stored person:', {
+            id: newPerson.id,
+            email: newPerson.email
+          });
+
+          successfulPeopleInserts++;
         } catch (error) {
-          console.error('Failed to process person:', error, person);
+          console.error('Failed to process person:', error);
+          console.error('Problematic person data:', person);
         }
       }
+
+      console.log(`Successfully processed ${successfulPeopleInserts} out of ${people.length} people`);
 
       await storage.setLastCacheUpdate(new Date());
       console.log('Cache update completed successfully');

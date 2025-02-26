@@ -4,7 +4,6 @@ import { storage } from "./storage";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
-// Helper function to make Luma API requests
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
   const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
   if (params) {
@@ -40,28 +39,15 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
-      // Try both event endpoints to see which one works
-      console.log('Fetching data from Luma API...');
-      let eventsData;
-      try {
-        eventsData = await lumaApiRequest('calendar/list-events');
-        console.log('Successfully fetched from list-events');
-      } catch (error) {
-        console.error('Failed to fetch from list-events, trying get-events:', error);
-        eventsData = await lumaApiRequest('calendar/get-events');
-        console.log('Successfully fetched from get-events');
+      console.log('Fetching events from storage...');
+      const events = await storage.getEvents();
+      console.log(`Retrieved ${events.length} events from storage`);
+
+      // Log a sample event if available
+      if (events.length > 0) {
+        console.log('Sample event:', events[0]);
       }
 
-      // Log raw API responses for debugging
-      console.log('Raw events data structure:', {
-        keys: Object.keys(eventsData),
-        hasEntries: Boolean(eventsData.entries),
-        entriesLength: eventsData.entries?.length,
-        sampleEvent: eventsData.entries?.[0],
-        fullResponse: JSON.stringify(eventsData, null, 2)
-      });
-
-      const events = await storage.getEvents();
       res.json({
         events,
         total: events.length
@@ -76,7 +62,6 @@ export async function registerRoutes(app: Express) {
     try {
       const { id } = req.params;
       const data = await lumaApiRequest('event/get', { api_id: id });
-      console.log('Raw event details data:', JSON.stringify(data, null, 2));
       res.json(data);
     } catch (error) {
       console.error('Failed to fetch event details:', error);
