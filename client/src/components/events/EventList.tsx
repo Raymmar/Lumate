@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { zonedTimeToUtc, toZonedTime } from 'date-fns-tz';
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,15 +21,14 @@ interface EventsResponse {
   total: number;
 }
 
-function formatEventDate(utcDateStr: string, timezone: string | null): string {
+function formatEventDate(dateStr: string): string {
   try {
-    const targetTimezone = timezone || 'America/New_York';
-    // Convert UTC to zoned time using the correct function
-    const zonedTime = toZonedTime(new Date(utcDateStr), targetTimezone);
-    // Format the time in the target timezone
-    return format(zonedTime, 'MMM d, h:mm a');
+    // Parse the date string directly without timezone conversion
+    // The time in the database is already in the event's timezone
+    const date = parse(dateStr, 'yyyy-MM-dd HH:mm:ss', new Date());
+    return format(date, 'MMM d, h:mm a');
   } catch (error) {
-    console.error("Invalid date format:", utcDateStr);
+    console.error("Invalid date format:", dateStr);
     return "Date not available";
   }
 }
@@ -60,7 +58,7 @@ function EventCard({ event }: { event: Event }) {
         <div className="mt-4 space-y-2">
           <div className="flex items-center gap-2 text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
-            <span>{formatEventDate(event.startTime, event.timezone)}</span>
+            <span>{formatEventDate(event.startTime)}</span>
           </div>
 
           {event.description && (
@@ -94,16 +92,21 @@ export default function EventList() {
 
   // Sort events by start time
   const sortedEvents = [...eventsArray].sort((a, b) => {
-    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    const dateA = parse(a.startTime, 'yyyy-MM-dd HH:mm:ss', new Date());
+    const dateB = parse(b.startTime, 'yyyy-MM-dd HH:mm:ss', new Date());
+    return dateA.getTime() - dateB.getTime();
   });
 
   // Split into upcoming and past events
-  const upcomingEvents = sortedEvents.filter(event => 
-    new Date(event.startTime) > now
-  );
-  const pastEvents = sortedEvents.filter(event => 
-    new Date(event.startTime) <= now
-  ).reverse();
+  const upcomingEvents = sortedEvents.filter(event => {
+    const eventDate = parse(event.startTime, 'yyyy-MM-dd HH:mm:ss', new Date());
+    return eventDate > now;
+  });
+
+  const pastEvents = sortedEvents.filter(event => {
+    const eventDate = parse(event.startTime, 'yyyy-MM-dd HH:mm:ss', new Date());
+    return eventDate <= now;
+  }).reverse();
 
   const nextEvent = upcomingEvents[0];
 
