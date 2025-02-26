@@ -38,6 +38,10 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+  
+  // Initialize cache service to start syncing data
+  const CacheService = (await import('./services/CacheService')).CacheService;
+  CacheService.getInstance();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -67,10 +67,10 @@ export class CacheService {
     // Update immediately
     this.updateCache();
     
-    // Then update every hour
+    // Then update every 5 minutes to keep data fresh
     this.cacheInterval = setInterval(() => {
       this.updateCache();
-    }, 60 * 60 * 1000); // 1 hour
+    }, 5 * 60 * 1000); // 5 minutes
   }
 
   stopCaching() {
