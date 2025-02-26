@@ -25,7 +25,7 @@ export class CacheService {
     const allPeople: any[] = [];
     let totalFetched = 0;
     const seenApiIds = new Set<string>();
-    let nextCursor: string | undefined;
+    let after: string | undefined;
 
     console.log('Starting to fetch all people from Luma API...');
 
@@ -34,15 +34,15 @@ export class CacheService {
         // Log pagination state at the start of each iteration
         console.log(`Fetching next batch of people...`, {
           currentTotal: totalFetched,
-          nextCursor: nextCursor
+          after: after
         });
 
         const params: Record<string, string> = {
           limit: this.PEOPLE_PAGE_SIZE.toString()
         };
 
-        if (nextCursor) {
-          params.cursor = nextCursor;
+        if (after) {
+          params.after = after;
         }
 
         const peopleData = await lumaApiRequest('calendar/list-people', params);
@@ -71,7 +71,7 @@ export class CacheService {
           newPeopleCount: newPeople.length,
           duplicates: people.length - newPeople.length,
           hasMore: peopleData.has_more,
-          nextCursor: peopleData.next_cursor
+          after: peopleData.next_cursor
         });
 
         if (newPeople.length === 0) {
@@ -86,9 +86,9 @@ export class CacheService {
 
         // Update pagination state
         hasMorePeople = peopleData.has_more === true && peopleData.next_cursor !== undefined;
-        nextCursor = peopleData.next_cursor;
+        after = peopleData.next_cursor;
 
-        if (!hasMorePeople || !nextCursor) {
+        if (!hasMorePeople || !after) {
           console.log('No more pages available or next cursor is missing');
           break;
         }
@@ -107,6 +107,40 @@ export class CacheService {
 
     console.log(`Completed fetching all people. Total unique count: ${totalFetched}`);
     return allPeople;
+  }
+
+  private async fetchAllEvents(): Promise<any[]> {
+    try {
+      console.log('Fetching events from Luma API...');
+      const eventsData = await lumaApiRequest('calendar/list-events');
+
+      if (!eventsData?.entries?.length) {
+        console.warn('No events found in Luma API response');
+        return [];
+      }
+
+      // Filter out duplicate events
+      const seenEventIds = new Set<string>();
+      const uniqueEvents = eventsData.entries.filter(entry => {
+        const eventData = entry.event;
+        if (!eventData?.api_id) {
+          console.warn('Invalid event data:', eventData);
+          return false;
+        }
+        const isNew = !seenEventIds.has(eventData.api_id);
+        if (isNew) {
+          seenEventIds.add(eventData.api_id);
+          return true;
+        }
+        return false;
+      });
+
+      console.log(`Found ${uniqueEvents.length} unique events out of ${eventsData.entries.length} total`);
+      return uniqueEvents;
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+      throw error;
+    }
   }
 
   async performInitialUpdate(): Promise<void> {
@@ -133,12 +167,13 @@ export class CacheService {
 
     try {
       // First, fetch all data before clearing the database
-      console.log('Fetching events from Luma API...');
-      const eventsData = await lumaApiRequest('calendar/list-events');
-      console.log('Fetching people from Luma API...');
-      const allPeople = await this.fetchAllPeople();
+      console.log('Fetching all events and people...');
+      const [events, allPeople] = await Promise.all([
+        this.fetchAllEvents(),
+        this.fetchAllPeople()
+      ]);
 
-      if (!eventsData?.entries?.length && !allPeople?.length) {
+      if (!events.length && !allPeople.length) {
         console.warn('No data found in Luma API response');
         return;
       }
@@ -149,17 +184,12 @@ export class CacheService {
       await storage.clearPeople();
 
       // Store events
-      if (eventsData?.entries?.length) {
-        console.log(`Found ${eventsData.entries.length} events to process`);
-        for (const entry of eventsData.entries) {
+      if (events.length) {
+        console.log(`Processing ${events.length} events...`);
+        for (const entry of events) {
           try {
             const eventData = entry.event;
-            if (!eventData) {
-              console.warn('Event data missing in entry:', entry);
-              continue;
-            }
-
-            if (!eventData.name || !eventData.start_at || !eventData.end_at) {
+            if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
               console.warn('Missing required fields for event:', eventData);
               continue;
             }
@@ -192,23 +222,19 @@ export class CacheService {
               title: newEvent.title,
               api_id: newEvent.api_id
             });
-
           } catch (error) {
             console.error('Failed to process event:', error);
           }
         }
       }
 
-      // Store people in batches to avoid memory issues
-      if (allPeople?.length) {
-        console.log(`Retrieved ${allPeople.length} total people from API, starting database insertion...`);
-
+      // Store people in batches
+      if (allPeople.length) {
+        console.log(`Processing ${allPeople.length} people...`);
         const batchSize = 50;
         for (let i = 0; i < allPeople.length; i += batchSize) {
           const batch = allPeople.slice(i, i + batchSize);
-          const batchNumber = Math.floor(i / batchSize) + 1;
-          const totalBatches = Math.ceil(allPeople.length / batchSize);
-          console.log(`Processing batch ${batchNumber} of ${totalBatches} (${batch.length} people)`);
+          console.log(`Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(allPeople.length / batchSize)}`);
 
           for (const person of batch) {
             try {
@@ -246,9 +272,12 @@ export class CacheService {
         console.log('Cache update completed successfully');
         console.log(`Final counts - Processed: ${peopleProcessed}, Successfully stored: ${peopleStored}`);
 
-        // Verify final count in database
-        const finalDbCount = (await storage.getPeople()).length;
-        console.log(`Total people in database after update: ${finalDbCount}`);
+        // Verify final counts
+        const [finalPeopleCount, finalEventsCount] = await Promise.all([
+          storage.getPeople().then(p => p.length),
+          storage.getEvents().then(e => e.length)
+        ]);
+        console.log(`Database counts - People: ${finalPeopleCount}, Events: ${finalEventsCount}`);
       }
 
       await storage.setLastCacheUpdate(new Date());

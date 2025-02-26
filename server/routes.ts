@@ -35,12 +35,14 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 
   // Enhanced logging for pagination-related fields
   if (endpoint === 'calendar/list-people') {
+    console.log('Complete API Response:', data);
     console.log('Pagination info:', {
       hasMore: data.has_more,
       nextCursor: data.next_cursor,
       entriesCount: data.entries?.length,
       firstEntryId: data.entries?.[0]?.api_id,
-      lastEntryId: data.entries?.[data.entries?.length - 1]?.api_id
+      lastEntryId: data.entries?.[data.entries?.length - 1]?.api_id,
+      requestParams: params
     });
   }
 
