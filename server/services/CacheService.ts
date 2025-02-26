@@ -28,118 +28,106 @@ export class CacheService {
     let noProgressCount = 0;
     const MAX_ATTEMPTS = 1000;
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
+    const BACKOFF_DELAY = 1000;
 
-    console.log('Starting to fetch all people from Luma API...');
+    console.log("Starting to fetch all people from Luma API...");
 
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-      try {
-        attempts++;
-        const params: Record<string, string> = {};
+        try {
+            attempts++;
 
-        // For subsequent requests after first page, use the cursor
-        if (allPeople.length > 0 && nextCursor) {
-          params.cursor = nextCursor;
-          params.limit = '50';
+            // Always start with a completely fresh request on first attempt
+            const params: Record<string, string> = {};
+            if (nextCursor) {
+                params.cursor = nextCursor;
+                params.limit = "50";
+            }
+
+            console.log("Making request with:", {
+                cursor: nextCursor,
+                prevCursor,
+                totalCollected: allPeople.length,
+                attempt: attempts,
+                noProgressCount,
+            });
+
+            const response = await lumaApiRequest("calendar/list-people", params);
+
+            if (!response || !Array.isArray(response.entries)) {
+                console.error("Invalid response format:", response);
+                break;
+            }
+
+            const people = response.entries;
+
+            // Stop pagination if no new people are received
+            if (!people.length) {
+                console.log("No people in response, stopping pagination.");
+                break;
+            }
+
+            const previousCount = allPeople.length;
+            allPeople = allPeople.concat(people);
+
+            // Detect if we're receiving duplicate results
+            if (allPeople.length === previousCount) {
+                noProgressCount++;
+                console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+
+                if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
+                    console.log(`Stopping after ${noProgressCount} attempts with no new people`);
+                    break;
+                }
+            } else {
+                noProgressCount = 0;
+                console.log(`Added ${allPeople.length - previousCount} new people. Total: ${allPeople.length}`);
+            }
+
+            // Pagination controls
+            hasMore = response.has_more === true;
+            prevCursor = nextCursor;
+            nextCursor = response.next_cursor;
+
+            // Detect if cursor is stuck
+            if (nextCursor && nextCursor === prevCursor) {
+                console.log("Cursor is not progressing, stopping pagination.");
+                break;
+            }
+
+            if (!hasMore) {
+                console.log("No more results available.");
+                break;
+            }
+
+            if (!nextCursor) {
+                console.log("No next cursor provided, stopping pagination.");
+                break;
+            }
+
+            // Delay with exponential backoff if we get stuck
+            await new Promise((resolve) => setTimeout(resolve, BACKOFF_DELAY * (noProgressCount + 1)));
+        } catch (error) {
+            console.error("Failed to fetch people batch:", error);
+            noProgressCount++;
+            console.warn(`Request failed. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+
+            if (allPeople.length > 0 && noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
+                console.log(`Returning ${allPeople.length} people collected before error.`);
+                return allPeople;
+            }
+
+            if (noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+                continue;
+            }
+
+            throw error;
         }
-
-        // Log current state
-        console.log('Making request with:', {
-          cursor: nextCursor,
-          prevCursor,
-          totalCollected: allPeople.length,
-          attempt: attempts,
-          noProgressCount
-        });
-
-        const response = await lumaApiRequest('calendar/list-people', params);
-
-        if (!response || !Array.isArray(response.entries)) {
-          console.error('Invalid response format:', response);
-          break;
-        }
-
-        const people = response.entries;
-
-        // If no people in response, stop
-        if (!people.length) {
-          console.log('No people in response, stopping pagination');
-          break;
-        }
-
-        const previousCount = allPeople.length;
-        // Add this batch to our collection
-        allPeople = allPeople.concat(people);
-
-        // Check if we received any new people
-        if (allPeople.length === previousCount) {
-          noProgressCount++;
-          console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-
-          if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-            console.log(`Stopping after ${noProgressCount} attempts with no new people`);
-            break;
-          }
-        } else {
-          // Reset counter if we got new people
-          noProgressCount = 0;
-          console.log(`Added ${allPeople.length - previousCount} new people. Total: ${allPeople.length}`);
-        }
-
-        // Update pagination state
-        hasMore = response.has_more === true;
-        prevCursor = nextCursor;  // Store current cursor before updating
-        nextCursor = response.next_cursor;
-
-        // If cursor hasn't changed and we have it, we're stuck
-        if (nextCursor && nextCursor === prevCursor) {
-          console.log('Cursor is not progressing, stopping pagination');
-          break;
-        }
-
-        if (!hasMore) {
-          console.log('No more results available');
-          break;
-        }
-
-        if (!nextCursor) {
-          console.log('No next cursor provided, stopping pagination');
-          break;
-        }
-
-        // Add a small delay between requests to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.error('Failed to fetch people batch:', error);
-        noProgressCount++;
-        console.warn(`Request failed. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-
-        // If we have collected some data and reached max no-progress attempts, return what we have
-        if (allPeople.length > 0 && noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-          console.log(`Returning ${allPeople.length} people collected before error after ${noProgressCount} failed attempts`);
-          return allPeople;
-        }
-
-        if (noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-          // Wait a bit longer before retrying after an error
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          continue;
-        }
-
-        throw error;
-      }
-    }
-
-    if (attempts >= MAX_ATTEMPTS) {
-      console.warn(`Reached maximum attempts (${MAX_ATTEMPTS}), stopping pagination`);
-    }
-
-    if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-      console.warn(`Stopped after ${noProgressCount} attempts without new data`);
     }
 
     console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
     return allPeople;
-  }
+}
 
   private async fetchAllEvents(): Promise<any[]> {
     try {
