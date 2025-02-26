@@ -24,10 +24,10 @@ interface EventsResponse {
 
 function formatEventDate(dateStr: string, timezone: string | null): string {
   try {
-    // Convert to EST if no timezone is specified
+    // Use the timezone from the event data, defaulting to EST if not specified
     const targetTimezone = timezone || 'America/New_York';
     return formatInTimeZone(
-      parseISO(dateStr),
+      dateStr, // Use the timestamp directly without parsing
       targetTimezone,
       'MMM d, h:mm a'
     );
