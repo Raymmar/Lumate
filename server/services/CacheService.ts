@@ -26,16 +26,22 @@ export class CacheService {
     const allPeople: any[] = [];
     let totalFetched = 0;
     const seenApiIds = new Set<string>();
+    let nextCursor: string | undefined;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (hasMorePeople) {
       try {
         console.log(`Fetching people page ${currentPage}...`);
-        const peopleData = await lumaApiRequest('calendar/list-people', {
-          page: currentPage.toString(),
+        const params: Record<string, string> = {
           limit: this.PEOPLE_PAGE_SIZE.toString()
-        });
+        };
+
+        if (nextCursor) {
+          params.cursor = nextCursor;
+        }
+
+        const peopleData = await lumaApiRequest('calendar/list-people', params);
 
         // Log the complete response for debugging
         console.log(`Complete response from page ${currentPage}:`, JSON.stringify(peopleData, null, 2));
@@ -64,8 +70,15 @@ export class CacheService {
           totalFetched += newPeopleCount;
           console.log(`Total unique people fetched so far: ${totalFetched}`);
 
-          // Continue if we got a full page of results
-          hasMorePeople = pageCount === this.PEOPLE_PAGE_SIZE;
+          // Continue if we got a full page of results and have a next cursor
+          hasMorePeople = peopleData.has_more === true;
+          nextCursor = peopleData.next_cursor;
+
+          if (!hasMorePeople || !nextCursor) {
+            console.log('No more pages available');
+            break;
+          }
+
           currentPage++;
         }
 
