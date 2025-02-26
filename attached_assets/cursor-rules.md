@@ -6,11 +6,13 @@
 - Do not commit secrets to the repository.
 
 ## Luma Integration
-- Use the `lumaDocs` library (`import lumaDocs from '@api/luma-docs';`) with the provided usage pattern.
+- Use this root URL to make API calls - https://api.lu.ma/public/v1/
+  - calendar/list-events - to pull events
+  - calendar/list-people - to pull people
 - For now, fetch:
   - Events (`calendarListEvents`)
   - People (`listPeople`)
-- Display them in a simple “dashboard” UI.
+- Display them in a simple “dashboard” UI and sync them to our local database
 
 ## Dashboard Requirements
 - Modern, minimal design to show:
