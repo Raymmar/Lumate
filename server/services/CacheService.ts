@@ -36,13 +36,11 @@ export class CacheService {
         attempts++;
         const params: Record<string, string> = {};
 
-        // For subsequent requests after first page, use the cursor
         if (allPeople.length > 0 && nextCursor) {
           params.cursor = nextCursor;
           params.limit = '50';
         }
 
-        // Log current state
         console.log('Making request with:', {
           cursor: nextCursor,
           prevCursor,
@@ -60,17 +58,14 @@ export class CacheService {
 
         const people = response.entries;
 
-        // If no people in response, stop
         if (!people.length) {
           console.log('No people in response, stopping pagination');
           break;
         }
 
         const previousCount = allPeople.length;
-        // Add this batch to our collection
         allPeople = allPeople.concat(people);
 
-        // Check if we received any new people
         if (allPeople.length === previousCount) {
           noProgressCount++;
           console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
@@ -80,17 +75,14 @@ export class CacheService {
             break;
           }
         } else {
-          // Reset counter if we got new people
           noProgressCount = 0;
           console.log(`Added ${allPeople.length - previousCount} new people. Total: ${allPeople.length}`);
         }
 
-        // Update pagination state
         hasMore = response.has_more === true;
-        prevCursor = nextCursor;  // Store current cursor before updating
+        prevCursor = nextCursor;
         nextCursor = response.next_cursor;
 
-        // If cursor hasn't changed and we have it, we're stuck
         if (nextCursor && nextCursor === prevCursor) {
           console.log('Cursor is not progressing, stopping pagination');
           break;
@@ -106,21 +98,18 @@ export class CacheService {
           break;
         }
 
-        // Add a small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Failed to fetch people batch:', error);
         noProgressCount++;
         console.warn(`Request failed. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
 
-        // If we have collected some data and reached max no-progress attempts, return what we have
         if (allPeople.length > 0 && noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
           console.log(`Returning ${allPeople.length} people collected before error after ${noProgressCount} failed attempts`);
           return allPeople;
         }
 
         if (noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-          // Wait a bit longer before retrying after an error
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
@@ -151,19 +140,16 @@ export class CacheService {
         return [];
       }
 
-      const seenEventIds = new Set<string>();
       const uniqueEvents = eventsData.entries.filter(entry => {
         const eventData = entry.event;
         if (!eventData?.api_id) {
           console.warn('Invalid event data:', eventData);
           return false;
         }
-        const isNew = !seenEventIds.has(eventData.api_id);
-        if (isNew) seenEventIds.add(eventData.api_id);
-        return isNew;
+        return true;
       });
 
-      console.log(`Found ${uniqueEvents.length} unique events out of ${eventsData.entries.length} total`);
+      console.log(`Found ${uniqueEvents.length} events`);
       return uniqueEvents;
     } catch (error) {
       console.error('Failed to fetch events:', error);
@@ -192,7 +178,6 @@ export class CacheService {
     console.log('Starting cache update process...');
 
     try {
-      // First, fetch all data before clearing the database
       console.log('Fetching all events and people...');
       const [events, allPeople] = await Promise.all([
         this.fetchAllEvents(),
@@ -204,12 +189,7 @@ export class CacheService {
         return;
       }
 
-      // Only clear existing data if we successfully fetched new data
-      console.log('Clearing existing data from database...');
-      await storage.clearEvents();
-      await storage.clearPeople();
-
-      // Store events
+      // Process events
       if (events.length) {
         console.log(`Processing ${events.length} events...`);
         for (const entry of events) {
@@ -220,7 +200,7 @@ export class CacheService {
               continue;
             }
 
-            await storage.insertEvent({
+            const newEventData = {
               api_id: eventData.api_id,
               title: eventData.name,
               description: eventData.description || null,
@@ -241,14 +221,21 @@ export class CacheService {
               meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
               calendarApiId: eventData.calendar_api_id || null,
               createdAt: eventData.created_at || null,
-            });
+            };
+
+            const existingEvent = await storage.getEventByApiId(eventData.api_id);
+            if (existingEvent) {
+              await storage.updateEvent(eventData.api_id, newEventData);
+            } else {
+              await storage.insertEvent(newEventData);
+            }
           } catch (error) {
             console.error('Failed to process event:', error);
           }
         }
       }
 
-      // Store people
+      // Process people
       if (allPeople.length) {
         console.log(`Processing ${allPeople.length} people...`);
         for (const person of allPeople) {
@@ -258,7 +245,7 @@ export class CacheService {
               continue;
             }
 
-            await storage.insertPerson({
+            const newPersonData = {
               api_id: person.api_id,
               email: person.email,
               userName: person.userName || person.user?.name || null,
@@ -270,7 +257,14 @@ export class CacheService {
               organizationName: person.organizationName || person.user?.organization_name || null,
               jobTitle: person.jobTitle || person.user?.job_title || null,
               createdAt: person.created_at || null,
-            });
+            };
+
+            const existingPerson = await storage.getPersonByApiId(person.api_id);
+            if (existingPerson) {
+              await storage.updatePerson(person.api_id, newPersonData);
+            } else {
+              await storage.insertPerson(newPersonData);
+            }
           } catch (error) {
             console.error('Failed to process person:', error);
           }
