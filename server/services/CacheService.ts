@@ -30,9 +30,8 @@ export class CacheService {
       // If it's a Unix timestamp (either string or number)
       const numericTimestamp = Number(timestamp);
       if (!isNaN(numericTimestamp)) {
-        // Check if we need to multiply by 1000 (if it's in seconds instead of milliseconds)
-        const multiplier = numericTimestamp < 10000000000 ? 1000 : 1;
-        const date = new Date(numericTimestamp * multiplier);
+        // Luma API returns Unix timestamps in seconds, we need to convert to milliseconds
+        const date = new Date(numericTimestamp * 1000);
         if (!isNaN(date.getTime())) {
           return date;
         }
@@ -89,8 +88,8 @@ export class CacheService {
           console.log('Processing event timestamps:', {
             event_name: eventData.name,
             original_start: eventData.start_at,
-            original_end: eventData.end_at,
             parsed_start: startTime.toISOString(),
+            original_end: eventData.end_at,
             parsed_end: endTime.toISOString(),
             timezone: eventData.timezone
           });
@@ -126,6 +125,7 @@ export class CacheService {
             title: newEvent.title,
             api_id: newEvent.api_id,
             startTime: newEvent.startTime,
+            original_start: eventData.start_at,
             timezone: newEvent.timezone
           });
 
