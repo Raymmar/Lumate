@@ -56,9 +56,6 @@ export class CacheService {
       console.log('Fetching events from Luma API...');
       const eventsData = await lumaApiRequest('calendar/list-events');
 
-      // Log the complete raw response for debugging
-      console.log('Raw Luma API response:', JSON.stringify(eventsData, null, 2));
-
       if (!eventsData?.entries?.length) {
         console.warn('No events found in Luma API response');
         return;
@@ -73,59 +70,51 @@ export class CacheService {
 
       for (const entry of eventsData.entries) {
         try {
-          // Extract event data from the nested structure
           const eventData = entry.event;
           if (!eventData) {
             console.warn('Event data missing in entry:', entry);
             continue;
           }
 
-          // Log the raw event data we're processing
-          console.log('Processing event:', {
-            name: eventData.name,
-            start_at: eventData.start_at,
-            end_at: eventData.end_at,
-            type_start: typeof eventData.start_at,
-            type_end: typeof eventData.end_at
-          });
-
-          // Validate required fields
           if (!eventData.name || !eventData.start_at || !eventData.end_at) {
-            console.warn('Missing required fields for event:', {
-              hasName: !!eventData.name,
-              hasStart: !!eventData.start_at,
-              hasEnd: !!eventData.end_at
-            });
+            console.warn('Missing required fields for event:', eventData);
             continue;
           }
 
-          // Convert timestamps
-          let startTime: Date, endTime: Date;
-          try {
-            startTime = this.parseTimestamp(eventData.start_at);
-            endTime = this.parseTimestamp(eventData.end_at);
+          const startTime = this.parseTimestamp(eventData.start_at);
+          const endTime = this.parseTimestamp(eventData.end_at);
+          const createdAt = eventData.created_at ? this.parseTimestamp(eventData.created_at) : null;
 
-            console.log('Parsed timestamps:', {
-              start: startTime.toISOString(),
-              end: endTime.toISOString()
-            });
-          } catch (error) {
-            console.error('Failed to parse event timestamps:', error);
-            continue;
-          }
+          // Extract location data if available
+          const location = eventData.geo_address_json ? {
+            city: eventData.geo_address_json.city,
+            region: eventData.geo_address_json.region,
+            country: eventData.geo_address_json.country,
+            latitude: eventData.geo_latitude,
+            longitude: eventData.geo_longitude,
+            full_address: eventData.geo_address_json.full_address,
+          } : null;
 
-          // Insert event
           const newEvent = await storage.insertEvent({
+            api_id: eventData.api_id,
             title: eventData.name,
             description: eventData.description || null,
             startTime: startTime.toISOString(),
-            endTime: endTime.toISOString()
+            endTime: endTime.toISOString(),
+            coverUrl: eventData.cover_url || null,
+            url: eventData.url || null,
+            timezone: eventData.timezone || null,
+            location: location,
+            visibility: eventData.visibility || null,
+            meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
+            calendarApiId: eventData.calendar_api_id || null,
+            createdAt: createdAt?.toISOString() || null,
           });
 
           console.log('Successfully stored event:', {
             id: newEvent.id,
             title: newEvent.title,
-            startTime: newEvent.startTime
+            api_id: newEvent.api_id
           });
 
         } catch (error) {
@@ -150,11 +139,20 @@ export class CacheService {
             continue;
           }
 
+          const createdAt = person.created_at ? this.parseTimestamp(person.created_at) : null;
+
           await storage.insertPerson({
             api_id: person.api_id,
             email: person.email,
             userName: person.userName || person.user?.name || null,
-            avatarUrl: person.avatarUrl || person.user?.avatar_url || null
+            fullName: person.fullName || person.user?.full_name || null,
+            avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+            role: person.role || null,
+            phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+            bio: person.bio || person.user?.bio || null,
+            organizationName: person.organizationName || person.user?.organization_name || null,
+            jobTitle: person.jobTitle || person.user?.job_title || null,
+            createdAt: createdAt?.toISOString() || null,
           });
         } catch (error) {
           console.error('Failed to process person:', error);
