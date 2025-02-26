@@ -102,6 +102,53 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch people" });
     }
   });
+  
+  // Internal-only route to reset database and fetch fresh data from Luma
+  // This is not exposed to the public API and should only be called directly from the server
+  app.post("/_internal/reset-database", async (req, res) => {
+    try {
+      // Check if request is coming from localhost
+      const requestIP = req.ip || req.socket.remoteAddress;
+      const isLocalRequest = requestIP === '127.0.0.1' || requestIP === '::1' || requestIP === 'localhost';
+      
+      // Only allow this endpoint to be called from the local machine or development environment
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      
+      if (!isLocalRequest && !isDevelopment) {
+        console.warn(`Unauthorized database reset attempt from ${requestIP}`);
+        return res.status(403).json({ error: "Forbidden. This endpoint is restricted to internal use only." });
+      }
+      
+      console.log('Starting database reset process');
+      
+      // Clear both events and people tables
+      await Promise.all([
+        storage.clearEvents(),
+        storage.clearPeople()
+      ]);
+      
+      console.log('Database cleared successfully. Tables reset to empty state.');
+      
+      // Import CacheService to trigger a refresh
+      const { CacheService } = await import('./services/CacheService');
+      const cacheService = CacheService.getInstance();
+      
+      // Start a full cache update to fetch fresh data from Luma
+      console.log('Triggering fresh data fetch from Luma API');
+      await cacheService.performInitialUpdate();
+      
+      return res.json({ 
+        success: true, 
+        message: "Database reset successful. Fresh data fetched from Luma API." 
+      });
+    } catch (error) {
+      console.error('Failed to reset database:', error);
+      return res.status(500).json({ 
+        error: "Failed to reset database", 
+        details: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
 
   return createServer(app);
 }
