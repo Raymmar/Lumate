@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { format, parseISO, isFuture } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
@@ -13,6 +14,7 @@ interface Event {
   endTime: string;
   coverUrl: string | null;
   url: string | null;
+  timezone: string | null;
 }
 
 interface EventsResponse {
@@ -20,9 +22,15 @@ interface EventsResponse {
   total: number;
 }
 
-function formatEventDate(dateStr: string): string {
+function formatEventDate(dateStr: string, timezone: string | null): string {
   try {
-    return format(parseISO(dateStr), "MMM d, h:mm a");
+    // Convert to EST if no timezone is specified
+    const targetTimezone = timezone || 'America/New_York';
+    return formatInTimeZone(
+      parseISO(dateStr),
+      targetTimezone,
+      'MMM d, h:mm a'
+    );
   } catch (error) {
     console.error("Invalid date format:", dateStr);
     return "Date not available";
@@ -54,7 +62,7 @@ function EventCard({ event }: { event: Event }) {
         <div className="mt-4 space-y-2">
           <div className="flex items-center gap-2 text-muted-foreground">
             <CalendarDays className="h-4 w-4" />
-            <span>{formatEventDate(event.startTime)}</span>
+            <span>{formatEventDate(event.startTime, event.timezone)}</span>
           </div>
 
           {event.description && (
@@ -93,10 +101,10 @@ export default function EventList() {
 
   const now = new Date();
   const upcomingEvents = sortedEvents.filter(event => 
-    isFuture(parseISO(event.startTime))
+    parseISO(event.startTime) > now
   );
   const pastEvents = sortedEvents.filter(event => 
-    !isFuture(parseISO(event.startTime))
+    parseISO(event.startTime) <= now
   ).reverse();
 
   const nextEvent = upcomingEvents[0];
