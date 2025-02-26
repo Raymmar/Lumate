@@ -22,30 +22,31 @@ export class CacheService {
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
     let nextCursor: string | null = null;
-    let prevCursor: string | null = null;
     let hasMore = true;
     let attempts = 0;
     let noProgressCount = 0;
     const MAX_ATTEMPTS = 1000;
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
+    const PAGINATION_LIMIT = '50';
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
         attempts++;
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = {
+          pagination_limit: PAGINATION_LIMIT
+        };
 
-        // For subsequent requests after first page, use the cursor
-        if (allPeople.length > 0 && nextCursor) {
-          params.cursor = nextCursor;
-          params.limit = '50';
+        // For subsequent requests after first page, use the pagination_cursor
+        if (nextCursor) {
+          params.pagination_cursor = nextCursor;
         }
 
         // Log current state
         console.log('Making request with:', {
-          cursor: nextCursor,
-          prevCursor,
+          pagination_cursor: nextCursor,
+          pagination_limit: PAGINATION_LIMIT,
           totalCollected: allPeople.length,
           attempt: attempts,
           noProgressCount
@@ -87,14 +88,7 @@ export class CacheService {
 
         // Update pagination state
         hasMore = response.has_more === true;
-        prevCursor = nextCursor;  // Store current cursor before updating
         nextCursor = response.next_cursor;
-
-        // If cursor hasn't changed and we have it, we're stuck
-        if (nextCursor && nextCursor === prevCursor) {
-          console.log('Cursor is not progressing, stopping pagination');
-          break;
-        }
 
         if (!hasMore) {
           console.log('No more results available');
@@ -144,12 +138,12 @@ export class CacheService {
   private async fetchAllEvents(): Promise<any[]> {
     let allEvents: any[] = [];
     let nextCursor: string | null = null;
-    let prevCursor: string | null = null;
     let hasMore = true;
     let attempts = 0;
     let noProgressCount = 0;
     const MAX_ATTEMPTS = 20;
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
+    const PAGINATION_LIMIT = '50';
     const seenEventIds = new Set<string>();
 
     console.log('Starting to fetch all events from Luma API...');
@@ -157,18 +151,19 @@ export class CacheService {
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
         attempts++;
-        const params: Record<string, string> = {};
+        const params: Record<string, string> = {
+          pagination_limit: PAGINATION_LIMIT
+        };
 
-        // For subsequent requests after first page, use the cursor
-        if (allEvents.length > 0 && nextCursor) {
-          params.cursor = nextCursor;
-          params.limit = '50';
+        // For subsequent requests after first page, use the pagination_cursor
+        if (nextCursor) {
+          params.pagination_cursor = nextCursor;
         }
 
         // Log current state
         console.log('Making events request with:', {
-          cursor: nextCursor,
-          prevCursor,
+          pagination_cursor: nextCursor,
+          pagination_limit: PAGINATION_LIMIT,
           totalCollected: allEvents.length,
           attempt: attempts,
           noProgressCount
@@ -222,14 +217,7 @@ export class CacheService {
 
         // Update pagination state
         hasMore = response.has_more === true;
-        prevCursor = nextCursor;  // Store current cursor before updating
         nextCursor = response.next_cursor;
-
-        // If cursor hasn't changed and we have it, we're stuck
-        if (nextCursor && nextCursor === prevCursor) {
-          console.log('Cursor is not progressing, stopping pagination');
-          break;
-        }
 
         if (!hasMore) {
           console.log('No more events results available');
@@ -347,11 +335,7 @@ export class CacheService {
       // Update events if successful
       if (eventsSuccess) {
         try {
-          // Clear existing events
-          await storage.clearEvents();
-          console.log('Cleared existing events from database');
-          
-          // Process and store new events
+          // Process and store/update events
           console.log(`Processing ${events.length} events...`);
           let successCount = 0;
           let errorCount = 0;
@@ -401,11 +385,7 @@ export class CacheService {
       // Update people if successful
       if (peopleSuccess) {
         try {
-          // Clear existing people
-          await storage.clearPeople();
-          console.log('Cleared existing people from database');
-          
-          // Process and store new people
+          // Process and store/update people
           console.log(`Processing ${allPeople.length} people...`);
           let successCount = 0;
           let errorCount = 0;

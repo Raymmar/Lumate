@@ -35,9 +35,10 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 
     const data = await response.json();
 
-    if (endpoint === 'calendar/list-people') {
+    if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
       // Log minimal information to track pagination progress
       console.log('Response details:', {
+        endpoint,
         currentBatch: data.entries?.length,
         hasMore: data.has_more,
         nextCursor: data.next_cursor
