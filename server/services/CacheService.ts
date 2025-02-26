@@ -23,15 +23,18 @@ export class CacheService {
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
     let cursor: string | undefined;
+    const seenApiIds = new Set<string>();
+    let consecutiveEmptyAttempts = 0;
+    const MAX_EMPTY_ATTEMPTS = 3;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (true) {
       try {
-        // Log pagination state at the start of each iteration
         console.log(`Fetching next batch of people...`, {
           currentTotal: allPeople.length,
-          cursor: cursor
+          cursor: cursor,
+          consecutiveEmptyAttempts
         });
 
         const params: Record<string, string> = {
@@ -43,25 +46,43 @@ export class CacheService {
         }
 
         const peopleData = await lumaApiRequest('calendar/list-people', params);
-
-        // Log the complete response for debugging
-        console.log('Complete API Response:', peopleData);
-        console.log('Pagination info:', {
-          hasMore: peopleData.has_more,
-          nextCursor: peopleData.next_cursor,
-          entriesCount: peopleData.entries?.length
-        });
-
         const people = peopleData.entries || [];
 
-        if (!people.length) {
-          console.log('No people in response, stopping pagination');
-          break;
-        }
+        // Count new (unseen) people in this batch
+        const newPeople = people.filter(person => {
+          if (!person?.api_id) {
+            console.warn('Invalid person object:', person);
+            return false;
+          }
+          return !seenApiIds.has(person.api_id);
+        });
 
-        // Add all people from this batch
-        allPeople = allPeople.concat(people);
-        console.log(`Total people fetched so far: ${allPeople.length}`);
+        // Add new API IDs to seen set
+        newPeople.forEach(person => seenApiIds.add(person.api_id));
+
+        console.log('Batch statistics:', {
+          totalInBatch: people.length,
+          newPeopleCount: newPeople.length,
+          totalUnique: seenApiIds.size,
+          hasMore: peopleData.has_more,
+          nextCursor: peopleData.next_cursor
+        });
+
+        if (newPeople.length === 0) {
+          consecutiveEmptyAttempts++;
+          console.log(`No new people in this batch. Empty attempts: ${consecutiveEmptyAttempts}/${MAX_EMPTY_ATTEMPTS}`);
+
+          if (consecutiveEmptyAttempts >= MAX_EMPTY_ATTEMPTS) {
+            console.log(`Reached ${MAX_EMPTY_ATTEMPTS} consecutive attempts with no new data, stopping pagination`);
+            break;
+          }
+        } else {
+          // Reset counter if we found new people
+          consecutiveEmptyAttempts = 0;
+          // Add only new people to our collection
+          allPeople = allPeople.concat(newPeople);
+          console.log(`Added ${newPeople.length} new people. Total unique people: ${allPeople.length}`);
+        }
 
         // Check if there's another page
         if (!peopleData.next_cursor) {
@@ -84,7 +105,7 @@ export class CacheService {
       }
     }
 
-    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
+    console.log(`Completed fetching all people. Total unique count: ${allPeople.length}`);
     return allPeople;
   }
 
