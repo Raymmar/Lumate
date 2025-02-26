@@ -16,20 +16,19 @@ export class CacheService {
       console.log('Creating new CacheService instance...');
       this.instance = new CacheService();
       
-      // Check if we have data already before triggering a full sync
+      // Check if we have data already before triggering a sync
       this.instance.checkInitialDataLoadStatus()
         .then(hasData => {
-          if (hasData) {
-            console.log('Database already contains data, scheduling background sync');
+          // Always schedule a background sync after a delay, regardless of data status
+          // This ensures we preserve existing DB entries while still syncing new data
+          console.log(hasData 
+            ? 'Database already contains data, scheduling background sync'
+            : 'Database is empty, but will only perform incremental updates to avoid ID conflicts');
             
-            // Small delay before first sync to prevent impacting application startup
-            setTimeout(() => {
-              this.instance.updateCache();
-            }, 5000); // 5 second delay
-          } else {
-            console.log('No existing data found, performing initial data load...');
+          // Small delay before sync to prevent impacting application startup
+          setTimeout(() => {
             this.instance.updateCache();
-          }
+          }, 5000); // 5 second delay
         })
         .catch(error => {
           console.error('Failed to check data status:', error);
@@ -339,11 +338,9 @@ export class CacheService {
       const existingEventIds = new Set(existingEvents.map(e => e.api_id));
       const existingPersonIds = new Set(existingPeople.map(p => p.api_id));
       
-      // Calculate if this is initial load or incremental update
-      const isInitialLoad = existingEvents.length === 0 && existingPeople.length === 0;
-      
-      if (isInitialLoad) {
-        console.log('No existing data found. Performing initial data load...');
+      // Always perform incremental updates to maintain database consistency
+      if (existingEvents.length === 0 && existingPeople.length === 0) {
+        console.log('No existing data found. Still performing incremental update to preserve IDs...');
       } else {
         console.log('Performing incremental update...');
       }
@@ -392,21 +389,16 @@ export class CacheService {
       if (eventsSuccess) {
         try {
           // Filter events that need to be processed (new or updated)
-          let eventsToProcess = events;
+          // Always use incremental updates to maintain database ID consistency
+          console.log('Filtering events to only process new or modified ones...');
           
-          // For performance, if we have lots of events, only process new or updated ones
-          if (!isInitialLoad && existingEvents.length > 0) {
-            console.log('Filtering events to only process new or modified ones...');
-            
-            // In a real app with full API access, we might filter by updated_at timestamp
-            // For now, we'll just check if we have the API ID already
-            eventsToProcess = events.filter(entry => {
-              const eventData = entry.event;
-              return !existingEventIds.has(eventData.api_id);
-            });
-            
-            console.log(`Filtered ${events.length} events down to ${eventsToProcess.length} new events`);
-          }
+          // Only process events we don't already have
+          const eventsToProcess = events.filter(entry => {
+            const eventData = entry.event;
+            return !existingEventIds.has(eventData.api_id);
+          });
+          
+          console.log(`Filtered ${events.length} events down to ${eventsToProcess.length} new events`);
           
           // Process and store/update events
           console.log(`Processing ${eventsToProcess.length} events...`);
@@ -459,20 +451,15 @@ export class CacheService {
       if (peopleSuccess) {
         try {
           // Filter people that need to be processed (new or updated)
-          let peopleToProcess = allPeople;
+          // Always use incremental updates to maintain database ID consistency
+          console.log('Filtering people to only process new ones...');
           
-          // For performance, if we have lots of people, only process new or updated ones
-          if (!isInitialLoad && existingPeople.length > 0) {
-            console.log('Filtering people to only process new ones...');
-            
-            // In a real app with full API access, we might filter by updated_at timestamp
-            // For now, we'll just check if we have the API ID already
-            peopleToProcess = allPeople.filter(person => {
-              return !existingPersonIds.has(person.api_id);
-            });
-            
-            console.log(`Filtered ${allPeople.length} people down to ${peopleToProcess.length} new people`);
-          }
+          // Only process people we don't already have
+          const peopleToProcess = allPeople.filter(person => {
+            return !existingPersonIds.has(person.api_id);
+          });
+          
+          console.log(`Filtered ${allPeople.length} people down to ${peopleToProcess.length} new people`);
           
           // Process and store/update people
           console.log(`Processing ${peopleToProcess.length} people...`);
