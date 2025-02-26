@@ -62,25 +62,21 @@ export class CacheService {
           duplicates: pageCount - newPeopleCount
         });
 
-        if (newPeopleCount === 0) {
-          console.log('No new people found in this page, stopping pagination');
-          hasMorePeople = false;
-        } else {
-          allPeople.push(...people);
-          totalFetched += newPeopleCount;
-          console.log(`Total unique people fetched so far: ${totalFetched}`);
+        // Continue even if we see duplicates, just track what's new
+        allPeople.push(...people);
+        totalFetched += newPeopleCount;
+        console.log(`Total unique people fetched so far: ${totalFetched}`);
 
-          // Continue if we got a full page of results and have a next cursor
-          hasMorePeople = peopleData.has_more === true;
-          nextCursor = peopleData.next_cursor;
+        // Continue if we have more pages according to the API
+        hasMorePeople = peopleData.has_more === true;
+        nextCursor = peopleData.next_cursor;
 
-          if (!hasMorePeople || !nextCursor) {
-            console.log('No more pages available');
-            break;
-          }
-
-          currentPage++;
+        if (!hasMorePeople || !nextCursor) {
+          console.log('No more pages available');
+          break;
         }
+
+        currentPage++;
 
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -134,6 +130,7 @@ export class CacheService {
 
       console.log(`Found ${eventsData.entries.length} events to process`);
 
+      // Store events
       for (const entry of eventsData.entries) {
         try {
           const eventData = entry.event;
@@ -147,7 +144,6 @@ export class CacheService {
             continue;
           }
 
-          // Store the timestamps with timezone information
           const newEvent = await storage.insertEvent({
             api_id: eventData.api_id,
             title: eventData.name,

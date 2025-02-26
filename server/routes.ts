@@ -63,22 +63,14 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/events/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const data = await lumaApiRequest('event/get', { api_id: id });
-      res.json(data);
-    } catch (error) {
-      console.error('Failed to fetch event details:', error);
-      res.status(500).json({ error: "Failed to fetch event details from Luma API" });
-    }
-  });
 
   app.get("/api/people", async (req, res) => {
     try {
       // Get page and limit from query parameters, default to first page with 50 items
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
+
+      console.log("Fetching people from storage..."); //Added progress tracking
 
       // Get all people from storage
       const allPeople = await storage.getPeople();
@@ -88,6 +80,7 @@ export async function registerRoutes(app: Express) {
       const start = (page - 1) * limit;
       const end = start + limit;
       const paginatedPeople = allPeople.slice(start, end);
+      console.log(`Returning people from index ${start} to ${end -1}`); //Added progress tracking
 
       res.json({
         people: paginatedPeople,
