@@ -35,10 +35,11 @@ export class CacheService {
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
         attempts++;
-        // Build params object - only include cursor if we have one
-        const params: Record<string, string> = { limit: '50' };
-        if (nextCursor) {
+        // Build params object - only include cursor if we have one and it's different from the previous
+        const params: Record<string, string> = {};
+        if (nextCursor && nextCursor !== prevCursor) {
           params.cursor = nextCursor;
+          params.limit = '50';
         }
 
         // Log current request details
