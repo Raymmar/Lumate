@@ -1,17 +1,5 @@
 import { Event, InsertEvent, Person, InsertPerson, events, people } from "@shared/schema";
-import { drizzle } from "drizzle-orm/node-postgres";
-import pg from 'pg';
-const { Pool } = pg;
-
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL environment variable is required");
-}
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const db = drizzle(pool);
+import { db } from "./db";
 
 export interface IStorage {
   // Events
@@ -39,7 +27,7 @@ export class PostgresStorage implements IStorage {
 
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Inserting event into database:', event);
-    const [newEvent] = await db.insert(events).values([event]).returning();
+    const [newEvent] = await db.insert(events).values(event).returning();
     console.log('Successfully inserted event:', newEvent);
     return newEvent;
   }
@@ -51,16 +39,22 @@ export class PostgresStorage implements IStorage {
   }
 
   async getPeople(): Promise<Person[]> {
+    console.log('Fetching all people from database...');
     const result = await db.select().from(people);
     console.log(`Found ${result.length} people in database`);
     return result;
   }
 
   async insertPerson(person: InsertPerson): Promise<Person> {
-    console.log('Inserting person into database:', person);
-    const [newPerson] = await db.insert(people).values([person]).returning();
-    console.log('Successfully inserted person:', newPerson);
-    return newPerson;
+    try {
+      console.log('Attempting to insert person:', person.email);
+      const [newPerson] = await db.insert(people).values(person).returning();
+      console.log('Successfully inserted person:', newPerson.email);
+      return newPerson;
+    } catch (error) {
+      console.error('Failed to insert person:', person.email, error);
+      throw error;
+    }
   }
 
   async clearPeople(): Promise<void> {

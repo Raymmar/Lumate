@@ -24,6 +24,7 @@ export class CacheService {
     let currentPage = 1;
     let hasMorePeople = true;
     const allPeople: any[] = [];
+    let totalFetched = 0;
 
     console.log('Starting to fetch all people from Luma API...');
 
@@ -36,9 +37,11 @@ export class CacheService {
         });
 
         const people = peopleData.entries || [];
+        const pageCount = people.length;
+        totalFetched += pageCount;
         allPeople.push(...people);
 
-        console.log(`Retrieved ${people.length} people from page ${currentPage}`);
+        console.log(`Page ${currentPage}: Retrieved ${pageCount} people (Total so far: ${totalFetched})`);
 
         // Check if we've reached the last page
         hasMorePeople = people.length === this.PEOPLE_PAGE_SIZE;
@@ -64,6 +67,10 @@ export class CacheService {
     }
 
     this.isCaching = true;
+    console.log('Starting cache update process...');
+    let peopleProcessed = 0;
+    let peopleStored = 0;
+
     try {
       // First, fetch events data from Luma API
       console.log('Fetching events from Luma API...');
@@ -75,7 +82,7 @@ export class CacheService {
       }
 
       // Clear existing data before updating
-      console.log('Clearing existing data...');
+      console.log('Clearing existing data from database...');
       await storage.clearEvents();
       await storage.clearPeople();
 
@@ -121,9 +128,7 @@ export class CacheService {
           console.log('Successfully stored event:', {
             id: newEvent.id,
             title: newEvent.title,
-            api_id: newEvent.api_id,
-            startTime: newEvent.startTime,
-            timezone: newEvent.timezone
+            api_id: newEvent.api_id
           });
 
         } catch (error) {
@@ -134,22 +139,25 @@ export class CacheService {
       // Fetch and process all people using pagination
       console.log('Starting to fetch and store all people...');
       const allPeople = await this.fetchAllPeople();
-      console.log(`Processing ${allPeople.length} total people...`);
+      console.log(`Retrieved ${allPeople.length} total people from API, starting database insertion...`);
 
       // Store people in batches to avoid memory issues
       const batchSize = 50;
       for (let i = 0; i < allPeople.length; i += batchSize) {
         const batch = allPeople.slice(i, i + batchSize);
-        console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(allPeople.length / batchSize)}`);
+        const batchNumber = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(allPeople.length / batchSize);
+        console.log(`Processing batch ${batchNumber} of ${totalBatches} (${batch.length} people)`);
 
         for (const person of batch) {
           try {
+            peopleProcessed++;
             if (!person.api_id || !person.email) {
-              console.warn('Missing required fields for person:', person);
+              console.warn(`Skipping person ${peopleProcessed} - Missing required fields:`, person);
               continue;
             }
 
-            await storage.insertPerson({
+            const newPerson = await storage.insertPerson({
               api_id: person.api_id,
               email: person.email,
               userName: person.userName || person.user?.name || null,
@@ -162,14 +170,26 @@ export class CacheService {
               jobTitle: person.jobTitle || person.user?.job_title || null,
               createdAt: person.created_at || null,
             });
+            peopleStored++;
+
+            if (peopleStored % 10 === 0) {
+              console.log(`Progress: Stored ${peopleStored}/${allPeople.length} people`);
+            }
           } catch (error) {
-            console.error('Failed to process person:', error);
+            console.error(`Failed to process person ${peopleProcessed}:`, error);
           }
         }
       }
 
-      await storage.setLastCacheUpdate(new Date());
+      // Final status report
       console.log('Cache update completed successfully');
+      console.log(`Final counts - Processed: ${peopleProcessed}, Successfully stored: ${peopleStored}`);
+
+      // Verify final count in database
+      const finalDbCount = (await storage.getPeople()).length;
+      console.log(`Total people in database after update: ${finalDbCount}`);
+
+      await storage.setLastCacheUpdate(new Date());
     } catch (error) {
       console.error('Cache update failed:', error);
     } finally {
