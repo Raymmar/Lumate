@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,20 +13,16 @@ import {
 } from '@/components/ui/pagination';
 
 interface Person {
+  id: number;
   api_id: string;
   email: string;
-  user: {
-    name: string | null;
-    avatar_url?: string;
-  };
+  userName: string | null;
+  avatarUrl: string | null;
 }
 
 interface PeopleResponse {
   people: Person[];
-  page: number;
-  limit: number;
   total: number;
-  hasMore: boolean;
 }
 
 export default function PeopleDirectory() {
@@ -47,7 +42,7 @@ export default function PeopleDirectory() {
   const filteredPeople = data?.people?.filter((person) => {
     const searchLower = searchQuery.toLowerCase();
     return (
-      person.user.name?.toLowerCase().includes(searchLower) ||
+      person.userName?.toLowerCase().includes(searchLower) ||
       person.email.toLowerCase().includes(searchLower)
     );
   });
@@ -97,8 +92,8 @@ export default function PeopleDirectory() {
                 >
                   <Avatar>
                     <AvatarFallback>
-                      {person.user.name
-                        ? person.user.name
+                      {person.userName
+                        ? person.userName
                             .split(" ")
                             .map((n) => n[0])
                             .join("")
@@ -106,7 +101,7 @@ export default function PeopleDirectory() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{person.user.name || "Anonymous"}</p>
+                    <p className="font-medium">{person.userName || "Anonymous"}</p>
                     <p className="text-sm text-muted-foreground">{person.email}</p>
                   </div>
                 </div>
