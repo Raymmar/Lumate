@@ -22,6 +22,7 @@ export class CacheService {
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
     let nextCursor: string | null = null;
+    let prevCursor: string | null = null;  // Track previous cursor
     let hasMore = true;
     let attempts = 0;
     let noProgressCount = 0;
@@ -43,6 +44,7 @@ export class CacheService {
         // Log current request details
         console.log('Making request with:', {
           cursor: nextCursor,
+          prevCursor,
           totalCollected: allPeople.length,
           attempt: attempts,
           noProgressCount
@@ -75,10 +77,17 @@ export class CacheService {
           lastCount = allPeople.length;
         }
 
+        // Check if cursor is stuck
+        if (nextCursor === prevCursor) {
+          noProgressCount++;
+          console.warn(`Cursor is stuck at ${nextCursor}. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+        }
+
         console.log(`Added ${people.length} people. Total collected: ${allPeople.length}`);
 
         // Update pagination state
         hasMore = response.has_more === true;
+        prevCursor = nextCursor;  // Store current cursor before updating
         nextCursor = response.next_cursor;
 
         if (!hasMore) {
