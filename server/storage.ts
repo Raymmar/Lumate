@@ -1,6 +1,6 @@
-import { Event, InsertEvent, Person, InsertPerson, events, people } from "@shared/schema";
+import { Event, InsertEvent, Person, InsertPerson, events, people, cacheMetadata, InsertCacheMetadata } from "@shared/schema";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 
 export interface IStorage {
   // Events
@@ -29,37 +29,46 @@ export class PostgresStorage implements IStorage {
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Upserting event into database:', event.api_id);
 
-    const [newEvent] = await db
-      .insert(events)
-      .values({
-        ...event,
-        location: event.location ? {
-          city: event.location.city || null,
-          region: event.location.region || null,
-          country: event.location.country || null,
-          latitude: event.location.latitude || null,
-          longitude: event.location.longitude || null,
-          full_address: event.location.full_address || null,
-        } : null,
-      })
-      .onConflictDoUpdate({
-        target: events.api_id,
-        set: {
-          title: event.title,
-          description: event.description,
-          startTime: event.startTime,
-          endTime: event.endTime,
-          coverUrl: event.coverUrl,
-          url: event.url,
-          timezone: event.timezone,
-          location: event.location ? sql`${sql.json(event.location)}` : null,
-          visibility: event.visibility,
-          meetingUrl: event.meetingUrl,
-          calendarApiId: event.calendarApiId,
-          createdAt: event.createdAt,
-        },
-      })
-      .returning();
+    // Create a raw SQL query for inserting with proper JSON handling
+    const query = sql`
+      INSERT INTO events (
+        api_id, title, description, start_time, end_time, 
+        cover_url, url, timezone, location, visibility, 
+        meeting_url, calendar_api_id, created_at
+      ) 
+      VALUES (
+        ${event.api_id}, 
+        ${event.title}, 
+        ${event.description}, 
+        ${event.startTime}, 
+        ${event.endTime},
+        ${event.coverUrl}, 
+        ${event.url}, 
+        ${event.timezone}, 
+        ${event.location ? JSON.stringify(event.location) : null}::jsonb, 
+        ${event.visibility}, 
+        ${event.meetingUrl}, 
+        ${event.calendarApiId}, 
+        ${event.createdAt}
+      )
+      ON CONFLICT (api_id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        start_time = EXCLUDED.start_time,
+        end_time = EXCLUDED.end_time,
+        cover_url = EXCLUDED.cover_url,
+        url = EXCLUDED.url,
+        timezone = EXCLUDED.timezone,
+        location = EXCLUDED.location,
+        visibility = EXCLUDED.visibility,
+        meeting_url = EXCLUDED.meeting_url,
+        calendar_api_id = EXCLUDED.calendar_api_id,
+        created_at = EXCLUDED.created_at
+      RETURNING *
+    `;
+
+    const result = await db.execute(query);
+    const newEvent = result.rows[0] as Event;
 
     console.log('Successfully upserted event:', newEvent.api_id);
     return newEvent;
@@ -117,12 +126,50 @@ export class PostgresStorage implements IStorage {
   }
 
   async getLastCacheUpdate(): Promise<Date | null> {
-    // For now, just return null since we haven't implemented cache metadata table
-    return null;
+    try {
+      const LAST_UPDATE_KEY = 'last_cache_update';
+      const result = await db
+        .select()
+        .from(cacheMetadata)
+        .where(eq(cacheMetadata.key, LAST_UPDATE_KEY))
+        .limit(1);
+      
+      if (result.length === 0) {
+        return null;
+      }
+      
+      const timestamp = result[0].value;
+      return new Date(timestamp);
+    } catch (error) {
+      console.error('Failed to get last cache update:', error);
+      return null;
+    }
   }
 
   async setLastCacheUpdate(date: Date): Promise<void> {
-    // TODO: Implement cache metadata table
+    const LAST_UPDATE_KEY = 'last_cache_update';
+    try {
+      const metadata: InsertCacheMetadata = {
+        key: LAST_UPDATE_KEY,
+        value: date.toISOString(),
+      };
+      
+      await db
+        .insert(cacheMetadata)
+        .values(metadata)
+        .onConflictDoUpdate({
+          target: cacheMetadata.key,
+          set: {
+            value: metadata.value,
+            updatedAt: new Date().toISOString(),
+          }
+        });
+        
+      console.log('Successfully updated last cache timestamp:', date.toISOString());
+    } catch (error) {
+      console.error('Failed to update last cache timestamp:', error);
+      throw error;
+    }
   }
 }
 
