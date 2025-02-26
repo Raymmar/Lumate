@@ -44,7 +44,7 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
   }
 }
 
-function EventCard({ event }: { event: Event }) {
+function EventCard({ event, showImage = false }: { event: Event, showImage?: boolean }) {
   return (
     <a 
       href={event.url || "#"} 
@@ -55,7 +55,7 @@ function EventCard({ event }: { event: Event }) {
       <div 
         className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group"
       >
-        {event.coverUrl && (
+        {showImage && event.coverUrl && (
           <div className="mb-4 overflow-hidden rounded-md aspect-video">
             <img 
               src={event.coverUrl} 
@@ -137,11 +137,11 @@ export default function EventList() {
               <TabsContent value="upcoming" className="space-y-4 mt-4">
                 {nextEvent && (
                   <div className="mb-4">
-                    <EventCard event={nextEvent} />
+                    <EventCard event={nextEvent} showImage={true} />
                   </div>
                 )}
                 {upcomingEvents.slice(1).map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard key={event.id} event={event} showImage={false} />
                 ))}
                 {upcomingEvents.length === 0 && (
                   <p className="text-muted-foreground">No upcoming events</p>
@@ -149,8 +149,11 @@ export default function EventList() {
               </TabsContent>
 
               <TabsContent value="past" className="space-y-4 mt-4">
-                {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                {pastEvents.length > 0 && (
+                  <EventCard key={pastEvents[0].id} event={pastEvents[0]} showImage={true} />
+                )}
+                {pastEvents.slice(1).map((event) => (
+                  <EventCard key={event.id} event={event} showImage={false} />
                 ))}
                 {pastEvents.length === 0 && (
                   <p className="text-muted-foreground">No past events</p>
