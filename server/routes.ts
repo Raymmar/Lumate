@@ -74,12 +74,24 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/people", async (_req, res) => {
+  app.get("/api/people", async (req, res) => {
     try {
-      const people = await storage.getPeople();
+      // Get page and limit from query parameters, default to first page with 50 items
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+
+      // Get all people from storage
+      const allPeople = await storage.getPeople();
+      console.log(`Total people in storage: ${allPeople.length}`);
+
+      // Calculate pagination
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      const paginatedPeople = allPeople.slice(start, end);
+
       res.json({
-        people,
-        total: people.length
+        people: paginatedPeople,
+        total: allPeople.length
       });
     } catch (error) {
       console.error('Failed to fetch people:', error);

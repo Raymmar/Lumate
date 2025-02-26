@@ -8,11 +8,13 @@ export class CacheService {
   private readonly PEOPLE_PAGE_SIZE = 100;
 
   private constructor() {
+    console.log('Starting CacheService...');
     this.startCaching();
   }
 
   static getInstance() {
     if (!this.instance) {
+      console.log('Creating new CacheService instance...');
       this.instance = new CacheService();
     }
     return this.instance;
@@ -63,7 +65,7 @@ export class CacheService {
 
     this.isCaching = true;
     try {
-      // Fetch events data from Luma API
+      // First, fetch events data from Luma API
       console.log('Fetching events from Luma API...');
       const eventsData = await lumaApiRequest('calendar/list-events');
 
@@ -130,36 +132,44 @@ export class CacheService {
       }
 
       // Fetch and process all people using pagination
+      console.log('Starting to fetch and store all people...');
       const allPeople = await this.fetchAllPeople();
       console.log(`Processing ${allPeople.length} total people...`);
 
-      for (const person of allPeople) {
-        try {
-          if (!person.api_id || !person.email) {
-            console.warn('Missing required fields for person:', person);
-            continue;
-          }
+      // Store people in batches to avoid memory issues
+      const batchSize = 50;
+      for (let i = 0; i < allPeople.length; i += batchSize) {
+        const batch = allPeople.slice(i, i + batchSize);
+        console.log(`Processing batch ${i / batchSize + 1} of ${Math.ceil(allPeople.length / batchSize)}`);
 
-          await storage.insertPerson({
-            api_id: person.api_id,
-            email: person.email,
-            userName: person.userName || person.user?.name || null,
-            fullName: person.fullName || person.user?.full_name || null,
-            avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
-            role: person.role || null,
-            phoneNumber: person.phoneNumber || person.user?.phone_number || null,
-            bio: person.bio || person.user?.bio || null,
-            organizationName: person.organizationName || person.user?.organization_name || null,
-            jobTitle: person.jobTitle || person.user?.job_title || null,
-            createdAt: person.created_at || null,
-          });
-        } catch (error) {
-          console.error('Failed to process person:', error);
+        for (const person of batch) {
+          try {
+            if (!person.api_id || !person.email) {
+              console.warn('Missing required fields for person:', person);
+              continue;
+            }
+
+            await storage.insertPerson({
+              api_id: person.api_id,
+              email: person.email,
+              userName: person.userName || person.user?.name || null,
+              fullName: person.fullName || person.user?.full_name || null,
+              avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+              role: person.role || null,
+              phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+              bio: person.bio || person.user?.bio || null,
+              organizationName: person.organizationName || person.user?.organization_name || null,
+              jobTitle: person.jobTitle || person.user?.job_title || null,
+              createdAt: person.created_at || null,
+            });
+          } catch (error) {
+            console.error('Failed to process person:', error);
+          }
         }
       }
 
       await storage.setLastCacheUpdate(new Date());
-      console.log('Cache update completed');
+      console.log('Cache update completed successfully');
     } catch (error) {
       console.error('Cache update failed:', error);
     } finally {
