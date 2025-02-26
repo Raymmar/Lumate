@@ -7,8 +7,8 @@ export const events = pgTable("events", {
   api_id: varchar("api_id", { length: 255 }).notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  startTime: timestamp("start_time", { mode: 'string' }).notNull(),
-  endTime: timestamp("end_time", { mode: 'string' }).notNull(),
+  startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { mode: 'string', withTimezone: true }).notNull(),
   coverUrl: varchar("cover_url", { length: 255 }),
   url: varchar("url", { length: 255 }),
   timezone: varchar("timezone", { length: 50 }),
@@ -23,7 +23,7 @@ export const events = pgTable("events", {
   visibility: varchar("visibility", { length: 50 }),
   meetingUrl: varchar("meeting_url", { length: 255 }),
   calendarApiId: varchar("calendar_api_id", { length: 255 }),
-  createdAt: timestamp("created_at", { mode: 'string' }),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
 export const people = pgTable("people", {
@@ -38,7 +38,7 @@ export const people = pgTable("people", {
   bio: text("bio"),
   organizationName: varchar("organization_name", { length: 255 }),
   jobTitle: varchar("job_title", { length: 255 }),
-  createdAt: timestamp("created_at", { mode: 'string' }),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
 export const insertEventSchema = createInsertSchema(events);
