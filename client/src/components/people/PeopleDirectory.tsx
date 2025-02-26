@@ -121,7 +121,7 @@ export default function PeopleDirectory() {
                       ) : null}
                       <AvatarFallback>
                         {person.userName || person.fullName
-                          ? (person.userName || person.fullName)
+                          ? ((person.userName || person.fullName) || "")
                               .split(" ")
                               .map((n) => n[0])
                               .join("")

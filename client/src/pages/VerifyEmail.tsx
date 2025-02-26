@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { queryClient } from '@/lib/queryClient';
@@ -17,7 +17,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function VerifyEmail() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [location] = useLocation();
   const [token, setToken] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import {
   Card,
@@ -43,7 +43,7 @@ interface ProfileResponse {
 }
 
 export default function Profile() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [isSearching, setIsSearching] = useState(false);

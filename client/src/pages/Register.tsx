@@ -66,7 +66,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function Register() {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [searchEmail, setSearchEmail] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
