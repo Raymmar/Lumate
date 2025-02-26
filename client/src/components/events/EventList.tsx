@@ -27,11 +27,16 @@ function formatEventDate(dateStr: string, timezone: string | null): string {
     // Since our database timestamp is in UTC, we need to tell date-fns-tz this
     // and then convert it to the event's timezone (or EST if not specified)
     const targetTimezone = timezone || 'America/New_York';
+    console.log('Formatting date:', {
+      input: dateStr,
+      timezone: targetTimezone,
+      parsedDate: parseISO(dateStr).toISOString()
+    });
+
     return formatInTimeZone(
-      dateStr,
+      parseISO(dateStr),
       targetTimezone,
-      'MMM d, h:mm a',
-      { timeZone: 'UTC' }  // Specify that input date is in UTC
+      'MMM d, h:mm a zzz'  // Added timezone display for debugging
     );
   } catch (error) {
     console.error("Invalid date format:", dateStr);
@@ -40,6 +45,14 @@ function formatEventDate(dateStr: string, timezone: string | null): string {
 }
 
 function EventCard({ event }: { event: Event }) {
+  // Debug log for event data
+  console.log('Event data:', {
+    title: event.title,
+    startTime: event.startTime,
+    timezone: event.timezone,
+    formatted: formatEventDate(event.startTime, event.timezone)
+  });
+
   return (
     <a 
       href={event.url || "#"} 
