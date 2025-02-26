@@ -22,24 +22,31 @@ export class CacheService {
 
     this.isCaching = true;
     try {
-      // Fetch data from Luma using the same pattern as people
+      // Try both event endpoints to see which one works
       console.log('Fetching data from Luma API...');
-      const [eventsData, peopleData] = await Promise.all([
-        lumaApiRequest('calendar/list-events'),
-        lumaApiRequest('calendar/list-people', {
-          page: '1',
-          limit: '100'
-        })
-      ]);
+      let eventsData;
+      try {
+        eventsData = await lumaApiRequest('calendar/list-events');
+        console.log('Successfully fetched from list-events');
+      } catch (error) {
+        console.error('Failed to fetch from list-events, trying get-events:', error);
+        eventsData = await lumaApiRequest('calendar/get-events');
+        console.log('Successfully fetched from get-events');
+      }
+
+      const peopleData = await lumaApiRequest('calendar/list-people', {
+        page: '1',
+        limit: '100'
+      });
 
       // Log raw API responses for debugging
-      console.log('Raw events data structure from Luma:', {
+      console.log('Raw events data structure:', {
         keys: Object.keys(eventsData),
         hasEntries: Boolean(eventsData.entries),
         entriesLength: eventsData.entries?.length,
-        firstEntry: eventsData.entries?.[0]
+        sampleEvent: eventsData.entries?.[0],
+        fullResponse: JSON.stringify(eventsData, null, 2)
       });
-      console.log('Raw people data from Luma:', JSON.stringify(peopleData, null, 2));
 
       // Clear existing data
       await storage.clearEvents();
