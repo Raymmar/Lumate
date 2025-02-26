@@ -40,8 +40,8 @@ export class CacheService {
         await storage.insertEvent({
           title: event.name,
           description: event.description || null,
-          startTime: event.start_at,
-          endTime: event.end_at
+          startTime: new Date(event.start_at).toISOString(),
+          endTime: new Date(event.end_at).toISOString()
         });
       }
 
