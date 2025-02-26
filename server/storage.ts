@@ -77,7 +77,11 @@ export class PostgresStorage implements IStorage {
   async clearEvents(): Promise<void> {
     console.log('Clearing all events from database...');
     await db.delete(events);
-    console.log('Successfully cleared events');
+    
+    // Reset the sequence to start from 1 again
+    await db.execute(sql`ALTER SEQUENCE events_id_seq RESTART WITH 1`);
+    
+    console.log('Successfully cleared events and reset ID sequence');
   }
 
   async getPeople(): Promise<Person[]> {
@@ -122,7 +126,11 @@ export class PostgresStorage implements IStorage {
   async clearPeople(): Promise<void> {
     console.log('Clearing all people from database...');
     await db.delete(people);
-    console.log('Successfully cleared people');
+    
+    // Reset the sequence to start from 1 again
+    await db.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
+    
+    console.log('Successfully cleared people and reset ID sequence');
   }
 
   async getLastCacheUpdate(): Promise<Date | null> {

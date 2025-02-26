@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
+import { sql } from "drizzle-orm";
+import { db } from "./db";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
@@ -127,7 +129,10 @@ export async function registerRoutes(app: Express) {
         storage.clearPeople()
       ]);
       
-      console.log('Database cleared successfully. Tables reset to empty state.');
+      // Also reset cache metadata sequence
+      await db.execute(sql`ALTER SEQUENCE cache_metadata_id_seq RESTART WITH 1`);
+      
+      console.log('Database cleared successfully. Tables reset to empty state with ID sequences reset.');
       
       // Import CacheService to trigger a refresh
       const { CacheService } = await import('./services/CacheService');
