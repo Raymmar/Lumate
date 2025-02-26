@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 
-const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
+const LUMA_API_BASE = "https://api.lu.ma/public/v1";
 
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
     const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
@@ -14,58 +14,100 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
     }
 
     if (!process.env.LUMA_API_KEY) {
-        throw new Error('LUMA_API_KEY environment variable is not set');
+        throw new Error("LUMA_API_KEY environment variable is not set");
     }
 
     console.log(`Making request to ${url.toString()}`);
 
-    const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-            accept: 'application/json',
-            'x-luma-api-key': process.env.LUMA_API_KEY
+    let retries = 0;
+    const maxRetries = 3;
+    const baseDelay = 2000; // Start with 2 second delay
+
+    while (retries < maxRetries) {
+        try {
+            const response = await fetch(url.toString(), {
+                method: "GET",
+                headers: {
+                    accept: "application/json",
+                    "x-luma-api-key": process.env.LUMA_API_KEY,
+                },
+            });
+
+            if (response.status === 429) {
+                const delay = baseDelay * Math.pow(2, retries);
+                console.log(`Rate limited. Waiting ${delay}ms before retry ${retries + 1}/${maxRetries}`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                retries++;
+                continue;
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
+                throw new Error(`Luma API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (endpoint === "calendar/list-people") {
+                console.log("Response details:", {
+                    batchSize: data.entries?.length,
+                    hasMore: data.has_more,
+                    nextCursor: data.next_cursor,
+                });
+            }
+
+            return data;
+        } catch (error) {
+            if (retries === maxRetries - 1) throw error;
+            const delay = baseDelay * Math.pow(2, retries);
+            console.log(`Request failed. Waiting ${delay}ms before retry ${retries + 1}/${maxRetries}`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            retries++;
         }
-    });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
-        throw new Error(`Luma API error: ${response.statusText}`);
     }
 
-    const data = await response.json();
-
-    if (endpoint === 'calendar/list-people') {
-        console.log('Response details:', {
-            batchSize: data.entries?.length,
-            hasMore: data.has_more,
-            nextCursor: data.next_cursor
-        });
-    }
-
-    return data;
+    throw new Error("Max retries exceeded");
 }
 
-async function fetchAllPeopleFromLuma() {
+/**
+ * Fetches all people from Luma API, handling pagination properly.
+ */
+export async function fetchAllPeopleFromLuma() {
     let allPeople: any[] = [];
     let cursor: string | null = null;
+    const requestDelay = 2000; // 2 seconds between successful requests
 
     try {
         while (true) {
-            const params: Record<string, string> = { limit: "100" };
+            const params: Record<string, string> = { limit: "50" }; // Reduced batch size
             if (cursor) {
                 params.cursor = cursor;
             }
 
             const data = await lumaApiRequest("calendar/list-people", params);
 
-            allPeople = allPeople.concat(data.entries || []);
-            console.log(`Fetched ${data.entries?.length || 0} people, Total so far: ${allPeople.length}`);
+            if (!data.entries?.length) {
+                console.log("No more entries found");
+                break;
+            }
 
-            if (!data.has_more) break;
+            allPeople = allPeople.concat(data.entries);
+            console.log(`Fetched ${data.entries.length} people, Total so far: ${allPeople.length}`);
+
+            if (!data.has_more) {
+                console.log("No more pages to fetch");
+                break;
+            }
 
             cursor = data.next_cursor;
-            await new Promise((resolve) => setTimeout(resolve, 500)); // Prevent hitting API too quickly
+            if (!cursor) {
+                console.log("No cursor returned for next page");
+                break;
+            }
+
+            // Wait between requests to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, requestDelay));
         }
 
         console.log(`Finished fetching all people. Total count: ${allPeople.length}`);
@@ -85,10 +127,10 @@ export async function registerRoutes(app: Express) {
             console.log("Direct Luma API events data:", {
                 hasData: !!eventsData,
                 entriesCount: eventsData?.entries?.length,
-                sampleEntry: eventsData?.entries?.[0]
+                sampleEntry: eventsData?.entries?.[0],
             });
 
-            // Store events in our database
+            // Clear existing events and store new ones
             await storage.clearEvents();
             for (const entry of eventsData.entries) {
                 const eventData = entry.event;
@@ -119,7 +161,7 @@ export async function registerRoutes(app: Express) {
             const events = await storage.getEvents();
             res.json({
                 events,
-                total: events.length
+                total: events.length,
             });
         } catch (error) {
             console.error("Failed to fetch events:", error);
@@ -134,7 +176,7 @@ export async function registerRoutes(app: Express) {
             // Fetch all people directly from Luma API with pagination
             const allPeople = await fetchAllPeopleFromLuma();
 
-            // Store in local database
+            // Clear existing people and store new ones
             await storage.clearPeople();
             for (const person of allPeople) {
                 await storage.insertPerson({
