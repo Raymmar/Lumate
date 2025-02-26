@@ -21,31 +21,25 @@ interface EventsResponse {
   total: number;
 }
 
-function formatEventDate(utcDateStr: string, timezone: string | null): string {
+function formatEventDate(dateStr: string, timezone: string | null): string {
   try {
     const targetTimezone = timezone || 'America/New_York';
 
-    // Format the UTC time directly to the target timezone
+    // Format the time from UTC directly into the target timezone
+    // The date string from the database is in UTC
     return formatInTimeZone(
-      utcDateStr,  // Input is UTC
-      targetTimezone,  // Convert to event's timezone
-      'MMM d, h:mm a zzz'  // Include timezone for verification
+      dateStr,           // UTC timestamp from database
+      targetTimezone,    // Target timezone (event's timezone)
+      'MMM d, h:mm a',   // Format string
+      { timeZone: 'UTC' } // Explicitly tell date-fns the input is UTC
     );
   } catch (error) {
-    console.error("Invalid date format:", utcDateStr, error);
+    console.error("Invalid date format:", dateStr, error);
     return "Date not available";
   }
 }
 
 function EventCard({ event }: { event: Event }) {
-  // Debug log the time conversion
-  console.log('Event time conversion:', {
-    eventTitle: event.title,
-    rawTime: event.startTime,
-    timezone: event.timezone,
-    formatted: formatEventDate(event.startTime, event.timezone)
-  });
-
   return (
     <a 
       href={event.url || "#"} 
