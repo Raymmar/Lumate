@@ -5,7 +5,7 @@ export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
-  private readonly PEOPLE_PAGE_SIZE = 100;
+  private readonly PEOPLE_PAGE_SIZE = 50;
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -22,109 +22,67 @@ export class CacheService {
 
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
-    let nextCursor: string | undefined;
-    const seenApiIds = new Set<string>();
-    const usedCursors = new Set<string>();
-    let failedAttempts = 0;
-    const MAX_FAILED_ATTEMPTS = 3;
-    const BATCH_SIZE = 50;  // Keep batch size reasonable
+    let cursor: string | null = null;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (true) {
       try {
+        // Prepare params - only add cursor if we have one
         const params: Record<string, string> = {
-          limit: BATCH_SIZE.toString()
+          limit: '100'  // Use larger batch size
         };
 
-        // Only add cursor if we have one from previous request
-        if (nextCursor) {
-          // Verify we haven't used this cursor before
-          if (usedCursors.has(nextCursor)) {
-            console.log('Warning: Received a duplicate cursor:', nextCursor);
-            failedAttempts++;
-            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-              console.log(`Stopping after ${MAX_FAILED_ATTEMPTS} attempts with duplicate cursors`);
-              break;
-            }
-            // Skip this cursor and try without it
-            nextCursor = undefined;
-            continue;
-          }
-
-          params.cursor = nextCursor;
-          usedCursors.add(nextCursor);
+        if (cursor) {
+          params.cursor = cursor;
         }
 
-        console.log('Fetching batch with params:', params);
-        const peopleData = await lumaApiRequest('calendar/list-people', params);
-        const people = peopleData.entries || [];
+        console.log('Request params:', params);
+        const response = await lumaApiRequest('calendar/list-people', params);
+
+        const people = response.entries || [];
+
+        console.log('Response stats:', {
+          batchSize: people.length,
+          currentTotal: allPeople.length,
+          hasMore: response.has_more,
+          nextCursor: response.next_cursor
+        });
 
         if (!people.length) {
           console.log('No people in response, stopping pagination');
           break;
         }
 
-        // Process new people
-        const newPeople = people.filter(person => {
-          if (!person?.api_id) return false;
-          const isNew = !seenApiIds.has(person.api_id);
-          if (isNew) seenApiIds.add(person.api_id);
-          return isNew;
-        });
+        // Add new batch to our collection
+        allPeople = allPeople.concat(people);
+        console.log(`Added ${people.length} people. Total collected: ${allPeople.length}`);
 
-        // Detailed logging
-        console.log('Batch results:', {
-          batchSize: people.length,
-          newPeopleCount: newPeople.length,
-          totalUnique: seenApiIds.size,
-          hasMore: peopleData.has_more,
-          currentCursor: nextCursor,
-          receivedNextCursor: peopleData.next_cursor
-        });
-
-        if (newPeople.length === 0) {
-          failedAttempts++;
-          console.log(`No new people in batch. Attempt ${failedAttempts}/${MAX_FAILED_ATTEMPTS}`);
-          if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-            console.log(`Stopping after ${MAX_FAILED_ATTEMPTS} attempts with no new data`);
-            break;
-          }
-        } else {
-          // Reset counter if we got new people
-          failedAttempts = 0;
-          allPeople = allPeople.concat(newPeople);
-          console.log(`Added ${newPeople.length} new people. Total: ${allPeople.length}`);
-        }
-
-        // Stop if API indicates no more results
-        if (!peopleData.has_more) {
-          console.log('API indicates no more results');
+        // Stop if no more results
+        if (!response.has_more) {
+          console.log('No more results available');
           break;
         }
 
         // Update cursor for next request
-        nextCursor = peopleData.next_cursor;
-
-        // Stop if we didn't get a new cursor
-        if (!nextCursor) {
+        cursor = response.next_cursor;
+        if (!cursor) {
           console.log('No next cursor provided, stopping pagination');
           break;
         }
 
-        // Add a small delay to avoid rate limiting
+        // Add a small delay between requests
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Failed to fetch people:', error);
         if (allPeople.length > 0) {
-          console.log(`Returning ${allPeople.length} people fetched before error`);
           return allPeople;
         }
         throw error;
       }
     }
 
-    console.log(`Completed fetching all people. Total unique count: ${allPeople.length}`);
+    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
     return allPeople;
   }
 
@@ -138,7 +96,6 @@ export class CacheService {
         return [];
       }
 
-      // Filter out duplicate events
       const seenEventIds = new Set<string>();
       const uniqueEvents = eventsData.entries.filter(entry => {
         const eventData = entry.event;
@@ -147,11 +104,8 @@ export class CacheService {
           return false;
         }
         const isNew = !seenEventIds.has(eventData.api_id);
-        if (isNew) {
-          seenEventIds.add(eventData.api_id);
-          return true;
-        }
-        return false;
+        if (isNew) seenEventIds.add(eventData.api_id);
+        return isNew;
       });
 
       console.log(`Found ${uniqueEvents.length} unique events out of ${eventsData.entries.length} total`);

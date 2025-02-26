@@ -6,16 +6,19 @@ const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
     const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
+
+    // Add params to URL if provided
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, value);
       });
     }
-    console.log(`Making request to ${url.toString()} with params:`, params);
 
     if (!process.env.LUMA_API_KEY) {
       throw new Error('LUMA_API_KEY environment variable is not set');
     }
+
+    console.log(`Making request to ${url.toString()}`);
 
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -33,23 +36,17 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 
     const data = await response.json();
 
-    // Enhanced logging for pagination-related fields
+    // Simple logging for pagination debugging
     if (endpoint === 'calendar/list-people') {
-      console.log('API Response:', {
-        peopleCount: data.entries?.length,
+      console.log('Response data:', {
+        count: data.entries?.length,
         hasMore: data.has_more,
-        nextCursor: data.next_cursor,
-        params,
-        // Log IDs to track progression
-        firstId: data.entries?.[0]?.api_id,
-        lastId: data.entries?.[data.entries?.length - 1]?.api_id,
-        // Sample some IDs from middle to verify we're getting different data
-        sampleIds: data.entries?.slice(0, 5).map(p => p.api_id)
+        nextCursor: data.next_cursor
       });
     }
 
     return data;
-  }
+}
 
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
