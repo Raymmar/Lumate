@@ -4,7 +4,7 @@ import { z } from "zod";
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
-  api_id: varchar("api_id", { length: 255 }).notNull().unique(),
+  api_id: varchar("api_id", { length: 255 }).notNull(),
   title: text("title").notNull(),
   description: text("description"),
   startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
@@ -28,7 +28,7 @@ export const events = pgTable("events", {
 
 export const people = pgTable("people", {
   id: serial("id").primaryKey(),
-  api_id: varchar("api_id", { length: 255 }).notNull().unique(),
+  api_id: varchar("api_id", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
   userName: varchar("user_name", { length: 255 }),
   fullName: varchar("full_name", { length: 255 }),
