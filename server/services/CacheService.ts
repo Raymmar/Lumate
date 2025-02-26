@@ -19,10 +19,18 @@ export class CacheService {
 
   private parseTimestamp(timestamp: string | number): Date {
     try {
+      // Log the incoming timestamp details
+      console.log('Parsing timestamp:', {
+        value: timestamp,
+        type: typeof timestamp,
+        isNumeric: !isNaN(Number(timestamp))
+      });
+
       // If it's a string that could be an ISO date
       if (typeof timestamp === 'string' && isNaN(Number(timestamp))) {
         const date = new Date(timestamp);
         if (!isNaN(date.getTime())) {
+          console.log('Parsed as ISO string:', date.toISOString());
           return date;
         }
       }
@@ -33,6 +41,7 @@ export class CacheService {
         // Luma API returns Unix timestamps in seconds, we need to convert to milliseconds
         const date = new Date(numericTimestamp * 1000);
         if (!isNaN(date.getTime())) {
+          console.log('Parsed as Unix timestamp:', date.toISOString());
           return date;
         }
       }
