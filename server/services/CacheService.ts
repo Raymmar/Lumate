@@ -23,6 +23,9 @@ export class CacheService {
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
     let cursor: string | undefined;
+    const seenApiIds = new Set<string>();
+    let noNewDataCount = 0;
+    const MAX_RETRIES = 3;
 
     console.log('Starting to fetch all people from Luma API...');
 
@@ -40,21 +43,43 @@ export class CacheService {
         const peopleData = await lumaApiRequest('calendar/list-people', params);
         const people = peopleData.entries || [];
 
-        // Log the response details
-        console.log('Response details:', {
-          newPeopleCount: people.length,
-          totalSoFar: allPeople.length,
-          hasMore: peopleData.has_more,
-          nextCursor: peopleData.next_cursor
+        // Check for new people in this batch
+        const newPeople = people.filter(person => {
+          if (!person?.api_id) return false;
+          const isNew = !seenApiIds.has(person.api_id);
+          if (isNew) seenApiIds.add(person.api_id);
+          return isNew;
         });
 
-        // Add all people from this batch
-        allPeople = allPeople.concat(people);
-        console.log(`Fetched ${people.length} people, Total: ${allPeople.length}`);
+        console.log('Batch results:', {
+          batchSize: people.length,
+          newPeopleCount: newPeople.length,
+          totalUnique: seenApiIds.size,
+          hasMore: peopleData.has_more,
+          nextCursor: peopleData.next_cursor,
+          noNewDataCount
+        });
 
-        // Break if no more results
+        // If we got no new people, increment our counter
+        if (newPeople.length === 0) {
+          noNewDataCount++;
+          console.log(`No new people in batch. Attempt ${noNewDataCount} of ${MAX_RETRIES}`);
+
+          if (noNewDataCount >= MAX_RETRIES) {
+            console.log(`Stopping after ${MAX_RETRIES} attempts with no new data`);
+            break;
+          }
+        } else {
+          // Reset counter if we found new people
+          noNewDataCount = 0;
+          // Add only new people to our collection
+          allPeople = allPeople.concat(newPeople);
+          console.log(`Added ${newPeople.length} new people. Total: ${allPeople.length}`);
+        }
+
+        // Stop if API indicates no more results
         if (!peopleData.has_more) {
-          console.log('No more results available');
+          console.log('API indicates no more results');
           break;
         }
 
@@ -73,7 +98,7 @@ export class CacheService {
       }
     }
 
-    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
+    console.log(`Completed fetching all people. Total unique count: ${allPeople.length}`);
     return allPeople;
   }
 
