@@ -23,20 +23,11 @@ export class CacheService {
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
     let cursor: string | undefined;
-    const seenApiIds = new Set<string>();
-    let consecutiveEmptyAttempts = 0;
-    const MAX_EMPTY_ATTEMPTS = 3;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (true) {
       try {
-        console.log(`Fetching next batch of people...`, {
-          currentTotal: allPeople.length,
-          cursor: cursor,
-          consecutiveEmptyAttempts
-        });
-
         const params: Record<string, string> = {
           limit: this.PEOPLE_PAGE_SIZE.toString()
         };
@@ -45,48 +36,25 @@ export class CacheService {
           params.cursor = cursor;
         }
 
+        console.log('Making request with params:', params);
         const peopleData = await lumaApiRequest('calendar/list-people', params);
         const people = peopleData.entries || [];
 
-        // Count new (unseen) people in this batch
-        const newPeople = people.filter(person => {
-          if (!person?.api_id) {
-            console.warn('Invalid person object:', person);
-            return false;
-          }
-          return !seenApiIds.has(person.api_id);
-        });
-
-        // Add new API IDs to seen set
-        newPeople.forEach(person => seenApiIds.add(person.api_id));
-
-        console.log('Batch statistics:', {
-          totalInBatch: people.length,
-          newPeopleCount: newPeople.length,
-          totalUnique: seenApiIds.size,
+        // Log the response details
+        console.log('Response details:', {
+          newPeopleCount: people.length,
+          totalSoFar: allPeople.length,
           hasMore: peopleData.has_more,
           nextCursor: peopleData.next_cursor
         });
 
-        if (newPeople.length === 0) {
-          consecutiveEmptyAttempts++;
-          console.log(`No new people in this batch. Empty attempts: ${consecutiveEmptyAttempts}/${MAX_EMPTY_ATTEMPTS}`);
+        // Add all people from this batch
+        allPeople = allPeople.concat(people);
+        console.log(`Fetched ${people.length} people, Total: ${allPeople.length}`);
 
-          if (consecutiveEmptyAttempts >= MAX_EMPTY_ATTEMPTS) {
-            console.log(`Reached ${MAX_EMPTY_ATTEMPTS} consecutive attempts with no new data, stopping pagination`);
-            break;
-          }
-        } else {
-          // Reset counter if we found new people
-          consecutiveEmptyAttempts = 0;
-          // Add only new people to our collection
-          allPeople = allPeople.concat(newPeople);
-          console.log(`Added ${newPeople.length} new people. Total unique people: ${allPeople.length}`);
-        }
-
-        // Check if there's another page and update cursor
-        if (!peopleData.has_more || !peopleData.next_cursor) {
-          console.log('No more pages available or next cursor is missing');
+        // Break if no more results
+        if (!peopleData.has_more) {
+          console.log('No more results available');
           break;
         }
 
@@ -96,7 +64,7 @@ export class CacheService {
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error(`Failed to fetch people:`, error);
+        console.error('Failed to fetch people:', error);
         if (allPeople.length > 0) {
           console.log(`Returning ${allPeople.length} people fetched before error`);
           return allPeople;
@@ -105,7 +73,7 @@ export class CacheService {
       }
     }
 
-    console.log(`Completed fetching all people. Total unique count: ${allPeople.length}`);
+    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
     return allPeople;
   }
 

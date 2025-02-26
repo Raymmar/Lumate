@@ -5,49 +5,47 @@ import { storage } from "./storage";
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
-  const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
-    });
-  }
-  console.log(`Making request to ${url.toString()} with params:`, params);
-
-  if (!process.env.LUMA_API_KEY) {
-    throw new Error('LUMA_API_KEY environment variable is not set');
-  }
-
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'accept': 'application/json',
-      'x-luma-api-key': process.env.LUMA_API_KEY
+    const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
     }
-  });
+    console.log(`Making request to ${url.toString()} with params:`, params);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
-    throw new Error(`Luma API error: ${response.statusText}`);
-  }
+    if (!process.env.LUMA_API_KEY) {
+      throw new Error('LUMA_API_KEY environment variable is not set');
+    }
 
-  const data = await response.json();
-
-  // Enhanced logging for pagination-related fields
-  if (endpoint === 'calendar/list-people') {
-    console.log('Complete API Response:', data);
-    console.log('Pagination info:', {
-      hasMore: data.has_more,
-      nextCursor: data.next_cursor,
-      entriesCount: data.entries?.length,
-      firstEntryId: data.entries?.[0]?.api_id,
-      lastEntryId: data.entries?.[data.entries?.length - 1]?.api_id,
-      requestParams: params
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'x-luma-api-key': process.env.LUMA_API_KEY
+      }
     });
-  }
 
-  return data;
-}
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Luma API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Enhanced logging for pagination-related fields
+    if (endpoint === 'calendar/list-people') {
+      console.log('Complete API Response:', data);
+      console.log('Pagination info:', {
+        hasMore: data.has_more,
+        nextCursor: data.next_cursor,
+        entriesCount: data.entries?.length,
+        requestParams: params
+      });
+    }
+
+    return data;
+  }
 
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
