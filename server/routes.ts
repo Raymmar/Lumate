@@ -39,7 +39,17 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
-      const events = await storage.getEvents();
+      // Let's also try calendar/get-events as an alternative endpoint
+      let events;
+      try {
+        const eventsData = await lumaApiRequest('calendar/get-events');
+        console.log('Events data from get-events:', eventsData);
+        events = await storage.getEvents();
+      } catch (error) {
+        console.error('Failed to fetch from get-events, falling back to list-events:', error);
+        events = await storage.getEvents();
+      }
+
       res.json({
         events,
         total: events.length

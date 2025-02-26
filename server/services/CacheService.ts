@@ -33,7 +33,12 @@ export class CacheService {
       ]);
 
       // Log raw API responses for debugging
-      console.log('Raw events data from Luma:', JSON.stringify(eventsData, null, 2));
+      console.log('Raw events data structure from Luma:', {
+        keys: Object.keys(eventsData),
+        hasEntries: Boolean(eventsData.entries),
+        entriesLength: eventsData.entries?.length,
+        firstEntry: eventsData.entries?.[0]
+      });
       console.log('Raw people data from Luma:', JSON.stringify(peopleData, null, 2));
 
       // Clear existing data
