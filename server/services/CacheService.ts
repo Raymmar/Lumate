@@ -21,77 +21,56 @@ export class CacheService {
   }
 
   private async fetchAllPeople(): Promise<any[]> {
-    let hasMorePeople = true;
-    const allPeople: any[] = [];
-    let totalFetched = 0;
-    const seenApiIds = new Set<string>();
-    let after: string | undefined;
+    let allPeople: any[] = [];
+    let cursor: string | undefined;
 
     console.log('Starting to fetch all people from Luma API...');
 
-    while (hasMorePeople) {
+    while (true) {
       try {
         // Log pagination state at the start of each iteration
         console.log(`Fetching next batch of people...`, {
-          currentTotal: totalFetched,
-          after: after
+          currentTotal: allPeople.length,
+          cursor: cursor
         });
 
         const params: Record<string, string> = {
           limit: this.PEOPLE_PAGE_SIZE.toString()
         };
 
-        if (after) {
-          params.after = after;
+        if (cursor) {
+          params.cursor = cursor;
         }
 
         const peopleData = await lumaApiRequest('calendar/list-people', params);
 
         // Log the complete response for debugging
-        console.log(`Complete response from API:`, JSON.stringify(peopleData, null, 2));
+        console.log('Complete API Response:', peopleData);
+        console.log('Pagination info:', {
+          hasMore: peopleData.has_more,
+          nextCursor: peopleData.next_cursor,
+          entriesCount: peopleData.entries?.length
+        });
 
         const people = peopleData.entries || [];
 
-        // Verify we're getting new people by checking API IDs
-        const newPeople = people.filter(person => {
-          if (!person?.api_id) {
-            console.warn('Invalid person object:', person);
-            return false;
-          }
-          const isNew = !seenApiIds.has(person.api_id);
-          if (isNew) {
-            seenApiIds.add(person.api_id);
-            return true;
-          }
-          return false;
-        });
-
-        console.log('Batch statistics:', {
-          totalInBatch: people.length,
-          newPeopleCount: newPeople.length,
-          duplicates: people.length - newPeople.length,
-          hasMore: peopleData.has_more,
-          after: peopleData.next_cursor
-        });
-
-        if (newPeople.length === 0) {
-          console.log('No new people in this batch, stopping pagination');
+        if (!people.length) {
+          console.log('No people in response, stopping pagination');
           break;
         }
 
-        // Only add new people to our collection
-        allPeople.push(...newPeople);
-        totalFetched += newPeople.length;
-        console.log(`Total unique people fetched so far: ${totalFetched}`);
+        // Add all people from this batch
+        allPeople = allPeople.concat(people);
+        console.log(`Total people fetched so far: ${allPeople.length}`);
 
-        // Update pagination state
-        hasMorePeople = peopleData.has_more === true && peopleData.next_cursor !== undefined;
-        after = peopleData.next_cursor;
-
-        if (!hasMorePeople || !after) {
-          console.log('No more pages available or next cursor is missing');
+        // Check if there's another page
+        if (!peopleData.next_cursor) {
+          console.log('No next cursor available, stopping pagination');
           break;
         }
+
+        // Update cursor for next request
+        cursor = peopleData.next_cursor;
 
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -105,7 +84,7 @@ export class CacheService {
       }
     }
 
-    console.log(`Completed fetching all people. Total unique count: ${totalFetched}`);
+    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
     return allPeople;
   }
 
