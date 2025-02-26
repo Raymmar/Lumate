@@ -5,11 +5,13 @@ import { sql, eq } from "drizzle-orm";
 export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
+  getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
   clearEvents(): Promise<void>;
 
   // People
   getPeople(): Promise<Person[]>;
+  getPeopleCount(): Promise<number>;
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
 
@@ -24,6 +26,12 @@ export class PostgresStorage implements IStorage {
     const result = await db.select().from(events);
     console.log(`Found ${result.length} events in database`);
     return result;
+  }
+  
+  async getEventCount(): Promise<number> {
+    const result = await db.select({ count: sql`COUNT(*)` }).from(events);
+    const count = Number(result[0].count);
+    return count;
   }
 
   async insertEvent(event: InsertEvent): Promise<Event> {
@@ -89,6 +97,12 @@ export class PostgresStorage implements IStorage {
     const result = await db.select().from(people);
     console.log(`Found ${result.length} people in database`);
     return result;
+  }
+  
+  async getPeopleCount(): Promise<number> {
+    const result = await db.select({ count: sql`COUNT(*)` }).from(people);
+    const count = Number(result[0].count);
+    return count;
   }
 
   async insertPerson(person: InsertPerson): Promise<Person> {

@@ -39,19 +39,17 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Initialize cache service to start syncing data
-  console.log('Starting CacheService...');
-  const CacheService = (await import('./services/CacheService')).CacheService;
-  const cacheService = CacheService.getInstance();
-
-  // Wait for initial cache update to complete
-  try {
-    console.log('Waiting for initial cache update...');
-    await cacheService.performInitialUpdate();
-    console.log('Initial cache update completed');
-  } catch (error) {
-    console.error('Failed to perform initial cache update:', error);
-  }
+  // Initialize cache service to start syncing data in the background
+  console.log('Starting CacheService in background...');
+  setTimeout(async () => {
+    try {
+      const CacheService = (await import('./services/CacheService')).CacheService;
+      const cacheService = CacheService.getInstance();
+      console.log('CacheService started successfully in background');
+    } catch (error) {
+      console.error('Failed to initialize CacheService:', error);
+    }
+  }, 100); // Small delay to ensure server starts quickly
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -15,8 +15,45 @@ export class CacheService {
     if (!this.instance) {
       console.log('Creating new CacheService instance...');
       this.instance = new CacheService();
+      
+      // Check if we have data already before triggering a full sync
+      this.instance.checkInitialDataLoadStatus()
+        .then(hasData => {
+          if (hasData) {
+            console.log('Database already contains data, scheduling background sync');
+            
+            // Small delay before first sync to prevent impacting application startup
+            setTimeout(() => {
+              this.instance.updateCache();
+            }, 5000); // 5 second delay
+          } else {
+            console.log('No existing data found, performing initial data load...');
+            this.instance.updateCache();
+          }
+        })
+        .catch(error => {
+          console.error('Failed to check data status:', error);
+          // Still start caching on error, just with a delay
+          setTimeout(() => {
+            this.instance.updateCache();
+          }, 5000);
+        });
     }
     return this.instance;
+  }
+  
+  private async checkInitialDataLoadStatus(): Promise<boolean> {
+    try {
+      const [eventCount, peopleCount] = await Promise.all([
+        storage.getEventCount(),
+        storage.getPeopleCount()
+      ]);
+      
+      return eventCount > 0 || peopleCount > 0;
+    } catch (error) {
+      console.error('Error checking data status:', error);
+      return false;
+    }
   }
 
   private async fetchAllPeople(): Promise<any[]> {
@@ -485,16 +522,18 @@ export class CacheService {
   }
 
   startCaching() {
-    // Update immediately
-    this.updateCache();
-
-    // Then update every 2 minutes
-    const TWO_MINUTES = 2 * 60 * 1000;
-    this.cacheInterval = setInterval(() => {
-      this.updateCache();
-    }, TWO_MINUTES);
+    // The constructor sets up a delayed initial sync using checkInitialDataLoadStatus
+    // so we don't need to call updateCache() here immediately
     
-    console.log(`Cache refresh scheduled to run every ${TWO_MINUTES / 1000 / 60} minutes`);
+    // Set up a more reasonable interval for data that doesn't change often
+    // 4 hours is a good balance between freshness and performance
+    const FOUR_HOURS = 4 * 60 * 60 * 1000;
+    this.cacheInterval = setInterval(() => {
+      console.log('Running scheduled cache update...');
+      this.updateCache();
+    }, FOUR_HOURS);
+    
+    console.log(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
   }
 
   stopCaching() {
