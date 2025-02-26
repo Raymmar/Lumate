@@ -39,18 +39,19 @@ export class CacheService {
       for (const event of events) {
         await storage.insertEvent({
           title: event.name,
-          description: event.description,
-          startTime: new Date(event.start_at),
-          endTime: new Date(event.end_at)
+          description: event.description || null,
+          startTime: event.start_at,
+          endTime: event.end_at
         });
       }
 
       const people = peopleData.entries || [];
       for (const person of people) {
         await storage.insertPerson({
-          name: person.user?.name || 'Anonymous',
+          api_id: person.api_id,
           email: person.email,
-          role: person.user?.headline || null
+          userName: person.user?.name || null,
+          avatarUrl: person.user?.avatar_url || null
         });
       }
 
