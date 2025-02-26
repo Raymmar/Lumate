@@ -85,6 +85,16 @@ export class CacheService {
           const endTime = this.parseTimestamp(eventData.end_at);
           const createdAt = eventData.created_at ? this.parseTimestamp(eventData.created_at) : null;
 
+          // Debug log for timestamp processing
+          console.log('Processing event timestamps:', {
+            event_name: eventData.name,
+            original_start: eventData.start_at,
+            original_end: eventData.end_at,
+            parsed_start: startTime.toISOString(),
+            parsed_end: endTime.toISOString(),
+            timezone: eventData.timezone
+          });
+
           // Extract location data if available
           const location = eventData.geo_address_json ? {
             city: eventData.geo_address_json.city,
@@ -114,7 +124,9 @@ export class CacheService {
           console.log('Successfully stored event:', {
             id: newEvent.id,
             title: newEvent.title,
-            api_id: newEvent.api_id
+            api_id: newEvent.api_id,
+            startTime: newEvent.startTime,
+            timezone: newEvent.timezone
           });
 
         } catch (error) {
