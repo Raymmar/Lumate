@@ -1,3 +1,4 @@
+
 import { pgTable, text, serial, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -6,15 +7,16 @@ export const events = pgTable("events", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
+  startTime: timestamp("start_time", { mode: 'string' }).notNull(),
+  endTime: timestamp("end_time", { mode: 'string' }).notNull(),
 });
 
 export const people = pgTable("people", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
+  api_id: varchar("api_id", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull(),
-  role: varchar("role", { length: 100 }),
+  userName: varchar("user_name", { length: 255 }),
+  avatarUrl: varchar("avatar_url", { length: 255 }),
 });
 
 export const insertEventSchema = createInsertSchema(events);
