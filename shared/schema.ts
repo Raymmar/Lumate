@@ -11,7 +11,7 @@ export const cacheMetadata = pgTable("cache_metadata", {
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
-  api_id: varchar("api_id", { length: 255 }).notNull(),
+  api_id: varchar("api_id", { length: 255 }).notNull().unique(),
   title: text("title").notNull(),
   description: text("description"),
   startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
