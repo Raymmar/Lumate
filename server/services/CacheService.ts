@@ -84,9 +84,9 @@ export class CacheService {
           console.log(`Added ${newPeople.length} new people. Total unique people: ${allPeople.length}`);
         }
 
-        // Check if there's another page
-        if (!peopleData.next_cursor) {
-          console.log('No next cursor available, stopping pagination');
+        // Check if there's another page and update cursor
+        if (!peopleData.has_more || !peopleData.next_cursor) {
+          console.log('No more pages available or next cursor is missing');
           break;
         }
 
