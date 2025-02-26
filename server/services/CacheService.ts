@@ -22,68 +22,58 @@ export class CacheService {
 
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
-    let cursor: string | undefined;
+    let cursor: string | null = null;
     const seenApiIds = new Set<string>();
-    let noNewDataCount = 0;
-    const MAX_RETRIES = 3;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (true) {
       try {
         const params: Record<string, string> = {
-          limit: this.PEOPLE_PAGE_SIZE.toString()
+          limit: '100'  // Use larger batch size
         };
 
         if (cursor) {
+          console.log('Using cursor for next batch:', cursor);
           params.cursor = cursor;
         }
 
-        console.log('Making request with params:', params);
         const peopleData = await lumaApiRequest('calendar/list-people', params);
         const people = peopleData.entries || [];
 
-        // Check for new people in this batch
-        const newPeople = people.filter(person => {
-          if (!person?.api_id) return false;
-          const isNew = !seenApiIds.has(person.api_id);
-          if (isNew) seenApiIds.add(person.api_id);
-          return isNew;
-        });
-
-        console.log('Batch results:', {
+        // Log detailed pagination info
+        console.log('API Response Stats:', {
           batchSize: people.length,
-          newPeopleCount: newPeople.length,
-          totalUnique: seenApiIds.size,
+          currentTotal: allPeople.length,
           hasMore: peopleData.has_more,
           nextCursor: peopleData.next_cursor,
-          noNewDataCount
+          currentCursor: cursor
         });
 
-        // If we got no new people, increment our counter
-        if (newPeople.length === 0) {
-          noNewDataCount++;
-          console.log(`No new people in batch. Attempt ${noNewDataCount} of ${MAX_RETRIES}`);
+        // Check for new unique people
+        const newPeople = people.filter(person => {
+          if (!person?.api_id) return false;
+          return !seenApiIds.has(person.api_id);
+        });
 
-          if (noNewDataCount >= MAX_RETRIES) {
-            console.log(`Stopping after ${MAX_RETRIES} attempts with no new data`);
-            break;
-          }
-        } else {
-          // Reset counter if we found new people
-          noNewDataCount = 0;
-          // Add only new people to our collection
-          allPeople = allPeople.concat(newPeople);
-          console.log(`Added ${newPeople.length} new people. Total: ${allPeople.length}`);
-        }
+        // Update seen IDs and add new people to collection
+        newPeople.forEach(person => seenApiIds.add(person.api_id));
+        allPeople = allPeople.concat(newPeople);
 
-        // Stop if API indicates no more results
-        if (!peopleData.has_more) {
-          console.log('API indicates no more results');
+        console.log('Batch Results:', {
+          totalInBatch: people.length,
+          newPeopleCount: newPeople.length,
+          totalUniqueSoFar: allPeople.length
+        });
+
+        // If we got no new people or the API says no more results, stop
+        if (newPeople.length === 0 || !peopleData.has_more) {
+          console.log('Stopping pagination:', 
+            newPeople.length === 0 ? 'No new people in batch' : 'API indicates no more results');
           break;
         }
 
-        // Update cursor for next request
+        // Update cursor and continue
         cursor = peopleData.next_cursor;
 
         // Add a small delay to avoid rate limiting
