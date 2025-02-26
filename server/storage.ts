@@ -1,4 +1,17 @@
-import { Event, InsertEvent, Person, InsertPerson } from "@shared/schema";
+
+import { Event, InsertEvent, Person, InsertPerson, events, people } from "@shared/schema";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const db = drizzle(pool);
 
 export interface IStorage {
   // Events
@@ -16,40 +29,41 @@ export interface IStorage {
   setLastCacheUpdate(date: Date): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private events: Map<number, Event>;
-  private people: Map<number, Person>;
-  private eventId: number;
-  private personId: number;
-
-  constructor() {
-    this.events = new Map();
-    this.people = new Map();
-    this.eventId = 1;
-    this.personId = 1;
-  }
-
+export class PostgresStorage implements IStorage {
   async getEvents(): Promise<Event[]> {
-    return Array.from(this.events.values());
+    return await db.select().from(events);
   }
 
   async insertEvent(event: InsertEvent): Promise<Event> {
-    const id = this.eventId++;
-    const newEvent = { ...event, id };
-    this.events.set(id, newEvent);
+    const [newEvent] = await db.insert(events).values(event).returning();
     return newEvent;
   }
 
+  async clearEvents(): Promise<void> {
+    await db.delete(events);
+  }
+
   async getPeople(): Promise<Person[]> {
-    return Array.from(this.people.values());
+    return await db.select().from(people);
   }
 
   async insertPerson(person: InsertPerson): Promise<Person> {
-    const id = this.personId++;
-    const newPerson = { ...person, id };
-    this.people.set(id, newPerson);
+    const [newPerson] = await db.insert(people).values(person).returning();
     return newPerson;
+  }
+
+  async clearPeople(): Promise<void> {
+    await db.delete(people);
+  }
+
+  async getLastCacheUpdate(): Promise<Date | null> {
+    // For now, just return null since we haven't implemented cache metadata table
+    return null;
+  }
+
+  async setLastCacheUpdate(date: Date): Promise<void> {
+    // TODO: Implement cache metadata table
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new PostgresStorage();
