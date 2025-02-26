@@ -27,7 +27,7 @@ export class PostgresStorage implements IStorage {
 
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Inserting event into database:', event);
-    const [newEvent] = await db.insert(events).values(event).returning();
+    const [newEvent] = await db.insert(events).values([event]).returning();
     console.log('Successfully inserted event:', newEvent);
     return newEvent;
   }
@@ -48,7 +48,7 @@ export class PostgresStorage implements IStorage {
   async insertPerson(person: InsertPerson): Promise<Person> {
     try {
       console.log('Attempting to insert person:', person.email);
-      const [newPerson] = await db.insert(people).values(person).returning();
+      const [newPerson] = await db.insert(people).values([person]).returning();
       console.log('Successfully inserted person:', newPerson.email);
       return newPerson;
     } catch (error) {
