@@ -1,10 +1,11 @@
 import type { Express } from "express";
 import { createServer } from "http";
+import { storage } from "./storage";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 // Helper function to make Luma API requests
-async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
+export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
   const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
