@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { parseISO } from "date-fns";
-import { formatInTimeZone } from 'date-fns-tz';
+import { zonedTimeToUtc, toZonedTime } from 'date-fns-tz';
+import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,19 +22,15 @@ interface EventsResponse {
   total: number;
 }
 
-function formatEventDate(dateStr: string, timezone: string | null): string {
+function formatEventDate(utcDateStr: string, timezone: string | null): string {
   try {
     const targetTimezone = timezone || 'America/New_York';
-
-    // Parse the date string and format it in the event's timezone
-    const date = parseISO(dateStr);
-    return formatInTimeZone(
-      date,
-      targetTimezone,
-      'MMM d, h:mm a'
-    );
+    // Convert UTC to zoned time using the correct function
+    const zonedTime = toZonedTime(new Date(utcDateStr), targetTimezone);
+    // Format the time in the target timezone
+    return format(zonedTime, 'MMM d, h:mm a');
   } catch (error) {
-    console.error("Invalid date format:", dateStr);
+    console.error("Invalid date format:", utcDateStr);
     return "Date not available";
   }
 }
@@ -98,15 +94,15 @@ export default function EventList() {
 
   // Sort events by start time
   const sortedEvents = [...eventsArray].sort((a, b) => {
-    return parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime();
+    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
   });
 
   // Split into upcoming and past events
   const upcomingEvents = sortedEvents.filter(event => 
-    parseISO(event.startTime) > now
+    new Date(event.startTime) > now
   );
   const pastEvents = sortedEvents.filter(event => 
-    parseISO(event.startTime) <= now
+    new Date(event.startTime) <= now
   ).reverse();
 
   const nextEvent = upcomingEvents[0];
