@@ -27,7 +27,20 @@ export class PostgresStorage implements IStorage {
 
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Inserting event into database:', event);
-    const [newEvent] = await db.insert(events).values([event]).returning();
+    // Explicitly type and validate the location object before insertion
+    const locationData = event.location ? {
+      city: event.location.city || null,
+      region: event.location.region || null,
+      country: event.location.country || null,
+      latitude: event.location.latitude || null,
+      longitude: event.location.longitude || null,
+      full_address: event.location.full_address || null,
+    } : null;
+
+    const [newEvent] = await db.insert(events).values({
+      ...event,
+      location: locationData,
+    }).returning();
     console.log('Successfully inserted event:', newEvent);
     return newEvent;
   }

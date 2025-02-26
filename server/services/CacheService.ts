@@ -24,11 +24,14 @@ export class CacheService {
     let nextCursor: string | null = null;
     let hasMore = true;
     let attempts = 0;
+    let noProgressCount = 0;
     const MAX_ATTEMPTS = 1000; // Safeguard against infinite loops
+    const MAX_NO_PROGRESS_ATTEMPTS = 3; // Maximum attempts without new data
+    let lastCount = 0;
 
     console.log('Starting to fetch all people from Luma API...');
 
-    while (hasMore && attempts < MAX_ATTEMPTS) {
+    while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
         attempts++;
         // Build params object - only include cursor if we have one
@@ -41,7 +44,8 @@ export class CacheService {
         console.log('Making request with:', {
           cursor: nextCursor,
           totalCollected: allPeople.length,
-          attempt: attempts
+          attempt: attempts,
+          noProgressCount
         });
 
         const response = await lumaApiRequest('calendar/list-people', params);
@@ -61,6 +65,16 @@ export class CacheService {
 
         // Add this batch to our collection
         allPeople = allPeople.concat(people);
+
+        // Check if we're making progress
+        if (allPeople.length === lastCount) {
+          noProgressCount++;
+          console.warn(`No new data received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+        } else {
+          noProgressCount = 0; // Reset if we got new data
+          lastCount = allPeople.length;
+        }
+
         console.log(`Added ${people.length} people. Total collected: ${allPeople.length}`);
 
         // Update pagination state
@@ -81,17 +95,31 @@ export class CacheService {
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Failed to fetch people batch:', error);
-        // If we have collected some data, return it rather than failing completely
-        if (allPeople.length > 0) {
-          console.log(`Returning ${allPeople.length} people collected before error`);
+        noProgressCount++;
+        console.warn(`Request failed. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+
+        // If we have collected some data and reached max no-progress attempts, return what we have
+        if (allPeople.length > 0 && noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
+          console.log(`Returning ${allPeople.length} people collected before error after ${noProgressCount} failed attempts`);
           return allPeople;
         }
+
+        if (noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
+          // Wait a bit longer before retrying after an error
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
+        }
+
         throw error;
       }
     }
 
     if (attempts >= MAX_ATTEMPTS) {
       console.warn(`Reached maximum attempts (${MAX_ATTEMPTS}), stopping pagination`);
+    }
+
+    if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
+      console.warn(`Stopped after ${noProgressCount} attempts without new data`);
     }
 
     console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
