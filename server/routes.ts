@@ -7,7 +7,6 @@ const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
     const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
 
-    // Add params to URL if provided
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, value);
@@ -36,10 +35,10 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 
     const data = await response.json();
 
-    // Simple logging for pagination debugging
     if (endpoint === 'calendar/list-people') {
-      console.log('Response data:', {
-        count: data.entries?.length,
+      // Log minimal information to track pagination progress
+      console.log('Response details:', {
+        currentBatch: data.entries?.length,
         hasMore: data.has_more,
         nextCursor: data.next_cursor
       });

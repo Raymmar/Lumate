@@ -5,7 +5,6 @@ export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
-  private readonly PEOPLE_PAGE_SIZE = 50;
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -22,49 +21,44 @@ export class CacheService {
 
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
-    let cursor: string | null = null;
+    let cursor = null;
 
     console.log('Starting to fetch all people from Luma API...');
 
     while (true) {
       try {
-        // Prepare params - only add cursor if we have one
-        const params: Record<string, string> = {
-          limit: '100'  // Use larger batch size
-        };
-
+        // Build params object - only include cursor if we have one
+        const params: Record<string, string> = { limit: '50' };
         if (cursor) {
           params.cursor = cursor;
         }
 
-        console.log('Request params:', params);
-        const response = await lumaApiRequest('calendar/list-people', params);
-
-        const people = response.entries || [];
-
-        console.log('Response stats:', {
-          batchSize: people.length,
-          currentTotal: allPeople.length,
-          hasMore: response.has_more,
-          nextCursor: response.next_cursor
+        // Log current request details
+        console.log('Making request with:', {
+          cursor: cursor,
+          totalCollected: allPeople.length
         });
 
+        const response = await lumaApiRequest('calendar/list-people', params);
+        const people = response.entries || [];
+
+        // If no people in response, stop
         if (!people.length) {
           console.log('No people in response, stopping pagination');
           break;
         }
 
-        // Add new batch to our collection
+        // Add this batch to our collection
         allPeople = allPeople.concat(people);
         console.log(`Added ${people.length} people. Total collected: ${allPeople.length}`);
 
-        // Stop if no more results
+        // If no more results, stop
         if (!response.has_more) {
           console.log('No more results available');
           break;
         }
 
-        // Update cursor for next request
+        // Get next cursor for the next request
         cursor = response.next_cursor;
         if (!cursor) {
           console.log('No next cursor provided, stopping pagination');
@@ -135,8 +129,6 @@ export class CacheService {
 
     this.isCaching = true;
     console.log('Starting cache update process...');
-    let peopleProcessed = 0;
-    let peopleStored = 0;
 
     try {
       // First, fetch all data before clearing the database
@@ -167,7 +159,7 @@ export class CacheService {
               continue;
             }
 
-            const newEvent = await storage.insertEvent({
+            await storage.insertEvent({
               api_id: eventData.api_id,
               title: eventData.name,
               description: eventData.description || null,
@@ -189,68 +181,39 @@ export class CacheService {
               calendarApiId: eventData.calendar_api_id || null,
               createdAt: eventData.created_at || null,
             });
-
-            console.log('Successfully stored event:', {
-              id: newEvent.id,
-              title: newEvent.title,
-              api_id: newEvent.api_id
-            });
           } catch (error) {
             console.error('Failed to process event:', error);
           }
         }
       }
 
-      // Store people in batches
+      // Store people
       if (allPeople.length) {
         console.log(`Processing ${allPeople.length} people...`);
-        const batchSize = 50;
-        for (let i = 0; i < allPeople.length; i += batchSize) {
-          const batch = allPeople.slice(i, i + batchSize);
-          console.log(`Processing batch ${Math.floor(i / batchSize) + 1} of ${Math.ceil(allPeople.length / batchSize)}`);
-
-          for (const person of batch) {
-            try {
-              peopleProcessed++;
-              if (!person.api_id || !person.email) {
-                console.warn(`Skipping person ${peopleProcessed} - Missing required fields:`, person);
-                continue;
-              }
-
-              const newPerson = await storage.insertPerson({
-                api_id: person.api_id,
-                email: person.email,
-                userName: person.userName || person.user?.name || null,
-                fullName: person.fullName || person.user?.full_name || null,
-                avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
-                role: person.role || null,
-                phoneNumber: person.phoneNumber || person.user?.phone_number || null,
-                bio: person.bio || person.user?.bio || null,
-                organizationName: person.organizationName || person.user?.organization_name || null,
-                jobTitle: person.jobTitle || person.user?.job_title || null,
-                createdAt: person.created_at || null,
-              });
-              peopleStored++;
-
-              if (peopleStored % 10 === 0) {
-                console.log(`Progress: Stored ${peopleStored}/${allPeople.length} people`);
-              }
-            } catch (error) {
-              console.error(`Failed to process person ${peopleProcessed}:`, error);
+        for (const person of allPeople) {
+          try {
+            if (!person.api_id || !person.email) {
+              console.warn('Skipping person - Missing required fields:', person);
+              continue;
             }
+
+            await storage.insertPerson({
+              api_id: person.api_id,
+              email: person.email,
+              userName: person.userName || person.user?.name || null,
+              fullName: person.fullName || person.user?.full_name || null,
+              avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+              role: person.role || null,
+              phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+              bio: person.bio || person.user?.bio || null,
+              organizationName: person.organizationName || person.user?.organization_name || null,
+              jobTitle: person.jobTitle || person.user?.job_title || null,
+              createdAt: person.created_at || null,
+            });
+          } catch (error) {
+            console.error('Failed to process person:', error);
           }
         }
-
-        // Final status report
-        console.log('Cache update completed successfully');
-        console.log(`Final counts - Processed: ${peopleProcessed}, Successfully stored: ${peopleStored}`);
-
-        // Verify final counts
-        const [finalPeopleCount, finalEventsCount] = await Promise.all([
-          storage.getPeople().then(p => p.length),
-          storage.getEvents().then(e => e.length)
-        ]);
-        console.log(`Database counts - People: ${finalPeopleCount}, Events: ${finalEventsCount}`);
       }
 
       await storage.setLastCacheUpdate(new Date());
