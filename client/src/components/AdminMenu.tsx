@@ -1,12 +1,15 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel 
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Settings, RefreshCcw, AlertTriangle } from "lucide-react";
+import { Settings, RefreshCcw, AlertTriangle, UserPlus, Users, User } from "lucide-react";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -71,6 +74,22 @@ export default function AdminMenu() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuLabel>User Management</DropdownMenuLabel>
+          <DropdownMenuItem asChild>
+            <Link to="/register">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Register Account
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to="/profile">
+              <User className="mr-2 h-4 w-4" />
+              My Profile
+            </Link>
+          </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>Data Management</DropdownMenuLabel>
           <DropdownMenuItem 
             className="cursor-pointer text-red-500 focus:text-red-500"
             onClick={() => setIsResetDialogOpen(true)}
