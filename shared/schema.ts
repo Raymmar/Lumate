@@ -35,7 +35,7 @@ export const events = pgTable("events", {
 
 export const people = pgTable("people", {
   id: serial("id").primaryKey(),
-  api_id: varchar("api_id", { length: 255 }).notNull(),
+  api_id: varchar("api_id", { length: 255 }).notNull().unique(),
   email: varchar("email", { length: 255 }).notNull(),
   userName: varchar("user_name", { length: 255 }),
   fullName: varchar("full_name", { length: 255 }),
