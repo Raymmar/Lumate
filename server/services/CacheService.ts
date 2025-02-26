@@ -65,25 +65,24 @@ export class CacheService {
           break;
         }
 
+        const previousCount = allPeople.length;
         // Add this batch to our collection
         allPeople = allPeople.concat(people);
 
-        // Check if we're making progress
-        if (allPeople.length === lastCount) {
+        // Check if we received any new people
+        if (allPeople.length === previousCount) {
           noProgressCount++;
-          console.warn(`No new data received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+          console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
+
+          if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
+            console.log(`Stopping after ${noProgressCount} attempts with no new people`);
+            break;
+          }
         } else {
-          noProgressCount = 0; // Reset if we got new data
-          lastCount = allPeople.length;
+          // Reset counter if we got new people
+          noProgressCount = 0;
+          console.log(`Added ${allPeople.length - previousCount} new people. Total: ${allPeople.length}`);
         }
-
-        // Check if cursor is stuck
-        if (nextCursor === prevCursor) {
-          noProgressCount++;
-          console.warn(`Cursor is stuck at ${nextCursor}. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-        }
-
-        console.log(`Added ${people.length} people. Total collected: ${allPeople.length}`);
 
         // Update pagination state
         hasMore = response.has_more === true;
