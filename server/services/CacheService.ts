@@ -25,6 +25,7 @@ export class CacheService {
     let hasMorePeople = true;
     const allPeople: any[] = [];
     let totalFetched = 0;
+    const seenApiIds = new Set<string>();
 
     console.log('Starting to fetch all people from Luma API...');
 
@@ -36,16 +37,37 @@ export class CacheService {
           limit: this.PEOPLE_PAGE_SIZE.toString()
         });
 
+        // Log the complete response for debugging
+        console.log(`Complete response from page ${currentPage}:`, JSON.stringify(peopleData, null, 2));
+
         const people = peopleData.entries || [];
         const pageCount = people.length;
-        totalFetched += pageCount;
-        allPeople.push(...people);
 
-        console.log(`Page ${currentPage}: Retrieved ${pageCount} people (Total so far: ${totalFetched})`);
+        // Check for duplicates and new entries
+        const newPeopleCount = people.filter(person => {
+          const isDuplicate = seenApiIds.has(person.api_id);
+          seenApiIds.add(person.api_id);
+          return !isDuplicate;
+        }).length;
 
-        // Check if we've reached the last page
-        hasMorePeople = people.length === this.PEOPLE_PAGE_SIZE;
-        currentPage++;
+        console.log(`Page ${currentPage}:`, {
+          totalInResponse: pageCount,
+          newPeople: newPeopleCount,
+          duplicates: pageCount - newPeopleCount
+        });
+
+        if (newPeopleCount === 0) {
+          console.log('No new people found in this page, stopping pagination');
+          hasMorePeople = false;
+        } else {
+          allPeople.push(...people);
+          totalFetched += newPeopleCount;
+          console.log(`Total unique people fetched so far: ${totalFetched}`);
+
+          // Continue if we got a full page of results
+          hasMorePeople = pageCount === this.PEOPLE_PAGE_SIZE;
+          currentPage++;
+        }
 
         // Add a small delay to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -56,7 +78,7 @@ export class CacheService {
       }
     }
 
-    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
+    console.log(`Completed fetching all people. Total unique count: ${totalFetched}`);
     return allPeople;
   }
 
