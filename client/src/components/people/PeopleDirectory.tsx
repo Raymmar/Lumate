@@ -107,7 +107,10 @@ export default function PeopleDirectory() {
                 </div>
               ))}
             </div>
-            <Pagination className="mt-4">
+            <div className="mt-4 text-sm text-muted-foreground">
+              Showing {filteredPeople.length} of {data.total} total people
+            </div>
+            <Pagination className="mt-2">
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious 
