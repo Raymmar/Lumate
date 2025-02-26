@@ -1,8 +1,10 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import { insertUserSchema } from "@shared/schema";
+import { z } from "zod";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, varchar, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, json, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -48,9 +48,29 @@ export const people = pgTable("people", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 255 }).notNull().unique(),
+  displayName: varchar("display_name", { length: 255 }),
+  isVerified: boolean("is_verified").notNull().default(false),
+  personId: serial("person_id").references(() => people.id),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const verificationTokens = pgTable("verification_tokens", {
+  id: serial("id").primaryKey(),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull(),
+  expiresAt: timestamp("expires_at", { mode: 'string', withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true });
+export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -58,3 +78,7 @@ export type Person = typeof people.$inferSelect;
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type VerificationToken = typeof verificationTokens.$inferSelect;
+export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;

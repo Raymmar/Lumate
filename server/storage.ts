@@ -1,6 +1,14 @@
-import { Event, InsertEvent, Person, InsertPerson, events, people, cacheMetadata, InsertCacheMetadata } from "@shared/schema";
+import { 
+  Event, InsertEvent, 
+  Person, InsertPerson, 
+  User, InsertUser,
+  VerificationToken, InsertVerificationToken,
+  events, people, cacheMetadata, 
+  InsertCacheMetadata, users, verificationTokens 
+} from "@shared/schema";
 import { db } from "./db";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
+import crypto from "crypto";
 
 export interface IStorage {
   // Events
@@ -12,12 +20,26 @@ export interface IStorage {
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
+  getPersonById(id: number): Promise<Person | null>;
+  getPersonByEmail(email: string): Promise<Person | null>; 
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
 
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
   setLastCacheUpdate(date: Date): Promise<void>;
+  
+  // User management
+  createUser(userData: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUserById(id: number): Promise<User | null>;
+  getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
+  verifyUser(userId: number): Promise<User>;
+  
+  // Email verification
+  createVerificationToken(email: string): Promise<VerificationToken>;
+  validateVerificationToken(token: string): Promise<VerificationToken | null>;
+  deleteVerificationToken(token: string): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -190,6 +212,200 @@ export class PostgresStorage implements IStorage {
       console.log('Successfully updated last cache timestamp:', date.toISOString());
     } catch (error) {
       console.error('Failed to update last cache timestamp:', error);
+      throw error;
+    }
+  }
+
+  // People methods
+  async getPersonById(id: number): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.id, id))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by ID:', error);
+      throw error;
+    }
+  }
+
+  async getPersonByEmail(email: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.email, email))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by email:', error);
+      throw error;
+    }
+  }
+
+  // User management methods
+  async createUser(userData: InsertUser): Promise<User> {
+    try {
+      console.log('Creating new user with email:', userData.email);
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          ...userData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .returning();
+
+      console.log('Successfully created user:', newUser.id);
+      return newUser;
+    } catch (error) {
+      console.error('Failed to create user:', error);
+      throw error;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get user by email:', error);
+      throw error;
+    }
+  }
+
+  async getUserById(id: number): Promise<User | null> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get user by ID:', error);
+      throw error;
+    }
+  }
+
+  async getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null> {
+    try {
+      const result = await db
+        .select({
+          user: users,
+          person: people
+        })
+        .from(users)
+        .leftJoin(people, eq(users.personId, people.id))
+        .where(eq(users.id, userId))
+        .limit(1);
+      
+      if (result.length === 0 || !result[0].person) return null;
+      
+      return {
+        ...result[0].user,
+        person: result[0].person
+      };
+    } catch (error) {
+      console.error('Failed to get user with person details:', error);
+      throw error;
+    }
+  }
+
+  async verifyUser(userId: number): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          isVerified: true,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+      
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to verify user:', error);
+      throw error;
+    }
+  }
+
+  // Email verification methods
+  async createVerificationToken(email: string): Promise<VerificationToken> {
+    try {
+      // Generate a secure random token
+      const token = crypto.randomBytes(32).toString('hex');
+      
+      // Set expiration to 24 hours from now
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+      
+      const [newToken] = await db
+        .insert(verificationTokens)
+        .values({
+          token,
+          email,
+          expiresAt: expiresAt.toISOString(),
+        })
+        .returning();
+      
+      return newToken;
+    } catch (error) {
+      console.error('Failed to create verification token:', error);
+      throw error;
+    }
+  }
+
+  async validateVerificationToken(token: string): Promise<VerificationToken | null> {
+    try {
+      const result = await db
+        .select()
+        .from(verificationTokens)
+        .where(eq(verificationTokens.token, token))
+        .limit(1);
+      
+      if (result.length === 0) {
+        return null;
+      }
+      
+      const verificationToken = result[0];
+      const now = new Date();
+      const expiresAt = new Date(verificationToken.expiresAt);
+      
+      // Check if token is expired
+      if (now > expiresAt) {
+        await this.deleteVerificationToken(token);
+        return null;
+      }
+      
+      return verificationToken;
+    } catch (error) {
+      console.error('Failed to validate verification token:', error);
+      throw error;
+    }
+  }
+
+  async deleteVerificationToken(token: string): Promise<void> {
+    try {
+      await db
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.token, token));
+    } catch (error) {
+      console.error('Failed to delete verification token:', error);
       throw error;
     }
   }
