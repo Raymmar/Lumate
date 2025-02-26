@@ -52,6 +52,26 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
     return data;
 }
 
+// Define validation schemas for user registration and verification
+const registerUserSchema = z.object({
+  email: z.string().email(),
+  displayName: z.string().min(2).optional(),
+  personId: z.number().int().positive()
+});
+
+const verifyEmailSchema = z.object({
+  token: z.string()
+});
+
+// Email service for sending verification emails
+const sendVerificationEmail = async (email: string, token: string) => {
+  // In a production environment, you would integrate with an email service provider
+  // For now, we'll just log the verification link
+  const verificationLink = `${process.env.BASE_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+  console.log(`Sending verification email to ${email} with link: ${verificationLink}`);
+  return true;
+};
+
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
@@ -104,6 +124,171 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch people:', error);
       res.status(500).json({ error: "Failed to fetch people" });
+    }
+  });
+
+  // API routes for user authentication and account management
+
+  // Get a person by email to check if they exist in Luma data
+  app.get("/api/people/by-email", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const person = await storage.getPersonByEmail(email);
+      if (!person) {
+        return res.status(404).json({ error: "No person found with this email" });
+      }
+
+      res.json({ person });
+    } catch (error) {
+      console.error('Failed to find person by email:', error);
+      res.status(500).json({ error: "Failed to find person" });
+    }
+  });
+
+  // Register a new user
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      // Validate request body
+      const result = registerUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid request data", 
+          details: result.error.format() 
+        });
+      }
+
+      const { email, displayName, personId } = result.data;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ error: "User with this email already exists" });
+      }
+
+      // Verify the person exists in Luma data
+      const person = await storage.getPersonById(personId);
+      if (!person) {
+        return res.status(404).json({ error: "No person found with this ID" });
+      }
+
+      // Verify email matches the person's email in Luma data
+      if (person.email.toLowerCase() !== email.toLowerCase()) {
+        return res.status(403).json({ 
+          error: "Email doesn't match the selected person's email" 
+        });
+      }
+
+      // Create the user
+      const newUser = await storage.createUser({
+        email,
+        displayName: displayName || person.userName || person.fullName || email.split('@')[0],
+        personId
+      });
+
+      // Create verification token
+      const verificationToken = await storage.createVerificationToken(email);
+
+      // Send verification email
+      await sendVerificationEmail(email, verificationToken.token);
+
+      res.status(201).json({ 
+        success: true,
+        message: "User registered successfully. Please check your email to verify your account.",
+        userId: newUser.id
+      });
+    } catch (error) {
+      console.error('Failed to register user:', error);
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  });
+
+  // Verify email with token
+  app.post("/api/auth/verify-email", async (req, res) => {
+    try {
+      // Validate request body
+      const result = verifyEmailSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid token", 
+          details: result.error.format() 
+        });
+      }
+
+      const { token } = result.data;
+
+      // Validate the token
+      const verificationToken = await storage.validateVerificationToken(token);
+      if (!verificationToken) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      // Get the user by email
+      const user = await storage.getUserByEmail(verificationToken.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Mark the user as verified
+      const verifiedUser = await storage.verifyUser(user.id);
+
+      // Delete the used token
+      await storage.deleteVerificationToken(token);
+
+      res.json({ 
+        success: true, 
+        message: "Email verified successfully", 
+        user: {
+          id: verifiedUser.id,
+          email: verifiedUser.email,
+          displayName: verifiedUser.displayName,
+          isVerified: verifiedUser.isVerified
+        }
+      });
+    } catch (error) {
+      console.error('Failed to verify email:', error);
+      res.status(500).json({ error: "Failed to verify email" });
+    }
+  });
+
+  // Get current user profile (if they have a user account)
+  app.get("/api/auth/profile", async (req, res) => {
+    try {
+      // In a real app, this would use a session or JWT token to identify the user
+      // For demo purposes, we'll accept an email parameter
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Get the user
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Get the linked person data
+      const userWithPerson = await storage.getUserWithPerson(user.id);
+      if (!userWithPerson) {
+        return res.status(404).json({ error: "User profile not found" });
+      }
+
+      res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          isVerified: user.isVerified,
+          createdAt: user.createdAt
+        },
+        person: userWithPerson.person
+      });
+    } catch (error) {
+      console.error('Failed to get user profile:', error);
+      res.status(500).json({ error: "Failed to get user profile" });
     }
   });
   
