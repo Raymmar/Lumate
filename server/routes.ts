@@ -32,21 +32,26 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
   }
 
   const data = await response.json();
-  console.log(`Response from ${endpoint}:`, JSON.stringify(data, null, 2));
+  // Log the complete response for debugging
+  console.log(`Complete response from ${endpoint}:`, JSON.stringify(data, null, 2));
   return data;
 }
 
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
+      // Let's try to fetch events directly from Luma API first to verify the data
+      const eventsData = await lumaApiRequest('calendar/list-events');
+      console.log('Direct Luma API events data:', {
+        hasData: !!eventsData,
+        entriesCount: eventsData?.entries?.length,
+        sampleEntry: eventsData?.entries?.[0]
+      });
+
+      // Then get events from our storage
       console.log('Fetching events from storage...');
       const events = await storage.getEvents();
       console.log(`Retrieved ${events.length} events from storage`);
-
-      // Log a sample event if available
-      if (events.length > 0) {
-        console.log('Sample event:', events[0]);
-      }
 
       res.json({
         events,

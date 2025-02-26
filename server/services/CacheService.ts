@@ -17,8 +17,38 @@ export class CacheService {
     return this.instance;
   }
 
+  private parseTimestamp(timestamp: string | number): Date {
+    try {
+      // If it's a string that could be an ISO date
+      if (typeof timestamp === 'string' && isNaN(Number(timestamp))) {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+
+      // If it's a Unix timestamp (either string or number)
+      const numericTimestamp = Number(timestamp);
+      if (!isNaN(numericTimestamp)) {
+        // Check if we need to multiply by 1000 (if it's in seconds instead of milliseconds)
+        const multiplier = numericTimestamp < 10000000000 ? 1000 : 1;
+        const date = new Date(numericTimestamp * multiplier);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+
+      throw new Error(`Invalid timestamp format: ${timestamp}`);
+    } catch (error) {
+      throw new Error(`Failed to parse timestamp ${timestamp}: ${error}`);
+    }
+  }
+
   private async updateCache() {
-    if (this.isCaching) return;
+    if (this.isCaching) {
+      console.log('Cache update already in progress, skipping...');
+      return;
+    }
 
     this.isCaching = true;
     try {
@@ -26,52 +56,65 @@ export class CacheService {
       console.log('Fetching events from Luma API...');
       const eventsData = await lumaApiRequest('calendar/list-events');
 
-      // Clear existing data
-      console.log('Clearing existing events and people...');
+      // Log the complete raw response for debugging
+      console.log('Raw Luma API response:', JSON.stringify(eventsData, null, 2));
+
+      if (!eventsData?.entries?.length) {
+        console.warn('No events found in Luma API response');
+        return;
+      }
+
+      // Clear existing data before updating
+      console.log('Clearing existing data...');
       await storage.clearEvents();
       await storage.clearPeople();
 
-      // Process events
-      const entries = eventsData.entries || [];
-      console.log(`Found ${entries.length} events to process`);
+      console.log(`Found ${eventsData.entries.length} events to process`);
 
-      // Track successful insertions
-      let successfulInserts = 0;
-
-      for (const entry of entries) {
+      for (const entry of eventsData.entries) {
         try {
+          // Extract event data from the nested structure
           const eventData = entry.event;
           if (!eventData) {
-            console.warn('Event data is missing:', entry);
+            console.warn('Event data missing in entry:', entry);
             continue;
           }
 
-          // Log the event data we're about to process
+          // Log the raw event data we're processing
           console.log('Processing event:', {
             name: eventData.name,
             start_at: eventData.start_at,
             end_at: eventData.end_at,
-            description: eventData.description?.substring(0, 50) + '...'
+            type_start: typeof eventData.start_at,
+            type_end: typeof eventData.end_at
           });
 
-          // Convert timestamps and validate dates
-          const startTime = new Date(Number(eventData.start_at) * 1000);
-          const endTime = new Date(Number(eventData.end_at) * 1000);
-
+          // Validate required fields
           if (!eventData.name || !eventData.start_at || !eventData.end_at) {
-            console.warn('Skipping event - missing required fields:', eventData);
-            continue;
-          }
-
-          if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-            console.warn('Skipping event - invalid dates:', {
-              start: eventData.start_at,
-              end: eventData.end_at
+            console.warn('Missing required fields for event:', {
+              hasName: !!eventData.name,
+              hasStart: !!eventData.start_at,
+              hasEnd: !!eventData.end_at
             });
             continue;
           }
 
-          // Insert the event into our database
+          // Convert timestamps
+          let startTime: Date, endTime: Date;
+          try {
+            startTime = this.parseTimestamp(eventData.start_at);
+            endTime = this.parseTimestamp(eventData.end_at);
+
+            console.log('Parsed timestamps:', {
+              start: startTime.toISOString(),
+              end: endTime.toISOString()
+            });
+          } catch (error) {
+            console.error('Failed to parse event timestamps:', error);
+            continue;
+          }
+
+          // Insert event
           const newEvent = await storage.insertEvent({
             title: eventData.name,
             description: eventData.description || null,
@@ -85,14 +128,10 @@ export class CacheService {
             startTime: newEvent.startTime
           });
 
-          successfulInserts++;
         } catch (error) {
           console.error('Failed to process event:', error);
-          console.error('Problematic event data:', entry);
         }
       }
-
-      console.log(`Successfully processed ${successfulInserts} out of ${entries.length} events`);
 
       // Process people data
       console.log('Fetching people from Luma API...');
@@ -104,40 +143,28 @@ export class CacheService {
       const people = peopleData.entries || [];
       console.log(`Processing ${people.length} people...`);
 
-      let successfulPeopleInserts = 0;
-
       for (const person of people) {
         try {
           if (!person.api_id || !person.email) {
-            console.warn('Skipping person - missing required fields:', person);
+            console.warn('Missing required fields for person:', person);
             continue;
           }
 
-          const newPerson = await storage.insertPerson({
+          await storage.insertPerson({
             api_id: person.api_id,
             email: person.email,
             userName: person.userName || person.user?.name || null,
             avatarUrl: person.avatarUrl || person.user?.avatar_url || null
           });
-
-          console.log('Successfully stored person:', {
-            id: newPerson.id,
-            email: newPerson.email
-          });
-
-          successfulPeopleInserts++;
         } catch (error) {
           console.error('Failed to process person:', error);
-          console.error('Problematic person data:', person);
         }
       }
 
-      console.log(`Successfully processed ${successfulPeopleInserts} out of ${people.length} people`);
-
       await storage.setLastCacheUpdate(new Date());
-      console.log('Cache update completed successfully');
+      console.log('Cache update completed');
     } catch (error) {
-      console.error('Failed to update cache:', error);
+      console.error('Cache update failed:', error);
     } finally {
       this.isCaching = false;
     }
@@ -147,10 +174,10 @@ export class CacheService {
     // Update immediately
     this.updateCache();
 
-    // Then update every 5 minutes to keep data fresh
+    // Then update every 5 minutes
     this.cacheInterval = setInterval(() => {
       this.updateCache();
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 5 * 60 * 1000);
   }
 
   stopCaching() {
