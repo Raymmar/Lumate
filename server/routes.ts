@@ -33,34 +33,38 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
   }
 
   const data = await response.json();
+  console.log(`Response from ${endpoint}:`, JSON.stringify(data, null, 2));
   return data;
 }
 
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
-      // Try both calendar endpoints as alternatives
+      // Try both event endpoints to see which one works
+      console.log('Fetching data from Luma API...');
       let eventsData;
       try {
         eventsData = await lumaApiRequest('calendar/list-events');
-        console.log('Events data from list-events:', JSON.stringify(eventsData, null, 2));
+        console.log('Successfully fetched from list-events');
       } catch (error) {
         console.error('Failed to fetch from list-events, trying get-events:', error);
-        try {
-          eventsData = await lumaApiRequest('calendar/get-events');
-          console.log('Events data from get-events:', JSON.stringify(eventsData, null, 2));
-        } catch (fetchError) {
-          console.error('Failed to fetch from both event endpoints:', fetchError);
-          eventsData = { entries: [] };
-        }
+        eventsData = await lumaApiRequest('calendar/get-events');
+        console.log('Successfully fetched from get-events');
       }
 
-      // For now, return the raw Luma API response to see its structure
+      // Log raw API responses for debugging
+      console.log('Raw events data structure:', {
+        keys: Object.keys(eventsData),
+        hasEntries: Boolean(eventsData.entries),
+        entriesLength: eventsData.entries?.length,
+        sampleEvent: eventsData.entries?.[0],
+        fullResponse: JSON.stringify(eventsData, null, 2)
+      });
+
       const events = await storage.getEvents();
       res.json({
         events,
-        total: events.length,
-        lumaResponse: eventsData // Temporary, for debugging
+        total: events.length
       });
     } catch (error) {
       console.error('Failed to fetch events:', error);

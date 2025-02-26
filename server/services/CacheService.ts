@@ -22,47 +22,31 @@ export class CacheService {
 
     this.isCaching = true;
     try {
-      // Try both event endpoints to see which one works
-      console.log('Fetching data from Luma API...');
-      let eventsData;
-      try {
-        eventsData = await lumaApiRequest('calendar/list-events');
-        console.log('Successfully fetched from list-events');
-      } catch (error) {
-        console.error('Failed to fetch from list-events, trying get-events:', error);
-        eventsData = await lumaApiRequest('calendar/get-events');
-        console.log('Successfully fetched from get-events');
-      }
+      // Fetch events data from Luma API
+      console.log('Fetching events from Luma API...');
+      const eventsData = await lumaApiRequest('calendar/list-events');
 
-      const peopleData = await lumaApiRequest('calendar/list-people', {
-        page: '1',
-        limit: '100'
-      });
-
-      // Log raw API responses for debugging
-      console.log('Raw events data structure:', {
-        keys: Object.keys(eventsData),
-        hasEntries: Boolean(eventsData.entries),
-        entriesLength: eventsData.entries?.length,
-        sampleEvent: eventsData.entries?.[0],
-        fullResponse: JSON.stringify(eventsData, null, 2)
-      });
+      // Log the entire events response for debugging
+      console.log('Full Luma API events response:', JSON.stringify(eventsData, null, 2));
 
       // Clear existing data
       await storage.clearEvents();
       await storage.clearPeople();
 
-      // Store new data
+      // Process events
       const events = eventsData.entries || [];
       console.log(`Processing ${events.length} events...`);
 
-      for (const event of events) {
+      for (const eventEntry of events) {
         try {
+          const event = eventEntry.event || eventEntry; // Handle both nested and flat structures
+
           if (!event.name || !event.start_at || !event.end_at) {
             console.warn('Missing required fields for event:', event);
             continue;
           }
 
+          // Convert timestamps from Unix epoch to ISO string
           const startTime = new Date(event.start_at * 1000);
           const endTime = new Date(event.end_at * 1000);
 
@@ -80,9 +64,16 @@ export class CacheService {
           });
           console.log('Successfully inserted event:', newEvent);
         } catch (error) {
-          console.error('Failed to insert event:', error, event);
+          console.error('Failed to process event:', error, eventEntry);
         }
       }
+
+      // Fetch and process people data
+      console.log('Fetching people from Luma API...');
+      const peopleData = await lumaApiRequest('calendar/list-people', {
+        page: '1',
+        limit: '100'
+      });
 
       const people = peopleData.entries || [];
       console.log(`Processing ${people.length} people...`);
@@ -97,12 +88,12 @@ export class CacheService {
           const newPerson = await storage.insertPerson({
             api_id: person.api_id,
             email: person.email,
-            userName: person.user?.name || null,
-            avatarUrl: person.user?.avatar_url || null
+            userName: person.userName || person.user?.name || null,
+            avatarUrl: person.avatarUrl || person.user?.avatar_url || null
           });
           console.log('Successfully inserted person:', newPerson);
         } catch (error) {
-          console.error('Failed to insert person:', error, person);
+          console.error('Failed to process person:', error, person);
         }
       }
 
