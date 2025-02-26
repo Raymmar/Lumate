@@ -39,20 +39,28 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
-      // Let's also try calendar/get-events as an alternative endpoint
-      let events;
+      // Try both calendar endpoints as alternatives
+      let eventsData;
       try {
-        const eventsData = await lumaApiRequest('calendar/get-events');
-        console.log('Events data from get-events:', eventsData);
-        events = await storage.getEvents();
+        eventsData = await lumaApiRequest('calendar/list-events');
+        console.log('Events data from list-events:', JSON.stringify(eventsData, null, 2));
       } catch (error) {
-        console.error('Failed to fetch from get-events, falling back to list-events:', error);
-        events = await storage.getEvents();
+        console.error('Failed to fetch from list-events, trying get-events:', error);
+        try {
+          eventsData = await lumaApiRequest('calendar/get-events');
+          console.log('Events data from get-events:', JSON.stringify(eventsData, null, 2));
+        } catch (fetchError) {
+          console.error('Failed to fetch from both event endpoints:', fetchError);
+          eventsData = { entries: [] };
+        }
       }
 
+      // For now, return the raw Luma API response to see its structure
+      const events = await storage.getEvents();
       res.json({
         events,
-        total: events.length
+        total: events.length,
+        lumaResponse: eventsData // Temporary, for debugging
       });
     } catch (error) {
       console.error('Failed to fetch events:', error);
