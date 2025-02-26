@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 
-const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
+const LUMA_API_BASE = "https://api.lu.ma/public/v1";
 
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
     const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
@@ -14,17 +14,17 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
     }
 
     if (!process.env.LUMA_API_KEY) {
-        throw new Error('LUMA_API_KEY environment variable is not set');
+        throw new Error("LUMA_API_KEY environment variable is not set");
     }
 
     console.log(`Making request to ${url.toString()}`);
 
     const response = await fetch(url.toString(), {
-        method: 'GET',
+        method: "GET",
         headers: {
-            accept: 'application/json',
-            'x-luma-api-key': process.env.LUMA_API_KEY
-        }
+            accept: "application/json",
+            "x-luma-api-key": process.env.LUMA_API_KEY,
+        },
     });
 
     if (!response.ok) {
@@ -35,18 +35,21 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 
     const data = await response.json();
 
-    if (endpoint === 'calendar/list-people') {
-        console.log('Response details:', {
+    if (endpoint === "calendar/list-people") {
+        console.log("Response details:", {
             batchSize: data.entries?.length,
             hasMore: data.has_more,
-            nextCursor: data.next_cursor
+            nextCursor: data.next_cursor,
         });
     }
 
     return data;
 }
 
-async function fetchAllPeopleFromLuma() {
+/**
+ * Fetches all people from Luma API, handling pagination properly.
+ */
+export async function fetchAllPeopleFromLuma() {
     let allPeople: any[] = [];
     let cursor: string | null = null;
 
@@ -85,41 +88,16 @@ export async function registerRoutes(app: Express) {
             console.log("Direct Luma API events data:", {
                 hasData: !!eventsData,
                 entriesCount: eventsData?.entries?.length,
-                sampleEntry: eventsData?.entries?.[0]
+                sampleEntry: eventsData?.entries?.[0],
             });
 
-            // Store events in our database
-            await storage.clearEvents();
-            for (const entry of eventsData.entries) {
-                const eventData = entry.event;
-                await storage.insertEvent({
-                    api_id: eventData.api_id,
-                    title: eventData.name,
-                    description: eventData.description || null,
-                    startTime: eventData.start_at,
-                    endTime: eventData.end_at,
-                    coverUrl: eventData.cover_url || null,
-                    url: eventData.url || null,
-                    timezone: eventData.timezone || null,
-                    location: eventData.geo_address_json ? {
-                        city: eventData.geo_address_json.city,
-                        region: eventData.geo_address_json.region,
-                        country: eventData.geo_address_json.country,
-                        latitude: eventData.geo_latitude,
-                        longitude: eventData.geo_longitude,
-                        full_address: eventData.geo_address_json.full_address,
-                    } : null,
-                    visibility: eventData.visibility || null,
-                    meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
-                    calendarApiId: eventData.calendar_api_id || null,
-                    createdAt: eventData.created_at || null,
-                });
-            }
-
+            console.log("Fetching events from storage...");
             const events = await storage.getEvents();
+            console.log(`Retrieved ${events.length} events from storage`);
+
             res.json({
                 events,
-                total: events.length
+                total: events.length,
             });
         } catch (error) {
             console.error("Failed to fetch events:", error);
@@ -134,23 +112,8 @@ export async function registerRoutes(app: Express) {
             // Fetch all people directly from Luma API with pagination
             const allPeople = await fetchAllPeopleFromLuma();
 
-            // Store in local database
-            await storage.clearPeople();
-            for (const person of allPeople) {
-                await storage.insertPerson({
-                    api_id: person.api_id,
-                    email: person.email,
-                    userName: person.userName || person.user?.name || null,
-                    fullName: person.fullName || person.user?.full_name || null,
-                    avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
-                    role: person.role || null,
-                    phoneNumber: person.phoneNumber || person.user?.phone_number || null,
-                    bio: person.bio || person.user?.bio || null,
-                    organizationName: person.organizationName || person.user?.organization_name || null,
-                    jobTitle: person.jobTitle || person.user?.job_title || null,
-                    createdAt: person.created_at || null,
-                });
-            }
+            // Optional: Store in local storage if needed
+            await storage.savePeople(allPeople);
 
             // Handle pagination from request params
             const page = parseInt(req.query.page as string) || 1;
@@ -158,16 +121,13 @@ export async function registerRoutes(app: Express) {
 
             const start = (page - 1) * limit;
             const end = start + limit;
-
-            // Get paginated data from our database
-            const people = await storage.getPeople();
-            const paginatedPeople = people.slice(start, end);
+            const paginatedPeople = allPeople.slice(start, end);
 
             console.log(`Returning ${paginatedPeople.length} people from index ${start} to ${end - 1}`);
 
             res.json({
                 people: paginatedPeople,
-                total: people.length,
+                total: allPeople.length,
             });
         } catch (error) {
             console.error("Failed to fetch people:", error);
