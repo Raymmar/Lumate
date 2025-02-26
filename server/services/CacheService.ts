@@ -290,10 +290,29 @@ export class CacheService {
       const now = new Date();
       const timeSinceLastUpdate = lastUpdate ? now.getTime() - lastUpdate.getTime() : Infinity;
       
-      console.log(`Last cache update was ${lastUpdate ? new Date(lastUpdate).toISOString() : 'never'}`);
+      console.log(`Last cache update was ${lastUpdate ? lastUpdate.toISOString() : 'never'}`);
+      
+      // Get current database stats to make smarter decisions
+      const existingEvents = await storage.getEvents();
+      const existingPeople = await storage.getPeople();
+      
+      console.log(`Database currently has ${existingEvents.length} events and ${existingPeople.length} people`);
+      
+      // Create sets of existing API IDs for faster lookups
+      const existingEventIds = new Set(existingEvents.map(e => e.api_id));
+      const existingPersonIds = new Set(existingPeople.map(p => p.api_id));
+      
+      // Calculate if this is initial load or incremental update
+      const isInitialLoad = existingEvents.length === 0 && existingPeople.length === 0;
+      
+      if (isInitialLoad) {
+        console.log('No existing data found. Performing initial data load...');
+      } else {
+        console.log('Performing incremental update...');
+      }
       
       // Fetch all data from APIs
-      console.log('Fetching all events and people...');
+      console.log('Fetching events and people...');
       
       // Use Promise.allSettled to handle partial failures
       const [eventsResult, peopleResult] = await Promise.allSettled([
@@ -335,12 +354,29 @@ export class CacheService {
       // Update events if successful
       if (eventsSuccess) {
         try {
+          // Filter events that need to be processed (new or updated)
+          let eventsToProcess = events;
+          
+          // For performance, if we have lots of events, only process new or updated ones
+          if (!isInitialLoad && existingEvents.length > 0) {
+            console.log('Filtering events to only process new or modified ones...');
+            
+            // In a real app with full API access, we might filter by updated_at timestamp
+            // For now, we'll just check if we have the API ID already
+            eventsToProcess = events.filter(entry => {
+              const eventData = entry.event;
+              return !existingEventIds.has(eventData.api_id);
+            });
+            
+            console.log(`Filtered ${events.length} events down to ${eventsToProcess.length} new events`);
+          }
+          
           // Process and store/update events
-          console.log(`Processing ${events.length} events...`);
+          console.log(`Processing ${eventsToProcess.length} events...`);
           let successCount = 0;
           let errorCount = 0;
           
-          for (const entry of events) {
+          for (const entry of eventsToProcess) {
             try {
               const eventData = entry.event;
               if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
@@ -385,12 +421,28 @@ export class CacheService {
       // Update people if successful
       if (peopleSuccess) {
         try {
+          // Filter people that need to be processed (new or updated)
+          let peopleToProcess = allPeople;
+          
+          // For performance, if we have lots of people, only process new or updated ones
+          if (!isInitialLoad && existingPeople.length > 0) {
+            console.log('Filtering people to only process new ones...');
+            
+            // In a real app with full API access, we might filter by updated_at timestamp
+            // For now, we'll just check if we have the API ID already
+            peopleToProcess = allPeople.filter(person => {
+              return !existingPersonIds.has(person.api_id);
+            });
+            
+            console.log(`Filtered ${allPeople.length} people down to ${peopleToProcess.length} new people`);
+          }
+          
           // Process and store/update people
-          console.log(`Processing ${allPeople.length} people...`);
+          console.log(`Processing ${peopleToProcess.length} people...`);
           let successCount = 0;
           let errorCount = 0;
           
-          for (const person of allPeople) {
+          for (const person of peopleToProcess) {
             try {
               if (!person.api_id || !person.email) {
                 console.warn('Skipping person - Missing required fields:', person);
