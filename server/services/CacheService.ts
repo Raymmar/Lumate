@@ -101,15 +101,33 @@ export class CacheService {
 
       // Process people data
       console.log('Fetching people from Luma API...');
-      const peopleData = await lumaApiRequest('calendar/list-people', {
-        page: '1',
-        limit: '100'
-      });
+      let page = 1;
+      let hasMorePeople = true;
+      const allPeople: any[] = [];
 
-      const people = peopleData.entries || [];
-      console.log(`Processing ${people.length} people...`);
+      while (hasMorePeople) {
+        console.log(`Fetching people page ${page}...`);
+        const peopleData = await lumaApiRequest('calendar/list-people', {
+          page: page.toString(),
+          limit: '100'  // Maximum allowed per page
+        });
 
-      for (const person of people) {
+        const people = peopleData.entries || [];
+        console.log(`Retrieved ${people.length} people from page ${page}`);
+
+        if (people.length === 0) {
+          hasMorePeople = false;
+          console.log('No more people to fetch');
+          break;
+        }
+
+        allPeople.push(...people);
+        page++;
+      }
+
+      console.log(`Processing ${allPeople.length} total people...`);
+
+      for (const person of allPeople) {
         try {
           if (!person.api_id || !person.email) {
             console.warn('Missing required fields for person:', person);
