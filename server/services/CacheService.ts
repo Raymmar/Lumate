@@ -17,6 +17,32 @@ export class CacheService {
     return this.instance;
   }
 
+  private async sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries = 5,
+    initialDelay = 1000
+  ): Promise<T> {
+    let retries = 0;
+    while (true) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        if (error?.message?.includes('rate limit') && retries < maxRetries) {
+          const delay = initialDelay * Math.pow(2, retries);
+          console.log(`Rate limit hit, waiting ${delay}ms before retry ${retries + 1}/${maxRetries}`);
+          await this.sleep(delay);
+          retries++;
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
   private async updateCache() {
     if (this.isCaching) {
       console.log('Cache update already in progress, skipping...');
@@ -25,50 +51,36 @@ export class CacheService {
 
     this.isCaching = true;
     try {
-      // Fetch events data from Luma API
+      // Fetch and store events first
       console.log('Fetching events from Luma API...');
-      const eventsData = await lumaApiRequest('calendar/list-events');
+      const eventsData = await this.retryWithBackoff(() => 
+        lumaApiRequest('calendar/list-events')
+      );
 
       if (!eventsData?.entries?.length) {
         console.warn('No events found in Luma API response');
         return;
       }
 
-      // Clear existing data before updating
-      console.log('Clearing existing data...');
-      await storage.clearEvents();
-      await storage.clearPeople();
+      const eventEntries = eventsData.entries;
+      console.log(`Found ${eventEntries.length} events to process`);
 
-      console.log(`Found ${eventsData.entries.length} events to process`);
-
-      for (const entry of eventsData.entries) {
+      // Store new events
+      const processedEvents = [];
+      for (const entry of eventEntries) {
         try {
           const eventData = entry.event;
-          if (!eventData) {
-            console.warn('Event data missing in entry:', entry);
-            continue;
-          }
-
-          if (!eventData.name || !eventData.start_at || !eventData.end_at) {
+          if (!eventData || !eventData.name || !eventData.start_at || !eventData.end_at) {
             console.warn('Missing required fields for event:', eventData);
             continue;
           }
 
-          // Log raw event data
-          console.log('Raw event data:', {
-            name: eventData.name,
-            start_at: eventData.start_at,
-            end_at: eventData.end_at,
-            timezone: eventData.timezone
-          });
-
-          // Store the timestamps with timezone information
           const newEvent = await storage.insertEvent({
             api_id: eventData.api_id,
             title: eventData.name,
             description: eventData.description || null,
-            startTime: eventData.start_at, // This is already in ISO format with UTC timezone
-            endTime: eventData.end_at,     // This is already in ISO format with UTC timezone
+            startTime: eventData.start_at,
+            endTime: eventData.end_at,
             coverUrl: eventData.cover_url || null,
             url: eventData.url || null,
             timezone: eventData.timezone || null,
@@ -85,73 +97,73 @@ export class CacheService {
             calendarApiId: eventData.calendar_api_id || null,
             createdAt: eventData.created_at || null,
           });
-
-          console.log('Successfully stored event:', {
-            id: newEvent.id,
-            title: newEvent.title,
-            api_id: newEvent.api_id,
-            startTime: newEvent.startTime,
-            timezone: newEvent.timezone
-          });
-
+          processedEvents.push(newEvent);
         } catch (error) {
           console.error('Failed to process event:', error);
         }
       }
 
-      // Process people data
+      console.log(`Successfully processed ${processedEvents.length} events`);
+
+      // Now fetch and store people
       console.log('Fetching people from Luma API...');
       let page = 1;
-      let hasMorePeople = true;
-      const allPeople: any[] = [];
+      const processedPeople = [];
 
-      while (hasMorePeople) {
-        console.log(`Fetching people page ${page}...`);
-        const peopleData = await lumaApiRequest('calendar/list-people', {
-          page: page.toString(),
-          limit: '100'  // Maximum allowed per page
-        });
-
-        const people = peopleData.entries || [];
-        console.log(`Retrieved ${people.length} people from page ${page}`);
-
-        if (people.length === 0) {
-          hasMorePeople = false;
-          console.log('No more people to fetch');
-          break;
-        }
-
-        allPeople.push(...people);
-        page++;
-      }
-
-      console.log(`Processing ${allPeople.length} total people...`);
-
-      for (const person of allPeople) {
+      while (true) {
         try {
-          if (!person.api_id || !person.email) {
-            console.warn('Missing required fields for person:', person);
-            continue;
+          console.log(`Fetching people page ${page}...`);
+          const peopleData = await this.retryWithBackoff(() => 
+            lumaApiRequest('calendar/list-people', {
+              page: page.toString(),
+              limit: '100'
+            })
+          );
+
+          const people = peopleData.entries || [];
+          if (people.length === 0) {
+            console.log('No more people to fetch');
+            break;
           }
 
-          await storage.insertPerson({
-            api_id: person.api_id,
-            email: person.email,
-            userName: person.userName || person.user?.name || null,
-            fullName: person.fullName || person.user?.full_name || null,
-            avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
-            role: person.role || null,
-            phoneNumber: person.phoneNumber || person.user?.phone_number || null,
-            bio: person.bio || person.user?.bio || null,
-            organizationName: person.organizationName || person.user?.organization_name || null,
-            jobTitle: person.jobTitle || person.user?.job_title || null,
-            createdAt: person.created_at || null,
-          });
+          console.log(`Processing ${people.length} people from page ${page}`);
+
+          for (const person of people) {
+            try {
+              if (!person.api_id || !person.email) {
+                console.warn('Missing required fields for person:', person);
+                continue;
+              }
+
+              const newPerson = await storage.insertPerson({
+                api_id: person.api_id,
+                email: person.email,
+                userName: person.userName || person.user?.name || null,
+                fullName: person.fullName || person.user?.full_name || null,
+                avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+                role: person.role || null,
+                phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+                bio: person.bio || person.user?.bio || null,
+                organizationName: person.organizationName || person.user?.organization_name || null,
+                jobTitle: person.jobTitle || person.user?.job_title || null,
+                createdAt: person.created_at || null,
+              });
+              processedPeople.push(newPerson);
+            } catch (error) {
+              console.error('Failed to process person:', error);
+            }
+          }
+
+          page++;
+          // Add a small delay between pages to avoid rate limits
+          await this.sleep(1000);
         } catch (error) {
-          console.error('Failed to process person:', error);
+          console.error(`Failed to fetch people page ${page}:`, error);
+          break;
         }
       }
 
+      console.log(`Successfully processed ${processedPeople.length} total people`);
       await storage.setLastCacheUpdate(new Date());
       console.log('Cache update completed');
     } catch (error) {
