@@ -51,6 +51,10 @@ export class CacheService {
 
         // Check for duplicates and new entries
         const newPeopleCount = people.filter(person => {
+          if (!person || !person.api_id) {
+            console.warn('Invalid person object:', person);
+            return false;
+          }
           const isDuplicate = seenApiIds.has(person.api_id);
           seenApiIds.add(person.api_id);
           return !isDuplicate;
@@ -59,7 +63,9 @@ export class CacheService {
         console.log(`Page ${currentPage}:`, {
           totalInResponse: pageCount,
           newPeople: newPeopleCount,
-          duplicates: pageCount - newPeopleCount
+          duplicates: pageCount - newPeopleCount,
+          hasMore: peopleData.has_more,
+          nextCursor: peopleData.next_cursor
         });
 
         // Continue even if we see duplicates, just track what's new
@@ -68,11 +74,11 @@ export class CacheService {
         console.log(`Total unique people fetched so far: ${totalFetched}`);
 
         // Continue if we have more pages according to the API
-        hasMorePeople = peopleData.has_more === true;
+        hasMorePeople = peopleData.has_more === true && peopleData.next_cursor !== undefined;
         nextCursor = peopleData.next_cursor;
 
         if (!hasMorePeople || !nextCursor) {
-          console.log('No more pages available');
+          console.log('No more pages available or next cursor is missing');
           break;
         }
 
