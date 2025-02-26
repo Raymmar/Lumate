@@ -32,13 +32,27 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
   }
 
   const data = await response.json();
+  // Log the complete response for debugging
+  console.log(`Complete response from ${endpoint}:`, JSON.stringify(data, null, 2));
   return data;
 }
 
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
+      // Let's try to fetch events directly from Luma API first to verify the data
+      const eventsData = await lumaApiRequest('calendar/list-events');
+      console.log('Direct Luma API events data:', {
+        hasData: !!eventsData,
+        entriesCount: eventsData?.entries?.length,
+        sampleEntry: eventsData?.entries?.[0]
+      });
+
+      // Then get events from our storage
+      console.log('Fetching events from storage...');
       const events = await storage.getEvents();
+      console.log(`Retrieved ${events.length} events from storage`);
+
       res.json({
         events,
         total: events.length
@@ -60,18 +74,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/people", async (req, res) => {
+  app.get("/api/people", async (_req, res) => {
     try {
-      const page = parseInt(req.query.page as string || '1', 10);
-      const limit = parseInt(req.query.limit as string || '10', 10);
-
-      const { people, total } = await storage.getPeople(page, limit);
+      const people = await storage.getPeople();
       res.json({
         people,
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit)
+        total: people.length
       });
     } catch (error) {
       console.error('Failed to fetch people:', error);
