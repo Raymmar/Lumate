@@ -24,12 +24,14 @@ interface EventsResponse {
 
 function formatEventDate(dateStr: string, timezone: string | null): string {
   try {
-    // Use the timezone from the event data, defaulting to EST if not specified
+    // Since our database timestamp is in UTC, we need to tell date-fns-tz this
+    // and then convert it to the event's timezone (or EST if not specified)
     const targetTimezone = timezone || 'America/New_York';
     return formatInTimeZone(
-      dateStr, // Use the timestamp directly without parsing
+      dateStr,
       targetTimezone,
-      'MMM d, h:mm a'
+      'MMM d, h:mm a',
+      { timeZone: 'UTC' }  // Specify that input date is in UTC
     );
   } catch (error) {
     console.error("Invalid date format:", dateStr);
