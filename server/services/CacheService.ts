@@ -26,45 +26,42 @@ export class CacheService {
       console.log('Fetching events from Luma API...');
       const eventsData = await lumaApiRequest('calendar/list-events');
 
-      // Log the entire events response for debugging
-      console.log('Full Luma API events response:', JSON.stringify(eventsData, null, 2));
-
       // Clear existing data
       await storage.clearEvents();
       await storage.clearPeople();
 
       // Process events
-      const events = eventsData.entries || [];
-      console.log(`Processing ${events.length} events...`);
+      const entries = eventsData.entries || [];
+      console.log(`Processing ${entries.length} events...`);
 
-      for (const eventEntry of events) {
+      for (const entry of entries) {
         try {
-          const event = eventEntry.event || eventEntry; // Handle both nested and flat structures
+          // The event data is nested under the event property
+          const eventData = entry.event;
 
-          if (!event.name || !event.start_at || !event.end_at) {
-            console.warn('Missing required fields for event:', event);
+          if (!eventData || !eventData.name || !eventData.start_at || !eventData.end_at) {
+            console.warn('Invalid event data:', entry);
             continue;
           }
 
           // Convert timestamps from Unix epoch to ISO string
-          const startTime = new Date(event.start_at * 1000);
-          const endTime = new Date(event.end_at * 1000);
+          const startTime = new Date(eventData.start_at * 1000);
+          const endTime = new Date(eventData.end_at * 1000);
 
-          // Validate date objects
           if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-            console.warn('Invalid date conversion for event:', event);
+            console.warn('Invalid date conversion for event:', eventData);
             continue;
           }
 
           const newEvent = await storage.insertEvent({
-            title: event.name,
-            description: event.description || null,
+            title: eventData.name,
+            description: eventData.description || null,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString()
           });
           console.log('Successfully inserted event:', newEvent);
         } catch (error) {
-          console.error('Failed to process event:', error, eventEntry);
+          console.error('Failed to process event:', error, entry);
         }
       }
 
