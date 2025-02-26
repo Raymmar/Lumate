@@ -27,6 +27,8 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
   });
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
     throw new Error(`Luma API error: ${response.statusText}`);
   }
 
@@ -37,7 +39,14 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
+      // First, let's try to fetch directly from Luma API to verify the data
+      const lumaEvents = await lumaApiRequest('calendar/list-events');
+      console.log('Direct Luma API events response:', JSON.stringify(lumaEvents, null, 2));
+
+      // Then get our stored events
       const events = await storage.getEvents();
+      console.log('Stored events:', JSON.stringify(events, null, 2));
+
       res.json(events);
     } catch (error) {
       console.error('Failed to fetch events:', error);
