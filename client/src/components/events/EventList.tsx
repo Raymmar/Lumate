@@ -24,14 +24,14 @@ interface EventsResponse {
 
 function formatEventDate(dateStr: string, timezone: string | null): string {
   try {
-    // The timestamp from the database is already in the event's timezone
     const targetTimezone = timezone || 'America/New_York';
 
-    // Format the date in the correct timezone without additional conversion
+    // Parse the date string and format it in the event's timezone
+    const date = parseISO(dateStr);
     return formatInTimeZone(
-      dateStr,
+      date,
       targetTimezone,
-      'MMM d, h:mm a z' // Include timezone for verification
+      'MMM d, h:mm a'
     );
   } catch (error) {
     console.error("Invalid date format:", dateStr);
@@ -93,15 +93,15 @@ export default function EventList() {
     );
   }
 
+  const now = new Date();
   const eventsArray = data?.events || [];
 
+  // Sort events by start time
   const sortedEvents = [...eventsArray].sort((a, b) => {
-    const dateA = parseISO(a.startTime);
-    const dateB = parseISO(b.startTime);
-    return dateA.getTime() - dateB.getTime();
+    return parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime();
   });
 
-  const now = new Date();
+  // Split into upcoming and past events
   const upcomingEvents = sortedEvents.filter(event => 
     parseISO(event.startTime) > now
   );
