@@ -4,10 +4,16 @@ export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
   insertEvent(event: InsertEvent): Promise<Event>;
+  clearEvents(): Promise<void>;
   
   // People
   getPeople(): Promise<Person[]>;
   insertPerson(person: InsertPerson): Promise<Person>;
+  clearPeople(): Promise<void>;
+  
+  // Cache metadata
+  getLastCacheUpdate(): Promise<Date | null>;
+  setLastCacheUpdate(date: Date): Promise<void>;
 }
 
 export class MemStorage implements IStorage {

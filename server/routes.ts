@@ -36,16 +36,11 @@ async function lumaApiRequest(endpoint: string, params?: Record<string, string>)
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
-      const data = await lumaApiRequest('calendar/list-events');
-      console.log('Raw events data:', JSON.stringify(data, null, 2)); // Detailed logging
-
-      // Extract entries array from response
-      const events = data.entries || [];
-      console.log('Sending events to client:', events); // Debug log
+      const events = await storage.getEvents();
       res.json(events);
     } catch (error) {
       console.error('Failed to fetch events:', error);
-      res.status(500).json({ error: "Failed to fetch events from Luma API" });
+      res.status(500).json({ error: "Failed to fetch events" });
     }
   });
 
@@ -61,29 +56,16 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/people", async (req, res) => {
+  app.get("/api/people", async (_req, res) => {
     try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 50;
-
-      const data = await lumaApiRequest('calendar/list-people', {
-        page: page.toString(),
-        limit: limit.toString()
-      });
-
-      const people = data.entries || [];
-      const total = data.total || people.length;
-
+      const people = await storage.getPeople();
       res.json({
         people,
-        page,
-        limit,
-        total,
-        hasMore: page * limit < total
+        total: people.length
       });
     } catch (error) {
       console.error('Failed to fetch people:', error);
-      res.status(500).json({ error: "Failed to fetch people from Luma API" });
+      res.status(500).json({ error: "Failed to fetch people" });
     }
   });
 
