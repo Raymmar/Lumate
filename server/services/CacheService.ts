@@ -38,7 +38,7 @@ export class CacheService {
       // If it's a Unix timestamp (either string or number)
       const numericTimestamp = Number(timestamp);
       if (!isNaN(numericTimestamp)) {
-        // Luma API returns Unix timestamps in seconds, we need to convert to milliseconds
+        // Keep the timestamp in UTC
         const date = new Date(numericTimestamp * 1000);
         if (!isNaN(date.getTime())) {
           console.log('Parsed as Unix timestamp:', date.toISOString());
@@ -88,6 +88,14 @@ export class CacheService {
             console.warn('Missing required fields for event:', eventData);
             continue;
           }
+
+          // Log raw event data before parsing
+          console.log('Raw event data:', {
+            name: eventData.name,
+            start_at: eventData.start_at,
+            end_at: eventData.end_at,
+            timezone: eventData.timezone
+          });
 
           const startTime = this.parseTimestamp(eventData.start_at);
           const endTime = this.parseTimestamp(eventData.end_at);

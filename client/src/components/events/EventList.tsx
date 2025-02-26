@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
@@ -24,19 +24,14 @@ interface EventsResponse {
 
 function formatEventDate(dateStr: string, timezone: string | null): string {
   try {
-    // Since our database timestamp is in UTC, we need to tell date-fns-tz this
-    // and then convert it to the event's timezone (or EST if not specified)
+    // Since our database timestamp is in UTC, we need to convert it to the event's timezone
     const targetTimezone = timezone || 'America/New_York';
-    console.log('Formatting date:', {
-      input: dateStr,
-      timezone: targetTimezone,
-      parsedDate: parseISO(dateStr).toISOString()
-    });
 
+    // Parse the UTC timestamp and format it in the target timezone
     return formatInTimeZone(
-      parseISO(dateStr),
-      targetTimezone,
-      'MMM d, h:mm a zzz'  // Added timezone display for debugging
+      parseISO(dateStr), // Parse the ISO timestamp
+      targetTimezone,    // Use the event's timezone
+      'MMM d, h:mm a z' // Include timezone in output for verification
     );
   } catch (error) {
     console.error("Invalid date format:", dateStr);
@@ -45,14 +40,6 @@ function formatEventDate(dateStr: string, timezone: string | null): string {
 }
 
 function EventCard({ event }: { event: Event }) {
-  // Debug log for event data
-  console.log('Event data:', {
-    title: event.title,
-    startTime: event.startTime,
-    timezone: event.timezone,
-    formatted: formatEventDate(event.startTime, event.timezone)
-  });
-
   return (
     <a 
       href={event.url || "#"} 
