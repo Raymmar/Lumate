@@ -37,6 +37,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // First ensure database tables exist
+  const { ensureTablesExist } = await import('./db');
+  
+  console.log('Ensuring database tables exist...');
+  await ensureTablesExist();
+  
   const server = await registerRoutes(app);
 
   // Initialize cache service to start syncing data in the background
