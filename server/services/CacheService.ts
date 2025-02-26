@@ -22,12 +22,12 @@ export class CacheService {
   private async fetchAllPeople(): Promise<any[]> {
     let allPeople: any[] = [];
     let nextCursor: string | null = null;
-    let prevCursor: string | null = null;  // Track previous cursor
+    let prevCursor: string | null = null;
     let hasMore = true;
     let attempts = 0;
     let noProgressCount = 0;
-    const MAX_ATTEMPTS = 1000; // Safeguard against infinite loops
-    const MAX_NO_PROGRESS_ATTEMPTS = 3; // Maximum attempts without new data
+    const MAX_ATTEMPTS = 1000;
+    const MAX_NO_PROGRESS_ATTEMPTS = 3;
 
     console.log('Starting to fetch all people from Luma API...');
 
@@ -36,12 +36,13 @@ export class CacheService {
         attempts++;
         const params: Record<string, string> = {};
 
-        // Only add cursor and limit for subsequent requests after first page
-        if (allPeople.length > 0 && nextCursor && nextCursor !== prevCursor) {
+        // For subsequent requests after first page, use the cursor
+        if (allPeople.length > 0 && nextCursor) {
           params.cursor = nextCursor;
           params.limit = '50';
         }
 
+        // Log current state
         console.log('Making request with:', {
           cursor: nextCursor,
           prevCursor,
@@ -88,6 +89,12 @@ export class CacheService {
         hasMore = response.has_more === true;
         prevCursor = nextCursor;  // Store current cursor before updating
         nextCursor = response.next_cursor;
+
+        // If cursor hasn't changed and we have it, we're stuck
+        if (nextCursor && nextCursor === prevCursor) {
+          console.log('Cursor is not progressing, stopping pagination');
+          break;
+        }
 
         if (!hasMore) {
           console.log('No more results available');
