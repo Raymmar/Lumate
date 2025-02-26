@@ -66,15 +66,15 @@ export async function ensureTablesExist() {
           "id" SERIAL PRIMARY KEY,
           "api_id" VARCHAR(255) NOT NULL UNIQUE,
           "email" VARCHAR(255) NOT NULL,
-          "userName" VARCHAR(255),
-          "fullName" VARCHAR(255),
-          "avatarUrl" VARCHAR(255),
+          "user_name" VARCHAR(255),
+          "full_name" VARCHAR(255),
+          "avatar_url" VARCHAR(255),
           "role" VARCHAR(100),
-          "phoneNumber" VARCHAR(100),
+          "phone_number" VARCHAR(100),
           "bio" TEXT,
-          "organizationName" VARCHAR(255),
-          "jobTitle" VARCHAR(255),
-          "createdAt" TIMESTAMPTZ
+          "organization_name" VARCHAR(255),
+          "job_title" VARCHAR(255),
+          "created_at" TIMESTAMPTZ
         );
       `];
       

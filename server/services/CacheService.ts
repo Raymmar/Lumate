@@ -388,24 +388,15 @@ export class CacheService {
       // Update events if successful
       if (eventsSuccess) {
         try {
-          // Filter events that need to be processed (new or updated)
-          // Always use incremental updates to maintain database ID consistency
-          console.log('Filtering events to only process new or modified ones...');
+          // Process all events to ensure we have a complete mirror of Luma data
+          // We'll rely on the UPSERT functionality to prevent duplicates
+          console.log(`Processing all ${events.length} events from Luma API...`);
           
-          // Only process events we don't already have
-          const eventsToProcess = events.filter(entry => {
-            const eventData = entry.event;
-            return !existingEventIds.has(eventData.api_id);
-          });
-          
-          console.log(`Filtered ${events.length} events down to ${eventsToProcess.length} new events`);
-          
-          // Process and store/update events
-          console.log(`Processing ${eventsToProcess.length} events...`);
+          // Process and store/update all events
           let successCount = 0;
           let errorCount = 0;
           
-          for (const entry of eventsToProcess) {
+          for (const entry of events) {
             try {
               const eventData = entry.event;
               if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
@@ -450,23 +441,15 @@ export class CacheService {
       // Update people if successful
       if (peopleSuccess) {
         try {
-          // Filter people that need to be processed (new or updated)
-          // Always use incremental updates to maintain database ID consistency
-          console.log('Filtering people to only process new ones...');
+          // Process all people to ensure we have a complete mirror of Luma data
+          // We'll rely on the UPSERT functionality to prevent duplicates
+          console.log(`Processing all ${allPeople.length} people from Luma API...`);
           
-          // Only process people we don't already have
-          const peopleToProcess = allPeople.filter(person => {
-            return !existingPersonIds.has(person.api_id);
-          });
-          
-          console.log(`Filtered ${allPeople.length} people down to ${peopleToProcess.length} new people`);
-          
-          // Process and store/update people
-          console.log(`Processing ${peopleToProcess.length} people...`);
+          // Process and store/update all people
           let successCount = 0;
           let errorCount = 0;
           
-          for (const person of peopleToProcess) {
+          for (const person of allPeople) {
             try {
               if (!person.api_id || !person.email) {
                 console.warn('Skipping person - Missing required fields:', person);
