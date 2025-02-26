@@ -22,13 +22,15 @@ export class CacheService {
 
     this.isCaching = true;
     try {
-      // Fetch data from Luma
+      // Fetch data from Luma using the same pattern as people
       console.log('Fetching data from Luma API...');
-      const eventsData = await lumaApiRequest('calendar/list-events');
-      const peopleData = await lumaApiRequest('calendar/list-people', {
-        page: '1',
-        limit: '100'
-      });
+      const [eventsData, peopleData] = await Promise.all([
+        lumaApiRequest('calendar/list-events'),
+        lumaApiRequest('calendar/list-people', {
+          page: '1',
+          limit: '100'
+        })
+      ]);
 
       // Log raw API responses for debugging
       console.log('Raw events data from Luma:', JSON.stringify(eventsData, null, 2));
@@ -44,11 +46,8 @@ export class CacheService {
 
       for (const event of events) {
         try {
-          // Validate timestamps
-          if (!event.start_at || !event.end_at || 
-              typeof event.start_at !== 'number' || 
-              typeof event.end_at !== 'number') {
-            console.warn('Invalid timestamp for event:', event);
+          if (!event.name || !event.start_at || !event.end_at) {
+            console.warn('Missing required fields for event:', event);
             continue;
           }
 
@@ -62,7 +61,7 @@ export class CacheService {
           }
 
           const newEvent = await storage.insertEvent({
-            title: event.name || 'Untitled Event',
+            title: event.name,
             description: event.description || null,
             startTime: startTime.toISOString(),
             endTime: endTime.toISOString()
