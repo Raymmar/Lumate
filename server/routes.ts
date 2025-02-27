@@ -1,10 +1,11 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { insertUserSchema, people } from "@shared/schema";
 import { z } from "zod";
+import { sendVerificationEmail } from './email';
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
@@ -161,7 +162,14 @@ export async function registerRoutes(app: Express) {
       const verificationToken = await storage.createVerificationToken(email);
       console.log('Created verification token:', verificationToken.token);
 
-      // TODO: In production, send an actual email with the verification link
+      // Send verification email
+      const emailSent = await sendVerificationEmail(email, verificationToken.token);
+
+      if (!emailSent) {
+        await storage.deleteVerificationToken(verificationToken.token);
+        return res.status(500).json({ error: "Failed to send verification email" });
+      }
+
       return res.json({ 
         message: "Verification email sent",
         // Only include token in development for testing
