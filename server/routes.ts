@@ -40,7 +40,6 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
     const data = await response.json();
 
     if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
-      // Log minimal information to track pagination progress
       console.log('Response details:', {
         endpoint,
         currentBatch: data.entries?.length,
@@ -55,15 +54,6 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 export async function registerRoutes(app: Express) {
   app.get("/api/events", async (_req, res) => {
     try {
-      // Let's try to fetch events directly from Luma API first to verify the data
-      const eventsData = await lumaApiRequest('calendar/list-events');
-      console.log('Direct Luma API events data:', {
-        hasData: !!eventsData,
-        entriesCount: eventsData?.entries?.length,
-        sampleEntry: eventsData?.entries?.[0]
-      });
-
-      // Then get events from our storage
       console.log('Fetching events from storage...');
       const events = await storage.getEvents();
       console.log(`Retrieved ${events.length} events from storage`);
@@ -78,17 +68,14 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-
   app.get("/api/people", async (req, res) => {
     try {
-      // Get page, limit and search query from query parameters
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
       const searchQuery = (req.query.search as string || '').toLowerCase();
 
-      console.log("Fetching people from storage with search:", searchQuery); //Added progress tracking
+      console.log("Fetching people from storage with search:", searchQuery);
 
-      // Get filtered people from storage with search
       const allPeople = await db
         .select()
         .from(people)
@@ -101,7 +88,6 @@ export async function registerRoutes(app: Express) {
 
       console.log(`Total matching people: ${allPeople.length}`);
 
-      // Calculate pagination
       const start = (page - 1) * limit;
       const end = start + limit;
       const paginatedPeople = allPeople.slice(start, end);
@@ -130,6 +116,92 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch person:', error);
       res.status(500).json({ error: "Failed to fetch person" });
+    }
+  });
+
+  // Profile claiming endpoint
+  app.post("/api/auth/claim-profile", async (req, res) => {
+    try {
+      const { email, personId } = req.body;
+      if (!email || !personId) {
+        return res.status(400).json({ error: "Missing email or personId" });
+      }
+
+      const person = await storage.getPersonByApiId(personId);
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      // Ensure the email matches the person's record
+      if (person.email.toLowerCase() !== email.toLowerCase()) {
+        return res.status(400).json({ error: "Email does not match the profile" });
+      }
+
+      // Check if profile is already claimed
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: "Profile already claimed" });
+      }
+
+      // Create verification token
+      const verificationToken = await storage.createVerificationToken(email);
+
+      // TODO: In production, send an actual email with the verification link
+      // For now, we'll just log the token
+      console.log('Verification token created:', verificationToken.token);
+
+      return res.json({ 
+        message: "Verification email sent",
+        // Only include token in development for testing
+        token: process.env.NODE_ENV === 'development' ? verificationToken.token : undefined
+      });
+    } catch (error) {
+      console.error('Failed to claim profile:', error);
+      res.status(500).json({ error: "Failed to process profile claim" });
+    }
+  });
+
+  // Verify token endpoint
+  app.post("/api/auth/verify", async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "Missing verification token" });
+      }
+
+      const verificationToken = await storage.validateVerificationToken(token);
+      if (!verificationToken) {
+        return res.status(400).json({ error: "Invalid or expired token" });
+      }
+
+      // Get the person record by email
+      const person = await storage.getPersonByEmail(verificationToken.email);
+      if (!person) {
+        return res.status(404).json({ error: "Associated person not found" });
+      }
+
+      // Create or update user record
+      const userData = {
+        email: verificationToken.email,
+        personId: person.id,
+        displayName: person.userName || person.fullName || undefined,
+      };
+
+      const user = await storage.createUser(userData);
+
+      // Verify the user
+      await storage.verifyUser(user.id);
+
+      // Clean up the verification token
+      await storage.deleteVerificationToken(token);
+
+      return res.json({ 
+        message: "Email verified successfully",
+        user
+      });
+    } catch (error) {
+      console.error('Failed to verify token:', error);
+      res.status(500).json({ error: "Failed to verify email" });
     }
   });
 

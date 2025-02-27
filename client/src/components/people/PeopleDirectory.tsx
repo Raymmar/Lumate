@@ -18,7 +18,13 @@ export interface Person {
   api_id: string;
   email: string;
   userName: string | null;
+  fullName: string | null;
   avatarUrl: string | null;
+  role: string | null;
+  phoneNumber: string | null;
+  bio: string | null;
+  organizationName: string | null;
+  jobTitle: string | null;
 }
 
 interface PeopleResponse {
