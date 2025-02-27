@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, CheckCircle, User, Mail, Building, Briefcase } from 'lucide-react';
+import { AlertCircle, CheckCircle, User, UserPlus, Mail, Building, Briefcase } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -272,7 +272,8 @@ export default function Profile() {
                 onClick={() => navigate(`/register?email=${encodeURIComponent(person.email)}&personId=${person.id}`)} 
                 className="w-full"
               >
-                Create Account
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create Account and Claim Profile
               </Button>
             </div>
           </CardContent>

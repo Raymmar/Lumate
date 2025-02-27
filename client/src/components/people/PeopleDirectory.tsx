@@ -161,6 +161,16 @@ export default function PeopleDirectory() {
                         View Profile
                       </Link>
                     </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      asChild
+                    >
+                      <Link to={`/register?email=${encodeURIComponent(person.email)}&personId=${person.id}`}>
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Claim Profile
+                      </Link>
+                    </Button>
                   </div>
                 </div>
               ))}

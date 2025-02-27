@@ -66,20 +66,61 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 export default function Register() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [searchEmail, setSearchEmail] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  
+  // Get email and personId from URL if available (from profile claim flow)
+  const urlParams = new URLSearchParams(window.location.search);
+  const emailFromUrl = urlParams.get('email');
+  const personIdFromUrl = urlParams.get('personId');
+  
+  // Auto-fetch person data if email is from URL
+  React.useEffect(() => {
+    const autoFetchPerson = async () => {
+      if (emailFromUrl) {
+        setSearchEmail(emailFromUrl);
+        
+        if (emailFromUrl && personIdFromUrl) {
+          setHasSearched(true);
+          
+          // Automatically fetch person data for the URL-provided email
+          try {
+            // Set custom query parameter to trigger refetch
+            await refetchPerson();
+            
+            // If person data is found, pre-fill form fields
+            if (personData?.person) {
+              form.setValue('email', personData.person.email);
+              form.setValue('personId', personData.person.id.toString());
+              
+              if (personData.person.userName) {
+                form.setValue('displayName', personData.person.userName);
+              } else if (personData.person.fullName) {
+                form.setValue('displayName', personData.person.fullName);
+              }
+            }
+          } catch (error) {
+            console.error('Error auto-fetching person data:', error);
+          }
+        }
+      }
+    };
+    
+    autoFetchPerson();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailFromUrl, personIdFromUrl]);
 
   // Form setup
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
+      email: emailFromUrl || '',
       displayName: '',
-      personId: ''
+      personId: personIdFromUrl || ''
     },
   });
 
