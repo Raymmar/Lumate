@@ -48,7 +48,7 @@ export const people = pgTable("people", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
-export const users = pgTable("users_new", {
+export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   displayName: varchar("display_name", { length: 255 }),
