@@ -253,16 +253,26 @@ export class PostgresStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log('Creating new user with email:', userData.email);
+
+      // First get the person by email to ensure we have the latest data
+      const person = await this.getPersonByEmail(userData.email);
+
+      if (!person) {
+        throw new Error(`No matching person found for email: ${userData.email}`);
+      }
+
       const [newUser] = await db
         .insert(users)
         .values({
           ...userData,
+          email: userData.email.toLowerCase(), // Ensure consistent email format
+          personId: person.id, // We'll still store the ID but use email as the primary link
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
         .returning();
-      
-      console.log('Successfully created user:', newUser.id);
+
+      console.log('Successfully created user:', newUser.id, 'linked to person:', person.id);
       return newUser;
     } catch (error) {
       console.error('Failed to create user:', error);
@@ -302,21 +312,16 @@ export class PostgresStorage implements IStorage {
   
   async getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null> {
     try {
-      const result = await db
-        .select({
-          user: users,
-          person: people
-        })
-        .from(users)
-        .leftJoin(people, eq(users.personId, people.id))
-        .where(eq(users.id, userId))
-        .limit(1);
-      
-      if (result.length === 0 || !result[0].person) return null;
-      
+      const user = await this.getUserById(userId);
+      if (!user) return null;
+
+      // Get the person by email instead of ID
+      const person = await this.getPersonByEmail(user.email);
+      if (!person) return null;
+
       return {
-        ...result[0].user,
-        person: result[0].person
+        ...user,
+        person
       };
     } catch (error) {
       console.error('Failed to get user with person details:', error);
@@ -352,11 +357,11 @@ export class PostgresStorage implements IStorage {
       console.log('Creating verification token for email:', email);
       // Generate a secure random token
       const token = crypto.randomBytes(32).toString('hex');
-
+      
       // Set expiration to 24 hours from now
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
-
+      
       const [newToken] = await db
         .insert(verificationTokens)
         .values({
@@ -365,13 +370,13 @@ export class PostgresStorage implements IStorage {
           expiresAt: expiresAt.toISOString(),
         })
         .returning();
-
+      
       console.log('Successfully created verification token:', {
         email,
         tokenId: newToken.id,
         expiresAt: newToken.expiresAt
       });
-
+      
       return newToken;
     } catch (error) {
       console.error('Failed to create verification token:', error);
@@ -425,7 +430,7 @@ export class PostgresStorage implements IStorage {
         .from(people)
         .where(eq(people.api_id, apiId))
         .limit(1);
-
+      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person by API ID:', error);

@@ -131,6 +131,10 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing email or personId" });
       }
 
+      // Normalize email to lowercase for consistent comparison
+      const normalizedEmail = email.toLowerCase();
+
+      // Get person by API ID first to validate the request
       const person = await storage.getPersonByApiId(personId);
       console.log('Found person:', person ? 'yes' : 'no', { personId });
 
@@ -139,9 +143,9 @@ export async function registerRoutes(app: Express) {
       }
 
       // Ensure the email matches the person's record
-      const emailsMatch = person.email.toLowerCase() === email.toLowerCase();
+      const emailsMatch = person.email.toLowerCase() === normalizedEmail;
       console.log('Email match check:', { 
-        provided: email.toLowerCase(), 
+        provided: normalizedEmail, 
         stored: person.email.toLowerCase(),
         matches: emailsMatch 
       });
@@ -150,20 +154,20 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Email does not match the profile" });
       }
 
-      // Check if profile is already claimed
-      const existingUser = await storage.getUserByEmail(email);
+      // Check if profile is already claimed by checking email
+      const existingUser = await storage.getUserByEmail(normalizedEmail);
       console.log('Existing user check:', existingUser ? 'found' : 'not found');
 
       if (existingUser) {
         return res.status(400).json({ error: "Profile already claimed" });
       }
 
-      // Create verification token
-      const verificationToken = await storage.createVerificationToken(email);
+      // Create verification token using normalized email
+      const verificationToken = await storage.createVerificationToken(normalizedEmail);
       console.log('Created verification token:', verificationToken.token);
 
       // Send verification email
-      const emailSent = await sendVerificationEmail(email, verificationToken.token);
+      const emailSent = await sendVerificationEmail(normalizedEmail, verificationToken.token);
 
       if (!emailSent) {
         await storage.deleteVerificationToken(verificationToken.token);
@@ -200,10 +204,10 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
-      // Create or update user record
+      // Create user record with normalized email
       const userData = {
-        email: verificationToken.email,
-        personId: person.id,
+        email: verificationToken.email.toLowerCase(),
+        personId: person.id, // We still store the ID but don't rely on it for lookups
         displayName: person.userName || person.fullName || undefined,
       };
 
