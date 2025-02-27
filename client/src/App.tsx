@@ -12,11 +12,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => (
-        <DashboardLayout>
-          <Dashboard />
-        </DashboardLayout>
-      )} />
+      <Route path="/" component={Dashboard} />
       <Route path="/register" component={Register} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/profile" component={Profile} />
