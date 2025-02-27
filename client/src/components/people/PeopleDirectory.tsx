@@ -19,10 +19,6 @@ export interface Person {
   email: string;
   userName: string | null;
   avatarUrl: string | null;
-  createdAt: string;
-  eventApprovedCount: number;
-  eventCheckedInCount: number;
-  revenueUsdCents: number;
 }
 
 interface PeopleResponse {

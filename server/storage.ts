@@ -7,7 +7,7 @@ import {
   InsertCacheMetadata, users, verificationTokens 
 } from "@shared/schema";
 import { db } from "./db";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, and } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -16,7 +16,7 @@ export interface IStorage {
   getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
   clearEvents(): Promise<void>;
-
+  
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
@@ -24,23 +24,24 @@ export interface IStorage {
   getPersonByEmail(email: string): Promise<Person | null>; 
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-  getPersonByApiId(apiId: string): Promise<Person | null>;
-
+  
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
   setLastCacheUpdate(date: Date): Promise<void>;
-
+  
   // User management
   createUser(userData: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   verifyUser(userId: number): Promise<User>;
-
+  
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
   validateVerificationToken(token: string): Promise<VerificationToken | null>;
   deleteVerificationToken(token: string): Promise<void>;
+  // Add new method for getting person by API ID
+  getPersonByApiId(apiId: string): Promise<Person | null>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -50,66 +51,88 @@ export class PostgresStorage implements IStorage {
     console.log(`Found ${result.length} events in database`);
     return result;
   }
-
+  
   async getEventCount(): Promise<number> {
     const result = await db.select({ count: sql`COUNT(*)` }).from(events);
     const count = Number(result[0].count);
     return count;
   }
-
+  
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Upserting event into database:', event.api_id);
-
-    const [newEvent] = await db
-      .insert(events)
-      .values(event)
-      .onConflictDoUpdate({
-        target: events.api_id,
-        set: {
-          title: event.title,
-          description: event.description,
-          startTime: event.startTime,
-          endTime: event.endTime,
-          coverUrl: event.coverUrl,
-          url: event.url,
-          timezone: event.timezone,
-          location: event.location,
-          visibility: event.visibility,
-          meetingUrl: event.meetingUrl,
-          calendarApiId: event.calendarApiId,
-          createdAt: event.createdAt
-        },
-      })
-      .returning();
-
+    
+    // Create a raw SQL query for inserting with proper JSON handling
+    const query = sql`
+      INSERT INTO events (
+        api_id, title, description, start_time, end_time, 
+        cover_url, url, timezone, location, visibility, 
+        meeting_url, calendar_api_id, created_at
+      ) 
+      VALUES (
+        ${event.api_id}, 
+        ${event.title}, 
+        ${event.description}, 
+        ${event.startTime}, 
+        ${event.endTime},
+        ${event.coverUrl}, 
+        ${event.url}, 
+        ${event.timezone}, 
+        ${event.location ? JSON.stringify(event.location) : null}::jsonb, 
+        ${event.visibility}, 
+        ${event.meetingUrl}, 
+        ${event.calendarApiId}, 
+        ${event.createdAt}
+      )
+      ON CONFLICT (api_id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = EXCLUDED.description,
+        start_time = EXCLUDED.start_time,
+        end_time = EXCLUDED.end_time,
+        cover_url = EXCLUDED.cover_url,
+        url = EXCLUDED.url,
+        timezone = EXCLUDED.timezone,
+        location = EXCLUDED.location,
+        visibility = EXCLUDED.visibility,
+        meeting_url = EXCLUDED.meeting_url,
+        calendar_api_id = EXCLUDED.calendar_api_id,
+        created_at = EXCLUDED.created_at
+      RETURNING *
+    `;
+    
+    const result = await db.execute(query);
+    const newEvent = result.rows[0] as Event;
+    
     console.log('Successfully upserted event:', newEvent.api_id);
     return newEvent;
   }
-
+  
   async clearEvents(): Promise<void> {
     console.log('Clearing all events from database...');
     await db.delete(events);
+    
+    // Reset the sequence to start from 1 again
     await db.execute(sql`ALTER SEQUENCE events_id_seq RESTART WITH 1`);
+    
     console.log('Successfully cleared events and reset ID sequence');
   }
-
+  
   async getPeople(): Promise<Person[]> {
     console.log('Fetching all people from database...');
     const result = await db.select().from(people);
     console.log(`Found ${result.length} people in database`);
     return result;
   }
-
+  
   async getPeopleCount(): Promise<number> {
     const result = await db.select({ count: sql`COUNT(*)` }).from(people);
     const count = Number(result[0].count);
     return count;
   }
-
+  
   async insertPerson(person: InsertPerson): Promise<Person> {
     try {
       console.log('Attempting to upsert person:', person.email);
-
+      
       const [newPerson] = await db
         .insert(people)
         .values(person)
@@ -118,15 +141,18 @@ export class PostgresStorage implements IStorage {
           set: {
             email: person.email,
             userName: person.userName,
+            fullName: person.fullName,
             avatarUrl: person.avatarUrl,
+            role: person.role,
+            phoneNumber: person.phoneNumber,
+            bio: person.bio,
+            organizationName: person.organizationName,
+            jobTitle: person.jobTitle,
             createdAt: person.createdAt,
-            eventApprovedCount: person.eventApprovedCount,
-            eventCheckedInCount: person.eventCheckedInCount,
-            revenueUsdCents: person.revenueUsdCents
           },
         })
         .returning();
-
+      
       console.log('Successfully upserted person:', newPerson.email);
       return newPerson;
     } catch (error) {
@@ -134,14 +160,17 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async clearPeople(): Promise<void> {
     console.log('Clearing all people from database...');
     await db.delete(people);
+    
+    // Reset the sequence to start from 1 again
     await db.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
+    
     console.log('Successfully cleared people and reset ID sequence');
   }
-
+  
   async getLastCacheUpdate(): Promise<Date | null> {
     try {
       const LAST_UPDATE_KEY = 'last_cache_update';
@@ -150,11 +179,11 @@ export class PostgresStorage implements IStorage {
         .from(cacheMetadata)
         .where(eq(cacheMetadata.key, LAST_UPDATE_KEY))
         .limit(1);
-
+      
       if (result.length === 0) {
         return null;
       }
-
+      
       const timestamp = result[0].value;
       return new Date(timestamp);
     } catch (error) {
@@ -162,7 +191,7 @@ export class PostgresStorage implements IStorage {
       return null;
     }
   }
-
+  
   async setLastCacheUpdate(date: Date): Promise<void> {
     const LAST_UPDATE_KEY = 'last_cache_update';
     try {
@@ -170,7 +199,7 @@ export class PostgresStorage implements IStorage {
         key: LAST_UPDATE_KEY,
         value: date.toISOString(),
       };
-
+      
       await db
         .insert(cacheMetadata)
         .values(metadata)
@@ -181,14 +210,15 @@ export class PostgresStorage implements IStorage {
             updatedAt: new Date().toISOString(),
           }
         });
-
+        
       console.log('Successfully updated last cache timestamp:', date.toISOString());
     } catch (error) {
       console.error('Failed to update last cache timestamp:', error);
       throw error;
     }
   }
-
+  
+  // People methods
   async getPersonById(id: number): Promise<Person | null> {
     try {
       const result = await db
@@ -196,14 +226,14 @@ export class PostgresStorage implements IStorage {
         .from(people)
         .where(eq(people.id, id))
         .limit(1);
-
+      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person by ID:', error);
       throw error;
     }
   }
-
+  
   async getPersonByEmail(email: string): Promise<Person | null> {
     try {
       const result = await db
@@ -211,32 +241,18 @@ export class PostgresStorage implements IStorage {
         .from(people)
         .where(eq(people.email, email))
         .limit(1);
-
+      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person by email:', error);
       throw error;
     }
   }
-
-  async getPersonByApiId(apiId: string): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.api_id, apiId))
-        .limit(1);
-
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person by API ID:', error);
-      throw error;
-    }
-  }
-
+  
   // User management methods
   async createUser(userData: InsertUser): Promise<User> {
     try {
+      console.log('Creating new user with email:', userData.email);
       const [newUser] = await db
         .insert(users)
         .values({
@@ -245,7 +261,7 @@ export class PostgresStorage implements IStorage {
           updatedAt: new Date().toISOString()
         })
         .returning();
-
+      
       console.log('Successfully created user:', newUser.id);
       return newUser;
     } catch (error) {
@@ -253,7 +269,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async getUserByEmail(email: string): Promise<User | null> {
     try {
       const result = await db
@@ -261,14 +277,14 @@ export class PostgresStorage implements IStorage {
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
-
+      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get user by email:', error);
       throw error;
     }
   }
-
+  
   async getUserById(id: number): Promise<User | null> {
     try {
       const result = await db
@@ -276,14 +292,14 @@ export class PostgresStorage implements IStorage {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-
+      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get user by ID:', error);
       throw error;
     }
   }
-
+  
   async getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null> {
     try {
       const result = await db
@@ -295,9 +311,9 @@ export class PostgresStorage implements IStorage {
         .leftJoin(people, eq(users.personId, people.id))
         .where(eq(users.id, userId))
         .limit(1);
-
+      
       if (result.length === 0 || !result[0].person) return null;
-
+      
       return {
         ...result[0].user,
         person: result[0].person
@@ -307,7 +323,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async verifyUser(userId: number): Promise<User> {
     try {
       const [updatedUser] = await db
@@ -318,25 +334,28 @@ export class PostgresStorage implements IStorage {
         })
         .where(eq(users.id, userId))
         .returning();
-
+      
       if (!updatedUser) {
         throw new Error(`User with ID ${userId} not found`);
       }
-
+      
       return updatedUser;
     } catch (error) {
       console.error('Failed to verify user:', error);
       throw error;
     }
   }
-
+  
   // Email verification methods
   async createVerificationToken(email: string): Promise<VerificationToken> {
     try {
+      // Generate a secure random token
       const token = crypto.randomBytes(32).toString('hex');
+      
+      // Set expiration to 24 hours from now
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
-
+      
       const [newToken] = await db
         .insert(verificationTokens)
         .values({
@@ -345,14 +364,14 @@ export class PostgresStorage implements IStorage {
           expiresAt: expiresAt.toISOString(),
         })
         .returning();
-
+      
       return newToken;
     } catch (error) {
       console.error('Failed to create verification token:', error);
       throw error;
     }
   }
-
+  
   async validateVerificationToken(token: string): Promise<VerificationToken | null> {
     try {
       const result = await db
@@ -360,27 +379,28 @@ export class PostgresStorage implements IStorage {
         .from(verificationTokens)
         .where(eq(verificationTokens.token, token))
         .limit(1);
-
+      
       if (result.length === 0) {
         return null;
       }
-
+      
       const verificationToken = result[0];
       const now = new Date();
       const expiresAt = new Date(verificationToken.expiresAt);
-
+      
+      // Check if token is expired
       if (now > expiresAt) {
         await this.deleteVerificationToken(token);
         return null;
       }
-
+      
       return verificationToken;
     } catch (error) {
       console.error('Failed to validate verification token:', error);
       throw error;
     }
   }
-
+  
   async deleteVerificationToken(token: string): Promise<void> {
     try {
       await db
@@ -388,6 +408,20 @@ export class PostgresStorage implements IStorage {
         .where(eq(verificationTokens.token, token));
     } catch (error) {
       console.error('Failed to delete verification token:', error);
+      throw error;
+    }
+  }
+  async getPersonByApiId(apiId: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.api_id, apiId))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by API ID:', error);
       throw error;
     }
   }
