@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, ExternalLink } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface Event {
   id: number;
@@ -41,20 +42,38 @@ function EventCard({ event }: { event: Event }) {
       rel="noopener noreferrer"
       className="block"
     >
-      <div className="p-2.5 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
-        <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
+      <div className="flex gap-3 p-2.5 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
+        {/* Event thumbnail */}
+        <div className="flex-none w-16">
+          <AspectRatio ratio={1}>
+            {event.coverUrl ? (
+              <img
+                src={event.coverUrl}
+                alt={event.title}
+                className="rounded object-cover w-full h-full"
+              />
+            ) : (
+              <div className="w-full h-full bg-muted rounded flex items-center justify-center">
+                <CalendarDays className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
+          </AspectRatio>
+        </div>
 
-        <div className="mt-1.5 space-y-1">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <CalendarDays className="h-3.5 w-3.5" />
-            <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
+        {/* Event details */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
+          <div className="mt-1.5 space-y-1">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <CalendarDays className="h-3.5 w-3.5" />
+              <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
+            </div>
+            {event.description && (
+              <p className="text-xs text-muted-foreground line-clamp-1">
+                {event.description}
+              </p>
+            )}
           </div>
-
-          {event.description && (
-            <p className="text-xs text-muted-foreground line-clamp-1">
-              {event.description}
-            </p>
-          )}
         </div>
       </div>
     </a>
@@ -84,19 +103,9 @@ export default function EventList() {
 
   return (
     <div className="space-y-3">
-      <a
-        href="https://lu.ma/SarasotaTech"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors justify-end"
-      >
-        <ExternalLink className="h-3.5 w-3.5" />
-        View full calendar
-      </a>
-
       {isLoading ? (
         <div className="space-y-2">
-          <Skeleton className="h-16" />
+          <Skeleton className="h-[88px]" />
         </div>
       ) : upcomingEvent ? (
         <EventCard event={upcomingEvent} />
