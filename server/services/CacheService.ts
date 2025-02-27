@@ -1,13 +1,16 @@
 import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
-  private readonly CHUNK_SIZE = 200; // Increased from 100
-  private readonly MAX_CONCURRENT_REQUESTS = 5; // Increased from 3
-  private readonly REQUEST_DELAY = 200; // Reduced from 500ms
+  private readonly CHUNK_SIZE = 200;
+  private readonly MAX_CONCURRENT_REQUESTS = 5;
+  private readonly REQUEST_DELAY = 200;
+  private readonly BATCH_SIZE = 100; // Size of batches for DB operations
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -18,40 +21,181 @@ export class CacheService {
     if (!this.instance) {
       console.log('Creating new CacheService instance...');
       this.instance = new CacheService();
-
-      // Check if we have data already
-      this.instance.checkInitialDataLoadStatus()
-        .then(hasData => {
-          const delay = hasData ? 5000 : 100; // Shorter delay for empty DB
-          console.log(hasData
-            ? 'Database has existing data, scheduling background sync in 5s'
-            : 'Database is empty, starting initial sync shortly');
-
-          setTimeout(() => {
-            this.instance.updateCache();
-          }, delay);
-        })
-        .catch(error => {
-          console.error('Failed to check data status:', error);
-          setTimeout(() => {
-            this.instance.updateCache();
-          }, 5000);
-        });
     }
     return this.instance;
   }
 
-  private async checkInitialDataLoadStatus(): Promise<boolean> {
+  private async batchInsertEvents(events: any[]): Promise<void> {
+    if (events.length === 0) return;
+
+    const batchStartTime = Date.now();
+    console.log(`Starting batch insert of ${events.length} events...`);
+
+    // Use a single transaction for the entire batch
+    await db.transaction(async (tx) => {
+      const values = events.map(entry => {
+        const eventData = entry.event;
+        return {
+          api_id: eventData.api_id,
+          title: eventData.name,
+          description: eventData.description || null,
+          startTime: eventData.start_at,
+          endTime: eventData.end_at,
+          coverUrl: eventData.cover_url || null,
+          url: eventData.url || null,
+          timezone: eventData.timezone || null,
+          location: eventData.geo_address_json ? JSON.stringify({
+            city: eventData.geo_address_json.city,
+            region: eventData.geo_address_json.region,
+            country: eventData.geo_address_json.country,
+            latitude: eventData.geo_latitude,
+            longitude: eventData.geo_longitude,
+            full_address: eventData.geo_address_json.full_address,
+          }) : null,
+          visibility: eventData.visibility || null,
+          meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
+          calendarApiId: eventData.calendar_api_id || null,
+          createdAt: eventData.created_at || null,
+        };
+      });
+
+      // Create the bulk insert query
+      const query = sql`
+        INSERT INTO events (
+          api_id, title, description, start_time, end_time,
+          cover_url, url, timezone, location, visibility,
+          meeting_url, calendar_api_id, created_at
+        )
+        SELECT * FROM json_populate_recordset(null::events, ${JSON.stringify(values)})
+        ON CONFLICT (api_id) DO UPDATE SET
+          title = EXCLUDED.title,
+          description = EXCLUDED.description,
+          start_time = EXCLUDED.start_time,
+          end_time = EXCLUDED.end_time,
+          cover_url = EXCLUDED.cover_url,
+          url = EXCLUDED.url,
+          timezone = EXCLUDED.timezone,
+          location = EXCLUDED.location,
+          visibility = EXCLUDED.visibility,
+          meeting_url = EXCLUDED.meeting_url,
+          calendar_api_id = EXCLUDED.calendar_api_id,
+          created_at = EXCLUDED.created_at
+      `;
+
+      await tx.execute(query);
+    });
+
+    const duration = Date.now() - batchStartTime;
+    console.log(`Batch insert completed in ${duration}ms`);
+  }
+
+  private async batchInsertPeople(people: any[]): Promise<void> {
+    if (people.length === 0) return;
+
+    const batchStartTime = Date.now();
+    console.log(`Starting batch insert of ${people.length} people...`);
+
+    // Use a single transaction for the entire batch
+    await db.transaction(async (tx) => {
+      const values = people.map(person => ({
+        api_id: person.api_id,
+        email: person.email,
+        userName: person.userName || person.user?.name || null,
+        fullName: person.fullName || person.user?.full_name || null,
+        avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+        role: person.role || null,
+        phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+        bio: person.bio || person.user?.bio || null,
+        organizationName: person.organizationName || person.user?.organization_name || null,
+        jobTitle: person.jobTitle || person.user?.job_title || null,
+        createdAt: person.created_at || null,
+      }));
+
+      // Create the bulk insert query
+      const query = sql`
+        INSERT INTO people (
+          api_id, email, user_name, full_name, avatar_url,
+          role, phone_number, bio, organization_name, job_title, created_at
+        )
+        SELECT * FROM json_populate_recordset(null::people, ${JSON.stringify(values)})
+        ON CONFLICT (api_id) DO UPDATE SET
+          email = EXCLUDED.email,
+          user_name = EXCLUDED.user_name,
+          full_name = EXCLUDED.full_name,
+          avatar_url = EXCLUDED.avatar_url,
+          role = EXCLUDED.role,
+          phone_number = EXCLUDED.phone_number,
+          bio = EXCLUDED.bio,
+          organization_name = EXCLUDED.organization_name,
+          job_title = EXCLUDED.job_title,
+          created_at = EXCLUDED.created_at
+      `;
+
+      await tx.execute(query);
+    });
+
+    const duration = Date.now() - batchStartTime;
+    console.log(`Batch insert completed in ${duration}ms`);
+  }
+
+  async updateCache() {
+    if (this.isCaching) {
+      console.log('Cache update already in progress, skipping...');
+      return;
+    }
+
+    this.isCaching = true;
+    const syncStartTime = Date.now();
+    console.log('Starting cache update process...');
+
     try {
-      const [eventCount, peopleCount] = await Promise.all([
-        storage.getEventCount(),
-        storage.getPeopleCount()
+      const lastUpdate = await storage.getLastCacheUpdate();
+      const now = new Date();
+
+      console.log(`Last cache update was ${lastUpdate ? lastUpdate.toISOString() : 'never'}`);
+      const lastUpdateTime = lastUpdate || undefined;
+
+      // Fetch data in parallel
+      console.log('Fetching events and people in parallel...');
+
+      const [events, people] = await Promise.all([
+        this.fetchAllEvents(lastUpdateTime),
+        this.fetchAllPeople(lastUpdateTime)
       ]);
 
-      return eventCount > 0 || peopleCount > 0;
+      let hasNewData = false;
+
+      // Process events in batches
+      if (events.length > 0) {
+        console.log(`Processing ${events.length} events in batches...`);
+        for (let i = 0; i < events.length; i += this.BATCH_SIZE) {
+          const batch = events.slice(i, i + this.BATCH_SIZE);
+          await this.batchInsertEvents(batch);
+          hasNewData = true;
+        }
+      }
+
+      // Process people in batches
+      if (people.length > 0) {
+        console.log(`Processing ${people.length} people in batches...`);
+        for (let i = 0; i < people.length; i += this.BATCH_SIZE) {
+          const batch = people.slice(i, i + this.BATCH_SIZE);
+          await this.batchInsertPeople(batch);
+          hasNewData = true;
+        }
+      }
+
+      if (hasNewData) {
+        await storage.setLastCacheUpdate(now);
+        const totalDuration = (Date.now() - syncStartTime) / 1000;
+        console.log(`Cache update completed in ${totalDuration}s. Processed ${events.length} events and ${people.length} people.`);
+      } else {
+        console.log('No new data to sync');
+      }
     } catch (error) {
-      console.error('Error checking data status:', error);
-      return false;
+      console.error('Cache update process failed:', error);
+    } finally {
+      this.isCaching = false;
     }
   }
 
@@ -124,35 +268,20 @@ export class CacheService {
     return results;
   }
 
-  private async processDataInBatches<T>(
-    items: T[],
-    processFn: (item: T) => Promise<void>,
-    batchSize: number = 50
-  ): Promise<void> {
-    const startTime = Date.now();
-    let processed = 0;
 
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batchStartTime = Date.now();
-      const batch = items.slice(i, i + batchSize);
+  private async checkInitialDataLoadStatus(): Promise<boolean> {
+    try {
+      const [eventCount, peopleCount] = await Promise.all([
+        storage.getEventCount(),
+        storage.getPeopleCount()
+      ]);
 
-      await Promise.all(batch.map(async (item) => {
-        try {
-          await processFn(item);
-          processed++;
-        } catch (error) {
-          console.error('Failed to process item:', error);
-        }
-      }));
-
-      const batchDuration = Date.now() - batchStartTime;
-      const totalDuration = Date.now() - startTime;
-      const itemsPerSecond = Math.round((processed / totalDuration) * 1000);
-
-      console.log(`Processed batch of ${batch.length} items in ${batchDuration}ms (Total: ${processed}/${items.length} at ${itemsPerSecond}/sec)`);
+      return eventCount > 0 || peopleCount > 0;
+    } catch (error) {
+      console.error('Error checking data status:', error);
+      return false;
     }
   }
-
 
   private async fetchAllPeople(lastUpdateTime?: Date): Promise<any[]> {
     console.log('Starting parallel fetch of people from Luma API...');
@@ -281,121 +410,6 @@ export class CacheService {
 
     console.log(`Completed events fetch. Total unique events: ${allEvents.length}`);
     return allEvents;
-  }
-
-  async updateCache() {
-    if (this.isCaching) {
-      console.log('Cache update already in progress, skipping...');
-      return;
-    }
-
-    this.isCaching = true;
-    const syncStartTime = Date.now();
-    console.log('Starting cache update process...');
-
-    try {
-      const lastUpdate = await storage.getLastCacheUpdate();
-      const now = new Date();
-
-      console.log(`Last cache update was ${lastUpdate ? lastUpdate.toISOString() : 'never'}`);
-      const lastUpdateTime = lastUpdate || undefined;
-
-      // Fetch data in parallel
-      console.log('Fetching events and people in parallel...');
-      const [eventsResult, peopleResult] = await Promise.allSettled([
-        this.fetchAllEvents(lastUpdateTime),
-        this.fetchAllPeople(lastUpdateTime)
-      ]);
-
-      let hasNewData = false;
-      let processedEvents = 0;
-      let processedPeople = 0;
-
-      // Process events with batched database operations
-      if (eventsResult.status === 'fulfilled' && eventsResult.value.length > 0) {
-        const events = eventsResult.value;
-        console.log(`Processing ${events.length} events in batches...`);
-
-        await this.processDataInBatches(events, async (entry) => {
-          const eventData = entry.event;
-          if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
-            return;
-          }
-
-          await storage.insertEvent({
-            api_id: eventData.api_id,
-            title: eventData.name,
-            description: eventData.description || null,
-            startTime: eventData.start_at,
-            endTime: eventData.end_at,
-            coverUrl: eventData.cover_url || null,
-            url: eventData.url || null,
-            timezone: eventData.timezone || null,
-            location: eventData.geo_address_json ? {
-              city: eventData.geo_address_json.city,
-              region: eventData.geo_address_json.region,
-              country: eventData.geo_address_json.country,
-              latitude: eventData.geo_latitude,
-              longitude: eventData.geo_longitude,
-              full_address: eventData.geo_address_json.full_address,
-            } : null,
-            visibility: eventData.visibility || null,
-            meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
-            calendarApiId: eventData.calendar_api_id || null,
-            createdAt: eventData.created_at || null,
-          });
-          processedEvents++;
-          hasNewData = true;
-        });
-
-        console.log(`Successfully processed ${processedEvents} events`);
-      }
-
-      // Process people with batched database operations
-      if (peopleResult.status === 'fulfilled' && peopleResult.value.length > 0) {
-        const people = peopleResult.value;
-        console.log(`Processing ${people.length} people in batches...`);
-
-        await this.processDataInBatches(people, async (person) => {
-          if (!person.api_id || !person.email) {
-            return;
-          }
-
-          await storage.insertPerson({
-            api_id: person.api_id,
-            email: person.email,
-            userName: person.userName || person.user?.name || null,
-            fullName: person.fullName || person.user?.full_name || null,
-            avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
-            role: person.role || null,
-            phoneNumber: person.phoneNumber || person.user?.phone_number || null,
-            bio: person.bio || person.user?.bio || null,
-            organizationName: person.organizationName || person.user?.organization_name || null,
-            jobTitle: person.jobTitle || person.user?.job_title || null,
-            createdAt: person.created_at || null,
-          });
-          processedPeople++;
-          hasNewData = true;
-        });
-
-        console.log(`Successfully processed ${processedPeople} people`);
-      }
-
-      if (hasNewData) {
-        await storage.setLastCacheUpdate(now);
-        const totalDuration = (Date.now() - syncStartTime) / 1000;
-        const totalRecords = processedEvents + processedPeople;
-        const recordsPerSecond = Math.round(totalRecords / totalDuration);
-
-        console.log(`Cache update completed in ${totalDuration}s. Processed ${totalRecords} records (${recordsPerSecond} records/sec)`);
-      } else {
-        console.log('No new data to sync');
-      }
-    } catch (error) {
-      console.error('Cache update process failed:', error);
-    } finally {
-      this.isCaching = false;
-    }
   }
 
   startCaching() {
