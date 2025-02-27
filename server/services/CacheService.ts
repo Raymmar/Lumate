@@ -23,7 +23,7 @@ export class CacheService {
       this.instance.checkInitialDataLoadStatus()
         .then(hasData => {
           const delay = hasData ? 5000 : 100; // Shorter delay for empty DB
-          console.log(hasData 
+          console.log(hasData
             ? 'Database has existing data, scheduling background sync in 5s'
             : 'Database is empty, starting initial sync shortly');
 
@@ -71,11 +71,19 @@ export class CacheService {
 
   private async fetchEventChunk(params: Record<string, string>): Promise<any[]> {
     try {
+      console.log('Fetching events chunk with params:', params);
       const response = await lumaApiRequest('calendar/list-events', params);
+
       if (!response || !Array.isArray(response.entries)) {
         console.error('Invalid response format for events chunk:', response);
         return [];
       }
+
+      // Log the first event structure to help debug
+      if (response.entries.length > 0) {
+        console.log('Sample event structure:', JSON.stringify(response.entries[0], null, 2));
+      }
+
       return response.entries;
     } catch (error) {
       console.error('Error fetching events chunk:', error);
@@ -163,47 +171,73 @@ export class CacheService {
     const seenEventIds = new Set<string>();
 
     while (hasMore) {
+      // Generate parallel request parameters
       const chunks = Array(this.MAX_CONCURRENT_REQUESTS).fill(null).map(() => ({
         ...baseParams,
         ...(nextCursor && { pagination_cursor: nextCursor })
       }));
 
+      console.log(`Making ${chunks.length} parallel events requests`);
       const newEvents = await this.fetchWithConcurrency(chunks, this.fetchEventChunk);
 
       if (newEvents.length === 0) {
+        console.log('No events returned in this batch, stopping pagination');
         break;
       }
 
-      // Deduplicate events
+      // Process and deduplicate events
       const uniqueNewEvents = newEvents.filter((entry: any) => {
-        const eventData = entry.event;
-        if (!eventData?.api_id) {
-          console.warn('Invalid event data:', eventData);
+        if (!entry || !entry.event || !entry.event.api_id) {
+          console.warn('Invalid event entry structure:', entry);
           return false;
         }
+
+        const eventData = entry.event;
         const isNew = !seenEventIds.has(eventData.api_id);
-        if (isNew) seenEventIds.add(eventData.api_id);
+        if (isNew) {
+          seenEventIds.add(eventData.api_id);
+          // Log the first few events we're keeping
+          if (allEvents.length < 3) {
+            console.log('Adding unique event:', {
+              api_id: eventData.api_id,
+              name: eventData.name,
+              start_at: eventData.start_at
+            });
+          }
+        }
         return isNew;
       });
 
       allEvents = allEvents.concat(uniqueNewEvents);
-      console.log(`Fetched ${uniqueNewEvents.length} unique events in parallel. Total: ${allEvents.length}`);
+      console.log(`Added ${uniqueNewEvents.length} unique events (Total: ${allEvents.length})`);
 
-      // Update cursor for next batch
-      const lastBatchResponse = await lumaApiRequest('calendar/list-events', {
-        ...baseParams,
-        pagination_cursor: nextCursor || ''
-      });
+      // Get next page cursor
+      try {
+        const lastBatchResponse = await lumaApiRequest('calendar/list-events', {
+          ...baseParams,
+          pagination_cursor: nextCursor || ''
+        });
 
-      hasMore = lastBatchResponse.has_more === true;
-      nextCursor = lastBatchResponse.next_cursor;
+        hasMore = lastBatchResponse.has_more === true;
+        nextCursor = lastBatchResponse.next_cursor;
 
-      if (!hasMore || !nextCursor) {
-        console.log('No more events to fetch');
+        console.log('Pagination status:', {
+          hasMore,
+          nextCursor,
+          currentTotal: allEvents.length
+        });
+
+        if (!hasMore || !nextCursor) {
+          console.log('No more events to fetch');
+          break;
+        }
+      } catch (error) {
+        console.error('Error getting next page cursor:', error);
         break;
       }
     }
 
+    console.log(`Completed events fetch. Total unique events: ${allEvents.length}`);
     return allEvents;
   }
 
@@ -217,18 +251,13 @@ export class CacheService {
     console.log('Starting cache update process...');
 
     try {
-      // Get the last update timestamp
       const lastUpdate = await storage.getLastCacheUpdate();
       const now = new Date();
 
       console.log(`Last cache update was ${lastUpdate ? lastUpdate.toISOString() : 'never'}`);
-
-      // Use the last update time if available, otherwise fetch all data
       const lastUpdateTime = lastUpdate || undefined;
 
-      // Fetch new data from APIs in parallel
-      console.log('Fetching new events and people in parallel...');
-
+      console.log('Fetching events and people in parallel...');
       const [eventsResult, peopleResult] = await Promise.allSettled([
         this.fetchAllEvents(lastUpdateTime),
         this.fetchAllPeople(lastUpdateTime)
@@ -241,14 +270,14 @@ export class CacheService {
       // Process new events
       if (eventsResult.status === 'fulfilled' && eventsResult.value.length > 0) {
         const events = eventsResult.value;
-        console.log(`Processing ${events.length} new events...`);
+        console.log(`Processing ${events.length} events...`);
 
-        await Promise.all(events.map(async (entry) => {
+        for (const entry of events) {
           try {
             const eventData = entry.event;
             if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
               console.warn('Skipping event - Missing required fields:', eventData);
-              return;
+              continue;
             }
 
             await storage.insertEvent({
@@ -275,11 +304,18 @@ export class CacheService {
             });
             processedEvents++;
             hasNewData = true;
+
+            // Log progress for first few events
+            if (processedEvents <= 3) {
+              console.log(`Successfully processed event: ${eventData.name} (${eventData.api_id})`);
+            }
           } catch (error) {
             console.error('Failed to process event:', error);
           }
-        }));
+        }
         console.log(`Successfully processed ${processedEvents} events`);
+      } else if (eventsResult.status === 'rejected') {
+        console.error('Failed to fetch events:', eventsResult.reason);
       } else {
         console.log('No new events to sync');
       }
