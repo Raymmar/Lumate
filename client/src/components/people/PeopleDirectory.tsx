@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Search } from 'lucide-react';
 import { 
   Pagination,
   PaginationContent,
@@ -59,83 +59,87 @@ export default function PeopleDirectory() {
 
   if (error) {
     return (
-      <Card className="col-span-1">
-        <CardContent>
-          <p className="text-destructive">Failed to load people directory</p>
-        </CardContent>
-      </Card>
+      <div className="rounded-lg border bg-destructive/10 p-3">
+        <p className="text-xs text-destructive">Failed to load people directory</p>
+      </div>
     );
   }
 
   return (
-    <Card className="col-span-1">
-      <CardContent className="pt-6">
+    <div className="space-y-4">
+      <h2 className="text-sm font-semibold">Directory</h2>
+
+      <div className="relative">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search people..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="mb-4"
+          className="pl-9"
         />
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-          </div>
-        ) : filteredPeople && filteredPeople.length > 0 ? (
-          <>
-            <div className="space-y-4">
-              {filteredPeople.map((person) => (
-                <div
-                  key={person.api_id}
-                  className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground"
-                >
-                  <Avatar>
-                    <AvatarFallback>
-                      {person.userName
-                        ? person.userName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                        : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{person.userName || "Anonymous"}</p>
-                    <p className="text-sm text-muted-foreground">{person.email}</p>
-                  </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
+        </div>
+      ) : filteredPeople && filteredPeople.length > 0 ? (
+        <>
+          <div className="space-y-2">
+            {filteredPeople.map((person) => (
+              <div
+                key={person.api_id}
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="text-xs">
+                    {person.userName
+                      ? person.userName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                      : "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{person.email}</p>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 text-sm text-muted-foreground">
+              </div>
+            ))}
+          </div>
+          <div className="pt-2 border-t">
+            <div className="text-xs text-muted-foreground mb-2">
               Showing {filteredPeople?.length || 0} of {data?.total || 0} total people
             </div>
-            <Pagination className="mt-2">
+            <Pagination>
               <PaginationContent>
                 <PaginationItem>
                   <PaginationPrevious 
                     onClick={handlePreviousPage} 
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                    className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} text-xs`}
                   />
                 </PaginationItem>
                 <PaginationItem>
-                  <span className="px-4">Page {currentPage} of {totalPages}</span>
+                  <span className="px-4 text-xs">Page {currentPage} of {totalPages}</span>
                 </PaginationItem>
                 <PaginationItem>
                   <PaginationNext 
                     onClick={handleNextPage}
-                    className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                    className={`${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''} text-xs`}
                   />
                 </PaginationItem>
               </PaginationContent>
             </Pagination>
-          </>
-        ) : (
-          <p className="text-muted-foreground">
-            {searchQuery ? "No matching people found" : "No people available"}
-          </p>
-        )}
-      </CardContent>
-    </Card>
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          {searchQuery ? "No matching people found" : "No people available"}
+        </p>
+      )}
+    </div>
   );
 }

@@ -24,15 +24,6 @@ interface EventsResponse {
 function formatEventDate(utcDateStr: string, timezone: string | null): string {
   try {
     const targetTimezone = timezone || 'America/New_York';
-
-    // Debug log to see what we're working with
-    console.log('Time conversion:', {
-      input: utcDateStr,
-      targetTimezone,
-      asDate: new Date(utcDateStr).toISOString()
-    });
-
-    // Simple, direct conversion from UTC to target timezone
     return formatInTimeZone(
       new Date(utcDateStr),
       targetTimezone,
@@ -52,11 +43,9 @@ function EventCard({ event, showImage = false }: { event: Event, showImage?: boo
       rel="noopener noreferrer"
       className="block"
     >
-      <div 
-        className="p-4 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group"
-      >
+      <div className="p-3 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
         {showImage && event.coverUrl && (
-          <div className="mb-4 overflow-hidden rounded-md aspect-video">
+          <div className="mb-3 overflow-hidden rounded-md aspect-[2/1]">
             <img 
               src={event.coverUrl} 
               alt={event.title}
@@ -64,16 +53,16 @@ function EventCard({ event, showImage = false }: { event: Event, showImage?: boo
             />
           </div>
         )}
-        <h3 className="font-semibold group-hover:text-primary transition-colors">{event.title}</h3>
+        <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
 
-        <div className="mt-4 space-y-2">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <CalendarDays className="h-4 w-4" />
-            <span>{formatEventDate(event.startTime, event.timezone)}</span>
+        <div className="mt-2 space-y-1">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
           </div>
 
           {event.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className="text-xs text-muted-foreground line-clamp-1">
               {event.description}
             </p>
           )}
@@ -90,11 +79,9 @@ export default function EventList() {
 
   if (error) {
     return (
-      <Card className="col-span-1">
-        <CardContent>
-          <p className="text-destructive">Failed to load events</p>
-        </CardContent>
-      </Card>
+      <div className="rounded-lg border bg-destructive/10 p-3">
+        <p className="text-xs text-destructive">Failed to load events</p>
+      </div>
     );
   }
 
@@ -118,53 +105,49 @@ export default function EventList() {
   const nextEvent = upcomingEvents[0];
 
   return (
-    <Card className="col-span-1">
-      <CardContent className="pt-6">
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-48" />
-            <Skeleton className="h-48" />
-            <Skeleton className="h-48" />
-          </div>
-        ) : eventsArray.length > 0 ? (
-          <div className="space-y-6">
-            <Tabs defaultValue="upcoming" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="upcoming">Upcoming Events</TabsTrigger>
-                <TabsTrigger value="past">Past Events</TabsTrigger>
-              </TabsList>
+    <div className="space-y-4">
+      <h2 className="text-sm font-semibold">Events</h2>
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+          <Skeleton className="h-24" />
+        </div>
+      ) : eventsArray.length > 0 ? (
+        <div className="space-y-3">
+          <Tabs defaultValue="upcoming" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="upcoming" className="text-xs">Upcoming</TabsTrigger>
+              <TabsTrigger value="past" className="text-xs">Past</TabsTrigger>
+            </TabsList>
 
-              <TabsContent value="upcoming" className="space-y-4 mt-4">
-                {nextEvent && (
-                  <div className="mb-4">
-                    <EventCard event={nextEvent} showImage={true} />
-                  </div>
-                )}
-                {upcomingEvents.slice(1).map((event) => (
-                  <EventCard key={event.id} event={event} showImage={false} />
-                ))}
-                {upcomingEvents.length === 0 && (
-                  <p className="text-muted-foreground">No upcoming events</p>
-                )}
-              </TabsContent>
+            <TabsContent value="upcoming" className="space-y-2 mt-2">
+              {nextEvent && (
+                <div className="mb-2">
+                  <EventCard event={nextEvent} showImage={true} />
+                </div>
+              )}
+              {upcomingEvents.slice(1).map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+              {upcomingEvents.length === 0 && (
+                <p className="text-xs text-muted-foreground">No upcoming events</p>
+              )}
+            </TabsContent>
 
-              <TabsContent value="past" className="space-y-4 mt-4">
-                {pastEvents.length > 0 && (
-                  <EventCard key={pastEvents[0].id} event={pastEvents[0]} showImage={true} />
-                )}
-                {pastEvents.slice(1).map((event) => (
-                  <EventCard key={event.id} event={event} showImage={false} />
-                ))}
-                {pastEvents.length === 0 && (
-                  <p className="text-muted-foreground">No past events</p>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        ) : (
-          <p className="text-muted-foreground">No events available</p>
-        )}
-      </CardContent>
-    </Card>
+            <TabsContent value="past" className="space-y-2 mt-2">
+              {pastEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+              {pastEvents.length === 0 && (
+                <p className="text-xs text-muted-foreground">No past events</p>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">No events available</p>
+      )}
+    </div>
   );
 }
