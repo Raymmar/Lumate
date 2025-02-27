@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ExternalLink } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
   id: number;
@@ -78,54 +77,21 @@ export default function EventList() {
   const now = new Date();
   const eventsArray = data?.events || [];
 
-  // Sort events by start time
-  const sortedEvents = [...eventsArray].sort((a, b) => {
-    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-  });
-
-  // Split into upcoming and past events, limited to 2 each
-  const upcomingEvents = sortedEvents.filter(event => 
-    new Date(event.startTime) > now
-  ).slice(0, 2);
-
-  const pastEvents = sortedEvents.filter(event => 
-    new Date(event.startTime) <= now
-  ).reverse().slice(0, 2);
+  // Sort events by start time and get the next upcoming event
+  const upcomingEvent = eventsArray
+    .filter(event => new Date(event.startTime) > now)
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
 
   return (
     <div className="space-y-3">
       {isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
         </div>
-      ) : eventsArray.length > 0 ? (
-        <Tabs defaultValue="upcoming" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upcoming" className="text-xs">Upcoming</TabsTrigger>
-            <TabsTrigger value="past" className="text-xs">Past</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="upcoming" className="space-y-2 mt-2">
-            {upcomingEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-            {upcomingEvents.length === 0 && (
-              <p className="text-xs text-muted-foreground">No upcoming events</p>
-            )}
-          </TabsContent>
-
-          <TabsContent value="past" className="space-y-2 mt-2">
-            {pastEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-            {pastEvents.length === 0 && (
-              <p className="text-xs text-muted-foreground">No past events</p>
-            )}
-          </TabsContent>
-        </Tabs>
+      ) : upcomingEvent ? (
+        <EventCard event={upcomingEvent} />
       ) : (
-        <p className="text-xs text-muted-foreground">No events available</p>
+        <p className="text-xs text-muted-foreground">No upcoming events</p>
       )}
 
       <a
