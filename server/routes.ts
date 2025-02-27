@@ -218,24 +218,29 @@ export async function registerRoutes(app: Express) {
       };
 
       console.log('Creating user with data:', userData);
-      const user = await storage.createUser(userData);
+      try {
+        const user = await storage.createUser(userData);
+        console.log('User created successfully:', {
+          userId: user.id,
+          email: user.email,
+          personApiId: user.personApiId
+        });
 
-      // Verify the user
-      await storage.verifyUser(user.id);
+        // Verify the user
+        await storage.verifyUser(user.id);
+        console.log('User verified successfully');
 
-      // Clean up the verification token
-      await storage.deleteVerificationToken(token);
+        // Clean up the verification token
+        await storage.deleteVerificationToken(token);
 
-      console.log('Successfully verified user:', {
-        userId: user.id,
-        email: user.email,
-        personApiId: user.personApiId
-      });
-
-      return res.json({ 
-        message: "Email verified successfully",
-        user
-      });
+        return res.json({ 
+          message: "Email verified successfully",
+          user
+        });
+      } catch (error) {
+        console.error('Failed to create user:', error);
+        return res.status(500).json({ error: "Failed to create user account" });
+      }
     } catch (error) {
       console.error('Failed to verify token:', error);
       res.status(500).json({ error: "Failed to verify email" });

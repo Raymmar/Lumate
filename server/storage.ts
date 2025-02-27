@@ -258,6 +258,17 @@ export class PostgresStorage implements IStorage {
         displayName: userData.displayName
       });
 
+      // First verify that the person exists
+      const person = await this.getPersonByApiId(userData.personApiId);
+      if (!person) {
+        throw new Error(`No person found with API ID: ${userData.personApiId}`);
+      }
+
+      // Verify email matches
+      if (person.email.toLowerCase() !== userData.email.toLowerCase()) {
+        throw new Error('Email mismatch between user and person records');
+      }
+
       const [newUser] = await db
         .insert(users)
         .values({
@@ -288,14 +299,14 @@ export class PostgresStorage implements IStorage {
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
-
+      
       console.log('User lookup result:', result.length ? {
         found: true,
         userId: result[0].id,
         email: result[0].email,
         personApiId: result[0].personApiId
       } : 'not found');
-
+      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get user by email:', error);
@@ -344,6 +355,7 @@ export class PostgresStorage implements IStorage {
   
   async verifyUser(userId: number): Promise<User> {
     try {
+      console.log('Verifying user:', userId);
       const [updatedUser] = await db
         .update(users)
         .set({ 
@@ -352,11 +364,17 @@ export class PostgresStorage implements IStorage {
         })
         .where(eq(users.id, userId))
         .returning();
-      
+
       if (!updatedUser) {
         throw new Error(`User with ID ${userId} not found`);
       }
-      
+
+      console.log('Successfully verified user:', {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        isVerified: updatedUser.isVerified
+      });
+
       return updatedUser;
     } catch (error) {
       console.error('Failed to verify user:', error);
