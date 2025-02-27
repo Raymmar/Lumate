@@ -16,7 +16,7 @@ export interface IStorage {
   getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
   clearEvents(): Promise<void>;
-
+  
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
@@ -24,7 +24,7 @@ export interface IStorage {
   getPersonByEmail(email: string): Promise<Person | null>; 
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-
+  
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
   setLastCacheUpdate(date: Date): Promise<void>;
@@ -40,6 +40,8 @@ export interface IStorage {
   createVerificationToken(email: string): Promise<VerificationToken>;
   validateVerificationToken(token: string): Promise<VerificationToken | null>;
   deleteVerificationToken(token: string): Promise<void>;
+  // Add new method for getting person by API ID
+  getPersonByApiId(apiId: string): Promise<Person | null>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -55,10 +57,10 @@ export class PostgresStorage implements IStorage {
     const count = Number(result[0].count);
     return count;
   }
-
+  
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Upserting event into database:', event.api_id);
-
+    
     // Create a raw SQL query for inserting with proper JSON handling
     const query = sql`
       INSERT INTO events (
@@ -96,14 +98,14 @@ export class PostgresStorage implements IStorage {
         created_at = EXCLUDED.created_at
       RETURNING *
     `;
-
+    
     const result = await db.execute(query);
     const newEvent = result.rows[0] as Event;
-
+    
     console.log('Successfully upserted event:', newEvent.api_id);
     return newEvent;
   }
-
+  
   async clearEvents(): Promise<void> {
     console.log('Clearing all events from database...');
     await db.delete(events);
@@ -113,7 +115,7 @@ export class PostgresStorage implements IStorage {
     
     console.log('Successfully cleared events and reset ID sequence');
   }
-
+  
   async getPeople(): Promise<Person[]> {
     console.log('Fetching all people from database...');
     const result = await db.select().from(people);
@@ -126,11 +128,11 @@ export class PostgresStorage implements IStorage {
     const count = Number(result[0].count);
     return count;
   }
-
+  
   async insertPerson(person: InsertPerson): Promise<Person> {
     try {
       console.log('Attempting to upsert person:', person.email);
-
+      
       const [newPerson] = await db
         .insert(people)
         .values(person)
@@ -150,7 +152,7 @@ export class PostgresStorage implements IStorage {
           },
         })
         .returning();
-
+      
       console.log('Successfully upserted person:', newPerson.email);
       return newPerson;
     } catch (error) {
@@ -158,7 +160,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async clearPeople(): Promise<void> {
     console.log('Clearing all people from database...');
     await db.delete(people);
@@ -168,7 +170,7 @@ export class PostgresStorage implements IStorage {
     
     console.log('Successfully cleared people and reset ID sequence');
   }
-
+  
   async getLastCacheUpdate(): Promise<Date | null> {
     try {
       const LAST_UPDATE_KEY = 'last_cache_update';
@@ -189,7 +191,7 @@ export class PostgresStorage implements IStorage {
       return null;
     }
   }
-
+  
   async setLastCacheUpdate(date: Date): Promise<void> {
     const LAST_UPDATE_KEY = 'last_cache_update';
     try {
@@ -215,7 +217,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   // People methods
   async getPersonById(id: number): Promise<Person | null> {
     try {
@@ -231,7 +233,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async getPersonByEmail(email: string): Promise<Person | null> {
     try {
       const result = await db
@@ -246,7 +248,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   // User management methods
   async createUser(userData: InsertUser): Promise<User> {
     try {
@@ -259,7 +261,7 @@ export class PostgresStorage implements IStorage {
           updatedAt: new Date().toISOString()
         })
         .returning();
-
+      
       console.log('Successfully created user:', newUser.id);
       return newUser;
     } catch (error) {
@@ -267,7 +269,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async getUserByEmail(email: string): Promise<User | null> {
     try {
       const result = await db
@@ -282,7 +284,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async getUserById(id: number): Promise<User | null> {
     try {
       const result = await db
@@ -297,7 +299,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null> {
     try {
       const result = await db
@@ -321,7 +323,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async verifyUser(userId: number): Promise<User> {
     try {
       const [updatedUser] = await db
@@ -343,7 +345,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   // Email verification methods
   async createVerificationToken(email: string): Promise<VerificationToken> {
     try {
@@ -369,7 +371,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async validateVerificationToken(token: string): Promise<VerificationToken | null> {
     try {
       const result = await db
@@ -398,7 +400,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
+  
   async deleteVerificationToken(token: string): Promise<void> {
     try {
       await db
@@ -406,6 +408,20 @@ export class PostgresStorage implements IStorage {
         .where(eq(verificationTokens.token, token));
     } catch (error) {
       console.error('Failed to delete verification token:', error);
+      throw error;
+    }
+  }
+  async getPersonByApiId(apiId: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.api_id, apiId))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by API ID:', error);
       throw error;
     }
   }

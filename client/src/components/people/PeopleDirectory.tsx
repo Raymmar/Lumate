@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
+import { useLocation } from 'wouter';
 import {
   Pagination,
   PaginationContent,
@@ -12,7 +13,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-interface Person {
+export interface Person {
   id: number;
   api_id: string;
   email: string;
@@ -26,6 +27,7 @@ interface PeopleResponse {
 }
 
 export default function PeopleDirectory() {
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 50;
@@ -42,6 +44,10 @@ export default function PeopleDirectory() {
   const handleSearch = (value: string) => {
     setSearchQuery(value);
     setCurrentPage(1); // Reset to first page when searching
+  };
+
+  const handlePersonClick = (personId: string) => {
+    setLocation(`/people/${personId}`);
   };
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
@@ -87,7 +93,8 @@ export default function PeopleDirectory() {
               {data.people.map((person) => (
                 <div
                   key={person.api_id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => handlePersonClick(person.api_id)}
                 >
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="text-xs">

@@ -117,6 +117,22 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/people/:id", async (req, res) => {
+    try {
+      const personId = req.params.id;
+      const person = await storage.getPersonByApiId(personId);
+
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      res.json(person);
+    } catch (error) {
+      console.error('Failed to fetch person:', error);
+      res.status(500).json({ error: "Failed to fetch person" });
+    }
+  });
+
   // Internal-only route to reset database and fetch fresh data from Luma
   // This is not exposed to the public API and should only be called directly from the server
   app.post("/_internal/reset-database", async (req, res) => {
