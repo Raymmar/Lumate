@@ -200,10 +200,10 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
-      // Create or update user record
+      // Create or update user record with personApiId instead of personId
       const userData = {
         email: verificationToken.email,
-        personId: person.id,
+        personApiId: person.api_id, // Use api_id instead of internal id
         displayName: person.userName || person.fullName || undefined,
       };
 

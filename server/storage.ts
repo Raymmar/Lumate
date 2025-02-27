@@ -261,7 +261,7 @@ export class PostgresStorage implements IStorage {
           updatedAt: new Date().toISOString()
         })
         .returning();
-      
+
       console.log('Successfully created user:', newUser.id);
       return newUser;
     } catch (error) {
@@ -308,12 +308,12 @@ export class PostgresStorage implements IStorage {
           person: people
         })
         .from(users)
-        .leftJoin(people, eq(users.personId, people.id))
+        .leftJoin(people, eq(users.personApiId, people.api_id))
         .where(eq(users.id, userId))
         .limit(1);
-      
+
       if (result.length === 0 || !result[0].person) return null;
-      
+
       return {
         ...result[0].user,
         person: result[0].person
@@ -352,11 +352,11 @@ export class PostgresStorage implements IStorage {
       console.log('Creating verification token for email:', email);
       // Generate a secure random token
       const token = crypto.randomBytes(32).toString('hex');
-
+      
       // Set expiration to 24 hours from now
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
-
+      
       const [newToken] = await db
         .insert(verificationTokens)
         .values({
@@ -365,13 +365,13 @@ export class PostgresStorage implements IStorage {
           expiresAt: expiresAt.toISOString(),
         })
         .returning();
-
+      
       console.log('Successfully created verification token:', {
         email,
         tokenId: newToken.id,
         expiresAt: newToken.expiresAt
       });
-
+      
       return newToken;
     } catch (error) {
       console.error('Failed to create verification token:', error);

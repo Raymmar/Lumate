@@ -48,12 +48,12 @@ export const people = pgTable("people", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
-export const users = pgTable("users", {
+export const users = pgTable("users_new", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   displayName: varchar("display_name", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
-  personId: serial("person_id").references(() => people.id),
+  personApiId: varchar("person_api_id", { length: 255 }).notNull(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
