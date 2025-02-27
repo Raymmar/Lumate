@@ -4,6 +4,7 @@ import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import Dashboard from "@/pages/Dashboard";
 import PersonProfilePage from "@/pages/PersonProfilePage";
+import VerifyPage from "@/pages/VerifyPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -11,6 +12,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/people/:id" component={PersonProfilePage} />
+      <Route path="/verify" component={VerifyPage} />
       <Route component={NotFound} />
     </Switch>
   );
