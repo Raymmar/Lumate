@@ -48,6 +48,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
       const data = await response.json();
       if (!response.ok) {
+        console.error('Profile claim failed:', data);
         throw new Error(data.error || 'Failed to claim profile');
       }
       return data;
