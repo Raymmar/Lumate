@@ -84,6 +84,16 @@ export default function EventList() {
 
   return (
     <div className="space-y-3">
+      <a
+        href="https://lu.ma/SarasotaTech"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors justify-end"
+      >
+        <ExternalLink className="h-3.5 w-3.5" />
+        View full calendar
+      </a>
+
       {isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-16" />
@@ -93,16 +103,6 @@ export default function EventList() {
       ) : (
         <p className="text-xs text-muted-foreground">No upcoming events</p>
       )}
-
-      <a
-        href="https://lu.ma/SarasotaTech"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors mt-2"
-      >
-        <ExternalLink className="h-3.5 w-3.5" />
-        View full calendar
-      </a>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
-import { 
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -67,8 +67,6 @@ export default function PeopleDirectory() {
 
   return (
     <div className="h-full flex flex-col">
-      <h2 className="text-sm font-semibold mb-4">Directory</h2>
-
       <div className="relative mb-4">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input

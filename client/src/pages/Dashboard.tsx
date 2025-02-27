@@ -11,7 +11,6 @@ export default function Dashboard() {
             <div className="flex-none">
               <EventList />
             </div>
-            <div className="h-px bg-border my-4" />
             <div className="flex-1 overflow-y-auto">
               <PeopleDirectory />
             </div>
