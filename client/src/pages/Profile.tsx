@@ -42,18 +42,60 @@ interface ProfileResponse {
   person: Person;
 }
 
+interface PersonResponse {
+  person: Person;
+}
+
 export default function Profile() {
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-
-  // Query for user profile
+  const [showClaimProfile, setShowClaimProfile] = useState(false);
+  
+  // Create a function that can be called both by button click and on mount
+  const handleSearch = async (searchEmail = email) => {
+    if (!searchEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter an email address to search for a profile.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSearching(true);
+    setShowClaimProfile(false);
+    
+    try {
+      // First check if a user account exists
+      await refetchProfile();
+    } catch (error) {
+      console.error('No user profile found, checking Luma data:', error);
+      
+      try {
+        // If no user account, check if a Luma record exists
+        await refetchPerson();
+        setShowClaimProfile(true);
+      } catch (error) {
+        console.error('No Luma record found either:', error);
+        toast({
+          title: "No Record Found",
+          description: "We couldn't find any profile with that email in our system.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSearching(false);
+    }
+  };
+  
+  // First, try to find an existing user account for this email
   const {
     data: profileData,
-    isLoading,
-    error,
-    refetch,
+    isLoading: isProfileLoading,
+    error: profileError,
+    refetch: refetchProfile,
   } = useQuery<ProfileResponse>({
     queryKey: ['/api/auth/profile', email],
     queryFn: async () => {
@@ -66,25 +108,44 @@ export default function Profile() {
     },
     enabled: false, // Don't run automatically
   });
-
-  const handleSearch = async () => {
-    if (!email) {
-      toast({
-        title: "Email Required",
-        description: "Please enter your email address to search for your profile.",
-        variant: "destructive",
-      });
-      return;
+  
+  // If no user account exists, check if this email exists in Luma data
+  const {
+    data: personData,
+    isLoading: isPersonLoading,
+    error: personError,
+    refetch: refetchPerson,
+  } = useQuery<PersonResponse>({
+    queryKey: ['/api/people/by-email', email],
+    queryFn: async () => {
+      if (!email) throw new Error('Email is required');
+      const response = await fetch(`/api/people/by-email?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("No Luma record found for this email");
+        }
+        throw new Error(response.statusText);
+      }
+      return response.json();
+    },
+    enabled: false, // Don't run automatically
+  });
+  
+  // Extract email from URL query parameters if available
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
+      // Automatically search if email is provided in URL
+      handleSearch(emailParam);
     }
-    
-    setIsSearching(true);
-    try {
-      await refetch();
-    } catch (error) {
-      console.error('Error searching for profile:', error);
-    } finally {
-      setIsSearching(false);
-    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
+  
+  // Button click handler that calls handleSearch
+  const handleSearchClick = () => {
+    handleSearch();
   };
 
   // Render initial search form
@@ -108,7 +169,7 @@ export default function Profile() {
                   onChange={(e) => setEmail(e.target.value)}
                   className="flex-1"
                 />
-                <Button onClick={handleSearch}>Search</Button>
+                <Button onClick={handleSearchClick}>Search</Button>
               </div>
             </div>
           </CardContent>
@@ -126,7 +187,7 @@ export default function Profile() {
   }
 
   // Show loading state
-  if (isLoading || isSearching) {
+  if (isProfileLoading || isPersonLoading || isSearching) {
     return (
       <div className="max-w-2xl mx-auto p-4">
         <Card>
@@ -148,9 +209,91 @@ export default function Profile() {
       </div>
     );
   }
+  
+  // Show the "Claim Profile" UI if a Luma record was found but no user account
+  if (showClaimProfile && personData?.person && !profileData) {
+    const person = personData.person;
+    
+    return (
+      <div className="max-w-2xl mx-auto p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Claim Your Profile
+            </CardTitle>
+            <CardDescription>
+              We found your Luma record! Create an account to claim your profile.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-6 mb-6">
+              <Avatar className="h-24 w-24">
+                {person.avatarUrl ? (
+                  <AvatarImage src={person.avatarUrl} alt={person.userName || "User"} />
+                ) : null}
+                <AvatarFallback className="text-lg">
+                  {person.userName || person.fullName
+                    ? ((person.userName || person.fullName) || "")
+                        .split(' ')
+                        .map((n: string) => n[0])
+                        .join('')
+                        .substring(0, 2)
+                        .toUpperCase()
+                    : '?'}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 space-y-4">
+                <div>
+                  <h3 className="text-md font-semibold">{person.userName || person.fullName || "Luma Member"}</h3>
+                  <p className="text-sm text-muted-foreground">{person.email}</p>
+                  {(person.organizationName || person.jobTitle) && (
+                    <p className="text-sm text-muted-foreground">
+                      {person.jobTitle && <span>{person.jobTitle}</span>}
+                      {person.jobTitle && person.organizationName && <span> at </span>}
+                      {person.organizationName && <span>{person.organizationName}</span>}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
 
-  // Show error state
-  if (error || !profileData) {
+            <Alert className="mb-6">
+              <AlertTitle>Create Your Account</AlertTitle>
+              <AlertDescription>
+                Creating an account will allow you to access exclusive features and manage your profile.
+                We'll send a verification email to confirm your identity.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex flex-col gap-2">
+              <Button 
+                onClick={() => navigate(`/register?email=${encodeURIComponent(person.email)}&personId=${person.id}`)} 
+                className="w-full"
+              >
+                Create Account
+              </Button>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => navigate('/')}>
+              Back to Home
+            </Button>
+            <Button variant="ghost" onClick={() => {
+              setEmail('');
+              setIsSearching(false);
+            }}>
+              Try Different Email
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show error state when no profile or Luma record is found
+  if ((profileError && !profileData) && (personError && !personData?.person)) {
     return (
       <div className="max-w-md mx-auto p-4">
         <Card>
@@ -160,14 +303,14 @@ export default function Profile() {
               Profile Not Found
             </CardTitle>
             <CardDescription>
-              We couldn't find a profile with that email address
+              We couldn't find any profile with that email address
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Error</AlertTitle>
+              <AlertTitle>Not Found</AlertTitle>
               <AlertDescription>
-                {error instanceof Error ? error.message : "Failed to find your profile. The account may not exist or isn't verified yet."}
+                No account or Luma record exists for this email. Please check if you entered the correct email address.
               </AlertDescription>
             </Alert>
             <div className="flex flex-col gap-2">
@@ -176,9 +319,6 @@ export default function Profile() {
                 setIsSearching(false);
               }} className="w-full">
                 Try Another Email
-              </Button>
-              <Button onClick={() => navigate('/register')} variant="outline" className="w-full">
-                Register an Account
               </Button>
             </div>
           </CardContent>
@@ -193,6 +333,10 @@ export default function Profile() {
   }
 
   // Show profile data
+  if (!profileData) {
+    return null; // This should never happen, but TypeScript needs this check
+  }
+  
   const { user, person } = profileData;
   
   return (
@@ -227,7 +371,7 @@ export default function Profile() {
                   {user.displayName
                     ? user.displayName
                         .split(' ')
-                        .map((n) => n[0])
+                        .map((n: string) => n[0])
                         .join('')
                         .substring(0, 2)
                         .toUpperCase()
