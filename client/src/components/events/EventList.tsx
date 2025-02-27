@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Event {
@@ -83,20 +83,19 @@ export default function EventList() {
     return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
   });
 
-  // Split into upcoming and past events
+  // Split into upcoming and past events, limited to 2 each
   const upcomingEvents = sortedEvents.filter(event => 
     new Date(event.startTime) > now
-  );
+  ).slice(0, 2);
 
   const pastEvents = sortedEvents.filter(event => 
     new Date(event.startTime) <= now
-  ).reverse();
+  ).reverse().slice(0, 2);
 
   return (
     <div className="space-y-3">
       {isLoading ? (
         <div className="space-y-2">
-          <Skeleton className="h-16" />
           <Skeleton className="h-16" />
           <Skeleton className="h-16" />
         </div>
@@ -128,6 +127,16 @@ export default function EventList() {
       ) : (
         <p className="text-xs text-muted-foreground">No events available</p>
       )}
+
+      <a
+        href="https://lu.ma/SarasotaTech"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors mt-2"
+      >
+        <ExternalLink className="h-3.5 w-3.5" />
+        View full calendar
+      </a>
     </div>
   );
 }
