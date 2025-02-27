@@ -152,7 +152,11 @@ export async function registerRoutes(app: Express) {
 
       // Check if profile is already claimed
       const existingUser = await storage.getUserByEmail(email);
-      console.log('Existing user check:', existingUser ? 'found' : 'not found');
+      console.log('Existing user check:', existingUser ? {
+        id: existingUser.id,
+        email: existingUser.email,
+        personApiId: existingUser.personApiId
+      } : 'not found');
 
       if (existingUser) {
         return res.status(400).json({ error: "Profile already claimed" });
