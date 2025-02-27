@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people } from "@shared/schema";
+import { insertUserSchema, people, users } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 
@@ -199,21 +199,28 @@ export async function registerRoutes(app: Express) {
         userName: person.userName
       });
 
-      // Check if the profile is already claimed
-      const existingUser = await storage.getUserByEmail(verificationToken.email);
-      if (existingUser) {
+      // Check if there's an existing user linked to this person's API ID
+      const existingUserByApiId = await db
+        .select()
+        .from(users)
+        .where(sql`person_api_id = ${person.api_id}`)
+        .limit(1);
+
+      console.log('Checking for existing user with API ID:', person.api_id);
+
+      if (existingUserByApiId.length > 0) {
         console.log('Profile already claimed by:', {
-          userId: existingUser.id,
-          email: existingUser.email,
-          personApiId: existingUser.personApiId
+          userId: existingUserByApiId[0].id,
+          email: existingUserByApiId[0].email,
+          personApiId: existingUserByApiId[0].personApiId
         });
         return res.status(400).json({ error: "Profile already claimed" });
       }
 
-      // Create or update user record with personApiId instead of personId
+      // Create user record with personApiId instead of personId
       const userData = {
         email: verificationToken.email,
-        personApiId: person.api_id, // Use api_id instead of internal id
+        personApiId: person.api_id,
         displayName: person.userName || person.fullName || undefined,
       };
 
