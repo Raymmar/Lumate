@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, people } from "@shared/schema";
 import { z } from "zod";
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
@@ -81,21 +81,31 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/people", async (req, res) => {
     try {
-      // Get page and limit from query parameters, default to first page with 50 items
+      // Get page, limit and search query from query parameters
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
+      const searchQuery = (req.query.search as string || '').toLowerCase();
 
-      console.log("Fetching people from storage..."); //Added progress tracking
+      console.log("Fetching people from storage with search:", searchQuery); //Added progress tracking
 
-      // Get all people from storage
-      const allPeople = await storage.getPeople();
-      console.log(`Total people in storage: ${allPeople.length}`);
+      // Get filtered people from storage with search
+      const allPeople = await db
+        .select()
+        .from(people)
+        .where(
+          searchQuery
+            ? sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
+            : sql`1=1`
+        )
+        .orderBy(people.id);
+
+      console.log(`Total matching people: ${allPeople.length}`);
 
       // Calculate pagination
       const start = (page - 1) * limit;
       const end = start + limit;
       const paginatedPeople = allPeople.slice(start, end);
-      console.log(`Returning people from index ${start} to ${end -1}`); //Added progress tracking
+      console.log(`Returning people from index ${start} to ${end -1}`);
 
       res.json({
         people: paginatedPeople,

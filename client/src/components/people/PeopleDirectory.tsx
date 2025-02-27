@@ -31,21 +31,18 @@ export default function PeopleDirectory() {
   const pageSize = 50;
 
   const { data, isLoading, error } = useQuery<PeopleResponse>({
-    queryKey: ['/api/people', currentPage, pageSize],
+    queryKey: ['/api/people', currentPage, pageSize, searchQuery],
     queryFn: async () => {
-      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}`);
+      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}`);
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
     }
   });
 
-  const filteredPeople = data?.people?.filter((person) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      person.userName?.toLowerCase().includes(searchLower) ||
-      person.email.toLowerCase().includes(searchLower)
-    );
-  });
+  const handleSearch = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1); // Reset to first page when searching
+  };
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
 
@@ -72,7 +69,7 @@ export default function PeopleDirectory() {
         <Input
           placeholder="Search people..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => handleSearch(e.target.value)}
           className="pl-9"
         />
       </div>
@@ -83,11 +80,11 @@ export default function PeopleDirectory() {
           <Skeleton className="h-12" />
           <Skeleton className="h-12" />
         </div>
-      ) : filteredPeople && filteredPeople.length > 0 ? (
+      ) : data?.people && data.people.length > 0 ? (
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="space-y-2">
-              {filteredPeople.map((person) => (
+              {data.people.map((person) => (
                 <div
                   key={person.api_id}
                   className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
@@ -112,7 +109,7 @@ export default function PeopleDirectory() {
           </div>
           <div className="pt-2 mt-2 border-t flex-none">
             <div className="text-xs text-muted-foreground mb-2">
-              Showing {filteredPeople?.length || 0} of {data?.total || 0} total people
+              Showing {data.people.length} of {data.total} total people
             </div>
             <Pagination>
               <PaginationContent>
