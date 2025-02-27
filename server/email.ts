@@ -1,11 +1,15 @@
 import { MailService } from '@sendgrid/mail';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
-
+const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+
+if (process.env.SENDGRID_API_KEY) {
+  mailService.setApiKey(process.env.SENDGRID_API_KEY);
+} else if (!isDevelopment) {
+  throw new Error("SENDGRID_API_KEY environment variable must be set in production");
+} else {
+  console.warn("SENDGRID_API_KEY not set. Email functionality will be mocked in development.");
+}
 
 export async function sendVerificationEmail(
   email: string,
@@ -13,8 +17,17 @@ export async function sendVerificationEmail(
 ): Promise<boolean> {
   try {
     console.log('Sending verification email to:', email);
-    const verificationUrl = `${process.env.APP_URL}/verify?token=${token}`;
-    
+    const verificationUrl = `${process.env.APP_URL || 'http://localhost:3000'}/verify?token=${token}`;
+
+    // In development, just log the verification URL
+    if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+      console.log('Development mode - Email would have been sent with:', {
+        to: email,
+        verificationUrl,
+      });
+      return true;
+    }
+
     await mailService.send({
       to: email,
       from: process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com',
@@ -32,7 +45,7 @@ export async function sendVerificationEmail(
         </div>
       `,
     });
-    
+
     console.log('Verification email sent successfully to:', email);
     return true;
   } catch (error) {
