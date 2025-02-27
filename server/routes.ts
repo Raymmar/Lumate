@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, users } from "@shared/schema";
+import { insertUserSchema, people } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 
@@ -150,6 +150,14 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Email does not match the profile" });
       }
 
+      // Check if profile is already claimed
+      const existingUser = await storage.getUserByEmail(email);
+      console.log('Existing user check:', existingUser ? 'found' : 'not found');
+
+      if (existingUser) {
+        return res.status(400).json({ error: "Profile already claimed" });
+      }
+
       // Create verification token
       const verificationToken = await storage.createVerificationToken(email);
       console.log('Created verification token:', verificationToken.token);
@@ -181,7 +189,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing verification token" });
       }
 
-      console.log('Verifying token:', token);
       const verificationToken = await storage.validateVerificationToken(token);
       if (!verificationToken) {
         return res.status(400).json({ error: "Invalid or expired token" });
@@ -193,61 +200,25 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
-      console.log('Found person for verification:', {
-        email: person.email,
-        apiId: person.api_id,
-        userName: person.userName
-      });
-
-      // Check if there's an existing user linked to this person's API ID
-      const existingUserByApiId = await db
-        .select()
-        .from(users)
-        .where(sql`person_api_id = ${person.api_id}`)
-        .limit(1);
-
-      console.log('Checking for existing user with API ID:', person.api_id);
-
-      if (existingUserByApiId.length > 0) {
-        console.log('Profile already claimed by:', {
-          userId: existingUserByApiId[0].id,
-          email: existingUserByApiId[0].email,
-          personApiId: existingUserByApiId[0].personApiId
-        });
-        return res.status(400).json({ error: "Profile already claimed" });
-      }
-
-      // Create user record with personApiId instead of personId
+      // Create or update user record
       const userData = {
         email: verificationToken.email,
-        personApiId: person.api_id,
+        personId: person.id,
         displayName: person.userName || person.fullName || undefined,
       };
 
-      console.log('Creating user with data:', userData);
-      try {
-        const user = await storage.createUser(userData);
-        console.log('User created successfully:', {
-          userId: user.id,
-          email: user.email,
-          personApiId: user.personApiId
-        });
+      const user = await storage.createUser(userData);
 
-        // Verify the user
-        await storage.verifyUser(user.id);
-        console.log('User verified successfully');
+      // Verify the user
+      await storage.verifyUser(user.id);
 
-        // Clean up the verification token
-        await storage.deleteVerificationToken(token);
+      // Clean up the verification token
+      await storage.deleteVerificationToken(token);
 
-        return res.json({ 
-          message: "Email verified successfully",
-          user
-        });
-      } catch (error) {
-        console.error('Failed to create user:', error);
-        return res.status(500).json({ error: "Failed to create user account" });
-      }
+      return res.json({ 
+        message: "Email verified successfully",
+        user
+      });
     } catch (error) {
       console.error('Failed to verify token:', error);
       res.status(500).json({ error: "Failed to verify email" });

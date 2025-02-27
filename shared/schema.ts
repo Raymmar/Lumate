@@ -53,7 +53,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).notNull().unique(),
   displayName: varchar("display_name", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
-  personApiId: varchar("person_api_id", { length: 255 }).notNull(),
+  personId: serial("person_id").references(() => people.id),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
