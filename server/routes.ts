@@ -193,6 +193,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing verification token" });
       }
 
+      console.log('Verifying token:', token);
       const verificationToken = await storage.validateVerificationToken(token);
       if (!verificationToken) {
         return res.status(400).json({ error: "Invalid or expired token" });
@@ -204,6 +205,12 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
+      console.log('Found person for verification:', {
+        email: person.email,
+        apiId: person.api_id,
+        userName: person.userName
+      });
+
       // Create or update user record with personApiId instead of personId
       const userData = {
         email: verificationToken.email,
@@ -211,6 +218,7 @@ export async function registerRoutes(app: Express) {
         displayName: person.userName || person.fullName || undefined,
       };
 
+      console.log('Creating user with data:', userData);
       const user = await storage.createUser(userData);
 
       // Verify the user
@@ -218,6 +226,12 @@ export async function registerRoutes(app: Express) {
 
       // Clean up the verification token
       await storage.deleteVerificationToken(token);
+
+      console.log('Successfully verified user:', {
+        userId: user.id,
+        email: user.email,
+        personApiId: user.personApiId
+      });
 
       return res.json({ 
         message: "Email verified successfully",
