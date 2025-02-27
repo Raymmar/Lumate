@@ -59,6 +59,11 @@ const registerUserSchema = z.object({
   personId: z.number().int().positive()
 });
 
+const claimProfileSchema = z.object({
+  email: z.string().email(),
+  personId: z.number().int().positive()
+});
+
 const verifyEmailSchema = z.object({
   token: z.string()
 });
@@ -341,6 +346,65 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to get user profile:', error);
       res.status(500).json({ error: "Failed to get user profile" });
+    }
+  });
+  
+  // Claim a profile - create a user account for an existing Luma person
+  app.post("/api/auth/claim-profile", async (req, res) => {
+    try {
+      // Validate request body
+      const result = claimProfileSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid request data", 
+          details: result.error.format() 
+        });
+      }
+
+      const { email, personId } = result.data;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({ 
+          error: "This email already has an account. Please login instead." 
+        });
+      }
+
+      // Verify the person exists in Luma data
+      const person = await storage.getPersonById(personId);
+      if (!person) {
+        return res.status(404).json({ error: "No person found with this ID" });
+      }
+
+      // Verify email matches the person's email in Luma data
+      if (person.email.toLowerCase() !== email.toLowerCase()) {
+        return res.status(403).json({ 
+          error: "Email doesn't match the profile's email. You can only claim your own profile." 
+        });
+      }
+
+      // Create a new user
+      const newUser = await storage.createUser({
+        email,
+        displayName: person.userName || person.fullName || email.split('@')[0],
+        personId
+      });
+
+      // Create verification token
+      const verificationToken = await storage.createVerificationToken(email);
+
+      // Send verification email
+      await sendVerificationEmail(email, verificationToken.token);
+
+      res.status(201).json({ 
+        success: true,
+        message: "Verification email sent! Please check your inbox to verify and claim your profile.",
+        userId: newUser.id
+      });
+    } catch (error) {
+      console.error('Failed to claim profile:', error);
+      res.status(500).json({ error: "Failed to claim profile" });
     }
   });
   

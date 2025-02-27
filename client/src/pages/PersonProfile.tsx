@@ -108,18 +108,22 @@ export default function PersonProfile() {
   const form = useForm<ClaimProfileFormValues>({
     resolver: zodResolver(claimProfileSchema),
     defaultValues: {
-      email: data?.person.email || ''
+      email: data?.person?.email || ''
     }
   });
 
   // Mutation for claiming profile
   const claimProfile = useMutation({
-    mutationFn: async (data: ClaimProfileFormValues) => {
+    mutationFn: async (formData: ClaimProfileFormValues) => {
+      const personIdentifier = personId 
+        ? parseInt(personId) 
+        : (data?.person?.id || 0);
+        
       return apiRequest(`/api/auth/claim-profile`, {
         method: 'POST',
         body: JSON.stringify({
-          email: data.email,
-          personId: personId || data?.person.id
+          email: formData.email,
+          personId: personIdentifier
         }),
         headers: {
           'Content-Type': 'application/json'
