@@ -349,13 +349,14 @@ export class PostgresStorage implements IStorage {
   // Email verification methods
   async createVerificationToken(email: string): Promise<VerificationToken> {
     try {
+      console.log('Creating verification token for email:', email);
       // Generate a secure random token
       const token = crypto.randomBytes(32).toString('hex');
-      
+
       // Set expiration to 24 hours from now
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
-      
+
       const [newToken] = await db
         .insert(verificationTokens)
         .values({
@@ -364,7 +365,13 @@ export class PostgresStorage implements IStorage {
           expiresAt: expiresAt.toISOString(),
         })
         .returning();
-      
+
+      console.log('Successfully created verification token:', {
+        email,
+        tokenId: newToken.id,
+        expiresAt: newToken.expiresAt
+      });
+
       return newToken;
     } catch (error) {
       console.error('Failed to create verification token:', error);
