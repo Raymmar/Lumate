@@ -18,6 +18,7 @@ export default function VerifyPage() {
           throw new Error('Verification token is missing');
         }
 
+        console.log('Attempting to verify token:', token);
         const response = await fetch('/api/auth/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -25,6 +26,7 @@ export default function VerifyPage() {
         });
 
         const data = await response.json();
+        console.log('Verification response:', data);
 
         if (!response.ok) {
           throw new Error(data.error || 'Verification failed');
