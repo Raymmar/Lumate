@@ -300,40 +300,41 @@ export class CacheService {
 
     try {
       await db.transaction(async (tx) => {
-        const values = people.map(person => ({
-          api_id: person.api_id,
-          email: person.email,
-          user_name: person.userName || person.user?.name || null,
-          full_name: person.fullName || person.user?.full_name || null,
-          avatar_url: person.avatarUrl || person.user?.avatar_url || null,
-          role: person.role || null,
-          phone_number: person.phoneNumber || person.user?.phone_number || null,
-          bio: person.bio || person.user?.bio || null,
-          organization_name: person.organizationName || person.user?.organization_name || null,
-          job_title: person.jobTitle || person.user?.job_title || null,
-          created_at: person.created_at || null,
-        }));
+        for (const person of people) {
+          const query = sql`
+            INSERT INTO people (
+              api_id, email, user_name, full_name, avatar_url,
+              role, phone_number, bio, organization_name, job_title, created_at
+            )
+            VALUES (
+              ${person.api_id},
+              ${person.email},
+              ${person.userName || person.user?.name || null},
+              ${person.fullName || person.user?.full_name || null},
+              ${person.avatarUrl || person.user?.avatar_url || null},
+              ${person.role || null},
+              ${person.phoneNumber || person.user?.phone_number || null},
+              ${person.bio || person.user?.bio || null},
+              ${person.organizationName || person.user?.organization_name || null},
+              ${person.jobTitle || person.user?.job_title || null},
+              ${person.created_at || null}
+            )
+            ON CONFLICT (api_id) DO UPDATE SET
+              email = EXCLUDED.email,
+              user_name = EXCLUDED.user_name,
+              full_name = EXCLUDED.full_name,
+              avatar_url = EXCLUDED.avatar_url,
+              role = EXCLUDED.role,
+              phone_number = EXCLUDED.phone_number,
+              bio = EXCLUDED.bio,
+              organization_name = EXCLUDED.organization_name,
+              job_title = EXCLUDED.job_title,
+              created_at = EXCLUDED.created_at
+            RETURNING *
+          `;
 
-        const query = sql`
-          INSERT INTO people (
-            api_id, email, user_name, full_name, avatar_url,
-            role, phone_number, bio, organization_name, job_title, created_at
-          )
-          SELECT * FROM json_populate_recordset(null::people, ${JSON.stringify(values)})
-          ON CONFLICT (api_id) DO UPDATE SET
-            email = EXCLUDED.email,
-            user_name = EXCLUDED.user_name,
-            full_name = EXCLUDED.full_name,
-            avatar_url = EXCLUDED.avatar_url,
-            role = EXCLUDED.role,
-            phone_number = EXCLUDED.phone_number,
-            bio = EXCLUDED.bio,
-            organization_name = EXCLUDED.organization_name,
-            job_title = EXCLUDED.job_title,
-            created_at = EXCLUDED.created_at
-        `;
-
-        await tx.execute(query);
+          await tx.execute(query);
+        }
       });
 
       const duration = Date.now() - batchStartTime;
