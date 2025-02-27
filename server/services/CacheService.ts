@@ -20,7 +20,7 @@ export class CacheService {
       this.instance.checkInitialDataLoadStatus()
         .then(hasData => {
           const delay = hasData ? 5000 : 100; // Shorter delay for empty DB
-          console.log(hasData 
+          console.log(hasData
             ? 'Database has existing data, scheduling background sync in 5s'
             : 'Database is empty, starting initial sync shortly');
 
@@ -236,7 +236,7 @@ export class CacheService {
     return allEvents;
   }
 
-  private async updateCache() {
+  async updateCache() {
     if (this.isCaching) {
       console.log('Cache update already in progress, skipping...');
       return;

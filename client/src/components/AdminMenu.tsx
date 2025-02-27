@@ -36,23 +36,23 @@ export default function AdminMenu() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reset database');
+        throw new Error(errorData.error || 'Failed to reset and sync data');
       }
 
       toast({
-        title: "Database Reset Successful",
-        description: "The database has been cleared and fresh data has been fetched from Luma API.",
+        title: "Data Reset & Sync Started",
+        description: "The database is being cleared and fresh data is being fetched from Luma API. This may take a few minutes.",
         variant: "default",
       });
-      
-      // Reload the page to show the fresh data
+
+      // Reload the page after a delay to show the fresh data
       setTimeout(() => {
         window.location.reload();
       }, 2000);
     } catch (error) {
-      console.error('Error resetting database:', error);
+      console.error('Error resetting and syncing data:', error);
       toast({
-        title: "Database Reset Failed",
+        title: "Reset & Sync Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
@@ -76,7 +76,7 @@ export default function AdminMenu() {
             onClick={() => setIsResetDialogOpen(true)}
           >
             <RefreshCcw className="mr-2 h-4 w-4" />
-            Reset Database
+            Reset & Sync Luma Data
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -86,12 +86,13 @@ export default function AdminMenu() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center">
               <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
-              Reset Database
+              Reset & Sync Luma Data
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This action will clear all events and people from the database and fetch fresh data from the Luma API.
+              This action will clear all existing data and fetch fresh data from the Luma API.
               <br /><br />
-              <strong>This action cannot be undone.</strong> All IDs will be reset and start from 0.
+              <strong>This action cannot be undone.</strong> The database will be cleared and all IDs will be reset.
+              The sync process may take several minutes to complete.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -107,10 +108,10 @@ export default function AdminMenu() {
               {isResetting ? (
                 <>
                   <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                  Resetting...
+                  Syncing...
                 </>
               ) : (
-                "Reset Database"
+                "Reset & Sync"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
