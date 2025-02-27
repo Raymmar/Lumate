@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays } from "lucide-react";
@@ -35,7 +34,7 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
   }
 }
 
-function EventCard({ event, showImage = false }: { event: Event, showImage?: boolean }) {
+function EventCard({ event }: { event: Event }) {
   return (
     <a 
       href={event.url || "#"} 
@@ -43,19 +42,10 @@ function EventCard({ event, showImage = false }: { event: Event, showImage?: boo
       rel="noopener noreferrer"
       className="block"
     >
-      <div className="p-3 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
-        {showImage && event.coverUrl && (
-          <div className="mb-3 overflow-hidden rounded-md aspect-[2/1]">
-            <img 
-              src={event.coverUrl} 
-              alt={event.title}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
-            />
-          </div>
-        )}
+      <div className="p-2.5 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
         <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
 
-        <div className="mt-2 space-y-1">
+        <div className="mt-1.5 space-y-1">
           <div className="flex items-center gap-1.5 text-muted-foreground">
             <CalendarDays className="h-3.5 w-3.5" />
             <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
@@ -79,7 +69,7 @@ export default function EventList() {
 
   if (error) {
     return (
-      <div className="rounded-lg border bg-destructive/10 p-3">
+      <div className="rounded-lg border bg-destructive/10 p-2.5">
         <p className="text-xs text-destructive">Failed to load events</p>
       </div>
     );
@@ -102,49 +92,39 @@ export default function EventList() {
     new Date(event.startTime) <= now
   ).reverse();
 
-  const nextEvent = upcomingEvents[0];
-
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold">Events</h2>
+    <div className="space-y-3">
       {isLoading ? (
         <div className="space-y-2">
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
-          <Skeleton className="h-24" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
+          <Skeleton className="h-16" />
         </div>
       ) : eventsArray.length > 0 ? (
-        <div className="space-y-3">
-          <Tabs defaultValue="upcoming" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="upcoming" className="text-xs">Upcoming</TabsTrigger>
-              <TabsTrigger value="past" className="text-xs">Past</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="upcoming" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="upcoming" className="text-xs">Upcoming</TabsTrigger>
+            <TabsTrigger value="past" className="text-xs">Past</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="upcoming" className="space-y-2 mt-2">
-              {nextEvent && (
-                <div className="mb-2">
-                  <EventCard event={nextEvent} showImage={true} />
-                </div>
-              )}
-              {upcomingEvents.slice(1).map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-              {upcomingEvents.length === 0 && (
-                <p className="text-xs text-muted-foreground">No upcoming events</p>
-              )}
-            </TabsContent>
+          <TabsContent value="upcoming" className="space-y-2 mt-2">
+            {upcomingEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+            {upcomingEvents.length === 0 && (
+              <p className="text-xs text-muted-foreground">No upcoming events</p>
+            )}
+          </TabsContent>
 
-            <TabsContent value="past" className="space-y-2 mt-2">
-              {pastEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-              {pastEvents.length === 0 && (
-                <p className="text-xs text-muted-foreground">No past events</p>
-              )}
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="past" className="space-y-2 mt-2">
+            {pastEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
+            ))}
+            {pastEvents.length === 0 && (
+              <p className="text-xs text-muted-foreground">No past events</p>
+            )}
+          </TabsContent>
+        </Tabs>
       ) : (
         <p className="text-xs text-muted-foreground">No events available</p>
       )}

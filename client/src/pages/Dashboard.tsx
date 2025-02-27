@@ -5,8 +5,8 @@ import PeopleDirectory from "@/components/people/PeopleDirectory";
 export default function Dashboard() {
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-73px)]">
-        <aside className="w-[400px] min-w-[400px] border-r bg-muted/10 overflow-y-auto">
+      <div className="flex min-h-[calc(100vh-73px)]">
+        <aside className="w-[350px] min-w-[350px] border-r bg-muted/10 overflow-y-auto">
           <div className="p-4 space-y-4">
             <EventList />
             <PeopleDirectory />
