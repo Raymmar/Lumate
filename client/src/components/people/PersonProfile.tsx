@@ -39,26 +39,31 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const claimProfileMutation = useMutation({
     mutationFn: async (email: string) => {
+      console.log('Submitting claim profile request:', { email, personId });
       const response = await fetch('/api/auth/claim-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, personId }),
       });
+
+      const data = await response.json();
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to claim profile');
+        throw new Error(data.error || 'Failed to claim profile');
       }
-      return response.json();
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Profile claim successful:', data);
       toast({
         title: "Verification Email Sent",
         description: "Please check your email to verify your profile claim.",
       });
       setDialogOpen(false);
+      setEmail('');
       queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error('Profile claim failed:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -69,6 +74,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const handleClaimProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Handling claim profile submission:', { email, personId });
     claimProfileMutation.mutate(email);
   };
 

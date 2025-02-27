@@ -122,34 +122,46 @@ export async function registerRoutes(app: Express) {
   // Profile claiming endpoint
   app.post("/api/auth/claim-profile", async (req, res) => {
     try {
+      console.log('Received claim profile request:', req.body);
       const { email, personId } = req.body;
+
       if (!email || !personId) {
+        console.log('Missing required fields:', { email, personId });
         return res.status(400).json({ error: "Missing email or personId" });
       }
 
       const person = await storage.getPersonByApiId(personId);
+      console.log('Found person:', person ? 'yes' : 'no', { personId });
+
       if (!person) {
         return res.status(404).json({ error: "Person not found" });
       }
 
       // Ensure the email matches the person's record
-      if (person.email.toLowerCase() !== email.toLowerCase()) {
+      const emailsMatch = person.email.toLowerCase() === email.toLowerCase();
+      console.log('Email match check:', { 
+        provided: email.toLowerCase(), 
+        stored: person.email.toLowerCase(),
+        matches: emailsMatch 
+      });
+
+      if (!emailsMatch) {
         return res.status(400).json({ error: "Email does not match the profile" });
       }
 
       // Check if profile is already claimed
       const existingUser = await storage.getUserByEmail(email);
+      console.log('Existing user check:', existingUser ? 'found' : 'not found');
+
       if (existingUser) {
         return res.status(400).json({ error: "Profile already claimed" });
       }
 
       // Create verification token
       const verificationToken = await storage.createVerificationToken(email);
+      console.log('Created verification token:', verificationToken.token);
 
       // TODO: In production, send an actual email with the verification link
-      // For now, we'll just log the token
-      console.log('Verification token created:', verificationToken.token);
-
       return res.json({ 
         message: "Verification email sent",
         // Only include token in development for testing
