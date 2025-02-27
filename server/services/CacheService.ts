@@ -90,6 +90,7 @@ export class CacheService {
     const seenEventIds = new Set<string>();
     let hasMore = true;
     let nextCursor: string | null = null;
+    let pageCount = 0;
 
     while (hasMore) {
       const params: Record<string, string> = {
@@ -102,7 +103,8 @@ export class CacheService {
       }
 
       try {
-        console.log('Fetching events page with params:', params);
+        pageCount++;
+        console.log(`Fetching events page ${pageCount} with params:`, params);
         const response = await lumaApiRequest('calendar/list-events', params);
 
         if (!response || !Array.isArray(response.entries)) {
@@ -111,7 +113,7 @@ export class CacheService {
         }
 
         const events = response.entries;
-        console.log(`Received ${events.length} events in this page`);
+        console.log(`Received ${events.length} events in page ${pageCount}`);
 
         // Deduplicate events
         const uniqueEvents = events.filter((entry: any) => {
@@ -129,25 +131,25 @@ export class CacheService {
         });
 
         allEvents.push(...uniqueEvents);
-        console.log(`Added ${uniqueEvents.length} unique events (Total: ${allEvents.length})`);
+        console.log(`Added ${uniqueEvents.length} unique events (Total: ${allEvents.length}, Page: ${pageCount})`);
 
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
 
         if (!hasMore || !nextCursor) {
-          console.log('No more events to fetch');
+          console.log(`No more events to fetch after ${pageCount} pages`);
           break;
         }
 
-        // Small delay between requests
+        // Small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error('Error fetching events page:', error);
+        console.error(`Error fetching events page ${pageCount}:`, error);
         break;
       }
     }
 
-    console.log(`Completed events fetch. Total unique events: ${allEvents.length}`);
+    console.log(`Completed events fetch. Total unique events: ${allEvents.length} from ${pageCount} pages`);
     return allEvents;
   }
 
@@ -156,8 +158,10 @@ export class CacheService {
     console.log('Using created_after:', lastUpdateTime.toISOString());
 
     const allPeople: any[] = [];
+    const seenPeopleIds = new Set<string>();
     let hasMore = true;
     let nextCursor: string | null = null;
+    let pageCount = 0;
 
     while (hasMore) {
       const params: Record<string, string> = {
@@ -170,7 +174,8 @@ export class CacheService {
       }
 
       try {
-        console.log('Fetching people page with params:', params);
+        pageCount++;
+        console.log(`Fetching people page ${pageCount} with params:`, params);
         const response = await lumaApiRequest('calendar/list-people', params);
 
         if (!response || !Array.isArray(response.entries)) {
@@ -179,27 +184,42 @@ export class CacheService {
         }
 
         const people = response.entries;
-        allPeople.push(...people);
+        console.log(`Received ${people.length} people in page ${pageCount}`);
 
-        console.log(`Fetched ${people.length} people (Total: ${allPeople.length})`);
+        // Deduplicate people
+        const uniquePeople = people.filter((person: any) => {
+          if (!person || !person.api_id) {
+            console.warn('Invalid person entry structure:', person);
+            return false;
+          }
+
+          const isNew = !seenPeopleIds.has(person.api_id);
+          if (isNew) {
+            seenPeopleIds.add(person.api_id);
+          }
+          return isNew;
+        });
+
+        allPeople.push(...uniquePeople);
+        console.log(`Added ${uniquePeople.length} unique people (Total: ${allPeople.length}, Page: ${pageCount})`);
 
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
 
         if (!hasMore || !nextCursor) {
-          console.log('No more people to fetch');
+          console.log(`No more people to fetch after ${pageCount} pages`);
           break;
         }
 
-        // Small delay between requests
+        // Small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
-        console.error('Error fetching people page:', error);
+        console.error(`Error fetching people page ${pageCount}:`, error);
         break;
       }
     }
 
-    console.log(`Completed people fetch. Total: ${allPeople.length}`);
+    console.log(`Completed people fetch. Total unique people: ${allPeople.length} from ${pageCount} pages`);
     return allPeople;
   }
 
