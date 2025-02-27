@@ -6,10 +6,15 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <div className="flex min-h-[calc(100vh-73px)]">
-        <aside className="w-[350px] min-w-[350px] border-r bg-muted/10 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            <EventList />
-            <PeopleDirectory />
+        <aside className="w-[350px] min-w-[350px] border-r bg-muted/10 flex flex-col">
+          <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+            <div className="flex-none">
+              <EventList />
+            </div>
+            <div className="h-px bg-border my-4" />
+            <div className="flex-1 overflow-hidden">
+              <PeopleDirectory />
+            </div>
           </div>
         </aside>
         <main className="flex-1 p-6">

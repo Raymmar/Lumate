@@ -66,10 +66,10 @@ export default function PeopleDirectory() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-sm font-semibold">Directory</h2>
+    <div className="h-full flex flex-col">
+      <h2 className="text-sm font-semibold mb-4">Directory</h2>
 
-      <div className="relative">
+      <div className="relative mb-4">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search people..."
@@ -87,30 +87,32 @@ export default function PeopleDirectory() {
         </div>
       ) : filteredPeople && filteredPeople.length > 0 ? (
         <>
-          <div className="space-y-2">
-            {filteredPeople.map((person) => (
-              <div
-                key={person.api_id}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">
-                    {person.userName
-                      ? person.userName
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                      : "?"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-2">
+              {filteredPeople.map((person) => (
+                <div
+                  key={person.api_id}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="text-xs">
+                      {person.userName
+                        ? person.userName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                        : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-          <div className="pt-2 border-t">
+          <div className="pt-2 mt-2 border-t flex-none">
             <div className="text-xs text-muted-foreground mb-2">
               Showing {filteredPeople?.length || 0} of {data?.total || 0} total people
             </div>
