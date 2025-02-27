@@ -101,25 +101,42 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/people", async (req, res) => {
     try {
-      // Get page and limit from query parameters, default to first page with 50 items
+      // Get page, limit and search from query parameters
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
-
+      const search = (req.query.search as string) || '';
+      
       console.log("Fetching people from storage..."); //Added progress tracking
 
       // Get all people from storage
       const allPeople = await storage.getPeople();
       console.log(`Total people in storage: ${allPeople.length}`);
+      
+      // Filter people if search parameter is provided
+      let filteredPeople = allPeople;
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredPeople = allPeople.filter((person) => {
+          return (
+            person.userName?.toLowerCase().includes(searchLower) ||
+            person.email.toLowerCase().includes(searchLower) ||
+            person.fullName?.toLowerCase().includes(searchLower) ||
+            person.organizationName?.toLowerCase().includes(searchLower) ||
+            person.jobTitle?.toLowerCase().includes(searchLower)
+          );
+        });
+        console.log(`Found ${filteredPeople.length} people matching search: "${search}"`);
+      }
 
       // Calculate pagination
       const start = (page - 1) * limit;
       const end = start + limit;
-      const paginatedPeople = allPeople.slice(start, end);
+      const paginatedPeople = filteredPeople.slice(start, end);
       console.log(`Returning people from index ${start} to ${end -1}`); //Added progress tracking
 
       res.json({
         people: paginatedPeople,
-        total: allPeople.length
+        total: filteredPeople.length
       });
     } catch (error) {
       console.error('Failed to fetch people:', error);

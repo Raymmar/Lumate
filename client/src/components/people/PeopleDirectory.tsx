@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -36,26 +36,29 @@ export default function PeopleDirectory() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const pageSize = 50;
 
+  // Debounce search input to avoid too many API calls
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+      // Reset to first page when search changes
+      if (currentPage !== 1) setCurrentPage(1);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const { data, isLoading, error } = useQuery<PeopleResponse>({
-    queryKey: ['/api/people', currentPage, pageSize],
+    queryKey: ['/api/people', currentPage, pageSize, debouncedSearchQuery],
     queryFn: async () => {
-      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}`);
+      const response = await fetch(
+        `/api/people?page=${currentPage}&limit=${pageSize}${debouncedSearchQuery ? `&search=${encodeURIComponent(debouncedSearchQuery)}` : ''}`
+      );
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
     }
-  });
-
-  const filteredPeople = data?.people?.filter((person) => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      person.userName?.toLowerCase().includes(searchLower) ||
-      person.email.toLowerCase().includes(searchLower) ||
-      person.fullName?.toLowerCase().includes(searchLower) ||
-      person.organizationName?.toLowerCase().includes(searchLower) ||
-      person.jobTitle?.toLowerCase().includes(searchLower)
-    );
   });
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
@@ -106,10 +109,10 @@ export default function PeopleDirectory() {
             <Skeleton className="h-16" />
             <Skeleton className="h-16" />
           </div>
-        ) : filteredPeople && filteredPeople.length > 0 ? (
+        ) : data?.people && data.people.length > 0 ? (
           <>
             <div className="space-y-4">
-              {filteredPeople.map((person) => (
+              {data.people.map((person: Person) => (
                 <div
                   key={person.api_id}
                   className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
@@ -123,7 +126,7 @@ export default function PeopleDirectory() {
                         {person.userName || person.fullName
                           ? ((person.userName || person.fullName) || "")
                               .split(" ")
-                              .map((n) => n[0])
+                              .map((n: string) => n[0])
                               .join("")
                               .substring(0, 2)
                               .toUpperCase()
@@ -164,7 +167,7 @@ export default function PeopleDirectory() {
             </div>
             <div className="mt-6 flex items-center justify-between">
               <div className="text-sm text-muted-foreground">
-                Showing {filteredPeople?.length || 0} of {data?.total || 0} total people
+                Showing {data.people.length || 0} of {data.total || 0} total people
               </div>
               <Pagination>
                 <PaginationContent>
