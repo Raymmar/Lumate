@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import AdminMenu from "@/components/AdminMenu";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
+import EventList from "@/components/events/EventList";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -27,6 +28,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   View full calendar
                 </a>
               </div>
+              <EventList />
             </div>
             <div className="flex-1 overflow-y-auto">
               <PeopleDirectory />
