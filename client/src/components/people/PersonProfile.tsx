@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Person } from '@/components/people/PeopleDirectory';
+import { Badge } from '@/components/ui/badge';
 
 interface PersonProfileProps {
   personId: string;
@@ -44,17 +45,28 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     <div className="space-y-6">
       <div className="flex items-center gap-4">
         <Avatar className="h-20 w-20">
-          <AvatarFallback className="text-xl">
-            {person.userName
-              ? person.userName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-              : "?"}
-          </AvatarFallback>
+          {person.avatarUrl ? (
+            <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
+          ) : (
+            <AvatarFallback className="text-xl">
+              {person.userName
+                ? person.userName
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                : "?"}
+            </AvatarFallback>
+          )}
         </Avatar>
         <div>
-          <h1 className="text-2xl font-bold">{person.userName || "Anonymous"}</h1>
+          <h1 className="text-2xl font-bold">
+            {person.userName || "Anonymous"}
+            {person.role && (
+              <Badge variant="secondary" className="ml-2">
+                {person.role}
+              </Badge>
+            )}
+          </h1>
           <p className="text-muted-foreground">{person.email}</p>
         </div>
       </div>
@@ -62,21 +74,66 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
+            <CardTitle>Personal Information</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="space-y-2">
+              {person.fullName && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
+                  <dd>{person.fullName}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">Email</dt>
                 <dd>{person.email}</dd>
               </div>
+              {person.phoneNumber && (
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
+                  <dd>{person.phoneNumber}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
-                <dd>{person.api_id}</dd>
+                <dd className="font-mono text-sm">{person.api_id}</dd>
               </div>
             </dl>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Professional Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <dl className="space-y-2">
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Organization</dt>
+                <dd>{person.organizationName || "Not specified"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Job Title</dt>
+                <dd>{person.jobTitle || "Not specified"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-muted-foreground">Role</dt>
+                <dd>{person.role || "Not specified"}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        {person.bio && (
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle>Biography</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{person.bio}</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
