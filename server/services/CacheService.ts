@@ -15,16 +15,14 @@ export class CacheService {
     if (!this.instance) {
       console.log('Creating new CacheService instance...');
       this.instance = new CacheService();
-      
+
       // Check if we have data already before triggering a sync
       this.instance.checkInitialDataLoadStatus()
         .then(hasData => {
-          // Always schedule a background sync after a delay, regardless of data status
-          // This ensures we preserve existing DB entries while still syncing new data
           console.log(hasData 
-            ? 'Database already contains data, scheduling background sync'
-            : 'Database is empty, but will only perform incremental updates to avoid ID conflicts');
-            
+            ? 'Database contains existing data, scheduling background sync'
+            : 'Database is empty, performing initial sync');
+
           // Small delay before sync to prevent impacting application startup
           setTimeout(() => {
             this.instance.updateCache();
@@ -40,14 +38,14 @@ export class CacheService {
     }
     return this.instance;
   }
-  
+
   private async checkInitialDataLoadStatus(): Promise<boolean> {
     try {
       const [eventCount, peopleCount] = await Promise.all([
         storage.getEventCount(),
         storage.getPeopleCount()
       ]);
-      
+
       return eventCount > 0 || peopleCount > 0;
     } catch (error) {
       console.error('Error checking data status:', error);
@@ -55,7 +53,7 @@ export class CacheService {
     }
   }
 
-  private async fetchAllPeople(): Promise<any[]> {
+  private async fetchAllPeople(lastUpdate?: Date): Promise<any[]> {
     let allPeople: any[] = [];
     let nextCursor: string | null = null;
     let hasMore = true;
@@ -65,7 +63,7 @@ export class CacheService {
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
     const PAGINATION_LIMIT = '50';
 
-    console.log('Starting to fetch all people from Luma API...');
+    console.log('Starting to fetch people from Luma API...');
 
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
@@ -74,15 +72,17 @@ export class CacheService {
           pagination_limit: PAGINATION_LIMIT
         };
 
-        // For subsequent requests after first page, use the pagination_cursor
         if (nextCursor) {
           params.pagination_cursor = nextCursor;
         }
 
-        // Log current state
+        // Add created_after parameter if we have a last update timestamp
+        if (lastUpdate) {
+          params.created_after = lastUpdate.toISOString();
+        }
+
         console.log('Making request with:', {
-          pagination_cursor: nextCursor,
-          pagination_limit: PAGINATION_LIMIT,
+          ...params,
           totalCollected: allPeople.length,
           attempt: attempts,
           noProgressCount
@@ -97,17 +97,14 @@ export class CacheService {
 
         const people = response.entries;
 
-        // If no people in response, stop
         if (!people.length) {
           console.log('No people in response, stopping pagination');
           break;
         }
 
         const previousCount = allPeople.length;
-        // Add this batch to our collection
         allPeople = allPeople.concat(people);
 
-        // Check if we received any new people
         if (allPeople.length === previousCount) {
           noProgressCount++;
           console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
@@ -117,40 +114,29 @@ export class CacheService {
             break;
           }
         } else {
-          // Reset counter if we got new people
           noProgressCount = 0;
           console.log(`Added ${allPeople.length - previousCount} new people. Total: ${allPeople.length}`);
         }
 
-        // Update pagination state
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
 
-        if (!hasMore) {
+        if (!hasMore || !nextCursor) {
           console.log('No more results available');
           break;
         }
 
-        if (!nextCursor) {
-          console.log('No next cursor provided, stopping pagination');
-          break;
-        }
-
-        // Add a small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Failed to fetch people batch:', error);
         noProgressCount++;
-        console.warn(`Request failed. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
 
-        // If we have collected some data and reached max no-progress attempts, return what we have
         if (allPeople.length > 0 && noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-          console.log(`Returning ${allPeople.length} people collected before error after ${noProgressCount} failed attempts`);
+          console.log(`Returning ${allPeople.length} people collected before error`);
           return allPeople;
         }
 
         if (noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-          // Wait a bit longer before retrying after an error
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
@@ -159,19 +145,11 @@ export class CacheService {
       }
     }
 
-    if (attempts >= MAX_ATTEMPTS) {
-      console.warn(`Reached maximum attempts (${MAX_ATTEMPTS}), stopping pagination`);
-    }
-
-    if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-      console.warn(`Stopped after ${noProgressCount} attempts without new data`);
-    }
-
-    console.log(`Completed fetching all people. Total count: ${allPeople.length}`);
+    console.log(`Completed fetching people. Total count: ${allPeople.length}`);
     return allPeople;
   }
 
-  private async fetchAllEvents(): Promise<any[]> {
+  private async fetchAllEvents(lastUpdate?: Date): Promise<any[]> {
     let allEvents: any[] = [];
     let nextCursor: string | null = null;
     let hasMore = true;
@@ -182,7 +160,7 @@ export class CacheService {
     const PAGINATION_LIMIT = '50';
     const seenEventIds = new Set<string>();
 
-    console.log('Starting to fetch all events from Luma API...');
+    console.log('Starting to fetch events from Luma API...');
 
     while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
       try {
@@ -191,15 +169,17 @@ export class CacheService {
           pagination_limit: PAGINATION_LIMIT
         };
 
-        // For subsequent requests after first page, use the pagination_cursor
         if (nextCursor) {
           params.pagination_cursor = nextCursor;
         }
 
-        // Log current state
+        // Add created_after parameter if we have a last update timestamp
+        if (lastUpdate) {
+          params.created_after = lastUpdate.toISOString();
+        }
+
         console.log('Making events request with:', {
-          pagination_cursor: nextCursor,
-          pagination_limit: PAGINATION_LIMIT,
+          ...params,
           totalCollected: allEvents.length,
           attempt: attempts,
           noProgressCount
@@ -214,15 +194,13 @@ export class CacheService {
 
         const events = response.entries;
 
-        // If no events in response, stop
         if (!events.length) {
           console.log('No events in response, stopping pagination');
           break;
         }
 
         const previousCount = allEvents.length;
-        
-        // Filter and add unique events to our collection
+
         const uniqueNewEvents = events.filter((entry: any) => {
           const eventData = entry.event;
           if (!eventData?.api_id) {
@@ -233,10 +211,9 @@ export class CacheService {
           if (isNew) seenEventIds.add(eventData.api_id);
           return isNew;
         });
-        
+
         allEvents = allEvents.concat(uniqueNewEvents);
 
-        // Check if we received any new events
         if (allEvents.length === previousCount) {
           noProgressCount++;
           console.warn(`No new events received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
@@ -246,40 +223,29 @@ export class CacheService {
             break;
           }
         } else {
-          // Reset counter if we got new events
           noProgressCount = 0;
           console.log(`Added ${allEvents.length - previousCount} new events. Total: ${allEvents.length}`);
         }
 
-        // Update pagination state
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
 
-        if (!hasMore) {
+        if (!hasMore || !nextCursor) {
           console.log('No more events results available');
           break;
         }
 
-        if (!nextCursor) {
-          console.log('No next cursor provided for events, stopping pagination');
-          break;
-        }
-
-        // Add a small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Failed to fetch events batch:', error);
         noProgressCount++;
-        console.warn(`Events request failed. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
 
-        // If we have collected some data and reached max no-progress attempts, return what we have
         if (allEvents.length > 0 && noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-          console.log(`Returning ${allEvents.length} events collected before error after ${noProgressCount} failed attempts`);
+          console.log(`Returning ${allEvents.length} events collected before error`);
           return allEvents;
         }
 
         if (noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-          // Wait a bit longer before retrying after an error
           await new Promise(resolve => setTimeout(resolve, 2000));
           continue;
         }
@@ -288,15 +254,7 @@ export class CacheService {
       }
     }
 
-    if (attempts >= MAX_ATTEMPTS) {
-      console.warn(`Reached maximum attempts (${MAX_ATTEMPTS}) for events, stopping pagination`);
-    }
-
-    if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-      console.warn(`Stopped events fetch after ${noProgressCount} attempts without new data`);
-    }
-
-    console.log(`Completed fetching all events. Total count: ${allEvents.length}`);
+    console.log(`Completed fetching events. Total count: ${allEvents.length}`);
     return allEvents;
   }
 
@@ -324,78 +282,48 @@ export class CacheService {
       // Check when the last update was performed
       const lastUpdate = await storage.getLastCacheUpdate();
       const now = new Date();
-      const timeSinceLastUpdate = lastUpdate ? now.getTime() - lastUpdate.getTime() : Infinity;
-      
+
       console.log(`Last cache update was ${lastUpdate ? lastUpdate.toISOString() : 'never'}`);
-      
-      // Get current database stats to make smarter decisions
-      const existingEvents = await storage.getEvents();
-      const existingPeople = await storage.getPeople();
-      
-      console.log(`Database currently has ${existingEvents.length} events and ${existingPeople.length} people`);
-      
-      // Create sets of existing API IDs for faster lookups
-      const existingEventIds = new Set(existingEvents.map(e => e.api_id));
-      const existingPersonIds = new Set(existingPeople.map(p => p.api_id));
-      
-      // Always perform incremental updates to maintain database consistency
-      if (existingEvents.length === 0 && existingPeople.length === 0) {
-        console.log('No existing data found. Still performing incremental update to preserve IDs...');
-      } else {
-        console.log('Performing incremental update...');
-      }
-      
-      // Fetch all data from APIs
+
+      // Fetch only new data from APIs based on last update time
       console.log('Fetching events and people...');
-      
-      // Use Promise.allSettled to handle partial failures
+
       const [eventsResult, peopleResult] = await Promise.allSettled([
-        this.fetchAllEvents(),
-        this.fetchAllPeople()
+        this.fetchAllEvents(lastUpdate),
+        this.fetchAllPeople(lastUpdate)
       ]);
-      
+
       let events: any[] = [];
       let allPeople: any[] = [];
       let eventsSuccess = false;
       let peopleSuccess = false;
-      
+
       // Process events result
       if (eventsResult.status === 'fulfilled' && eventsResult.value.length > 0) {
         events = eventsResult.value;
         eventsSuccess = true;
-        console.log(`Successfully fetched ${events.length} events from API`);
+        console.log(`Successfully fetched ${events.length} new events from API`);
       } else {
-        console.error('Failed to fetch events: ', 
-          eventsResult.status === 'rejected' ? eventsResult.reason : 'No events found');
+        console.log('No new events to sync');
       }
-      
+
       // Process people result
       if (peopleResult.status === 'fulfilled' && peopleResult.value.length > 0) {
         allPeople = peopleResult.value;
         peopleSuccess = true;
-        console.log(`Successfully fetched ${allPeople.length} people from API`);
+        console.log(`Successfully fetched ${allPeople.length} new people from API`);
       } else {
-        console.error('Failed to fetch people: ', 
-          peopleResult.status === 'rejected' ? peopleResult.reason : 'No people found');
+        console.log('No new people to sync');
       }
-      
-      // Only proceed if we have some successful data
-      if (!eventsSuccess && !peopleSuccess) {
-        console.error('Failed to fetch any data from APIs, keeping existing data');
-        return;
-      }
-      
-      // Update events if successful
+
+      // Update events if we have new ones
       if (eventsSuccess) {
         try {
-          // Process all events to ensure we have a complete mirror of Luma data
-          // We'll rely on the UPSERT functionality to prevent duplicates
-          console.log(`Processing all ${events.length} events from Luma API...`);
-          
-          // Process and store/update all events
+          console.log(`Processing ${events.length} new events...`);
+
           let successCount = 0;
           let errorCount = 0;
-          
+
           for (const entry of events) {
             try {
               const eventData = entry.event;
@@ -438,17 +366,14 @@ export class CacheService {
         }
       }
 
-      // Update people if successful
+      // Update people if we have new ones
       if (peopleSuccess) {
         try {
-          // Process all people to ensure we have a complete mirror of Luma data
-          // We'll rely on the UPSERT functionality to prevent duplicates
-          console.log(`Processing all ${allPeople.length} people from Luma API...`);
-          
-          // Process and store/update all people
+          console.log(`Processing ${allPeople.length} new people...`);
+
           let successCount = 0;
           let errorCount = 0;
-          
+
           for (const person of allPeople) {
             try {
               if (!person.api_id || !person.email) {
@@ -481,9 +406,13 @@ export class CacheService {
         }
       }
 
-      // Update last cache timestamp
-      await storage.setLastCacheUpdate(new Date());
-      console.log('Cache update completed successfully at', new Date().toISOString());
+      // Update last cache timestamp only if we had any successful updates
+      if (eventsSuccess || peopleSuccess) {
+        await storage.setLastCacheUpdate(now);
+        console.log('Cache update completed successfully at', now.toISOString());
+      } else {
+        console.log('No new data to sync, keeping existing last update timestamp');
+      }
     } catch (error) {
       console.error('Cache update process failed:', error);
     } finally {
@@ -492,9 +421,6 @@ export class CacheService {
   }
 
   startCaching() {
-    // The constructor sets up a delayed initial sync using checkInitialDataLoadStatus
-    // so we don't need to call updateCache() here immediately
-    
     // Set up a more reasonable interval for data that doesn't change often
     // 4 hours is a good balance between freshness and performance
     const FOUR_HOURS = 4 * 60 * 60 * 1000;
@@ -502,7 +428,7 @@ export class CacheService {
       console.log('Running scheduled cache update...');
       this.updateCache();
     }, FOUR_HOURS);
-    
+
     console.log(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
   }
 
