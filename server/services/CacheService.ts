@@ -222,14 +222,14 @@ export class CacheService {
             cover_url: eventData.cover_url || null,
             url: eventData.url || null,
             timezone: eventData.timezone || null,
-            location: eventData.geo_address_json ? {
+            location: eventData.geo_address_json ? JSON.stringify({
               city: eventData.geo_address_json.city,
               region: eventData.geo_address_json.region,
               country: eventData.geo_address_json.country,
               latitude: eventData.geo_latitude,
               longitude: eventData.geo_longitude,
               full_address: eventData.geo_address_json.full_address,
-            } : null,
+            }) : null,
             visibility: eventData.visibility || null,
             meeting_url: eventData.meeting_url || eventData.zoom_meeting_url || null,
             calendar_api_id: eventData.calendar_api_id || null,
@@ -237,13 +237,23 @@ export class CacheService {
           };
         });
 
+        // Create explicit insert statement with column names
         const query = sql`
           INSERT INTO events (
             api_id, title, description, start_time, end_time,
             cover_url, url, timezone, location, visibility,
             meeting_url, calendar_api_id, created_at
           )
-          SELECT * FROM json_populate_recordset(null::events, ${JSON.stringify(values)})
+          VALUES ${sql.join(
+            values.map(
+              event => sql`(
+                ${event.api_id}, ${event.title}, ${event.description}, ${event.start_time}, ${event.end_time},
+                ${event.cover_url}, ${event.url}, ${event.timezone}, ${event.location}::jsonb, ${event.visibility},
+                ${event.meeting_url}, ${event.calendar_api_id}, ${event.created_at}
+              )`
+            ),
+            ","
+          )}
           ON CONFLICT (api_id) DO UPDATE SET
             title = EXCLUDED.title,
             description = EXCLUDED.description,
