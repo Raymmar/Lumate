@@ -150,18 +150,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Email does not match the profile" });
       }
 
-      // Check if profile is already claimed
-      const existingUser = await storage.getUserByEmail(email);
-      console.log('Existing user check:', existingUser ? {
-        id: existingUser.id,
-        email: existingUser.email,
-        personApiId: existingUser.personApiId
-      } : 'not found');
-
-      if (existingUser) {
-        return res.status(400).json({ error: "Profile already claimed" });
-      }
-
       // Create verification token
       const verificationToken = await storage.createVerificationToken(email);
       console.log('Created verification token:', verificationToken.token);
@@ -210,6 +198,17 @@ export async function registerRoutes(app: Express) {
         apiId: person.api_id,
         userName: person.userName
       });
+
+      // Check if the profile is already claimed
+      const existingUser = await storage.getUserByEmail(verificationToken.email);
+      if (existingUser) {
+        console.log('Profile already claimed by:', {
+          userId: existingUser.id,
+          email: existingUser.email,
+          personApiId: existingUser.personApiId
+        });
+        return res.status(400).json({ error: "Profile already claimed" });
+      }
 
       // Create or update user record with personApiId instead of personId
       const userData = {
