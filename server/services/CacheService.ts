@@ -59,9 +59,9 @@ export class CacheService {
     let hasMore = true;
     let attempts = 0;
     let noProgressCount = 0;
-    const MAX_ATTEMPTS = 1000;
+    const MAX_ATTEMPTS = 1000; // Increased to handle large datasets
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
-    const PAGINATION_LIMIT = '50';
+    const PAGINATION_LIMIT = '100'; // Increased for faster syncing
 
     console.log('Starting to fetch people from Luma API...');
 
@@ -81,13 +81,14 @@ export class CacheService {
           console.log('Using created_after filter:', params.created_after);
         }
 
-        console.log('Making request with params:', params);
+        console.log(`Making people request with params (Attempt ${attempts}):`, params);
 
         const response = await lumaApiRequest('calendar/list-people', params);
 
         if (!response || !Array.isArray(response.entries)) {
           console.error('Invalid response format:', response);
-          break;
+          noProgressCount++;
+          continue;
         }
 
         const people = response.entries;
@@ -100,19 +101,13 @@ export class CacheService {
         const previousCount = allPeople.length;
         allPeople = allPeople.concat(people);
 
-        console.log(`Fetched ${people.length} people in this batch`);
+        console.log(`Fetched ${people.length} people in this batch (Total: ${allPeople.length})`);
 
         if (allPeople.length === previousCount) {
           noProgressCount++;
           console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-
-          if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-            console.log(`Stopping after ${noProgressCount} attempts with no new people`);
-            break;
-          }
         } else {
           noProgressCount = 0;
-          console.log(`Total people collected: ${allPeople.length}`);
         }
 
         hasMore = response.has_more === true;
@@ -123,7 +118,8 @@ export class CacheService {
           break;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Shorter delay between successful requests
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.error('Failed to fetch people batch:', error);
         noProgressCount++;
@@ -133,6 +129,7 @@ export class CacheService {
           break;
         }
 
+        // Longer delay after error
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -147,9 +144,9 @@ export class CacheService {
     let hasMore = true;
     let attempts = 0;
     let noProgressCount = 0;
-    const MAX_ATTEMPTS = 20;
+    const MAX_ATTEMPTS = 1000; // Increased to handle large datasets
     const MAX_NO_PROGRESS_ATTEMPTS = 3;
-    const PAGINATION_LIMIT = '50';
+    const PAGINATION_LIMIT = '100'; // Increased for faster syncing
     const seenEventIds = new Set<string>();
 
     console.log('Starting to fetch events from Luma API...');
@@ -170,13 +167,14 @@ export class CacheService {
           console.log('Using created_after filter:', params.created_after);
         }
 
-        console.log('Making events request with params:', params);
+        console.log(`Making events request with params (Attempt ${attempts}):`, params);
 
         const response = await lumaApiRequest('calendar/list-events', params);
 
         if (!response || !Array.isArray(response.entries)) {
           console.error('Invalid events response format:', response);
-          break;
+          noProgressCount++;
+          continue;
         }
 
         const events = response.entries;
@@ -201,19 +199,13 @@ export class CacheService {
 
         allEvents = allEvents.concat(uniqueNewEvents);
 
-        console.log(`Fetched ${uniqueNewEvents.length} unique events in this batch`);
+        console.log(`Fetched ${uniqueNewEvents.length} unique events in this batch (Total: ${allEvents.length})`);
 
         if (allEvents.length === previousCount) {
           noProgressCount++;
           console.warn(`No new events received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-
-          if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-            console.log(`Stopping after ${noProgressCount} attempts with no new events`);
-            break;
-          }
         } else {
           noProgressCount = 0;
-          console.log(`Total unique events collected: ${allEvents.length}`);
         }
 
         hasMore = response.has_more === true;
@@ -224,7 +216,8 @@ export class CacheService {
           break;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Shorter delay between successful requests
+        await new Promise(resolve => setTimeout(resolve, 500));
       } catch (error) {
         console.error('Failed to fetch events batch:', error);
         noProgressCount++;
@@ -234,6 +227,7 @@ export class CacheService {
           break;
         }
 
+        // Longer delay after error
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -270,6 +264,8 @@ export class CacheService {
       ]);
 
       let hasNewData = false;
+      let processedEvents = 0;
+      let processedPeople = 0;
 
       // Process new events
       if (eventsResult.status === 'fulfilled' && eventsResult.value.length > 0) {
@@ -306,11 +302,13 @@ export class CacheService {
               calendarApiId: eventData.calendar_api_id || null,
               createdAt: eventData.created_at || null,
             });
+            processedEvents++;
             hasNewData = true;
           } catch (error) {
             console.error('Failed to process event:', error);
           }
         }
+        console.log(`Successfully processed ${processedEvents} events`);
       } else {
         console.log('No new events to sync');
       }
@@ -340,11 +338,13 @@ export class CacheService {
               jobTitle: person.jobTitle || person.user?.job_title || null,
               createdAt: person.created_at || null,
             });
+            processedPeople++;
             hasNewData = true;
           } catch (error) {
             console.error('Failed to process person:', error);
           }
         }
+        console.log(`Successfully processed ${processedPeople} people`);
       } else {
         console.log('No new people to sync');
       }
@@ -352,7 +352,7 @@ export class CacheService {
       // Only update the last cache time if we actually processed new data
       if (hasNewData) {
         await storage.setLastCacheUpdate(now);
-        console.log('Cache update completed with new data at', now.toISOString());
+        console.log(`Cache update completed with new data at ${now.toISOString()}. Processed ${processedEvents} events and ${processedPeople} people.`);
       } else {
         console.log('No new data processed, keeping existing last update timestamp');
       }
@@ -377,6 +377,7 @@ export class CacheService {
   stopCaching() {
     if (this.cacheInterval) {
       clearInterval(this.cacheInterval);
+      this.cacheInterval = null;
     }
   }
 }
