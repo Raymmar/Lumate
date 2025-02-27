@@ -40,20 +40,20 @@ export default function AdminMenu() {
       }
 
       toast({
-        title: "Data Reset & Sync Started",
-        description: "The database is being cleared and fresh data is being fetched from Luma API. This may take a few minutes.",
+        title: "Reset & Sync Started",
+        description: "Database has been cleared. Fresh data is being synced from Luma API. This may take several minutes to complete.",
         variant: "default",
       });
 
-      // Reload the page after a delay to show the fresh data
+      // Reload the page after a longer delay to allow initial sync to complete
       setTimeout(() => {
         window.location.reload();
-      }, 2000);
+      }, 5000);
     } catch (error) {
       console.error('Error resetting and syncing data:', error);
       toast({
         title: "Reset & Sync Failed",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
+        description: error instanceof Error ? error.message : "An unknown error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

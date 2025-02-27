@@ -131,8 +131,8 @@ export async function registerRoutes(app: Express) {
         storage.clearPeople()
       ]);
 
-      // Also reset cache metadata sequence
-      await db.execute(sql`ALTER SEQUENCE cache_metadata_id_seq RESTART WITH 1`);
+      // Also reset cache metadata sequence and clear the cache_metadata table
+      await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
       console.log('Database cleared successfully. Tables reset to empty state with ID sequences reset.');
 
@@ -140,8 +140,9 @@ export async function registerRoutes(app: Express) {
       const { CacheService } = await import('./services/CacheService');
       const cacheService = CacheService.getInstance();
 
-      // Clear the last update timestamp to force a full sync
-      await storage.setLastCacheUpdate(null);
+      // Initialize a new sync from the beginning of time
+      const oldestPossibleDate = new Date(0);
+      await storage.setLastCacheUpdate(oldestPossibleDate);
 
       // Trigger the cache update process
       console.log('Triggering fresh data fetch from Luma API');
@@ -149,7 +150,7 @@ export async function registerRoutes(app: Express) {
 
       return res.json({ 
         success: true, 
-        message: "Database reset initiated. Fresh data sync from Luma API is in progress." 
+        message: "Database reset completed. Fresh data sync from Luma API is in progress." 
       });
     } catch (error) {
       console.error('Failed to reset database:', error);
