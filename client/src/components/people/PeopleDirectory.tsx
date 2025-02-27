@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'wouter';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Pagination,
   PaginationContent,
@@ -14,17 +11,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { UserPlus, User, ExternalLink } from 'lucide-react';
 
 interface Person {
   id: number;
   api_id: string;
   email: string;
   userName: string | null;
-  fullName: string | null;
   avatarUrl: string | null;
-  organizationName: string | null;
-  jobTitle: string | null;
 }
 
 interface PeopleResponse {
@@ -33,32 +26,25 @@ interface PeopleResponse {
 }
 
 export default function PeopleDirectory() {
-  const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const pageSize = 50;
 
-  // Debounce search input to avoid too many API calls
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      // Reset to first page when search changes
-      if (currentPage !== 1) setCurrentPage(1);
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
   const { data, isLoading, error } = useQuery<PeopleResponse>({
-    queryKey: ['/api/people', currentPage, pageSize, debouncedSearchQuery],
+    queryKey: ['/api/people', currentPage, pageSize],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/people?page=${currentPage}&limit=${pageSize}${debouncedSearchQuery ? `&search=${encodeURIComponent(debouncedSearchQuery)}` : ''}`
-      );
+      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}`);
       if (!response.ok) throw new Error('Failed to fetch people');
       return response.json();
     }
+  });
+
+  const filteredPeople = data?.people?.filter((person) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      person.userName?.toLowerCase().includes(searchLower) ||
+      person.email.toLowerCase().includes(searchLower)
+    );
   });
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
@@ -73,7 +59,7 @@ export default function PeopleDirectory() {
 
   if (error) {
     return (
-      <Card>
+      <Card className="col-span-1">
         <CardContent>
           <p className="text-destructive">Failed to load people directory</p>
         </CardContent>
@@ -82,130 +68,72 @@ export default function PeopleDirectory() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>People Directory</CardTitle>
-        <CardDescription>
-          Browse members from the Luma community
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center justify-between mb-4">
-          <Input
-            placeholder="Search people..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="max-w-sm"
-          />
-          <Button onClick={() => navigate('/register')}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Create Account
-          </Button>
-        </div>
-
+    <Card className="col-span-1">
+      <CardContent className="pt-6">
+        <Input
+          placeholder="Search people..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="mb-4"
+        />
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
-            <Skeleton className="h-16" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
+            <Skeleton className="h-12" />
           </div>
-        ) : data?.people && data.people.length > 0 ? (
+        ) : filteredPeople && filteredPeople.length > 0 ? (
           <>
             <div className="space-y-4">
-              {data.people.map((person: Person) => (
+              {filteredPeople.map((person) => (
                 <div
                   key={person.api_id}
-                  className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  className="flex items-center gap-4 p-3 rounded-lg border bg-card text-card-foreground"
                 >
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      {person.avatarUrl ? (
-                        <AvatarImage src={person.avatarUrl} alt={person.userName || "User"} />
-                      ) : null}
-                      <AvatarFallback>
-                        {person.userName || person.fullName
-                          ? ((person.userName || person.fullName) || "")
-                              .split(" ")
-                              .map((n: string) => n[0])
-                              .join("")
-                              .substring(0, 2)
-                              .toUpperCase()
-                          : "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{person.userName || person.fullName || "Anonymous"}</p>
-                        <Badge variant="outline" className="text-xs">
-                          Luma Member
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{person.email}</p>
-                      {(person.organizationName || person.jobTitle) && (
-                        <p className="text-sm text-muted-foreground">
-                          {person.jobTitle && <span>{person.jobTitle}</span>}
-                          {person.jobTitle && person.organizationName && <span> at </span>}
-                          {person.organizationName && <span>{person.organizationName}</span>}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex justify-end sm:ml-auto space-x-2 mt-2 sm:mt-0">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      asChild
-                    >
-                      <Link to={`/person?id=${person.id}`}>
-                        <User className="h-4 w-4 mr-1" />
-                        View Profile
-                      </Link>
-                    </Button>
+                  <Avatar>
+                    <AvatarFallback>
+                      {person.userName
+                        ? person.userName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                        : "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{person.userName || "Anonymous"}</p>
+                    <p className="text-sm text-muted-foreground">{person.email}</p>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-6 flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Showing {data.people.length || 0} of {data.total || 0} total people
-              </div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={handlePreviousPage} 
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <span className="px-4">Page {currentPage} of {totalPages}</span>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={handleNextPage}
-                      className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+            <div className="mt-4 text-sm text-muted-foreground">
+              Showing {filteredPeople?.length || 0} of {data?.total || 0} total people
             </div>
+            <Pagination className="mt-2">
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={handlePreviousPage} 
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="px-4">Page {currentPage} of {totalPages}</span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={handleNextPage}
+                    className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
           </>
         ) : (
-          <div className="py-8 text-center">
-            <User className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-            <p className="text-muted-foreground">
-              {searchQuery ? "No matching people found" : "No people available"}
-            </p>
-            {searchQuery && (
-              <Button 
-                variant="outline" 
-                onClick={() => setSearchQuery('')} 
-                className="mt-4"
-              >
-                Clear Search
-              </Button>
-            )}
-          </div>
+          <p className="text-muted-foreground">
+            {searchQuery ? "No matching people found" : "No people available"}
+          </p>
         )}
       </CardContent>
     </Card>
