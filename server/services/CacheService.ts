@@ -227,52 +227,60 @@ export class CacheService {
             api_id: eventData.api_id,
             title: eventData.name,
             description: eventData.description || null,
-            startTime: eventData.start_at,
-            endTime: eventData.end_at,
-            coverUrl: eventData.cover_url || null,
+            start_time: eventData.start_at,
+            end_time: eventData.end_at,
+            cover_url: eventData.cover_url || null,
             url: eventData.url || null,
             timezone: eventData.timezone || null,
             location: location ? JSON.stringify(location) : null,
             visibility: eventData.visibility || null,
-            meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
-            calendarApiId: eventData.calendar_api_id || null,
-            createdAt: eventData.created_at || null,
+            meeting_url: eventData.meeting_url || eventData.zoom_meeting_url || null,
+            calendar_api_id: eventData.calendar_api_id || null,
+            created_at: eventData.created_at || null,
           };
         });
 
         // Create the SQL query with exact column names from our schema
-        const query = sql`
-          INSERT INTO events (
-            api_id, title, description, start_time, end_time,
-            cover_url, url, timezone, location, visibility,
-            meeting_url, calendar_api_id, created_at
-          )
-          VALUES ${sql.join(
-            values.map(event => sql`(
-              ${event.api_id}, ${event.title}, ${event.description}, 
-              ${event.startTime}, ${event.endTime},
-              ${event.coverUrl}, ${event.url}, ${event.timezone}, 
-              ${event.location}::jsonb, ${event.visibility},
-              ${event.meetingUrl}, ${event.calendarApiId}, ${event.createdAt}
-            )`),
-            ","
-          )}
-          ON CONFLICT (api_id) DO UPDATE SET
-            title = EXCLUDED.title,
-            description = EXCLUDED.description,
-            start_time = EXCLUDED.start_time,
-            end_time = EXCLUDED.end_time,
-            cover_url = EXCLUDED.cover_url,
-            url = EXCLUDED.url,
-            timezone = EXCLUDED.timezone,
-            location = EXCLUDED.location,
-            visibility = EXCLUDED.visibility,
-            meeting_url = EXCLUDED.meeting_url,
-            calendar_api_id = EXCLUDED.calendar_api_id,
-            created_at = EXCLUDED.created_at
-        `;
+        for (const event of values) {
+          const query = sql`
+            INSERT INTO events (
+              api_id, title, description, start_time, end_time,
+              cover_url, url, timezone, location, visibility,
+              meeting_url, calendar_api_id, created_at
+            ) 
+            VALUES (
+              ${event.api_id}, 
+              ${event.title}, 
+              ${event.description}, 
+              ${event.start_time}, 
+              ${event.end_time},
+              ${event.cover_url}, 
+              ${event.url}, 
+              ${event.timezone}, 
+              ${event.location}::jsonb, 
+              ${event.visibility}, 
+              ${event.meeting_url}, 
+              ${event.calendar_api_id}, 
+              ${event.created_at}
+            )
+            ON CONFLICT (api_id) DO UPDATE SET
+              title = EXCLUDED.title,
+              description = EXCLUDED.description,
+              start_time = EXCLUDED.start_time,
+              end_time = EXCLUDED.end_time,
+              cover_url = EXCLUDED.cover_url,
+              url = EXCLUDED.url,
+              timezone = EXCLUDED.timezone,
+              location = EXCLUDED.location,
+              visibility = EXCLUDED.visibility,
+              meeting_url = EXCLUDED.meeting_url,
+              calendar_api_id = EXCLUDED.calendar_api_id,
+              created_at = EXCLUDED.created_at
+            RETURNING *
+          `;
 
-        await tx.execute(query);
+          await tx.execute(query);
+        }
       });
 
       const duration = Date.now() - batchStartTime;
