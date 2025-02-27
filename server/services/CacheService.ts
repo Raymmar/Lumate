@@ -5,6 +5,9 @@ export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
+  private readonly CHUNK_SIZE = 100;
+  private readonly MAX_CONCURRENT_REQUESTS = 3;
+  private readonly REQUEST_DELAY = 500; // ms between parallel requests
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -20,7 +23,7 @@ export class CacheService {
       this.instance.checkInitialDataLoadStatus()
         .then(hasData => {
           const delay = hasData ? 5000 : 100; // Shorter delay for empty DB
-          console.log(hasData
+          console.log(hasData 
             ? 'Database has existing data, scheduling background sync in 5s'
             : 'Database is empty, starting initial sync shortly');
 
@@ -30,7 +33,6 @@ export class CacheService {
         })
         .catch(error => {
           console.error('Failed to check data status:', error);
-          // Still start caching on error, just with a delay
           setTimeout(() => {
             this.instance.updateCache();
           }, 5000);
@@ -53,186 +55,155 @@ export class CacheService {
     }
   }
 
+  private async fetchPeopleChunk(params: Record<string, string>): Promise<any[]> {
+    try {
+      const response = await lumaApiRequest('calendar/list-people', params);
+      if (!response || !Array.isArray(response.entries)) {
+        console.error('Invalid response format for people chunk:', response);
+        return [];
+      }
+      return response.entries;
+    } catch (error) {
+      console.error('Error fetching people chunk:', error);
+      return [];
+    }
+  }
+
+  private async fetchEventChunk(params: Record<string, string>): Promise<any[]> {
+    try {
+      const response = await lumaApiRequest('calendar/list-events', params);
+      if (!response || !Array.isArray(response.entries)) {
+        console.error('Invalid response format for events chunk:', response);
+        return [];
+      }
+      return response.entries;
+    } catch (error) {
+      console.error('Error fetching events chunk:', error);
+      return [];
+    }
+  }
+
+  private async fetchWithConcurrency<T>(
+    chunks: Record<string, string>[],
+    fetchFn: (params: Record<string, string>) => Promise<T[]>
+  ): Promise<T[]> {
+    const results: T[] = [];
+
+    for (let i = 0; i < chunks.length; i += this.MAX_CONCURRENT_REQUESTS) {
+      const chunkPromises = chunks
+        .slice(i, i + this.MAX_CONCURRENT_REQUESTS)
+        .map(async (params) => {
+          await new Promise(resolve => setTimeout(resolve, this.REQUEST_DELAY));
+          return fetchFn(params);
+        });
+
+      const chunkResults = await Promise.all(chunkPromises);
+      results.push(...chunkResults.flat());
+    }
+
+    return results;
+  }
+
   private async fetchAllPeople(lastUpdateTime?: Date): Promise<any[]> {
+    console.log('Starting parallel fetch of people from Luma API...');
+
+    const baseParams = {
+      pagination_limit: String(this.CHUNK_SIZE),
+      ...(lastUpdateTime && { created_after: lastUpdateTime.toISOString() })
+    };
+
     let allPeople: any[] = [];
-    let nextCursor: string | null = null;
     let hasMore = true;
-    let attempts = 0;
-    let noProgressCount = 0;
-    const MAX_ATTEMPTS = 1000; // Increased to handle large datasets
-    const MAX_NO_PROGRESS_ATTEMPTS = 3;
-    const PAGINATION_LIMIT = '100'; // Increased for faster syncing
+    let nextCursor: string | null = null;
 
-    console.log('Starting to fetch people from Luma API...');
+    while (hasMore) {
+      const chunks = Array(this.MAX_CONCURRENT_REQUESTS).fill(null).map(() => ({
+        ...baseParams,
+        ...(nextCursor && { pagination_cursor: nextCursor })
+      }));
 
-    while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-      try {
-        attempts++;
-        const params: Record<string, string> = {
-          pagination_limit: PAGINATION_LIMIT
-        };
+      const newPeople = await this.fetchWithConcurrency(chunks, this.fetchPeopleChunk);
 
-        if (nextCursor) {
-          params.pagination_cursor = nextCursor;
-        }
+      if (newPeople.length === 0) {
+        break;
+      }
 
-        if (lastUpdateTime) {
-          params.created_after = lastUpdateTime.toISOString();
-          console.log('Using created_after filter:', params.created_after);
-        }
+      allPeople = allPeople.concat(newPeople);
+      console.log(`Fetched ${newPeople.length} people in parallel. Total: ${allPeople.length}`);
 
-        console.log(`Making people request with params (Attempt ${attempts}):`, params);
+      // Update cursor for next batch
+      const lastBatchResponse = await lumaApiRequest('calendar/list-people', {
+        ...baseParams,
+        pagination_cursor: nextCursor || ''
+      });
 
-        const response = await lumaApiRequest('calendar/list-people', params);
+      hasMore = lastBatchResponse.has_more === true;
+      nextCursor = lastBatchResponse.next_cursor;
 
-        if (!response || !Array.isArray(response.entries)) {
-          console.error('Invalid response format:', response);
-          noProgressCount++;
-          continue;
-        }
-
-        const people = response.entries;
-
-        if (!people.length) {
-          console.log('No people in response, stopping pagination');
-          break;
-        }
-
-        const previousCount = allPeople.length;
-        allPeople = allPeople.concat(people);
-
-        console.log(`Fetched ${people.length} people in this batch (Total: ${allPeople.length})`);
-
-        if (allPeople.length === previousCount) {
-          noProgressCount++;
-          console.warn(`No new people received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-        } else {
-          noProgressCount = 0;
-        }
-
-        hasMore = response.has_more === true;
-        nextCursor = response.next_cursor;
-
-        if (!hasMore || !nextCursor) {
-          console.log('No more results available');
-          break;
-        }
-
-        // Shorter delay between successful requests
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        console.error('Failed to fetch people batch:', error);
-        noProgressCount++;
-
-        if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-          console.log('Max retries reached, returning collected data');
-          break;
-        }
-
-        // Longer delay after error
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!hasMore || !nextCursor) {
+        console.log('No more people to fetch');
+        break;
       }
     }
 
-    console.log(`Completed fetching people. Total count: ${allPeople.length}`);
     return allPeople;
   }
 
   private async fetchAllEvents(lastUpdateTime?: Date): Promise<any[]> {
+    console.log('Starting parallel fetch of events from Luma API...');
+
+    const baseParams = {
+      pagination_limit: String(this.CHUNK_SIZE),
+      ...(lastUpdateTime && { created_after: lastUpdateTime.toISOString() })
+    };
+
     let allEvents: any[] = [];
-    let nextCursor: string | null = null;
     let hasMore = true;
-    let attempts = 0;
-    let noProgressCount = 0;
-    const MAX_ATTEMPTS = 1000; // Increased to handle large datasets
-    const MAX_NO_PROGRESS_ATTEMPTS = 3;
-    const PAGINATION_LIMIT = '100'; // Increased for faster syncing
+    let nextCursor: string | null = null;
     const seenEventIds = new Set<string>();
 
-    console.log('Starting to fetch events from Luma API...');
+    while (hasMore) {
+      const chunks = Array(this.MAX_CONCURRENT_REQUESTS).fill(null).map(() => ({
+        ...baseParams,
+        ...(nextCursor && { pagination_cursor: nextCursor })
+      }));
 
-    while (hasMore && attempts < MAX_ATTEMPTS && noProgressCount < MAX_NO_PROGRESS_ATTEMPTS) {
-      try {
-        attempts++;
-        const params: Record<string, string> = {
-          pagination_limit: PAGINATION_LIMIT
-        };
+      const newEvents = await this.fetchWithConcurrency(chunks, this.fetchEventChunk);
 
-        if (nextCursor) {
-          params.pagination_cursor = nextCursor;
+      if (newEvents.length === 0) {
+        break;
+      }
+
+      // Deduplicate events
+      const uniqueNewEvents = newEvents.filter((entry: any) => {
+        const eventData = entry.event;
+        if (!eventData?.api_id) {
+          console.warn('Invalid event data:', eventData);
+          return false;
         }
+        const isNew = !seenEventIds.has(eventData.api_id);
+        if (isNew) seenEventIds.add(eventData.api_id);
+        return isNew;
+      });
 
-        if (lastUpdateTime) {
-          params.created_after = lastUpdateTime.toISOString();
-          console.log('Using created_after filter:', params.created_after);
-        }
+      allEvents = allEvents.concat(uniqueNewEvents);
+      console.log(`Fetched ${uniqueNewEvents.length} unique events in parallel. Total: ${allEvents.length}`);
 
-        console.log(`Making events request with params (Attempt ${attempts}):`, params);
+      // Update cursor for next batch
+      const lastBatchResponse = await lumaApiRequest('calendar/list-events', {
+        ...baseParams,
+        pagination_cursor: nextCursor || ''
+      });
 
-        const response = await lumaApiRequest('calendar/list-events', params);
+      hasMore = lastBatchResponse.has_more === true;
+      nextCursor = lastBatchResponse.next_cursor;
 
-        if (!response || !Array.isArray(response.entries)) {
-          console.error('Invalid events response format:', response);
-          noProgressCount++;
-          continue;
-        }
-
-        const events = response.entries;
-
-        if (!events.length) {
-          console.log('No events in response, stopping pagination');
-          break;
-        }
-
-        const previousCount = allEvents.length;
-
-        const uniqueNewEvents = events.filter((entry: any) => {
-          const eventData = entry.event;
-          if (!eventData?.api_id) {
-            console.warn('Invalid event data:', eventData);
-            return false;
-          }
-          const isNew = !seenEventIds.has(eventData.api_id);
-          if (isNew) seenEventIds.add(eventData.api_id);
-          return isNew;
-        });
-
-        allEvents = allEvents.concat(uniqueNewEvents);
-
-        console.log(`Fetched ${uniqueNewEvents.length} unique events in this batch (Total: ${allEvents.length})`);
-
-        if (allEvents.length === previousCount) {
-          noProgressCount++;
-          console.warn(`No new events received. Attempt ${noProgressCount} of ${MAX_NO_PROGRESS_ATTEMPTS}`);
-        } else {
-          noProgressCount = 0;
-        }
-
-        hasMore = response.has_more === true;
-        nextCursor = response.next_cursor;
-
-        if (!hasMore || !nextCursor) {
-          console.log('No more events results available');
-          break;
-        }
-
-        // Shorter delay between successful requests
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        console.error('Failed to fetch events batch:', error);
-        noProgressCount++;
-
-        if (noProgressCount >= MAX_NO_PROGRESS_ATTEMPTS) {
-          console.log('Max retries reached, returning collected events');
-          break;
-        }
-
-        // Longer delay after error
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!hasMore || !nextCursor) {
+        console.log('No more events to fetch');
+        break;
       }
     }
 
-    console.log(`Completed fetching events. Total count: ${allEvents.length}`);
     return allEvents;
   }
 
@@ -255,8 +226,8 @@ export class CacheService {
       // Use the last update time if available, otherwise fetch all data
       const lastUpdateTime = lastUpdate || undefined;
 
-      // Fetch new data from APIs
-      console.log('Fetching new events and people...');
+      // Fetch new data from APIs in parallel
+      console.log('Fetching new events and people in parallel...');
 
       const [eventsResult, peopleResult] = await Promise.allSettled([
         this.fetchAllEvents(lastUpdateTime),
@@ -272,12 +243,12 @@ export class CacheService {
         const events = eventsResult.value;
         console.log(`Processing ${events.length} new events...`);
 
-        for (const entry of events) {
+        await Promise.all(events.map(async (entry) => {
           try {
             const eventData = entry.event;
             if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
               console.warn('Skipping event - Missing required fields:', eventData);
-              continue;
+              return;
             }
 
             await storage.insertEvent({
@@ -307,7 +278,7 @@ export class CacheService {
           } catch (error) {
             console.error('Failed to process event:', error);
           }
-        }
+        }));
         console.log(`Successfully processed ${processedEvents} events`);
       } else {
         console.log('No new events to sync');
@@ -318,11 +289,11 @@ export class CacheService {
         const people = peopleResult.value;
         console.log(`Processing ${people.length} new people...`);
 
-        for (const person of people) {
+        await Promise.all(people.map(async (person) => {
           try {
             if (!person.api_id || !person.email) {
               console.warn('Skipping person - Missing required fields:', person);
-              continue;
+              return;
             }
 
             await storage.insertPerson({
@@ -343,7 +314,7 @@ export class CacheService {
           } catch (error) {
             console.error('Failed to process person:', error);
           }
-        }
+        }));
         console.log(`Successfully processed ${processedPeople} people`);
       } else {
         console.log('No new people to sync');
