@@ -156,7 +156,7 @@ export default function PeopleDirectory() {
                       size="sm"
                       asChild
                     >
-                      <Link to={`/profile?email=${encodeURIComponent(person.email)}`}>
+                      <Link to={`/person?id=${person.id}`}>
                         <User className="h-4 w-4 mr-1" />
                         View Profile
                       </Link>

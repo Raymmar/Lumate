@@ -165,6 +165,41 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to find person" });
     }
   });
+  
+  // Get a person's profile (with user account status if it exists)
+  app.get("/api/people/profile", async (req, res) => {
+    try {
+      const id = req.query.id ? parseInt(req.query.id as string) : null;
+      const email = req.query.email as string;
+      
+      if (!id && !email) {
+        return res.status(400).json({ error: "Either id or email parameter is required" });
+      }
+      
+      let person;
+      if (id) {
+        person = await storage.getPersonById(id);
+      } else {
+        person = await storage.getPersonByEmail(email);
+      }
+      
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+      
+      // Check if there's a user account associated with this person
+      const user = await storage.getUserByEmail(person.email);
+      
+      if (user) {
+        res.json({ person, user });
+      } else {
+        res.json({ person });
+      }
+    } catch (error) {
+      console.error('Failed to get person profile:', error);
+      res.status(500).json({ error: "Failed to fetch person profile" });
+    }
+  });
 
   // Register a new user
   app.post("/api/auth/register", async (req, res) => {

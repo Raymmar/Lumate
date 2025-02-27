@@ -6,6 +6,7 @@ import Dashboard from "@/pages/Dashboard";
 import Register from "@/pages/Register";
 import VerifyEmail from "@/pages/VerifyEmail";
 import Profile from "@/pages/Profile";
+import PersonProfile from "@/pages/PersonProfile";
 import NotFound from "@/pages/not-found";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/register" component={Register} />
       <Route path="/verify-email" component={VerifyEmail} />
       <Route path="/profile" component={Profile} />
+      <Route path="/person" component={PersonProfile} />
       <Route component={NotFound} />
     </Switch>
   );
