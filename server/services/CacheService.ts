@@ -7,10 +7,10 @@ export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
-  private readonly CHUNK_SIZE = 200;
+  private readonly CHUNK_SIZE = 50;  // Match Luma API's optimal batch size
   private readonly MAX_CONCURRENT_REQUESTS = 5;
   private readonly REQUEST_DELAY = 200;
-  private readonly BATCH_SIZE = 100;
+  private readonly BATCH_SIZE = 50;
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -32,7 +32,7 @@ export class CacheService {
     console.log(`Starting batch insert of ${events.length} events...`);
 
     try {
-      // Use a single transaction for the entire batch
+      // Execute bulk upsert
       await db.transaction(async (tx) => {
         const values = events.map(entry => {
           const eventData = entry.event;
@@ -40,27 +40,27 @@ export class CacheService {
             api_id: eventData.api_id,
             title: eventData.name,
             description: eventData.description || null,
-            startTime: eventData.start_at,
-            endTime: eventData.end_at,
-            coverUrl: eventData.cover_url || null,
+            start_time: eventData.start_at,
+            end_time: eventData.end_at,
+            cover_url: eventData.cover_url || null,
             url: eventData.url || null,
             timezone: eventData.timezone || null,
-            location: eventData.geo_address_json ? JSON.stringify({
+            location: eventData.geo_address_json ? {
               city: eventData.geo_address_json.city,
               region: eventData.geo_address_json.region,
               country: eventData.geo_address_json.country,
               latitude: eventData.geo_latitude,
               longitude: eventData.geo_longitude,
               full_address: eventData.geo_address_json.full_address,
-            }) : null,
+            } : null,
             visibility: eventData.visibility || null,
-            meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
-            calendarApiId: eventData.calendar_api_id || null,
-            createdAt: eventData.created_at || null,
+            meeting_url: eventData.meeting_url || eventData.zoom_meeting_url || null,
+            calendar_api_id: eventData.calendar_api_id || null,
+            created_at: eventData.created_at || null,
           };
         });
 
-        // Create the bulk insert query
+        // Use json_populate_recordset for efficient bulk insert
         const query = sql`
           INSERT INTO events (
             api_id, title, description, start_time, end_time,
@@ -87,7 +87,8 @@ export class CacheService {
       });
 
       const duration = Date.now() - batchStartTime;
-      console.log(`Events batch insert completed in ${duration}ms`);
+      const recordsPerSecond = Math.round((events.length / duration) * 1000);
+      console.log(`Events batch insert completed in ${duration}ms (${recordsPerSecond} records/sec)`);
     } catch (error) {
       console.error('Failed to batch insert events:', error);
       throw error;
@@ -106,18 +107,18 @@ export class CacheService {
         const values = people.map(person => ({
           api_id: person.api_id,
           email: person.email,
-          userName: person.userName || person.user?.name || null,
-          fullName: person.fullName || person.user?.full_name || null,
-          avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+          user_name: person.userName || person.user?.name || null,
+          full_name: person.fullName || person.user?.full_name || null,
+          avatar_url: person.avatarUrl || person.user?.avatar_url || null,
           role: person.role || null,
-          phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+          phone_number: person.phoneNumber || person.user?.phone_number || null,
           bio: person.bio || person.user?.bio || null,
-          organizationName: person.organizationName || person.user?.organization_name || null,
-          jobTitle: person.jobTitle || person.user?.job_title || null,
-          createdAt: person.created_at || null,
+          organization_name: person.organizationName || person.user?.organization_name || null,
+          job_title: person.jobTitle || person.user?.job_title || null,
+          created_at: person.created_at || null,
         }));
 
-        // Create the bulk insert query
+        // Use json_populate_recordset for efficient bulk insert
         const query = sql`
           INSERT INTO people (
             api_id, email, user_name, full_name, avatar_url,
@@ -141,7 +142,8 @@ export class CacheService {
       });
 
       const duration = Date.now() - batchStartTime;
-      console.log(`People batch insert completed in ${duration}ms`);
+      const recordsPerSecond = Math.round((people.length / duration) * 1000);
+      console.log(`People batch insert completed in ${duration}ms (${recordsPerSecond} records/sec)`);
     } catch (error) {
       console.error('Failed to batch insert people:', error);
       throw error;
@@ -211,6 +213,70 @@ export class CacheService {
     } finally {
       this.isCaching = false;
     }
+  }
+
+  private async fetchPeopleChunk(params: Record<string, string>): Promise<any[]> {
+    try {
+      const response = await lumaApiRequest('calendar/list-people', params);
+      if (!response || !Array.isArray(response.entries)) {
+        console.error('Invalid response format for people chunk:', response);
+        return [];
+      }
+      return response.entries;
+    } catch (error) {
+      console.error('Error fetching people chunk:', error);
+      return [];
+    }
+  }
+
+  private async fetchEventChunk(params: Record<string, string>): Promise<any[]> {
+    try {
+      console.log('Fetching events chunk with params:', params);
+      const response = await lumaApiRequest('calendar/list-events', params);
+
+      if (!response || !Array.isArray(response.entries)) {
+        console.error('Invalid response format for events chunk:', response);
+        return [];
+      }
+
+      return response.entries;
+    } catch (error) {
+      console.error('Error fetching events chunk:', error);
+      return [];
+    }
+  }
+
+  private async fetchWithConcurrency<T>(
+    chunks: Record<string, string>[],
+    fetchFn: (params: Record<string, string>) => Promise<T[]>
+  ): Promise<T[]> {
+    const results: T[] = [];
+    const startTime = Date.now();
+    let totalProcessed = 0;
+
+    for (let i = 0; i < chunks.length; i += this.MAX_CONCURRENT_REQUESTS) {
+      const batchStartTime = Date.now();
+      const chunkPromises = chunks
+        .slice(i, i + this.MAX_CONCURRENT_REQUESTS)
+        .map(async (params, index) => {
+          // Stagger requests slightly to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, index * this.REQUEST_DELAY));
+          return fetchFn(params);
+        });
+
+      const chunkResults = await Promise.all(chunkPromises);
+      const flatResults = chunkResults.flat();
+      results.push(...flatResults);
+
+      totalProcessed += flatResults.length;
+      const batchDuration = Date.now() - batchStartTime;
+      const totalDuration = Date.now() - startTime;
+      const recordsPerSecond = Math.round((totalProcessed / totalDuration) * 1000);
+
+      console.log(`Batch completed: ${flatResults.length} records in ${batchDuration}ms (Total: ${totalProcessed} records at ${recordsPerSecond}/sec)`);
+    }
+
+    return results;
   }
 
   private async fetchAllPeople(lastUpdateTime: Date): Promise<any[]> {
@@ -325,70 +391,6 @@ export class CacheService {
 
     console.log(`Completed events fetch. Total unique events: ${allEvents.length}`);
     return allEvents;
-  }
-
-  private async fetchEventChunk(params: Record<string, string>): Promise<any[]> {
-    try {
-      console.log('Fetching events chunk with params:', params);
-      const response = await lumaApiRequest('calendar/list-events', params);
-
-      if (!response || !Array.isArray(response.entries)) {
-        console.error('Invalid response format for events chunk:', response);
-        return [];
-      }
-
-      return response.entries;
-    } catch (error) {
-      console.error('Error fetching events chunk:', error);
-      return [];
-    }
-  }
-
-  private async fetchPeopleChunk(params: Record<string, string>): Promise<any[]> {
-    try {
-      const response = await lumaApiRequest('calendar/list-people', params);
-      if (!response || !Array.isArray(response.entries)) {
-        console.error('Invalid response format for people chunk:', response);
-        return [];
-      }
-      return response.entries;
-    } catch (error) {
-      console.error('Error fetching people chunk:', error);
-      return [];
-    }
-  }
-
-  private async fetchWithConcurrency<T>(
-    chunks: Record<string, string>[],
-    fetchFn: (params: Record<string, string>) => Promise<T[]>
-  ): Promise<T[]> {
-    const results: T[] = [];
-    const startTime = Date.now();
-    let totalProcessed = 0;
-
-    for (let i = 0; i < chunks.length; i += this.MAX_CONCURRENT_REQUESTS) {
-      const batchStartTime = Date.now();
-      const chunkPromises = chunks
-        .slice(i, i + this.MAX_CONCURRENT_REQUESTS)
-        .map(async (params, index) => {
-          // Stagger requests slightly to avoid overwhelming the API
-          await new Promise(resolve => setTimeout(resolve, index * this.REQUEST_DELAY));
-          return fetchFn(params);
-        });
-
-      const chunkResults = await Promise.all(chunkPromises);
-      const flatResults = chunkResults.flat();
-      results.push(...flatResults);
-
-      totalProcessed += flatResults.length;
-      const batchDuration = Date.now() - batchStartTime;
-      const totalDuration = Date.now() - startTime;
-      const recordsPerSecond = Math.round((totalProcessed / totalDuration) * 1000);
-
-      console.log(`Batch completed: ${flatResults.length} records in ${batchDuration}ms (Total: ${totalProcessed} records at ${recordsPerSecond}/sec)`);
-    }
-
-    return results;
   }
 
   startCaching() {
