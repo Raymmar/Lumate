@@ -5,9 +5,9 @@ export class CacheService {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
-  private readonly CHUNK_SIZE = 100;
-  private readonly MAX_CONCURRENT_REQUESTS = 3;
-  private readonly REQUEST_DELAY = 500; // ms between parallel requests
+  private readonly CHUNK_SIZE = 200; // Increased from 100
+  private readonly MAX_CONCURRENT_REQUESTS = 5; // Increased from 3
+  private readonly REQUEST_DELAY = 200; // Reduced from 500ms
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -96,21 +96,63 @@ export class CacheService {
     fetchFn: (params: Record<string, string>) => Promise<T[]>
   ): Promise<T[]> {
     const results: T[] = [];
+    const startTime = Date.now();
+    let totalProcessed = 0;
 
     for (let i = 0; i < chunks.length; i += this.MAX_CONCURRENT_REQUESTS) {
+      const batchStartTime = Date.now();
       const chunkPromises = chunks
         .slice(i, i + this.MAX_CONCURRENT_REQUESTS)
-        .map(async (params) => {
-          await new Promise(resolve => setTimeout(resolve, this.REQUEST_DELAY));
+        .map(async (params, index) => {
+          // Stagger requests slightly to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, index * this.REQUEST_DELAY));
           return fetchFn(params);
         });
 
       const chunkResults = await Promise.all(chunkPromises);
-      results.push(...chunkResults.flat());
+      const flatResults = chunkResults.flat();
+      results.push(...flatResults);
+
+      totalProcessed += flatResults.length;
+      const batchDuration = Date.now() - batchStartTime;
+      const totalDuration = Date.now() - startTime;
+      const recordsPerSecond = Math.round((totalProcessed / totalDuration) * 1000);
+
+      console.log(`Batch completed: ${flatResults.length} records in ${batchDuration}ms (Total: ${totalProcessed} records at ${recordsPerSecond}/sec)`);
     }
 
     return results;
   }
+
+  private async processDataInBatches<T>(
+    items: T[],
+    processFn: (item: T) => Promise<void>,
+    batchSize: number = 50
+  ): Promise<void> {
+    const startTime = Date.now();
+    let processed = 0;
+
+    for (let i = 0; i < items.length; i += batchSize) {
+      const batchStartTime = Date.now();
+      const batch = items.slice(i, i + batchSize);
+
+      await Promise.all(batch.map(async (item) => {
+        try {
+          await processFn(item);
+          processed++;
+        } catch (error) {
+          console.error('Failed to process item:', error);
+        }
+      }));
+
+      const batchDuration = Date.now() - batchStartTime;
+      const totalDuration = Date.now() - startTime;
+      const itemsPerSecond = Math.round((processed / totalDuration) * 1000);
+
+      console.log(`Processed batch of ${batch.length} items in ${batchDuration}ms (Total: ${processed}/${items.length} at ${itemsPerSecond}/sec)`);
+    }
+  }
+
 
   private async fetchAllPeople(lastUpdateTime?: Date): Promise<any[]> {
     console.log('Starting parallel fetch of people from Luma API...');
@@ -248,6 +290,7 @@ export class CacheService {
     }
 
     this.isCaching = true;
+    const syncStartTime = Date.now();
     console.log('Starting cache update process...');
 
     try {
@@ -257,6 +300,7 @@ export class CacheService {
       console.log(`Last cache update was ${lastUpdate ? lastUpdate.toISOString() : 'never'}`);
       const lastUpdateTime = lastUpdate || undefined;
 
+      // Fetch data in parallel
       console.log('Fetching events and people in parallel...');
       const [eventsResult, peopleResult] = await Promise.allSettled([
         this.fetchAllEvents(lastUpdateTime),
@@ -267,101 +311,85 @@ export class CacheService {
       let processedEvents = 0;
       let processedPeople = 0;
 
-      // Process new events
+      // Process events with batched database operations
       if (eventsResult.status === 'fulfilled' && eventsResult.value.length > 0) {
         const events = eventsResult.value;
-        console.log(`Processing ${events.length} events...`);
+        console.log(`Processing ${events.length} events in batches...`);
 
-        for (const entry of events) {
-          try {
-            const eventData = entry.event;
-            if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
-              console.warn('Skipping event - Missing required fields:', eventData);
-              continue;
-            }
-
-            await storage.insertEvent({
-              api_id: eventData.api_id,
-              title: eventData.name,
-              description: eventData.description || null,
-              startTime: eventData.start_at,
-              endTime: eventData.end_at,
-              coverUrl: eventData.cover_url || null,
-              url: eventData.url || null,
-              timezone: eventData.timezone || null,
-              location: eventData.geo_address_json ? {
-                city: eventData.geo_address_json.city,
-                region: eventData.geo_address_json.region,
-                country: eventData.geo_address_json.country,
-                latitude: eventData.geo_latitude,
-                longitude: eventData.geo_longitude,
-                full_address: eventData.geo_address_json.full_address,
-              } : null,
-              visibility: eventData.visibility || null,
-              meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
-              calendarApiId: eventData.calendar_api_id || null,
-              createdAt: eventData.created_at || null,
-            });
-            processedEvents++;
-            hasNewData = true;
-
-            // Log progress for first few events
-            if (processedEvents <= 3) {
-              console.log(`Successfully processed event: ${eventData.name} (${eventData.api_id})`);
-            }
-          } catch (error) {
-            console.error('Failed to process event:', error);
+        await this.processDataInBatches(events, async (entry) => {
+          const eventData = entry.event;
+          if (!eventData?.name || !eventData?.start_at || !eventData?.end_at) {
+            return;
           }
-        }
+
+          await storage.insertEvent({
+            api_id: eventData.api_id,
+            title: eventData.name,
+            description: eventData.description || null,
+            startTime: eventData.start_at,
+            endTime: eventData.end_at,
+            coverUrl: eventData.cover_url || null,
+            url: eventData.url || null,
+            timezone: eventData.timezone || null,
+            location: eventData.geo_address_json ? {
+              city: eventData.geo_address_json.city,
+              region: eventData.geo_address_json.region,
+              country: eventData.geo_address_json.country,
+              latitude: eventData.geo_latitude,
+              longitude: eventData.geo_longitude,
+              full_address: eventData.geo_address_json.full_address,
+            } : null,
+            visibility: eventData.visibility || null,
+            meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
+            calendarApiId: eventData.calendar_api_id || null,
+            createdAt: eventData.created_at || null,
+          });
+          processedEvents++;
+          hasNewData = true;
+        });
+
         console.log(`Successfully processed ${processedEvents} events`);
-      } else if (eventsResult.status === 'rejected') {
-        console.error('Failed to fetch events:', eventsResult.reason);
-      } else {
-        console.log('No new events to sync');
       }
 
-      // Process new people
+      // Process people with batched database operations
       if (peopleResult.status === 'fulfilled' && peopleResult.value.length > 0) {
         const people = peopleResult.value;
-        console.log(`Processing ${people.length} new people...`);
+        console.log(`Processing ${people.length} people in batches...`);
 
-        await Promise.all(people.map(async (person) => {
-          try {
-            if (!person.api_id || !person.email) {
-              console.warn('Skipping person - Missing required fields:', person);
-              return;
-            }
-
-            await storage.insertPerson({
-              api_id: person.api_id,
-              email: person.email,
-              userName: person.userName || person.user?.name || null,
-              fullName: person.fullName || person.user?.full_name || null,
-              avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
-              role: person.role || null,
-              phoneNumber: person.phoneNumber || person.user?.phone_number || null,
-              bio: person.bio || person.user?.bio || null,
-              organizationName: person.organizationName || person.user?.organization_name || null,
-              jobTitle: person.jobTitle || person.user?.job_title || null,
-              createdAt: person.created_at || null,
-            });
-            processedPeople++;
-            hasNewData = true;
-          } catch (error) {
-            console.error('Failed to process person:', error);
+        await this.processDataInBatches(people, async (person) => {
+          if (!person.api_id || !person.email) {
+            return;
           }
-        }));
+
+          await storage.insertPerson({
+            api_id: person.api_id,
+            email: person.email,
+            userName: person.userName || person.user?.name || null,
+            fullName: person.fullName || person.user?.full_name || null,
+            avatarUrl: person.avatarUrl || person.user?.avatar_url || null,
+            role: person.role || null,
+            phoneNumber: person.phoneNumber || person.user?.phone_number || null,
+            bio: person.bio || person.user?.bio || null,
+            organizationName: person.organizationName || person.user?.organization_name || null,
+            jobTitle: person.jobTitle || person.user?.job_title || null,
+            createdAt: person.created_at || null,
+          });
+          processedPeople++;
+          hasNewData = true;
+        });
+
         console.log(`Successfully processed ${processedPeople} people`);
-      } else {
-        console.log('No new people to sync');
       }
 
-      // Only update the last cache time if we actually processed new data
       if (hasNewData) {
         await storage.setLastCacheUpdate(now);
-        console.log(`Cache update completed with new data at ${now.toISOString()}. Processed ${processedEvents} events and ${processedPeople} people.`);
+        const totalDuration = (Date.now() - syncStartTime) / 1000;
+        const totalRecords = processedEvents + processedPeople;
+        const recordsPerSecond = Math.round(totalRecords / totalDuration);
+
+        console.log(`Cache update completed in ${totalDuration}s. Processed ${totalRecords} records (${recordsPerSecond} records/sec)`);
       } else {
-        console.log('No new data processed, keeping existing last update timestamp');
+        console.log('No new data to sync');
       }
     } catch (error) {
       console.error('Cache update process failed:', error);
