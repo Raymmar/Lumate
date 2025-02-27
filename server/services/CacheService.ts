@@ -211,33 +211,36 @@ export class CacheService {
 
     try {
       await db.transaction(async (tx) => {
+        // Map the event data to match our schema
         const values = events.map(entry => {
           const eventData = entry.event;
+          const location = eventData.geo_address_json ? {
+            city: eventData.geo_address_json.city,
+            region: eventData.geo_address_json.region,
+            country: eventData.geo_address_json.country,
+            latitude: eventData.geo_latitude,
+            longitude: eventData.geo_longitude,
+            full_address: eventData.geo_address_json.full_address,
+          } : null;
+
           return {
             api_id: eventData.api_id,
             title: eventData.name,
             description: eventData.description || null,
-            start_time: eventData.start_at,
-            end_time: eventData.end_at,
-            cover_url: eventData.cover_url || null,
+            startTime: eventData.start_at,
+            endTime: eventData.end_at,
+            coverUrl: eventData.cover_url || null,
             url: eventData.url || null,
             timezone: eventData.timezone || null,
-            location: eventData.geo_address_json ? JSON.stringify({
-              city: eventData.geo_address_json.city,
-              region: eventData.geo_address_json.region,
-              country: eventData.geo_address_json.country,
-              latitude: eventData.geo_latitude,
-              longitude: eventData.geo_longitude,
-              full_address: eventData.geo_address_json.full_address,
-            }) : null,
+            location: location ? JSON.stringify(location) : null,
             visibility: eventData.visibility || null,
-            meeting_url: eventData.meeting_url || eventData.zoom_meeting_url || null,
-            calendar_api_id: eventData.calendar_api_id || null,
-            created_at: eventData.created_at || null,
+            meetingUrl: eventData.meeting_url || eventData.zoom_meeting_url || null,
+            calendarApiId: eventData.calendar_api_id || null,
+            createdAt: eventData.created_at || null,
           };
         });
 
-        // Create explicit insert statement with column names
+        // Create the SQL query with exact column names from our schema
         const query = sql`
           INSERT INTO events (
             api_id, title, description, start_time, end_time,
@@ -245,13 +248,13 @@ export class CacheService {
             meeting_url, calendar_api_id, created_at
           )
           VALUES ${sql.join(
-            values.map(
-              event => sql`(
-                ${event.api_id}, ${event.title}, ${event.description}, ${event.start_time}, ${event.end_time},
-                ${event.cover_url}, ${event.url}, ${event.timezone}, ${event.location}::jsonb, ${event.visibility},
-                ${event.meeting_url}, ${event.calendar_api_id}, ${event.created_at}
-              )`
-            ),
+            values.map(event => sql`(
+              ${event.api_id}, ${event.title}, ${event.description}, 
+              ${event.startTime}, ${event.endTime},
+              ${event.coverUrl}, ${event.url}, ${event.timezone}, 
+              ${event.location}::jsonb, ${event.visibility},
+              ${event.meetingUrl}, ${event.calendarApiId}, ${event.createdAt}
+            )`),
             ","
           )}
           ON CONFLICT (api_id) DO UPDATE SET
