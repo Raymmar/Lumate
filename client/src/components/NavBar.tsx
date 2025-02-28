@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, RefreshCw } from "lucide-react";
+import { User, Settings, LogOut, RefreshCw, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function NavBar() {
@@ -44,56 +44,63 @@ export function NavBar() {
           </a>
         </Link>
         <div className="ml-auto flex items-center space-x-4">
-          {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      {(user.displayName || user.email).charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                {user.personId && user.api_id && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    {user ? (user.displayName || user.email).charAt(0).toUpperCase() : "?"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              {user ? (
+                <>
+                  {user.personId && user.api_id && (
+                    <DropdownMenuItem asChild>
+                      <Link href={`/people/${user.api_id}`}>
+                        <span className="flex items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          Profile
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
-                    <Link href={`/people/${user.api_id}`}>
+                    <Link href="/settings">
                       <span className="flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        Profile
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
                       </span>
                     </Link>
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
+                  <DropdownMenuItem className="cursor-pointer" onSelect={handleResync}>
                     <span className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Settings
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Re-sync Database
+                    </span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer" onSelect={() => logout()}>
+                    <span className="flex items-center">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <DropdownMenuItem asChild>
+                  <Link href="/login">
+                    <span className="flex items-center">
+                      <LogIn className="mr-2 h-4 w-4" />
+                      Log in
                     </span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onSelect={handleResync}>
-                  <span className="flex items-center">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Re-sync Database
-                  </span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer" onSelect={() => logout()}>
-                  <span className="flex items-center">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Link href="/login">
-              <Button>Log in</Button>
-            </Link>
-          )}
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
