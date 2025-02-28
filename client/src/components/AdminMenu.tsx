@@ -58,24 +58,26 @@ export default function AdminMenu() {
 
   return (
     <>
-      <Button 
-        variant="default" 
-        className="w-full bg-black hover:bg-black/90 fixed bottom-0"
-        onClick={() => setIsResetDialogOpen(true)}
-        disabled={isResetting}
-      >
-        {isResetting ? (
-          <>
-            <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-            Syncing...
-          </>
-        ) : (
-          <>
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            Reset & Sync Data
-          </>
-        )}
-      </Button>
+      <div className="px-4">
+        <Button 
+          variant="default" 
+          className="w-full bg-black hover:bg-black/90"
+          onClick={() => setIsResetDialogOpen(true)}
+          disabled={isResetting}
+        >
+          {isResetting ? (
+            <>
+              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            <>
+              <RefreshCcw className="mr-2 h-4 w-4" />
+              Reset & Sync Data
+            </>
+          )}
+        </Button>
+      </div>
 
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <AlertDialogContent>
