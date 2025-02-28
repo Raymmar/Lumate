@@ -1,17 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-
-interface Person {
-  id: string;
-  name: string;
-  email: string;
-  created_at: string;
-  last_seen_at: string | null;
-}
+import type { Person } from "@shared/schema";
 
 export function PeopleTable() {
-  const { data: people = [], isLoading } = useQuery({
+  const { data: people = [], isLoading } = useQuery<Person[]>({
     queryKey: ["/api/admin/people"],
     queryFn: async () => {
       const response = await fetch("/api/admin/people");
@@ -22,9 +15,9 @@ export function PeopleTable() {
 
   const columns = [
     {
-      key: "name",
+      key: "userName",
       header: "Name",
-      cell: (row: Person) => row.name,
+      cell: (row: Person) => row.userName || row.fullName || "—",
     },
     {
       key: "email",
@@ -32,14 +25,14 @@ export function PeopleTable() {
       cell: (row: Person) => row.email,
     },
     {
-      key: "created_at",
-      header: "Created At",
-      cell: (row: Person) => format(new Date(row.created_at), "PPP"),
+      key: "role",
+      header: "Role",
+      cell: (row: Person) => row.role || "—",
     },
     {
-      key: "last_seen_at",
-      header: "Last Seen",
-      cell: (row: Person) => row.last_seen_at ? format(new Date(row.last_seen_at), "PPP") : "Never",
+      key: "organizationName",
+      header: "Organization",
+      cell: (row: Person) => row.organizationName || "—",
     },
   ];
 

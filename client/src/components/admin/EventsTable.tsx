@@ -1,17 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-
-interface Event {
-  id: string;
-  name: string;
-  start_at: string;
-  end_at: string;
-  attendee_count: number;
-}
+import type { Event } from "@shared/schema";
 
 export function EventsTable() {
-  const { data: events = [], isLoading } = useQuery({
+  const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/admin/events"],
     queryFn: async () => {
       const response = await fetch("/api/admin/events");
@@ -22,24 +15,24 @@ export function EventsTable() {
 
   const columns = [
     {
-      key: "name",
+      key: "title",
       header: "Event Name",
-      cell: (row: Event) => row.name,
+      cell: (row: Event) => row.title,
     },
     {
-      key: "start_at",
+      key: "startTime",
       header: "Start Date",
-      cell: (row: Event) => format(new Date(row.start_at), "PPP"),
+      cell: (row: Event) => format(new Date(row.startTime), "PPP"),
     },
     {
-      key: "end_at",
+      key: "endTime",
       header: "End Date",
-      cell: (row: Event) => format(new Date(row.end_at), "PPP"),
+      cell: (row: Event) => format(new Date(row.endTime), "PPP"),
     },
     {
-      key: "attendee_count",
-      header: "Attendees",
-      cell: (row: Event) => row.attendee_count,
+      key: "url",
+      header: "URL",
+      cell: (row: Event) => row.url || "—",
     },
   ];
 
