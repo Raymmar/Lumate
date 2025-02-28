@@ -205,7 +205,7 @@ export class PostgresStorage implements IStorage {
           ON DELETE SET NULL
         `);
 
-        console.log('Successfully cleared people table and reset sequences while preserving relationships');
+        console.log('Successfully cleared people table and reset sequences while preserving user relationships');
       });
     } catch (error) {
       console.error('Failed to clear people table:', error);
