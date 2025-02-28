@@ -49,7 +49,11 @@ export function NavBar() {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>
-                    {user ? (user.displayName || user.email).charAt(0).toUpperCase() : "?"}
+                    {user ? (
+                      (user.displayName || user.email).charAt(0).toUpperCase()
+                    ) : (
+                      <User className="h-4 w-4" />
+                    )}
                   </AvatarFallback>
                 </Avatar>
               </Button>
