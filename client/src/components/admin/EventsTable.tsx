@@ -33,6 +33,12 @@ export function EventsTable() {
 
   const actions = [
     {
+      label: "View details",
+      onClick: (event: Event) => {
+        setSelectedEvent(event);
+      },
+    },
+    {
       label: "Manage event",
       onClick: (event: Event) => {
         if (event.url) {
