@@ -30,43 +30,46 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
       onStartSync(event.api_id);
     }
 
-    try {
-      const response = await fetch(`/api/admin/events/${event.api_id}/guests`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch attendees');
-      }
-      const data = await response.json();
-      console.log('Attendees data:', data);
+    // Start the sync in the background
+    fetch(`/api/admin/events/${event.api_id}/guests`)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error('Failed to fetch attendees');
+        }
+        const data = await response.json();
+        console.log('Attendees data:', data);
 
-      // Optimistically update local state
-      const now = new Date().toISOString();
-      setLocalSyncStatus({
-        isSynced: true,
-        lastSyncedAt: now
+        // Optimistically update local state
+        const now = new Date().toISOString();
+        setLocalSyncStatus({
+          isSynced: true,
+          lastSyncedAt: now
+        });
+
+        // Notify parent component if callback exists
+        if (onSync) {
+          onSync(event.api_id);
+        }
+
+        toast({
+          title: "Success",
+          description: "Successfully synced attendees data",
+        });
+
+        // Invalidate events query to refresh sync status
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+      })
+      .catch((error) => {
+        console.error('Error fetching attendees:', error);
+        toast({
+          title: "Error",
+          description: error instanceof Error ? error.message : "Failed to sync attendees",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        setIsSyncing(false);
       });
-
-      // Notify parent component if callback exists
-      if (onSync) {
-        onSync(event.api_id);
-      }
-
-      toast({
-        title: "Success",
-        description: "Successfully synced attendees data",
-      });
-
-      // Invalidate events query to refresh sync status
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-    } catch (error) {
-      console.error('Error fetching attendees:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to sync attendees",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSyncing(false);
-    }
   };
 
   // Use local state for rendering

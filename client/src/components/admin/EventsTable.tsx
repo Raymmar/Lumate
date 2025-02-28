@@ -26,15 +26,6 @@ export function EventsTable() {
   };
 
   const handleSync = (eventId: string) => {
-    // Update selected event's sync status optimistically
-    if (selectedEvent && selectedEvent.api_id === eventId) {
-      const now = new Date().toISOString();
-      setSelectedEvent({
-        ...selectedEvent,
-        isSynced: true,
-        lastSyncedAt: now
-      });
-    }
     // Remove from syncing set
     setSyncingEvents(prev => {
       const next = new Set(prev);
