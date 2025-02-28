@@ -51,22 +51,22 @@ export function NavBar() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               {user ? (
                 <>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <span className="flex items-center">
+                          <Shield className="mr-2 h-4 w-4" />
+                          Admin
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   {user.api_id && (
                     <DropdownMenuItem asChild>
                       <Link href={`/people/${user.api_id}`}>
                         <span className="flex items-center">
                           <User className="mr-2 h-4 w-4" />
                           Profile
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <span className="flex items-center">
-                          <Shield className="mr-2 h-4 w-4" />
-                          Admin Dashboard
                         </span>
                       </Link>
                     </DropdownMenuItem>
