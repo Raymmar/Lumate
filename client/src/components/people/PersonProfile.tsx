@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useState } from 'react';
 
 interface PersonProfileProps {
@@ -26,6 +27,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const [email, setEmail] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: person, isLoading, error } = useQuery<Person>({
@@ -111,7 +113,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isClaimed = userStatus?.isClaimed;
+  const isClaimed = userStatus?.isClaimed || user !== null;
 
   return (
     <div className="space-y-6">
@@ -144,45 +146,47 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </div>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button 
-              variant={isClaimed ? "outline" : "default"} 
-              className={isClaimed ? "cursor-default" : ""}
-              disabled={isClaimed}
-            >
-              {isClaimed ? "Profile Claimed" : "Claim Profile"}
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Claim Your Profile</DialogTitle>
-              <DialogDescription>
-                Enter your email address to verify and claim this profile. We'll send you a verification link.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleClaimProfile} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
+        {!user && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
               <Button 
-                type="submit" 
-                disabled={claimProfileMutation.isPending}
-                className="w-full"
+                variant={isClaimed ? "outline" : "default"} 
+                className={isClaimed ? "cursor-default" : ""}
+                disabled={isClaimed}
               >
-                {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
+                {isClaimed ? "Profile Claimed" : "Claim Profile"}
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Claim Your Profile</DialogTitle>
+                <DialogDescription>
+                  Enter your email address to verify and claim this profile. We'll send you a verification link.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleClaimProfile} className="space-y-4">
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  disabled={claimProfileMutation.isPending}
+                  className="w-full"
+                >
+                  {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
