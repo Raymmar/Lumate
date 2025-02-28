@@ -140,14 +140,10 @@ export default function PeopleDirectory() {
               ) : error ? (
                 <li className="py-4 text-destructive">Failed to load people directory</li>
               ) : data?.people && data.people.length > 0 ? (
-                data.people.map((person, index) => (
+                data.people.map((person) => (
                   <li
                     key={person.id}
-                    className={`cursor-pointer p-3 hover:bg-secondary/50 flex items-center gap-4 rounded-md transition-colors ${
-                      index === focusedIndex && isSearchActive
-                        ? 'bg-muted/80 ring-1 ring-inset ring-ring shadow-sm'
-                        : ''
-                    }`}
+                    className="cursor-pointer py-4 hover:bg-secondary/50 flex items-center gap-4"
                     onClick={() => handlePersonClick(person.api_id)}
                   >
                     <Avatar className="h-10 w-10">
