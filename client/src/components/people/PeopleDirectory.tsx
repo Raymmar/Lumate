@@ -12,6 +12,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import { AuthGuard } from "@/components/AuthGuard";
 
 // existing interfaces remain unchanged
 export interface Person {
@@ -155,7 +156,15 @@ export default function PeopleDirectory() {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+                    <AuthGuard
+                      fallback={
+                        <p className="text-xs text-muted-foreground truncate">
+                          Sign in to view email
+                        </p>
+                      }
+                    >
+                      <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+                    </AuthGuard>
                   </div>
                 </div>
               ))}
@@ -168,8 +177,8 @@ export default function PeopleDirectory() {
             <Pagination>
               <PaginationContent>
                 <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={handlePreviousPage} 
+                  <PaginationPrevious
+                    onClick={handlePreviousPage}
                     className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} text-xs`}
                   />
                 </PaginationItem>
@@ -177,7 +186,7 @@ export default function PeopleDirectory() {
                   <span className="px-4 text-xs">Page {currentPage} of {totalPages}</span>
                 </PaginationItem>
                 <PaginationItem>
-                  <PaginationNext 
+                  <PaginationNext
                     onClick={handleNextPage}
                     className={`${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''} text-xs`}
                   />

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from 'react';
+import { AuthGuard } from "@/components/AuthGuard";
 
 interface PersonProfileProps {
   personId: string;
@@ -210,15 +211,33 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   <dd>{person.fullName}</dd>
                 </div>
               )}
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Email</dt>
-                <dd>{person.email}</dd>
-              </div>
-              {person.phoneNumber && (
+              <AuthGuard
+                fallback={
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">Email</dt>
+                    <dd className="text-sm text-muted-foreground">Sign in to view email</dd>
+                  </div>
+                }
+              >
                 <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
-                  <dd>{person.phoneNumber}</dd>
+                  <dt className="text-sm font-medium text-muted-foreground">Email</dt>
+                  <dd>{person.email}</dd>
                 </div>
+              </AuthGuard>
+              {person.phoneNumber && (
+                <AuthGuard
+                  fallback={
+                    <div>
+                      <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
+                      <dd className="text-sm text-muted-foreground">Sign in to view phone number</dd>
+                    </div>
+                  }
+                >
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
+                    <dd>{person.phoneNumber}</dd>
+                  </div>
+                </AuthGuard>
               )}
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
