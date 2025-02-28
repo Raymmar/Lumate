@@ -19,6 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
+import { AdminBadge } from "@/components/AdminBadge";
+import { ADMIN_EMAILS } from "@/components/AdminGuard";
 
 interface PersonProfileProps {
   personId: string;
@@ -114,8 +116,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isClaimed = userStatus?.isClaimed || user !== null;
-  const isOwnProfile = user?.api_id === person.api_id;
+  const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
+  const isOwnProfile = user?.api_id === person?.api_id;
 
   return (
     <div className="space-y-6">
@@ -136,12 +138,15 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             )}
           </Avatar>
           <div>
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
               {person.userName || "Anonymous"}
               {person.role && (
                 <Badge variant="secondary" className="ml-2">
                   {person.role}
                 </Badge>
+              )}
+              {isAdmin && (
+                <AdminBadge />
               )}
             </h1>
             <div className="flex items-center gap-2">
