@@ -10,6 +10,20 @@ import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
+import { Response } from 'express';
+
+// Add SSE helper function at the top of the file
+function initSSE(res: Response) {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+}
+
+function sendSSEUpdate(res: Response, data: any) {
+  res.write(`data: ${JSON.stringify(data)}\n\n`);
+}
 
 // Define admin emails directly in routes since we can't import from client components
 const ADMIN_EMAILS = [
@@ -522,29 +536,63 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Forbidden. This endpoint is restricted to internal use only." });
       }
 
-      console.log('Starting database reset process');
+      // Initialize SSE
+      initSSE(res);
+      sendSSEUpdate(res, { 
+        type: 'status', 
+        message: 'Starting database reset process',
+        progress: 0 
+      });
 
       try {
-        // Clear only events and people tables
-        console.log('Clearing events table...');
+        // Clear events table
+        sendSSEUpdate(res, { 
+          type: 'status', 
+          message: 'Clearing events table...',
+          progress: 5 
+        });
         await storage.clearEvents();
 
-        console.log('Clearing people table (preserving user relationships)...');
+        // Clear people table
+        sendSSEUpdate(res, { 
+          type: 'status', 
+          message: 'Clearing people table (preserving user relationships)...',
+          progress: 10 
+        });
         await storage.clearPeople();
 
-        console.log('Clearing cache metadata...');
+        // Clear cache metadata
+        sendSSEUpdate(res, { 
+          type: 'status', 
+          message: 'Clearing cache metadata...',
+          progress: 15 
+        });
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
-        // Import CacheService to trigger a refresh
+        // Import CacheService
         const { CacheService } = await import('./services/CacheService');
         const cacheService = CacheService.getInstance();
 
-        // Initialize a new sync from the beginning of time
+        // Initialize sync
+        sendSSEUpdate(res, { 
+          type: 'status', 
+          message: 'Initializing fresh data fetch from Luma API',
+          progress: 20 
+        });
+
+        // Set up event listeners for cache service
+        cacheService.on('fetchProgress', (data) => {
+          sendSSEUpdate(res, {
+            type: 'progress',
+            ...data
+          });
+        });
+
+        // Initialize a new sync
         const oldestPossibleDate = new Date(0);
         await storage.setLastCacheUpdate(oldestPossibleDate);
 
-        // Trigger and await the cache update process
-        console.log('Starting fresh data fetch from Luma API');
+        // Start the cache update
         await cacheService.updateCache();
 
         // Verify data was fetched
@@ -553,20 +601,24 @@ export async function registerRoutes(app: Express) {
           storage.getPeopleCount()
         ]);
 
-        console.log(`Verification: Fetched ${eventCount} events and ${peopleCount} people`);
-
         if (eventCount === 0 && peopleCount === 0) {
           throw new Error('No data was fetched from Luma API');
         }
 
-        return res.json({ 
-          success: true, 
+        // Send final success message
+        sendSSEUpdate(res, { 
+          type: 'complete',
           message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
           data: {
             eventCount,
             peopleCount
-          }
+          },
+          progress: 100
         });
+
+        // End the SSE stream
+        res.end();
+
       } catch (error) {
         console.error('Failed during database reset:', error);
         if (error instanceof Error) {
@@ -576,14 +628,22 @@ export async function registerRoutes(app: Express) {
             name: error.name
           });
         }
+        sendSSEUpdate(res, {
+          type: 'error',
+          message: error instanceof Error ? error.message : String(error),
+          progress: 0
+        });
+        res.end();
         throw error;
       }
     } catch (error) {
       console.error('Failed to reset database:', error);
-      return res.status(500).json({ 
-        error: "Failed to reset database", 
-        details: error instanceof Error ? error.message : String(error) 
-      });
+      if (!res.headersSent) {
+        return res.status(500).json({ 
+          error: "Failed to reset database", 
+          details: error instanceof Error ? error.message : String(error) 
+        });
+      }
     }
   });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { 
   AlertDialog,
@@ -14,18 +14,26 @@ import { Button } from "@/components/ui/button";
 import { RefreshCcw, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function AdminMenu() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStatus, setSyncStatus] = useState("");
+  const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const { toast, dismiss } = useToast();
+
+  const addSyncLog = (message: string) => {
+    setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
 
   const handleResetDatabase = async () => {
     setIsResetting(true);
     setSyncProgress(0);
     setSyncStatus("Starting sync process...");
+    setSyncLogs([]);
+
     try {
       const response = await fetch('/_internal/reset-database', {
         method: 'POST',
@@ -35,16 +43,15 @@ export default function AdminMenu() {
         credentials: 'include'
       });
 
-      if (!response.ok) {
+      if (!response.ok && !response.headers.get('content-type')?.includes('text/event-stream')) {
         const errorData = await response.json();
         throw new Error(errorData.error || errorData.message || 'Failed to reset and sync data');
       }
 
-      const data = await response.json();
-
+      // Show initial toast
       toast({
         title: "Reset & Sync Started",
-        description: data.message || "Database has been cleared. Fresh data is being synced from Luma API. This may take several minutes to complete.",
+        description: "Database reset initiated. Starting sync process...",
         variant: "default",
       });
 
@@ -55,35 +62,39 @@ export default function AdminMenu() {
         duration: Infinity, // Won't auto-dismiss
       });
 
-      // Poll for completion
-      const checkSync = async () => {
-        try {
-          const statsResponse = await fetch('/api/admin/stats', {
-            credentials: 'include'
-          });
+      // Handle SSE
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
 
-          if (statsResponse.ok) {
-            const stats = await statsResponse.json();
+      if (!reader) {
+        throw new Error('Failed to initialize stream reader');
+      }
 
-            // Calculate progress based on stats
-            if (stats.events > 0 || stats.people > 0) {
-              // Update status message based on counts
-              if (stats.events === 0) {
-                setSyncStatus("Fetching events...");
-                setSyncProgress(25);
-              } else if (stats.people === 0) {
-                setSyncStatus(`Fetched ${stats.events} events. Now syncing people...`);
-                setSyncProgress(50);
-              } else {
-                setSyncStatus(`Processing ${stats.events} events and ${stats.people} people...`);
-                setSyncProgress(75);
-              }
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-              if (stats.events > 0 && stats.people > 0) {
+        const chunk = decoder.decode(value);
+        const messages = chunk.split('\n\n').filter(Boolean);
+
+        for (const message of messages) {
+          if (message.startsWith('data: ')) {
+            const data = JSON.parse(message.slice(6));
+
+            switch (data.type) {
+              case 'status':
+              case 'progress':
+                setSyncStatus(data.message);
+                setSyncProgress(data.progress);
+                addSyncLog(data.message);
+                break;
+
+              case 'complete':
                 // Dismiss the infinite sync toast
                 dismiss(syncToast);
                 setSyncProgress(100);
                 setSyncStatus("Sync completed successfully!");
+                addSyncLog("Sync completed successfully!");
 
                 // Show completion toast with detailed stats
                 toast({
@@ -92,8 +103,8 @@ export default function AdminMenu() {
                     <div className="space-y-2">
                       <p>Data has been successfully synchronized:</p>
                       <ul className="list-disc pl-4">
-                        <li>{stats.events} events synced</li>
-                        <li>{stats.people} people synced</li>
+                        <li>{data.data.eventCount} events synced</li>
+                        <li>{data.data.peopleCount} people synced</li>
                       </ul>
                     </div>
                   ),
@@ -106,21 +117,15 @@ export default function AdminMenu() {
                   window.location.reload();
                 }, 1000);
                 return;
-              }
+
+              case 'error':
+                setSyncStatus(`Error: ${data.message}`);
+                addSyncLog(`Error: ${data.message}`);
+                throw new Error(data.message);
             }
           }
-          // Check again in 5 seconds
-          setTimeout(checkSync, 5000);
-        } catch (error) {
-          console.error('Error checking sync status:', error);
-          setSyncStatus("Error checking sync status. Retrying...");
-          // Continue polling even if check fails
-          setTimeout(checkSync, 5000);
         }
-      };
-
-      // Start polling
-      setTimeout(checkSync, 5000);
+      }
 
     } catch (error) {
       console.error('Error resetting and syncing data:', error);
@@ -134,6 +139,7 @@ export default function AdminMenu() {
         setIsResetting(false);
         setSyncProgress(0);
         setSyncStatus("");
+        setSyncLogs([]);
       }
     }
   };
@@ -192,6 +198,15 @@ export default function AdminMenu() {
                       {syncProgress}% Complete
                     </p>
                   </div>
+                  <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                    <div className="space-y-2">
+                      {syncLogs.map((log, index) => (
+                        <p key={index} className="text-sm text-muted-foreground">
+                          {log}
+                        </p>
+                      ))}
+                    </div>
+                  </ScrollArea>
                 </>
               ) : (
                 <>
