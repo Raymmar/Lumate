@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   return (
     <DashboardLayout>
-      <div className="h-full flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
         <Card className="w-[400px]">
           <CardHeader>
             <CardTitle>Welcome Back</CardTitle>
