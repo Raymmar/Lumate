@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import type { Event } from "@shared/schema";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useState } from "react";
@@ -32,6 +33,19 @@ export function EventsTable() {
       next.delete(eventId);
       return next;
     });
+  };
+
+  const formatLastSyncTime = (dateStr: string) => {
+    try {
+      return formatInTimeZone(
+        new Date(dateStr),
+        'America/New_York', // Default to ET if no timezone provided
+        'MMM d, h:mm aa zzz'
+      );
+    } catch (error) {
+      console.error("Invalid date format:", dateStr, error);
+      return "Date not available";
+    }
   };
 
   const columns = [
@@ -66,7 +80,7 @@ export function EventsTable() {
               <>
                 Synced
                 <span className="ml-1 text-xs text-muted-foreground">
-                  ({format(new Date(row.lastSyncedAt!), "MMM d, h:mm a")})
+                  ({formatLastSyncTime(row.lastSyncedAt!)})
                 </span>
               </>
             ) : (

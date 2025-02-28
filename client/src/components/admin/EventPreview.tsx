@@ -1,5 +1,6 @@
 import { Event } from "@shared/schema";
 import { format } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,19 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
     lastSyncedAt: event.lastSyncedAt
   });
   const queryClient = useQueryClient();
+
+  const formatLastSyncTime = (dateStr: string) => {
+    try {
+      return formatInTimeZone(
+        new Date(dateStr),
+        event.timezone || 'America/New_York', // Use event timezone if available
+        'MMM d, h:mm aa zzz'
+      );
+    } catch (error) {
+      console.error("Invalid date format:", dateStr, error);
+      return "Date not available";
+    }
+  };
 
   const handleSyncAttendees = async () => {
     setIsSyncing(true);
@@ -108,7 +122,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                 <>
                   Synced
                   <span className="ml-1 text-xs text-muted-foreground">
-                    ({format(new Date(lastSyncTime!), "MMM d, h:mm a")})
+                    ({formatLastSyncTime(lastSyncTime!)})
                   </span>
                 </>
               ) : (
@@ -146,11 +160,15 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
               <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
               <div>
                 <p className="font-medium">
-                  {format(new Date(event.startTime), "EEEE, MMMM d, yyyy")}
+                  {formatInTimeZone(
+                    new Date(event.startTime),
+                    event.timezone || 'America/New_York',
+                    'EEEE, MMMM d, yyyy'
+                  )}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {format(new Date(event.startTime), "h:mm a")} - 
-                  {format(new Date(event.endTime), "h:mm a")}
+                  {formatInTimeZone(new Date(event.startTime), event.timezone || 'America/New_York', 'h:mm a')} - 
+                  {formatInTimeZone(new Date(event.endTime), event.timezone || 'America/New_York', 'h:mm a')}
                   {event.timezone && ` (${event.timezone})`}
                 </p>
               </div>
