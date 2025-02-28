@@ -74,7 +74,6 @@ export async function registerRoutes(app: Express) {
 
   // Get environment information
   const isProduction = process.env.NODE_ENV === 'production';
-  const domain = process.env.REPL_SLUG ? `.${process.env.REPL_SLUG}.repl.co` : undefined;
 
   app.use(session({
     store: new PostgresStore({
@@ -87,15 +86,13 @@ export async function registerRoutes(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: isProduction, // Only use secure cookies in production
-      httpOnly: true, // Prevent client-side access to the cookie
-      sameSite: isProduction ? 'strict' : 'lax', // Stricter same-site policy in production
-      domain: domain, // Set domain for production environment
+      secure: isProduction,
+      httpOnly: true,
+      sameSite: 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/' // Ensure cookie is available across the site
     },
-    name: 'sid', // Custom session ID name
-    proxy: isProduction // Trust the reverse proxy in production
+    name: 'sid',
+    proxy: isProduction
   }));
 
   app.get("/api/events", async (_req, res) => {
