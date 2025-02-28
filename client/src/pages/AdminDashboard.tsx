@@ -5,6 +5,7 @@ import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { AdminTabs } from "@/components/admin/AdminTabs";
+import AdminMenu from "@/components/AdminMenu";
 
 function StatCard({ 
   title, 
@@ -64,6 +65,7 @@ export default function AdminDashboard() {
               <div className="p-4 space-y-4">
                 <h2 className="font-semibold">Admin Panel</h2>
                 <AdminTabs />
+                <AdminMenu />  {/* Added back the AdminMenu component */}
               </div>
             </div>
 
