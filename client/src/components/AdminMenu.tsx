@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -59,24 +60,34 @@ export default function AdminMenu() {
   return (
     <>
       <div className="px-4">
-        <Button 
-          variant="default" 
-          className="w-full bg-black hover:bg-black/90"
-          onClick={() => setIsResetDialogOpen(true)}
-          disabled={isResetting}
-        >
-          {isResetting ? (
-            <>
-              <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-              Syncing...
-            </>
-          ) : (
-            <>
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Reset & Sync Data
-            </>
-          )}
-        </Button>
+        <div className="space-y-2">
+          <Link href="/">
+            <Button 
+              variant="outline" 
+              className="w-full"
+            >
+              View Directory
+            </Button>
+          </Link>
+          <Button 
+            variant="default" 
+            className="w-full bg-black hover:bg-black/90"
+            onClick={() => setIsResetDialogOpen(true)}
+            disabled={isResetting}
+          >
+            {isResetting ? (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                Syncing...
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Reset & Sync Data
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
