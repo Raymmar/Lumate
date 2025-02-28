@@ -3,11 +3,11 @@ import type { Event } from '@shared/schema';
 
 async function syncEventAttendees(event: Event) {
   console.log(`Starting background sync for event: ${event.title} (${event.api_id})`);
-  
+
   try {
     // Clear existing attendance records for this event
     await storage.deleteAttendanceByEvent(event.api_id);
-    
+
     let hasMore = true;
     let cursor: string | undefined;
     let page = 1;
@@ -33,15 +33,16 @@ async function syncEventAttendees(event: Event) {
       }
 
       const data = await response.json();
-      const guests = data.guests || [];
-      allGuests.push(...guests);
+      // Filter for approved guests only
+      const approvedGuests = (data.guests || []).filter((guest: any) => guest.approval_status === 'approved');
+      allGuests.push(...approvedGuests);
 
       hasMore = data.has_more;
       cursor = data.pagination_cursor;
       page++;
     }
 
-    // Process and store guests
+    // Process and store approved guests
     for (const guest of allGuests) {
       await storage.upsertAttendance({
         guestApiId: guest.api_id,
@@ -54,7 +55,7 @@ async function syncEventAttendees(event: Event) {
 
     // Update event sync timestamp
     await storage.updateEventAttendanceSync(event.api_id);
-    console.log(`Successfully synced ${allGuests.length} guests for event: ${event.title}`);
+    console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
   }
@@ -67,9 +68,9 @@ export function startEventSyncService() {
   setInterval(async () => {
     try {
       const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
-      
+
       console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
-      
+
       for (const event of recentlyEndedEvents) {
         await syncEventAttendees(event);
       }

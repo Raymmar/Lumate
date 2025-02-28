@@ -837,10 +837,12 @@ export async function registerRoutes(app: Express) {
         });
 
         if (response.entries) {
-          // Store each guest's attendance record
-          for (const entry of response.entries) {
+          // Filter for approved guests only and store their attendance records
+          const approvedEntries = response.entries.filter((entry: any) => entry.guest.approval_status === 'approved');
+
+          for (const entry of approvedEntries) {
             const guest = entry.guest;
-            console.log('Processing guest:', {
+            console.log('Processing approved guest:', {
               guestId: guest.api_id,
               email: guest.email,
               status: guest.approval_status,
@@ -865,7 +867,7 @@ export async function registerRoutes(app: Express) {
             }
           }
 
-          allGuests = allGuests.concat(response.entries);
+          allGuests = allGuests.concat(approvedEntries);
         }
 
         hasMore = response.has_more;
