@@ -47,7 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (data) => {
+      // Update both user and me endpoints to ensure NavBar updates
       queryClient.setQueryData(["/api/auth/me"], data.user);
+      queryClient.setQueryData(["/api/user"], data.user);
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -72,7 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
+      // Clear both cache entries on logout
       queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Success",
         description: "Logged out successfully",
