@@ -115,10 +115,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Get user's email
+      // Get user's email and person record
       const user = await storage.getUser(req.session.userId);
-      if (!user) {
+      if (!user || !user.personId) {
         return res.status(401).json({ error: "User not found" });
+      }
+
+      const person = await storage.getPerson(user.personId);
+      if (!person) {
+        return res.status(401).json({ error: "Associated person not found" });
       }
 
       // Make request to Luma API with correct body structure
@@ -133,6 +138,13 @@ export async function registerRoutes(app: Express) {
           })
         }
       );
+
+      // Update cached status
+      await storage.upsertRsvpStatus({
+        userApiId: person.api_id,
+        eventApiId: event_api_id,
+        status: 'approved' // When RSVP is successful, status is always approved
+      });
 
       console.log('Successfully RSVP\'d to event:', {
         eventId: event_api_id,
@@ -612,13 +624,27 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Get user's email
+      // Get user's email and linked person record for api_id
       const user = await storage.getUser(req.session.userId);
-      if (!user) {
+      if (!user || !user.personId) {
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Make request to Luma API to check guest status
+      const person = await storage.getPerson(user.personId);
+      if (!person) {
+        return res.status(401).json({ error: "Associated person not found" });
+      }
+
+      // First check cached status
+      const cachedStatus = await storage.getRsvpStatus(person.api_id, event_api_id as string);
+      if (cachedStatus) {
+        return res.json({
+          isGoing: cachedStatus.status === 'approved',
+          status: cachedStatus.status
+        });
+      }
+
+      // If no cached status, check with Luma API
       const response = await lumaApiRequest(
         'event/get-guest',
         { 
@@ -633,6 +659,15 @@ export async function registerRoutes(app: Express) {
         status: response.guest?.approval_status,
         fullResponse: response
       });
+
+      // Cache the response
+      if (response.guest?.approval_status) {
+        await storage.upsertRsvpStatus({
+          userApiId: person.api_id,
+          eventApiId: event_api_id as string,
+          status: response.guest.approval_status
+        });
+      }
 
       res.json({ 
         isGoing: response.guest?.approval_status === 'approved',

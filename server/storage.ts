@@ -3,8 +3,9 @@ import {
   Person, InsertPerson, 
   User, InsertUser,
   VerificationToken, InsertVerificationToken,
-  events, people, cacheMetadata, 
-  InsertCacheMetadata, users, verificationTokens 
+  events, people, cacheMetadata, eventRsvpStatus,
+  InsertCacheMetadata, users, verificationTokens,
+  EventRsvpStatus, InsertEventRsvpStatus
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
@@ -25,6 +26,7 @@ export interface IStorage {
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
   getPerson(id: number): Promise<Person | null>; // Added getPerson method
+  getPersonByApiId(apiId: string): Promise<Person | null>;
   
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
@@ -38,17 +40,17 @@ export interface IStorage {
   verifyUser(userId: number): Promise<User>;
   getUser(id: number): Promise<User | null>;  
   getUserCount(): Promise<number>; // Added getUserCount method
+  updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
   validateVerificationToken(token: string): Promise<VerificationToken | null>;
   deleteVerificationToken(token: string): Promise<void>;
-  // Add new method for getting person by API ID
-  getPersonByApiId(apiId: string): Promise<Person | null>;
-  // Add new methods for password management
-  updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
-  // Add new method for deleting verification tokens by email
   deleteVerificationTokensByEmail(email: string): Promise<void>;
+
+  // Add new methods for RSVP status
+  getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null>;
+  upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -527,7 +529,6 @@ export class PostgresStorage implements IStorage {
         .from(people)
         .where(eq(people.id, id))
         .limit(1);
-
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person:', error);
@@ -538,6 +539,45 @@ export class PostgresStorage implements IStorage {
     const result = await db.select({ count: sql`COUNT(*)` }).from(users);
     const count = Number(result[0].count);
     return count;
+  }
+
+  async getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null> {
+    try {
+      const result = await db
+        .select()
+        .from(eventRsvpStatus)
+        .where(and(
+          eq(eventRsvpStatus.userApiId, userApiId),
+          eq(eventRsvpStatus.eventApiId, eventApiId)
+        ))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get RSVP status:', error);
+      throw error;
+    }
+  }
+
+  async upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus> {
+    try {
+      const [result] = await db
+        .insert(eventRsvpStatus)
+        .values(status)
+        .onConflictDoUpdate({
+          target: [eventRsvpStatus.userApiId, eventRsvpStatus.eventApiId],
+          set: {
+            status: status.status,
+            updatedAt: new Date().toISOString()
+          }
+        })
+        .returning();
+
+      return result;
+    } catch (error) {
+      console.error('Failed to upsert RSVP status:', error);
+      throw error;
+    }
   }
 }
 

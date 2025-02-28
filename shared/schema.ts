@@ -67,11 +67,20 @@ export const verificationTokens = pgTable("verification_tokens", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+export const eventRsvpStatus = pgTable("event_rsvp_status", {
+  id: serial("id").primaryKey(),
+  userApiId: varchar("user_api_id", { length: 255 }).notNull(),
+  eventApiId: varchar("event_api_id", { length: 255 }).notNull(),
+  status: varchar("status", { length: 50 }).notNull(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true });
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
+export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -85,6 +94,8 @@ export type User = typeof users.$inferSelect & {
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
+export type EventRsvpStatus = typeof eventRsvpStatus.$inferSelect;
+export type InsertEventRsvpStatus = z.infer<typeof insertEventRsvpStatusSchema>;
 
 export const updatePasswordSchema = z.object({
   password: z.string()
