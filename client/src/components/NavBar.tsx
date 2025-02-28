@@ -23,7 +23,7 @@ export function NavBar() {
               width="180" 
               height="40" 
               viewBox="0 0 8996 1884" 
-              className="h-8"
+              className="h-10 w-auto"
               aria-label="Sarasota.tech"
             >
               <g>
