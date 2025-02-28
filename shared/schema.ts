@@ -75,12 +75,23 @@ export const eventRsvpStatus = pgTable("event_rsvp_status", {
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+export const attendance = pgTable("attendance", {
+  id: serial("id").primaryKey(),
+  eventApiId: varchar("event_api_id", { length: 255 }).notNull(),
+  userEmail: varchar("user_email", { length: 255 }).notNull(),
+  guestApiId: varchar("guest_api_id", { length: 255 }).notNull().unique(),
+  approvalStatus: varchar("approval_status", { length: 50 }).notNull(),
+  registeredAt: timestamp("registered_at", { mode: 'string', withTimezone: true }),
+  lastSyncedAt: timestamp("last_synced_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true });
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
+export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -96,6 +107,8 @@ export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
 export type EventRsvpStatus = typeof eventRsvpStatus.$inferSelect;
 export type InsertEventRsvpStatus = z.infer<typeof insertEventRsvpStatusSchema>;
+export type Attendance = typeof attendance.$inferSelect;
+export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 
 export const updatePasswordSchema = z.object({
   password: z.string()

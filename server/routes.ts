@@ -778,6 +778,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Modify the existing /api/admin/events/:eventId/guests endpoint
   app.get("/api/admin/events/:eventId/guests", async (req, res) => {
     try {
       // Check if user is authenticated
@@ -796,14 +797,59 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event ID" });
       }
 
-      console.log('Fetching guests for event:', eventId);
-      const response = await lumaApiRequest(
-        'event/get-guests',
-        { event_api_id: eventId }
-      );
+      let allGuests: any[] = [];
+      let hasMore = true;
+      let cursor = undefined;
 
-      console.log('Luma API response:', response);
-      res.json(response);
+      console.log('Starting guest sync for event:', eventId);
+
+      while (hasMore) {
+        const params: Record<string, string> = { 
+          event_api_id: eventId 
+        };
+
+        if (cursor) {
+          params.pagination_cursor = cursor;
+        }
+
+        console.log('Fetching guests with params:', params);
+        const response = await lumaApiRequest('event/get-guests', params);
+
+        console.log('Response details:', {
+          currentBatch: response.entries?.length,
+          hasMore: response.has_more,
+          nextCursor: response.next_cursor
+        });
+
+        if (response.entries) {
+          // Store each guest's attendance record
+          for (const entry of response.entries) {
+            const guest = entry.guest;
+            await storage.upsertAttendance({
+              eventApiId: eventId,
+              userEmail: guest.email.toLowerCase(),
+              guestApiId: guest.api_id,
+              approvalStatus: guest.approval_status,
+              registeredAt: guest.registered_at
+            });
+          }
+
+          allGuests = allGuests.concat(response.entries);
+        }
+
+        hasMore = response.has_more;
+        cursor = response.next_cursor;
+      }
+
+      console.log('Completed guest sync:', {
+        eventId,
+        totalGuests: allGuests.length
+      });
+
+      res.json({
+        guests: allGuests,
+        total: allGuests.length
+      });
     } catch (error) {
       console.error('Failed to fetch event guests:', error);
       res.status(500).json({ 

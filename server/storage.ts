@@ -3,9 +3,10 @@ import {
   Person, InsertPerson, 
   User, InsertUser,
   VerificationToken, InsertVerificationToken,
-  events, people, cacheMetadata, eventRsvpStatus,
+  events, people, cacheMetadata, eventRsvpStatus, attendance,
   InsertCacheMetadata, users, verificationTokens,
-  EventRsvpStatus, InsertEventRsvpStatus
+  EventRsvpStatus, InsertEventRsvpStatus,
+  Attendance, InsertAttendance
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
@@ -51,6 +52,11 @@ export interface IStorage {
   // Add new methods for RSVP status
   getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null>;
   upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus>;
+
+  // Add new methods for attendance
+  getAttendanceByEvent(eventApiId: string): Promise<Attendance[]>;
+  upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
+  getAttendanceByEmail(email: string): Promise<Attendance[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -576,6 +582,57 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to upsert RSVP status:', error);
+      throw error;
+    }
+  }
+
+  async getAttendanceByEvent(eventApiId: string): Promise<Attendance[]> {
+    try {
+      const result = await db
+        .select()
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventApiId))
+        .orderBy(attendance.registeredAt);
+      return result;
+    } catch (error) {
+      console.error('Failed to get attendance for event:', error);
+      throw error;
+    }
+  }
+
+  async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
+    try {
+      const [result] = await db
+        .insert(attendance)
+        .values({
+          ...data,
+          lastSyncedAt: new Date().toISOString()
+        })
+        .onConflictDoUpdate({
+          target: attendance.guestApiId,
+          set: {
+            approvalStatus: data.approvalStatus,
+            lastSyncedAt: new Date().toISOString()
+          }
+        })
+        .returning();
+      return result;
+    } catch (error) {
+      console.error('Failed to upsert attendance:', error);
+      throw error;
+    }
+  }
+
+  async getAttendanceByEmail(email: string): Promise<Attendance[]> {
+    try {
+      const result = await db
+        .select()
+        .from(attendance)
+        .where(eq(attendance.userEmail, email.toLowerCase()))
+        .orderBy(attendance.registeredAt);
+      return result;
+    } catch (error) {
+      console.error('Failed to get attendance by email:', error);
       throw error;
     }
   }
