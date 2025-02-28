@@ -33,7 +33,7 @@ export function NavBar() {
             <img 
               src="/256x256.png" 
               alt="Luma Logo" 
-              className="h-8 w-8 object-contain"
+              className="h-12 w-12 object-contain"
             />
           </div>
         </Link>
