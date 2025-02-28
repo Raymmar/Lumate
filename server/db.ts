@@ -100,6 +100,16 @@ export async function ensureTablesExist() {
           "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
           UNIQUE("user_api_id", "event_api_id")
         );
+
+        CREATE TABLE IF NOT EXISTS "attendance" (
+          "id" SERIAL PRIMARY KEY,
+          "event_api_id" VARCHAR(255) NOT NULL,
+          "user_email" VARCHAR(255) NOT NULL,
+          "guest_api_id" VARCHAR(255) NOT NULL UNIQUE,
+          "approval_status" VARCHAR(50) NOT NULL,
+          "registered_at" TIMESTAMPTZ,
+          "last_synced_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
       `];
 
       // Execute the queries
