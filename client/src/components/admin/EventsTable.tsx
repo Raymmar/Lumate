@@ -31,6 +31,22 @@ export function EventsTable() {
     },
   ];
 
+  const actions = [
+    {
+      label: "View Details",
+      onClick: (event: Event) => {
+        setSelectedEvent(event);
+      },
+    },
+    {
+      label: "Edit",
+      onClick: (event: Event) => {
+        // Placeholder for edit action
+        console.log("Edit event:", event);
+      },
+    },
+  ];
+
   const onRowClick = (event: Event) => {
     setSelectedEvent(event);
   };
@@ -44,6 +60,7 @@ export function EventsTable() {
       <DataTable 
         data={events} 
         columns={columns}
+        actions={actions}
         onRowClick={onRowClick}
       />
 
