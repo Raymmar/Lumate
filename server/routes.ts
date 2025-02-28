@@ -64,6 +64,7 @@ export async function registerRoutes(app: Express) {
       conObject: {
         connectionString: process.env.DATABASE_URL,
       },
+      createTableIfMissing: true, // Add this to ensure table exists
     }),
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
