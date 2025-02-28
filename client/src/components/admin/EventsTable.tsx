@@ -48,7 +48,7 @@ export function EventsTable() {
       />
 
       <Sheet open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-        <SheetContent className="w-[480px] sm:max-w-[480px]">
+        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
           {selectedEvent && <EventPreview event={selectedEvent} />}
         </SheetContent>
       </Sheet>

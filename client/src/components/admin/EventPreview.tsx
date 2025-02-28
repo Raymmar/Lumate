@@ -9,7 +9,7 @@ interface EventPreviewProps {
 
 export function EventPreview({ event }: EventPreviewProps) {
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-y-auto">
       {event.coverUrl && (
         <div className="relative w-full aspect-video mb-4">
           <img
@@ -19,12 +19,12 @@ export function EventPreview({ event }: EventPreviewProps) {
           />
         </div>
       )}
-      
+
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-semibold mb-2">{event.title}</h2>
           {event.description && (
-            <p className="text-muted-foreground">{event.description}</p>
+            <p className="text-muted-foreground line-clamp-2">{event.description}</p>
           )}
         </div>
 
