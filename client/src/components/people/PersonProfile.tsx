@@ -145,11 +145,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               )}
             </h1>
             <div className="flex items-center gap-2">
-              <AuthGuard
-                fallback={
-                  <p className="text-muted-foreground">Sign in to view</p>
-                }
-              >
+              <AuthGuard>
                 <p className="text-muted-foreground">{person.email}</p>
               </AuthGuard>
               {isOwnProfile && (
@@ -220,8 +216,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               <AuthGuard
                 fallback={
                   <div>
-                    <dt className="text-sm font-medium text-muted-foreground">Email</dt>
-                    <dd className="text-sm text-muted-foreground">Sign in to view email</dd>
+                    <dt className="text-sm font-medium text-muted-foreground">Contact Information</dt>
+                    <dd className="text-sm text-muted-foreground">Sign in to view</dd>
                   </div>
                 }
               >
@@ -229,22 +225,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   <dt className="text-sm font-medium text-muted-foreground">Email</dt>
                   <dd>{person.email}</dd>
                 </div>
-              </AuthGuard>
-              {person.phoneNumber && (
-                <AuthGuard
-                  fallback={
-                    <div>
-                      <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
-                      <dd className="text-sm text-muted-foreground">Sign in to view phone number</dd>
-                    </div>
-                  }
-                >
+                {person.phoneNumber && (
                   <div>
                     <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
                     <dd>{person.phoneNumber}</dd>
                   </div>
-                </AuthGuard>
-              )}
+                )}
+              </AuthGuard>
               <div>
                 <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
                 <dd className="font-mono text-sm">{person.api_id}</dd>

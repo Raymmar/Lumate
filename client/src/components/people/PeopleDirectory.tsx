@@ -156,13 +156,7 @@ export default function PeopleDirectory() {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
-                    <AuthGuard
-                      fallback={
-                        <p className="text-xs text-muted-foreground truncate">
-                          Sign in to view email
-                        </p>
-                      }
-                    >
+                    <AuthGuard>
                       <p className="text-xs text-muted-foreground truncate">{person.email}</p>
                     </AuthGuard>
                   </div>
