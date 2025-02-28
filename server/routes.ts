@@ -250,13 +250,18 @@ export async function registerRoutes(app: Express) {
       try {
         // Clear tables within a transaction
         await db.transaction(async (tx) => {
+          console.log('Starting transaction for database reset...');
+
           // First clear events as they don't have dependencies
+          console.log('Clearing events table...');
           await storage.clearEvents();
 
           // Then clear people while preserving email relationships
+          console.log('Clearing people table...');
           await storage.clearPeople();
 
           // Reset cache metadata
+          console.log('Clearing cache metadata...');
           await tx.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
           console.log('Database cleared successfully. Tables reset to empty state with ID sequences reset.');
@@ -280,6 +285,13 @@ export async function registerRoutes(app: Express) {
         });
       } catch (error) {
         console.error('Transaction failed during database reset:', error);
+        if (error instanceof Error) {
+          console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          });
+        }
         throw error;
       }
     } catch (error) {

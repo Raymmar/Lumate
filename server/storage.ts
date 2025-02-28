@@ -169,28 +169,52 @@ export class PostgresStorage implements IStorage {
     console.log('Clearing all people from database...');
     try {
       await db.transaction(async (tx) => {
-        // First get all existing person IDs that are linked to users
-        const linkedPersons = await tx
-          .select({ 
-            email: people.email,
-            personId: people.id 
+        console.log('Starting transaction for clearing people table...');
+
+        // First get all existing person-user relationships
+        const linkedUsers = await tx
+          .select({
+            userId: users.id,
+            userEmail: users.email,
+            personId: users.personId,
           })
-          .from(people)
-          .innerJoin(users, eq(users.email, people.email));
+          .from(users)
+          .innerJoin(people, eq(users.email, people.email));
 
-        console.log(`Found ${linkedPersons.length} people linked to user accounts`);
+        console.log(`Found ${linkedUsers.length} user-person relationships to preserve`);
 
-        // Clear the people table while preserving email relationships
+        // First remove the foreign key constraint temporarily
+        console.log('Temporarily disabling foreign key constraint...');
+        await tx.execute(sql`ALTER TABLE users DROP CONSTRAINT users_person_id_fkey`);
+
+        // Clear the people table
+        console.log('Clearing people table...');
         await tx.delete(people);
 
         // Reset the sequence
+        console.log('Resetting people table ID sequence...');
         await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
 
-        console.log('Successfully cleared people and reset ID sequence');
-        return linkedPersons;
+        // Restore the foreign key constraint
+        console.log('Restoring foreign key constraint...');
+        await tx.execute(sql`
+          ALTER TABLE users 
+          ADD CONSTRAINT users_person_id_fkey 
+          FOREIGN KEY (person_id) 
+          REFERENCES people(id)
+          ON DELETE SET NULL
+        `);
+
+        console.log('Successfully cleared people table and reset sequences while preserving relationships');
       });
     } catch (error) {
       console.error('Failed to clear people table:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       throw error;
     }
   }
