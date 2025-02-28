@@ -143,18 +143,22 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 </Badge>
               )}
             </h1>
-            <p className="text-muted-foreground">{person.email}</p>
-            {isOwnProfile && (
-              <p className="text-sm text-muted-foreground mt-1">This is your profile</p>
-            )}
+            <div className="flex items-center gap-2">
+              <p className="text-muted-foreground">{person.email}</p>
+              {isOwnProfile && (
+                <Badge variant="outline" className="bg-white text-xs font-normal">
+                  your profile
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
 
         {!user && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
-                variant={isClaimed ? "outline" : "default"} 
+              <Button
+                variant={isClaimed ? "outline" : "default"}
                 className={isClaimed ? "cursor-default" : ""}
                 disabled={isClaimed}
               >
@@ -180,8 +184,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={claimProfileMutation.isPending}
                   className="w-full"
                 >
