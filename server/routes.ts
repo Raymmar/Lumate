@@ -3,9 +3,11 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people } from "@shared/schema";
+import { insertUserSchema, people, updatePasswordSchema } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
+import { hashPassword, comparePasswords } from './auth';
+import { ZodError } from 'zod';
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
@@ -211,11 +213,13 @@ export async function registerRoutes(app: Express) {
   // Verify token endpoint
   app.post("/api/auth/verify", async (req, res) => {
     try {
-      const { token } = req.body;
+      const { token, password } = req.body;
+
       if (!token) {
         return res.status(400).json({ error: "Missing verification token" });
       }
 
+      // First validate the token
       const verificationToken = await storage.validateVerificationToken(token);
       if (!verificationToken) {
         return res.status(400).json({ error: "Invalid or expired token" });
@@ -227,29 +231,162 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
-      // Create user record with normalized email
-      const userData = {
-        email: verificationToken.email.toLowerCase(),
-        personId: person.id, // We still store the ID but don't rely on it for lookups
-        displayName: person.userName || person.fullName || undefined,
-      };
+      // If password is provided, validate it
+      if (password) {
+        try {
+          const validatedPassword = updatePasswordSchema.parse({ password });
+          const hashedPassword = await hashPassword(validatedPassword.password);
 
-      const user = await storage.createUser(userData);
+          // Create user record with normalized email and password
+          const userData = {
+            email: verificationToken.email.toLowerCase(),
+            personId: person.id,
+            displayName: person.userName || person.fullName || undefined,
+            password: hashedPassword,
+          };
 
-      // Verify the user
-      await storage.verifyUser(user.id);
+          const user = await storage.createUser(userData);
 
-      // Clean up the verification token
-      await storage.deleteVerificationToken(token);
+          // Verify the user
+          await storage.verifyUser(user.id);
 
-      return res.json({ 
-        message: "Email verified successfully",
-        user
-      });
+          // Clean up the verification token
+          await storage.deleteVerificationToken(token);
+
+          return res.json({ 
+            message: "Email verified and account created successfully",
+            user: {
+              id: user.id,
+              email: user.email,
+              displayName: user.displayName,
+              isVerified: user.isVerified
+            }
+          });
+        } catch (e) {
+          if (e instanceof ZodError) {
+            return res.status(400).json({ 
+              error: "Invalid password",
+              details: e.errors 
+            });
+          }
+          throw e;
+        }
+      } else {
+        // If no password provided, return success but indicate password needs to be set
+        return res.json({ 
+          message: "Email verified. Please set your password.",
+          requiresPassword: true,
+          email: verificationToken.email
+        });
+      }
     } catch (error) {
       console.error('Failed to verify token:', error);
       res.status(500).json({ error: "Failed to verify email" });
     }
+  });
+
+  // New route to handle password creation after verification
+  app.post("/api/auth/set-password", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "Missing email or password" });
+      }
+
+      // Validate password
+      const validatedPassword = updatePasswordSchema.parse({ password });
+
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.isVerified) {
+        return res.status(400).json({ error: "Email not verified" });
+      }
+
+      const hashedPassword = await hashPassword(validatedPassword.password);
+
+      // Update user's password
+      const updatedUser = await storage.updateUserPassword(user.id, hashedPassword);
+
+      return res.json({ 
+        message: "Password set successfully",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          displayName: updatedUser.displayName,
+          isVerified: updatedUser.isVerified
+        }
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid password",
+          details: error.errors 
+        });
+      }
+      console.error('Failed to set password:', error);
+      res.status(500).json({ error: "Failed to set password" });
+    }
+  });
+
+  // Add login route
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: "Missing email or password" });
+      }
+
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      if (!user.password) {
+        return res.status(401).json({ error: "Password not set" });
+      }
+
+      if (!user.isVerified) {
+        return res.status(401).json({ error: "Email not verified" });
+      }
+
+      const isValid = await comparePasswords(password, user.password);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      // Create session
+      req.session.userId = user.id;
+
+      return res.json({ 
+        message: "Logged in successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          isVerified: user.isVerified
+        }
+      });
+    } catch (error) {
+      console.error('Login failed:', error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // Add logout route
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(err => {
+      if (err) {
+        console.error('Logout failed:', err);
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
   });
 
   // Internal-only route to reset database and fetch fresh data from Luma

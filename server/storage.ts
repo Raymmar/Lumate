@@ -42,6 +42,8 @@ export interface IStorage {
   deleteVerificationToken(token: string): Promise<void>;
   // Add new method for getting person by API ID
   getPersonByApiId(apiId: string): Promise<Person | null>;
+  // Add new methods for password management
+  updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -173,21 +175,21 @@ export class PostgresStorage implements IStorage {
         const userEmails = await tx
           .select({ email: users.email })
           .from(users);
-
+        
         console.log(`Found ${userEmails.length} user emails to preserve`);
-
+        
         // First set person_id to NULL for all users to avoid constraint violations
         await tx.execute(sql`UPDATE users SET person_id = NULL`);
         console.log('Temporarily unlinked users from people records');
-
+        
         // Now safe to clear people table
         await tx.delete(people);
         console.log('Cleared people table');
-
+        
         // Reset the sequence
         await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
         console.log('Reset people table ID sequence');
-
+        
         console.log('Successfully cleared people table while preserving user table');
       });
     } catch (error) {
@@ -465,6 +467,27 @@ export class PostgresStorage implements IStorage {
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
+      throw error;
+    }
+  }
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update user password:', error);
       throw error;
     }
   }

@@ -52,6 +52,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   displayName: varchar("display_name", { length: 255 }),
+  password: varchar("password", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
@@ -82,3 +83,14 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
+
+export const updatePasswordSchema = z.object({
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100, "Password must not exceed 100 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+});
+
+export type UpdatePassword = z.infer<typeof updatePasswordSchema>;
