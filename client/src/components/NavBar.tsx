@@ -23,13 +23,18 @@ export function NavBar() {
 
   return (
     <div className="border-b">
-      <div className="flex h-16 items-center px-4">
-        <NavigationMenu>
+      <div className="flex h-16 items-center px-4 container mx-auto">
+        <Link href="/">
+          <a className="text-2xl font-bold text-primary flex items-center">
+            Luma Dashboard
+          </a>
+        </Link>
+        <NavigationMenu className="ml-6">
           <NavigationMenuList>
             <NavigationMenuItem>
-              <Link href="/">
+              <Link href="/dashboard">
                 <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                  Home
+                  Dashboard
                 </NavigationMenuLink>
               </Link>
             </NavigationMenuItem>
@@ -41,7 +46,6 @@ export function NavBar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl} alt={user.displayName || user.email} />
                     <AvatarFallback>
                       {(user.displayName || user.email).charAt(0).toUpperCase()}
                     </AvatarFallback>
