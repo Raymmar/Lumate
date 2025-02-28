@@ -13,11 +13,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Fixed header */}
       <div className="fixed top-0 left-0 right-0 z-50">
-        <NavBar />
+        <div className="max-w-[1440px] mx-auto">
+          <NavBar />
+        </div>
       </div>
 
       {/* Content area below header */}
-      <div className="flex pt-16"> {/* pt-16 to account for fixed header height */}
+      <div className="flex pt-16 max-w-[1440px] mx-auto w-full relative"> {/* Added max-width and centering */}
         {/* Fixed sidebar */}
         <aside className="fixed left-0 top-16 bottom-0 w-[350px] border-r bg-muted/10 flex flex-col z-40">
           <div className="flex-1 overflow-hidden flex flex-col">
