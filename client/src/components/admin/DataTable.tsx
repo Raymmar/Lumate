@@ -28,9 +28,10 @@ interface DataTableProps<T> {
     label: string;
     onClick: (row: T) => void;
   }[];
+  onRowClick?: (row: T) => void;
 }
 
-export function DataTable<T>({ data, columns, actions }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, actions, onRowClick }: DataTableProps<T>) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -44,7 +45,11 @@ export function DataTable<T>({ data, columns, actions }: DataTableProps<T>) {
         </TableHeader>
         <TableBody>
           {data.map((row, index) => (
-            <TableRow key={index}>
+            <TableRow 
+              key={index}
+              onClick={() => onRowClick?.(row)}
+              className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
+            >
               {columns.map((column) => (
                 <TableCell key={column.key}>{column.cell(row)}</TableCell>
               ))}
@@ -63,7 +68,10 @@ export function DataTable<T>({ data, columns, actions }: DataTableProps<T>) {
                       {actions.map((action, actionIndex) => (
                         <DropdownMenuItem
                           key={actionIndex}
-                          onClick={() => action.onClick(row)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            action.onClick(row);
+                          }}
                         >
                           {action.label}
                         </DropdownMenuItem>

@@ -2,8 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import type { Event } from "@shared/schema";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useState } from "react";
+import { EventPreview } from "./EventPreview";
 
 export function EventsTable() {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
   const { data: events = [], isLoading } = useQuery<Event[]>({
     queryKey: ["/api/admin/events"],
     queryFn: async () => {
@@ -26,26 +31,27 @@ export function EventsTable() {
     },
   ];
 
-  const actions = [
-    {
-      label: "View Details",
-      onClick: (event: Event) => {
-        // Placeholder for view action
-        console.log("View event:", event);
-      },
-    },
-    {
-      label: "Edit",
-      onClick: (event: Event) => {
-        // Placeholder for edit action
-        console.log("Edit event:", event);
-      },
-    },
-  ];
+  const onRowClick = (event: Event) => {
+    setSelectedEvent(event);
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  return <DataTable data={events} columns={columns} actions={actions} />;
+  return (
+    <>
+      <DataTable 
+        data={events} 
+        columns={columns}
+        onRowClick={onRowClick}
+      />
+
+      <Sheet open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+        <SheetContent className="w-[480px] sm:max-w-[480px]">
+          {selectedEvent && <EventPreview event={selectedEvent} />}
+        </SheetContent>
+      </Sheet>
+    </>
+  );
 }
