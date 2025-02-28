@@ -20,7 +20,7 @@ export function NavBar() {
         <Link href="/">
           <a className="flex items-center">
             <img 
-              src="/Sarasota.Tech logo full.svg" 
+              src="/Sarasota.Tech logo full.png" 
               alt="Sarasota.tech" 
               className="h-8"
             />
