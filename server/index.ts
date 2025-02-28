@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startEventSyncService } from "./services/eventSyncService";
 
 const app = express();
 app.use(express.json());
@@ -39,10 +40,10 @@ app.use((req, res, next) => {
 (async () => {
   // First ensure database tables exist
   const { ensureTablesExist } = await import('./db');
-  
+
   console.log('Ensuring database tables exist...');
   await ensureTablesExist();
-  
+
   const server = await registerRoutes(app);
 
   // Initialize cache service to start syncing data in the background
@@ -56,6 +57,17 @@ app.use((req, res, next) => {
       console.error('Failed to initialize CacheService:', error);
     }
   }, 100); // Small delay to ensure server starts quickly
+
+  // Start event sync service in background
+  console.log('Starting EventSyncService in background...');
+  setTimeout(() => {
+    try {
+      startEventSyncService();
+      console.log('EventSyncService started successfully in background');
+    } catch (error) {
+      console.error('Failed to initialize EventSyncService:', error);
+    }
+  }, 200); // Small delay after CacheService
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -9,25 +9,28 @@ import {
   Attendance, InsertAttendance
 } from "@shared/schema";
 import { db } from "./db";
-import { sql, eq, and } from "drizzle-orm";
+import { sql, eq, and, or } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
   getEventCount(): Promise<number>;
+  getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; // Added
+  getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
+  getRecentlyEndedEvents(): Promise<Event[]>; // Added
   clearEvents(): Promise<void>;
   
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
+  getPerson(id: number): Promise<Person | null>; // Added getPerson method
   getPersonById(id: number): Promise<Person | null>;
   getPersonByEmail(email: string): Promise<Person | null>; 
+  getPersonByApiId(apiId: string): Promise<Person | null>;
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-  getPerson(id: number): Promise<Person | null>; // Added getPerson method
-  getPersonByApiId(apiId: string): Promise<Person | null>;
   
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
@@ -37,11 +40,11 @@ export interface IStorage {
   createUser(userData: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
-  getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
-  verifyUser(userId: number): Promise<User>;
   getUser(id: number): Promise<User | null>;  
   getUserCount(): Promise<number>; // Added getUserCount method
+  getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
+  verifyUser(userId: number): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -703,6 +706,110 @@ export class PostgresStorage implements IStorage {
       return updatedEvent;
     } catch (error) {
       console.error('Failed to update event attendance sync timestamp:', error);
+      throw error;
+    }
+  }
+  async getRecentlyEndedEvents(): Promise<Event[]> {
+    try {
+      // Find events that ended in the last hour and haven't been synced
+      const oneHourAgo = new Date();
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+      const result = await db
+        .select()
+        .from(events)
+        .where(
+          and(
+            sql`end_time <= ${new Date().toISOString()}`,
+            sql`end_time > ${oneHourAgo.toISOString()}`,
+            or(
+              sql`last_attendance_sync IS NULL`,
+              sql`last_attendance_sync < end_time`
+            )
+          )
+        )
+        .orderBy(events.endTime);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to get recently ended events:', error);
+      throw error;
+    }
+  }
+
+  async getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]> {
+    try {
+      const result = await db
+        .select()
+        .from(events)
+        .where(
+          and(
+            sql`end_time >= ${startDate.toISOString()}`,
+            sql`end_time <= ${endDate.toISOString()}`
+          )
+        )
+        .orderBy(events.endTime);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to get events by end time range:', error);
+      throw error;
+    }
+  }
+  async getPersonById(id: number): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.id, id))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by ID:', error);
+      throw error;
+    }
+  }
+  
+  async getPersonByEmail(email: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.email, email))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by email:', error);
+      throw error;
+    }
+  }
+  
+  async getPerson(id: number): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.id, id))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person:', error);
+      throw error;
+    }
+  }
+  async getPersonByApiId(apiId: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.api_id, apiId))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by API ID:', error);
       throw error;
     }
   }
