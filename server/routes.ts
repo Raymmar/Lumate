@@ -120,6 +120,29 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/auth/check-profile/:id", async (req, res) => {
+    try {
+      const personId = req.params.id;
+
+      // Get person by API ID
+      const person = await storage.getPersonByApiId(personId);
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      // Check if there's a user with matching email
+      const user = await storage.getUserByEmail(person.email.toLowerCase());
+
+      return res.json({
+        isClaimed: !!user,
+        email: user ? user.email : null
+      });
+    } catch (error) {
+      console.error('Failed to check profile status:', error);
+      res.status(500).json({ error: "Failed to check profile status" });
+    }
+  });
+
   // Profile claiming endpoint
   app.post("/api/auth/claim-profile", async (req, res) => {
     try {

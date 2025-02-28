@@ -37,6 +37,15 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
+  const { data: userStatus } = useQuery({
+    queryKey: ['/api/auth/check-profile', personId],
+    queryFn: async () => {
+      const response = await fetch(`/api/auth/check-profile/${personId}`);
+      if (!response.ok) throw new Error('Failed to check profile status');
+      return response.json();
+    }
+  });
+
   const claimProfileMutation = useMutation({
     mutationFn: async (email: string) => {
       console.log('Submitting claim profile request:', { email, personId });
@@ -62,6 +71,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       setDialogOpen(false);
       setEmail('');
       queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/check-profile', personId] });
     },
     onError: (error: Error) => {
       console.error('Profile claim failed:', error);
@@ -101,6 +111,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
+  const isClaimed = userStatus?.isClaimed;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -134,7 +146,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline">Claim Profile</Button>
+            <Button 
+              variant={isClaimed ? "outline" : "default"} 
+              className={isClaimed ? "cursor-default" : ""}
+              disabled={isClaimed}
+            >
+              {isClaimed ? "Profile Claimed" : "Claim Profile"}
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
