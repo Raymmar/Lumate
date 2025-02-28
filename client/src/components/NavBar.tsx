@@ -29,9 +29,13 @@ export function NavBar() {
     <div className="border-b">
       <div className="flex h-16 items-center px-6">
         <Link href="/">
-          <Button variant="link" className="text-2xl font-bold text-primary">
-            Luma
-          </Button>
+          <div className="flex items-center">
+            <img 
+              src="/256x256.png" 
+              alt="Luma Logo" 
+              className="h-8 w-8 object-contain"
+            />
+          </div>
         </Link>
         <div className="ml-auto flex items-center space-x-4">
           <DropdownMenu>
