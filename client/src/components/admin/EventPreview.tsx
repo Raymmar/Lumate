@@ -235,7 +235,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                 {attendees.map((person) => (
                   <Link 
                     key={person.id} 
-                    href={`/admin/people/${person.api_id}`}
+                    href={`/people/${person.api_id}`}
                     className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                   >
                     <Avatar className="h-8 w-8">
