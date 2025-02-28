@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, UserPlus, CreditCard } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
-import AdminMenu from "@/components/AdminMenu";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 
 function StatCard({ 
   title, 
@@ -59,28 +59,11 @@ export default function AdminDashboard() {
         {/* Content area with sidebar and main content */}
         <PageContainer className="flex-1 pt-16">
           <div className="flex w-full">
-            {/* Sidebar */}
-            <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r p-4 flex flex-col">
-              <div className="flex-1">
-                <h2 className="font-semibold mb-4">Admin Panel</h2>
-                <nav className="space-y-2">
-                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                    Dashboard
-                  </a>
-                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                    Users
-                  </a>
-                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                    Events
-                  </a>
-                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                    Settings
-                  </a>
-                </nav>
-              </div>
-              {/* AdminMenu fixed to bottom */}
-              <div className="border-t pt-4">
-                <AdminMenu />
+            {/* Sidebar with AdminTabs */}
+            <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r">
+              <div className="p-4 space-y-4">
+                <h2 className="font-semibold">Admin Panel</h2>
+                <AdminTabs />
               </div>
             </div>
 

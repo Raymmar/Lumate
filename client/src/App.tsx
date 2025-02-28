@@ -9,6 +9,9 @@ import VerifyPage from "@/pages/VerifyPage";
 import LoginPage from "@/pages/LoginPage";
 import UserSettingsPage from "@/pages/UserSettingsPage";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminUsersPage from "@/pages/admin/AdminUsersPage";
+import AdminEventsPage from "@/pages/admin/AdminEventsPage";
+import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +25,9 @@ function Router() {
           <Route path="/people/:id" component={PersonProfilePage} />
           <Route path="/verify" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/users" component={AdminUsersPage} />
+          <Route path="/admin/events" component={AdminEventsPage} />
+          <Route path="/admin/people" component={AdminPeoplePage} />
           <Route component={NotFound} />
         </Switch>
       </main>
