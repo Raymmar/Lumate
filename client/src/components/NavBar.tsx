@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, RefreshCw, LogIn, Shield } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Add ADMIN_EMAILS constant
@@ -24,25 +24,6 @@ export function NavBar() {
   const { toast } = useToast();
 
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
-
-  const handleResync = async () => {
-    try {
-      const response = await fetch('/api/sync', { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Failed to trigger sync');
-      }
-      toast({
-        title: "Sync Started",
-        description: "Database synchronization has been initiated.",
-      });
-    } catch (error) {
-      toast({
-        title: "Sync Failed",
-        description: "Failed to start database synchronization.",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="border-b">
@@ -97,12 +78,6 @@ export function NavBar() {
                         Settings
                       </span>
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer" onSelect={handleResync}>
-                    <span className="flex items-center">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Re-sync Database
-                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="cursor-pointer" onSelect={() => logout()}>

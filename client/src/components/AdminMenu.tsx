@@ -1,13 +1,5 @@
 import { useState } from "react";
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Settings, RefreshCcw, AlertTriangle } from "lucide-react";
-import { 
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -17,6 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { RefreshCcw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function AdminMenu() {
@@ -64,22 +58,24 @@ export default function AdminMenu() {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon">
-            <Settings className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem 
-            className="cursor-pointer text-red-500 focus:text-red-500"
-            onClick={() => setIsResetDialogOpen(true)}
-          >
+      <Button 
+        variant="default" 
+        className="w-full bg-black hover:bg-black/90 fixed bottom-0"
+        onClick={() => setIsResetDialogOpen(true)}
+        disabled={isResetting}
+      >
+        {isResetting ? (
+          <>
+            <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+            Syncing...
+          </>
+        ) : (
+          <>
             <RefreshCcw className="mr-2 h-4 w-4" />
-            Reset & Sync Luma Data
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            Reset & Sync Data
+          </>
+        )}
+      </Button>
 
       <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <AlertDialogContent>

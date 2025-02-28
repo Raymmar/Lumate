@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, UserPlus, CreditCard } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
+import AdminMenu from "@/components/AdminMenu";
 
 function StatCard({ 
   title, 
@@ -56,22 +57,28 @@ export default function AdminDashboard() {
 
         <div className="flex pt-16">
           {/* Sidebar */}
-          <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r p-4">
-            <h2 className="font-semibold mb-4">Admin Panel</h2>
-            <nav className="space-y-2">
-              <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                Dashboard
-              </a>
-              <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                Users
-              </a>
-              <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                Events
-              </a>
-              <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                Settings
-              </a>
-            </nav>
+          <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r p-4 flex flex-col">
+            <div className="flex-1">
+              <h2 className="font-semibold mb-4">Admin Panel</h2>
+              <nav className="space-y-2">
+                <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                  Dashboard
+                </a>
+                <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                  Users
+                </a>
+                <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                  Events
+                </a>
+                <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                  Settings
+                </a>
+              </nav>
+            </div>
+            {/* AdminMenu fixed to bottom */}
+            <div className="border-t pt-4">
+              <AdminMenu />
+            </div>
           </div>
 
           {/* Main content */}
