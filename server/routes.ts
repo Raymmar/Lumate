@@ -778,15 +778,14 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Modify the existing /api/admin/events/:eventId/guests endpoint
+  // Update the existing guest sync endpoint to include better progress tracking
   app.get("/api/admin/events/:eventId/guests", async (req, res) => {
     try {
-      // Check if user is authenticated
+      // Authentication checks remain unchanged
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         return res.status(403).json({ error: "Not authorized" });
@@ -864,7 +863,8 @@ export async function registerRoutes(app: Express) {
           allGuests = allGuests.concat(response.entries);
         }
 
-        hasMore = response.has_more;
+        // Update pagination state
+        hasMore = response.has_more && response.entries?.length > 0;
         cursor = response.next_cursor;
         iterationCount++;
 
@@ -888,7 +888,11 @@ export async function registerRoutes(app: Express) {
 
       res.json({
         guests: allGuests,
-        total: allGuests.length
+        total: allGuests.length,
+        stats: {
+          totalIterations: iterationCount,
+          reachedLimit: iterationCount >= MAX_ITERATIONS
+        }
       });
     } catch (error) {
       console.error('Failed to fetch event guests:', error);
