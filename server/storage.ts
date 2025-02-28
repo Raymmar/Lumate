@@ -183,28 +183,22 @@ export class PostgresStorage implements IStorage {
   async clearPeople(): Promise<void> {
     console.log('Clearing people table while preserving user relationships...');
     try {
+      // Execute everything in a single transaction with ordered operations
       await db.transaction(async (tx) => {
-        // Get all users' emails to preserve relationships
-        const userEmails = await tx
-          .select({ email: users.email })
-          .from(users);
-        
-        console.log(`Found ${userEmails.length} user emails to preserve`);
-        
-        // First set person_id to NULL for all users to avoid constraint violations
+        // First null out all person_id references in users table
         await tx.execute(sql`UPDATE users SET person_id = NULL`);
         console.log('Temporarily unlinked users from people records');
-        
-        // Now safe to clear people table
+
+        // Then clear the people table
         await tx.delete(people);
         console.log('Cleared people table');
-        
+
         // Reset the sequence
         await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
         console.log('Reset people table ID sequence');
-        
-        console.log('Successfully cleared people table while preserving user table');
       });
+
+      console.log('Successfully cleared people table while preserving user table');
     } catch (error) {
       console.error('Failed to clear people table:', error);
       if (error instanceof Error) {
