@@ -16,14 +16,12 @@ export function NavBar() {
 
   return (
     <div className="border-b">
-      <div className="flex h-16 items-center px-4 container mx-auto">
+      <div className="flex items-center container mx-auto">
         <Link href="/">
-          <a className="flex items-center">
+          <a className="p-2">
             <svg 
-              width="180" 
-              height="40" 
               viewBox="0 0 8996 1884" 
-              className="h-10 w-auto"
+              style={{ width: '200px', minWidth: '200px' }}
               aria-label="Sarasota.tech"
             >
               <g>
