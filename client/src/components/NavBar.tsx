@@ -34,7 +34,7 @@ export function NavBar() {
         </Link>
         <div className="ml-auto flex items-center space-x-4">
           {user && isAdmin && (
-            <AdminBadge className="mr-2" />
+            <AdminBadge className="mr-2" asLink />
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
