@@ -30,10 +30,13 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
     // Use event timezone or fall back to America/New_York
     const eventTimezone = timezone || 'America/New_York';
 
+    // First parse the date string, ensuring we interpret it as UTC
+    const utcDate = new Date(utcDateStr + 'Z');
+
     return formatInTimeZone(
-      new Date(utcDateStr),
+      utcDate,
       eventTimezone,
-      'MMM d, h:mm aa'
+      'MMM d, h:mm aa zzz' // Added timezone indicator to debug
     );
   } catch (error) {
     console.error("Invalid date format:", utcDateStr, error);
