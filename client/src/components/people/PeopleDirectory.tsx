@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useLocation, useParams } from 'wouter';
 import {
   Pagination,
   PaginationContent,
@@ -39,6 +39,7 @@ export default function PeopleDirectory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [focusedIndex, setFocusedIndex] = useState(-1); // -1 means no focus
   const [isSearchActive, setIsSearchActive] = useState(false);
+  const params = useParams<{ id: string }>();
   const pageSize = 50;
 
   const { data, isLoading, error } = useQuery<PeopleResponse>({
@@ -132,7 +133,7 @@ export default function PeopleDirectory() {
                 <div
                   key={person.api_id}
                   className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                    index === focusedIndex && isSearchActive
+                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   }`}
