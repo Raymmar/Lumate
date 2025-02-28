@@ -19,9 +19,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       {/* Content area below header */}
-      <div className="flex pt-16 max-w-[1440px] mx-auto w-full relative"> {/* Added max-width and centering */}
-        {/* Fixed sidebar */}
-        <aside className="fixed left-0 top-16 bottom-0 w-[350px] border-r bg-muted/10 flex flex-col z-40">
+      <div className="flex pt-16 max-w-[1440px] mx-auto w-full"> 
+        {/* Sidebar */}
+        <aside className="sticky top-16 h-[calc(100vh-4rem)] w-[350px] border-r bg-muted/10 flex flex-col">
           <div className="flex-1 overflow-hidden flex flex-col">
             <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
               <div className="flex-none">
@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </aside>
 
         {/* Main content area */}
-        <main className="flex-1 ml-[350px] overflow-y-auto">
+        <main className="flex-1 overflow-y-auto">
           <div className="p-6 min-h-[calc(100vh-4rem)]">
             {children}
           </div>
