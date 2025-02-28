@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, UserPlus } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
+import { NavBar } from "@/components/NavBar";
 
 function StatCard({ 
   title, 
@@ -45,49 +46,64 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="w-64 min-h-screen bg-muted/10 border-r p-4">
-          <h2 className="font-semibold mb-4">Admin Panel</h2>
-          <nav className="space-y-2">
-            <a href="#" className="block p-2 hover:bg-muted rounded-md">
-              Dashboard
-            </a>
-            <a href="#" className="block p-2 hover:bg-muted rounded-md">
-              Users
-            </a>
-            <a href="#" className="block p-2 hover:bg-muted rounded-md">
-              Events
-            </a>
-            <a href="#" className="block p-2 hover:bg-muted rounded-md">
-              Settings
-            </a>
-          </nav>
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Fixed header */}
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <div className="max-w-[1440px] mx-auto">
+            <NavBar />
+          </div>
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 p-6">
-          <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
-          
-          <div className="grid gap-4 md:grid-cols-3">
-            <StatCard
-              title="Total Events"
-              value={statsData?.events || 0}
-              icon={Calendar}
-              isLoading={isLoading}
-            />
-            <StatCard
-              title="Total People"
-              value={statsData?.people || 0}
-              icon={Users}
-              isLoading={isLoading}
-            />
-            <StatCard
-              title="Registered Users"
-              value={statsData?.users || 0}
-              icon={UserPlus}
-              isLoading={isLoading}
-            />
+        <div className="flex pt-16">
+          {/* Sidebar */}
+          <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r p-4">
+            <h2 className="font-semibold mb-4">Admin Panel</h2>
+            <nav className="space-y-2">
+              <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                Dashboard
+              </a>
+              <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                Users
+              </a>
+              <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                Events
+              </a>
+              <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                Settings
+              </a>
+            </nav>
+          </div>
+
+          {/* Main content */}
+          <div className="flex-1 p-6">
+            <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
+
+            <div className="grid gap-4 md:grid-cols-4">
+              <StatCard
+                title="Total Events"
+                value={statsData?.events || 0}
+                icon={Calendar}
+                isLoading={isLoading}
+              />
+              <StatCard
+                title="Total People"
+                value={statsData?.people || 0}
+                icon={Users}
+                isLoading={isLoading}
+              />
+              <StatCard
+                title="Registered Users"
+                value={statsData?.users || 0}
+                icon={UserPlus}
+                isLoading={isLoading}
+              />
+              <StatCard
+                title="Paid Users"
+                value={statsData?.paidUsers || 0}
+                icon={CreditCard}
+                isLoading={isLoading}
+              />
+            </div>
           </div>
         </div>
       </div>
