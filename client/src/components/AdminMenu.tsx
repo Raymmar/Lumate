@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { 
   AlertDialog,
@@ -22,7 +22,20 @@ export default function AdminMenu() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [syncStatus, setSyncStatus] = useState("");
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
-  const { toast, dismiss } = useToast();
+  const [isComplete, setIsComplete] = useState(false);
+  const [syncStats, setSyncStats] = useState<{ eventCount: number; peopleCount: number } | null>(null);
+  const { toast } = useToast();
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [syncLogs]);
 
   const addSyncLog = (message: string) => {
     setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${message}`]);
@@ -33,6 +46,8 @@ export default function AdminMenu() {
     setSyncProgress(0);
     setSyncStatus("Starting sync process...");
     setSyncLogs([]);
+    setIsComplete(false);
+    setSyncStats(null);
 
     try {
       const response = await fetch('/_internal/reset-database', {
@@ -48,21 +63,6 @@ export default function AdminMenu() {
         throw new Error(errorData.error || errorData.message || 'Failed to reset and sync data');
       }
 
-      // Show initial toast
-      toast({
-        title: "Reset & Sync Started",
-        description: "Database reset initiated. Starting sync process...",
-        variant: "default",
-      });
-
-      // Show a syncing toast that won't auto-dismiss
-      const syncToast = toast({
-        title: "Sync in Progress",
-        description: "Please wait while data is being synced...",
-        duration: Infinity, // Won't auto-dismiss
-      });
-
-      // Handle SSE
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -90,32 +90,14 @@ export default function AdminMenu() {
                 break;
 
               case 'complete':
-                // Dismiss the infinite sync toast
-                dismiss(syncToast);
                 setSyncProgress(100);
                 setSyncStatus("Sync completed successfully!");
                 addSyncLog("Sync completed successfully!");
-
-                // Show completion toast with detailed stats
-                toast({
-                  title: "✅ Sync Completed Successfully",
-                  description: (
-                    <div className="space-y-2">
-                      <p>Data has been successfully synchronized:</p>
-                      <ul className="list-disc pl-4">
-                        <li>{data.data.eventCount} events synced</li>
-                        <li>{data.data.peopleCount} people synced</li>
-                      </ul>
-                    </div>
-                  ),
-                  variant: "default",
-                  duration: 5000,
+                setIsComplete(true);
+                setSyncStats({
+                  eventCount: data.data.eventCount,
+                  peopleCount: data.data.peopleCount
                 });
-
-                // Short delay before reload to show 100% progress
-                setTimeout(() => {
-                  window.location.reload();
-                }, 1000);
                 return;
 
               case 'error':
@@ -134,14 +116,12 @@ export default function AdminMenu() {
         description: error instanceof Error ? error.message : "An unknown error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      if (!isResetDialogOpen) {
-        setIsResetting(false);
-        setSyncProgress(0);
-        setSyncStatus("");
-        setSyncLogs([]);
-      }
     }
+  };
+
+  const handleCloseAndRefresh = () => {
+    setIsResetDialogOpen(false);
+    window.location.reload();
   };
 
   return (
@@ -181,15 +161,32 @@ export default function AdminMenu() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center">
-              {isResetting ? (
+              {isComplete ? (
                 <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
+              ) : isResetting ? (
+                <RefreshCcw className="mr-2 h-5 w-5 animate-spin text-blue-500" />
               ) : (
                 <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
               )}
-              {isResetting ? "Sync in Progress" : "Reset & Sync Luma Data"}
+              {isComplete ? "Sync Completed Successfully" : isResetting ? "Sync in Progress" : "Reset & Sync Luma Data"}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
-              {isResetting ? (
+              {isComplete ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/10">
+                    <p className="font-medium text-green-900 dark:text-green-50">
+                      Successfully synchronized data from Luma API:
+                    </p>
+                    <ul className="mt-2 list-disc pl-5 text-green-800 dark:text-green-100">
+                      <li>{syncStats?.eventCount} events synced</li>
+                      <li>{syncStats?.peopleCount} people synced</li>
+                    </ul>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Click "Close & Refresh" to see the updated data.
+                  </div>
+                </div>
+              ) : isResetting ? (
                 <>
                   <p>{syncStatus}</p>
                   <div className="space-y-2">
@@ -205,6 +202,7 @@ export default function AdminMenu() {
                           {log}
                         </p>
                       ))}
+                      <div ref={logsEndRef} />
                     </div>
                   </ScrollArea>
                 </>
@@ -219,24 +217,35 @@ export default function AdminMenu() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={(e) => {
-                e.preventDefault();
-                handleResetDatabase();
-              }}
-              disabled={isResetting}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
-              {isResetting ? (
-                <>
-                  <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                "Reset & Sync"
-              )}
-            </AlertDialogAction>
+            {isComplete ? (
+              <AlertDialogAction 
+                onClick={handleCloseAndRefresh}
+                className="bg-green-600 hover:bg-green-700 focus:ring-green-600"
+              >
+                Close & Refresh
+              </AlertDialogAction>
+            ) : (
+              <>
+                <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleResetDatabase();
+                  }}
+                  disabled={isResetting}
+                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                >
+                  {isResetting ? (
+                    <>
+                      <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    "Reset & Sync"
+                  )}
+                </AlertDialogAction>
+              </>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
