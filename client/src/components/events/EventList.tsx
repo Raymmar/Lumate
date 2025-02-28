@@ -42,34 +42,34 @@ function EventCard({ event }: { event: Event }) {
       rel="noopener noreferrer"
       className="block"
     >
-      <div className="flex gap-3 p-2.5 rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
+      <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
         {/* Event thumbnail */}
-        <div className="flex-none w-16">
-          <AspectRatio ratio={1}>
+        <div className="w-full">
+          <AspectRatio ratio={16 / 9}>
             {event.coverUrl ? (
               <img
                 src={event.coverUrl}
                 alt={event.title}
-                className="rounded object-cover w-full h-full"
+                className="rounded-t-lg object-cover w-full h-full"
               />
             ) : (
-              <div className="w-full h-full bg-muted rounded flex items-center justify-center">
-                <CalendarDays className="h-6 w-6 text-muted-foreground" />
+              <div className="w-full h-full bg-muted rounded-t-lg flex items-center justify-center">
+                <CalendarDays className="h-8 w-8 text-muted-foreground" />
               </div>
             )}
           </AspectRatio>
         </div>
 
         {/* Event details */}
-        <div className="flex-1 min-w-0">
+        <div className="p-4">
           <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
-          <div className="mt-1.5 space-y-1">
+          <div className="mt-2 space-y-1.5">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <CalendarDays className="h-3.5 w-3.5" />
               <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
             </div>
             {event.description && (
-              <p className="text-xs text-muted-foreground line-clamp-1">
+              <p className="text-xs text-muted-foreground line-clamp-2">
                 {event.description}
               </p>
             )}
