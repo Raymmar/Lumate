@@ -26,24 +26,67 @@ export default function AdminMenu() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+        },
+        credentials: 'include' // Add this to ensure cookies are sent
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reset and sync data');
+        throw new Error(errorData.error || errorData.message || 'Failed to reset and sync data');
       }
+
+      const data = await response.json();
 
       toast({
         title: "Reset & Sync Started",
-        description: "Database has been cleared. Fresh data is being synced from Luma API. This may take several minutes to complete.",
+        description: data.message || "Database has been cleared. Fresh data is being synced from Luma API. This may take several minutes to complete.",
         variant: "default",
       });
 
-      // Reload the page after a longer delay to allow initial sync to complete
-      setTimeout(() => {
-        window.location.reload();
-      }, 5000);
+      // Show a syncing toast that won't auto-dismiss
+      const syncToastId = toast({
+        title: "Sync in Progress",
+        description: "Please wait while data is being synced...",
+        duration: Infinity, // Won't auto-dismiss
+      });
+
+      // Poll for completion
+      const checkSync = async () => {
+        try {
+          const statsResponse = await fetch('/api/admin/stats', {
+            credentials: 'include'
+          });
+
+          if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            if (stats.events > 0 && stats.people > 0) {
+              // Sync completed successfully
+              toast({
+                title: "Sync Completed",
+                description: `Successfully synced ${stats.events} events and ${stats.people} people.`,
+                variant: "default",
+              });
+              // Dismiss the syncing toast
+              toast({
+                id: syncToastId,
+                duration: 0,
+              });
+              window.location.reload();
+              return;
+            }
+          }
+          // Check again in 5 seconds
+          setTimeout(checkSync, 5000);
+        } catch (error) {
+          console.error('Error checking sync status:', error);
+          // Continue polling even if check fails
+          setTimeout(checkSync, 5000);
+        }
+      };
+
+      // Start polling
+      setTimeout(checkSync, 5000);
+
     } catch (error) {
       console.error('Error resetting and syncing data:', error);
       toast({
