@@ -181,33 +181,66 @@ export class PostgresStorage implements IStorage {
   }
   
   async clearPeople(): Promise<void> {
-    console.log('Clearing people table while preserving user relationships...');
-    try {
-      // Execute everything in a single transaction with ordered operations
-      await db.transaction(async (tx) => {
-        // First null out all person_id references in users table
-        await tx.execute(sql`UPDATE users SET person_id = NULL`);
-        console.log('Temporarily unlinked users from people records');
+    console.log('Starting people table clear process...');
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000; // 1 second
 
-        // Then clear the people table
-        await tx.delete(people);
-        console.log('Cleared people table');
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        await db.transaction(async (tx) => {
+          console.log(`Attempt ${attempt}: Starting transaction to clear people data`);
 
-        // Reset the sequence
-        await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
-        console.log('Reset people table ID sequence');
-      });
+          // First, delete all verification tokens to avoid FK constraints
+          console.log('Deleting verification tokens...');
+          await tx.delete(verificationTokens);
 
-      console.log('Successfully cleared people table while preserving user table');
-    } catch (error) {
-      console.error('Failed to clear people table:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack
+          // Then update users to remove person_id references
+          console.log('Unlinking users from people records...');
+          await tx.execute(sql`
+            UPDATE users 
+            SET person_id = NULL, 
+                updated_at = NOW()
+            WHERE person_id IS NOT NULL
+          `);
+
+          // Delete any attendance records that might reference people
+          console.log('Clearing attendance records...');
+          await tx.delete(attendance);
+
+          // Clear RSVP status records
+          console.log('Clearing RSVP status records...');
+          await tx.delete(eventRsvpStatus);
+
+          // Now safe to delete from people table
+          console.log('Clearing people table...');
+          await tx.execute(sql`TRUNCATE people RESTART IDENTITY CASCADE`);
+
+          console.log('Transaction completed successfully');
         });
+
+        console.log('Successfully cleared people table and related records');
+        return; // Success, exit the retry loop
+
+      } catch (error) {
+        console.error(`Attempt ${attempt} failed:`, error);
+
+        if (error instanceof Error) {
+          console.error('Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          });
+        }
+
+        if (attempt === MAX_RETRIES) {
+          console.error('Max retries reached, failing...');
+          throw error;
+        }
+
+        // Wait before retrying
+        console.log(`Waiting ${RETRY_DELAY}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       }
-      throw error;
     }
   }
   
