@@ -11,9 +11,10 @@ import { useQueryClient } from "@tanstack/react-query";
 interface EventPreviewProps {
   event: Event & { isSynced?: boolean; lastSyncedAt?: string | null };
   onSync?: (eventId: string) => void;
+  onStartSync?: (eventId: string) => void;
 }
 
-export function EventPreview({ event, onSync }: EventPreviewProps) {
+export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) {
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [localSyncStatus, setLocalSyncStatus] = useState({
@@ -24,6 +25,11 @@ export function EventPreview({ event, onSync }: EventPreviewProps) {
 
   const handleSyncAttendees = async () => {
     setIsSyncing(true);
+    // Notify parent that sync is starting
+    if (onStartSync) {
+      onStartSync(event.api_id);
+    }
+
     try {
       const response = await fetch(`/api/admin/events/${event.api_id}/guests`);
       if (!response.ok) {
