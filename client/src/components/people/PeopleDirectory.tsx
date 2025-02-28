@@ -127,34 +127,58 @@ export default function PeopleDirectory() {
       ) : data?.people && data.people.length > 0 ? (
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="space-y-2">
-              {data.people.map((person, index) => (
-                <div
-                  key={person.api_id}
-                  className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                    index === focusedIndex && isSearchActive
-                      ? 'bg-muted ring-1 ring-inset ring-ring'
-                      : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => handlePersonClick(person.api_id)}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
-                      {person.userName
-                        ? person.userName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                        : "?"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{person.email}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ul className="divide-y">
+              {isLoading ? (
+                Array.from({ length: 10 }).map((_, i) => (
+                  <li key={i} className="py-4">
+                    <div className="space-y-1">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-4 w-64" />
+                    </div>
+                  </li>
+                ))
+              ) : error ? (
+                <li className="py-4 text-destructive">Failed to load people directory</li>
+              ) : data?.people && data.people.length > 0 ? (
+                data.people.map((person) => (
+                  <li
+                    key={person.id}
+                    className="cursor-pointer py-4 hover:bg-secondary/50 flex items-center gap-4"
+                    onClick={() => handlePersonClick(person.api_id)}
+                  >
+                    <Avatar className="h-10 w-10">
+                      {person.avatarUrl ? (
+                        <img src={person.avatarUrl} alt={person.userName || 'Profile'} />
+                      ) : (
+                        <AvatarFallback>
+                          {person.userName
+                            ? person.userName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)
+                            : "?"}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="space-y-1">
+                      <h3 className="font-medium">
+                        {person.userName || person.fullName || "Anonymous"}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{person.email}</p>
+                      {person.organizationName && (
+                        <p className="text-xs text-muted-foreground">
+                          {person.organizationName}
+                          {person.jobTitle && ` • ${person.jobTitle}`}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))
+              ) : (
+                <li className="py-4 text-center text-muted-foreground">No people found</li>
+              )}
+            </ul>
           </div>
           <div className="pt-2 mt-2 border-t flex-none">
             <div className="text-xs text-muted-foreground mb-2">
