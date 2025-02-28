@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -36,6 +36,7 @@ export default function PeopleDirectory() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const pageSize = 50;
 
   const { data, isLoading, error } = useQuery<PeopleResponse>({
@@ -47,13 +48,40 @@ export default function PeopleDirectory() {
     }
   });
 
+  // Reset focused index when search query changes
+  useEffect(() => {
+    setFocusedIndex(0);
+  }, [searchQuery]);
+
   const handleSearch = (value: string) => {
     setSearchQuery(value);
-    setCurrentPage(1); // Reset to first page when searching
+    setCurrentPage(1);
   };
 
   const handlePersonClick = (personId: string) => {
     setLocation(`/people/${personId}`);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!data?.people.length) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setFocusedIndex(prev => Math.min(prev + 1, data.people.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setFocusedIndex(prev => Math.max(prev - 1, 0));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        const selectedPerson = data.people[focusedIndex];
+        if (selectedPerson) {
+          handlePersonClick(selectedPerson.api_id);
+        }
+        break;
+    }
   };
 
   const totalPages = data ? Math.ceil(data.total / pageSize) : 0;
@@ -75,7 +103,7 @@ export default function PeopleDirectory() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col" onKeyDown={handleKeyDown} tabIndex={0}>
       <div className="relative mb-4">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
@@ -96,10 +124,14 @@ export default function PeopleDirectory() {
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="space-y-2">
-              {data.people.map((person) => (
+              {data.people.map((person, index) => (
                 <div
                   key={person.api_id}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+                  className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
+                    index === focusedIndex
+                      ? 'bg-muted ring-2 ring-ring'
+                      : 'hover:bg-muted/50'
+                  }`}
                   onClick={() => handlePersonClick(person.api_id)}
                 >
                   <Avatar className="h-8 w-8">
