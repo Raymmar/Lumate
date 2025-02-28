@@ -3,13 +3,14 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema } from "@shared/schema";
+import { insertUserSchema, people, updatePasswordSchema, updateProfileSchema, users } from "@shared/schema"; // Assuming updateProfileSchema and users are defined here
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
+import { eq } from 'drizzle-orm';
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
@@ -505,6 +506,73 @@ export async function registerRoutes(app: Express) {
         error: "Failed to reset database", 
         details: error instanceof Error ? error.message : String(error) 
       });
+    }
+  });
+
+  // Add update profile endpoint
+  app.patch("/api/auth/update-profile", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Validate request body
+      const updateData = updateProfileSchema.parse(req.body);
+
+      // Update user profile
+      const updatedUser = await db
+        .update(users)
+        .set({
+          ...updateData,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(users.id, req.session.userId))
+        .returning()
+        .then(rows => rows[0]);
+
+      if (!updatedUser) {
+        throw new Error("Failed to update user profile");
+      }
+
+      // Get the linked person's api_id if it exists
+      let api_id = null;
+      if (updatedUser.personId) {
+        const person = await storage.getPerson(updatedUser.personId);
+        if (person) {
+          api_id = person.api_id;
+        }
+      }
+
+      // Return updated user data
+      return res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        displayName: updatedUser.displayName,
+        isVerified: updatedUser.isVerified,
+        personId: updatedUser.personId,
+        website: updatedUser.website,
+        instagram: updatedUser.instagram,
+        youtube: updatedUser.youtube,
+        linkedin: updatedUser.linkedin,
+        shortBio: updatedUser.shortBio,
+        ctaLabel: updatedUser.ctaLabel,
+        ctaUrl: updatedUser.ctaUrl,
+        api_id
+      });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid profile data",
+          details: error.errors 
+        });
+      }
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 

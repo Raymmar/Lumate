@@ -55,6 +55,13 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
+  website: varchar("website", { length: 255 }),
+  instagram: varchar("instagram", { length: 255 }),
+  youtube: varchar("youtube", { length: 255 }),
+  linkedin: varchar("linkedin", { length: 255 }),
+  shortBio: text("short_bio"),
+  ctaLabel: varchar("cta_label", { length: 100 }),
+  ctaUrl: varchar("cta_url", { length: 255 }),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
@@ -96,3 +103,16 @@ export const updatePasswordSchema = z.object({
 });
 
 export type UpdatePassword = z.infer<typeof updatePasswordSchema>;
+
+export const updateProfileSchema = z.object({
+  displayName: z.string().min(1, "Display name is required"),
+  website: z.string().url("Invalid website URL").optional().nullable(),
+  instagram: z.string().optional().nullable(),
+  youtube: z.string().url("Invalid YouTube URL").optional().nullable(),
+  linkedin: z.string().url("Invalid LinkedIn URL").optional().nullable(),
+  shortBio: z.string().max(500, "Bio must be less than 500 characters").optional().nullable(),
+  ctaLabel: z.string().max(50, "Call to action label must be less than 50 characters").optional().nullable(),
+  ctaUrl: z.string().url("Invalid call to action URL").optional().nullable(),
+});
+
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;

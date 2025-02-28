@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from 'react';
+import { SiInstagram, SiYoutube, SiLinkedin } from 'react-icons/si';
+import { BiGlobe } from 'react-icons/bi';
 
 interface PersonProfileProps {
   personId: string;
@@ -50,7 +52,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const claimProfileMutation = useMutation({
     mutationFn: async (email: string) => {
-      console.log('Submitting claim profile request:', { email, personId });
       const response = await fetch('/api/auth/claim-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,13 +60,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
       const data = await response.json();
       if (!response.ok) {
-        console.error('Profile claim failed:', data);
         throw new Error(data.error || 'Failed to claim profile');
       }
       return data;
     },
     onSuccess: (data) => {
-      console.log('Profile claim successful:', data);
       toast({
         title: "Verification Email Sent",
         description: "Please check your email to verify your profile claim.",
@@ -76,7 +75,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/check-profile', personId] });
     },
     onError: (error: Error) => {
-      console.error('Profile claim failed:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -87,7 +85,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const handleClaimProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Handling claim profile submission:', { email, personId });
     claimProfileMutation.mutate(email);
   };
 
@@ -198,43 +195,122 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-2">
-              {person.fullName && (
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
-                  <dd>{person.fullName}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Email</dt>
-                <dd>{person.email}</dd>
-              </div>
-              {person.phoneNumber && (
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
-                  <dd>{person.phoneNumber}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
-                <dd className="font-mono text-sm">{person.api_id}</dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
+        {isOwnProfile ? (
+          <>
+            {user.shortBio && (
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle>About</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{user.shortBio}</p>
+                </CardContent>
+              </Card>
+            )}
 
-        {person.bio && (
-          <Card className="md:col-span-2">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Connect</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  {user.website && (
+                    <a
+                      href={user.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <BiGlobe className="h-5 w-5" />
+                      <span>Website</span>
+                    </a>
+                  )}
+
+                  {user.instagram && (
+                    <a
+                      href={`https://instagram.com/${user.instagram}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <SiInstagram className="h-5 w-5" />
+                      <span>@{user.instagram}</span>
+                    </a>
+                  )}
+
+                  {user.youtube && (
+                    <a
+                      href={user.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <SiYoutube className="h-5 w-5" />
+                      <span>YouTube</span>
+                    </a>
+                  )}
+
+                  {user.linkedin && (
+                    <a
+                      href={user.linkedin}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <SiLinkedin className="h-5 w-5" />
+                      <span>LinkedIn</span>
+                    </a>
+                  )}
+                </div>
+
+                {user.ctaLabel && user.ctaUrl && (
+                  <div className="mt-6">
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      asChild
+                    >
+                      <a
+                        href={user.ctaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {user.ctaLabel}
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          <Card>
             <CardHeader>
-              <CardTitle>Biography</CardTitle>
+              <CardTitle>Personal Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">{person.bio}</p>
+              <dl className="space-y-2">
+                {person.fullName && (
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
+                    <dd>{person.fullName}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">Email</dt>
+                  <dd>{person.email}</dd>
+                </div>
+                {person.phoneNumber && (
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
+                    <dd>{person.phoneNumber}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
+                  <dd className="font-mono text-sm">{person.api_id}</dd>
+                </div>
+              </dl>
             </CardContent>
           </Card>
         )}
