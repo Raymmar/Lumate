@@ -800,10 +800,21 @@ export async function registerRoutes(app: Express) {
       let allGuests: any[] = [];
       let hasMore = true;
       let cursor = undefined;
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 100; // Safety limit
 
       console.log('Starting guest sync for event:', eventId);
 
-      while (hasMore) {
+      // First, delete all existing attendance records for this event
+      try {
+        await storage.deleteAttendanceByEvent(eventId);
+        console.log('Cleared existing attendance records for event:', eventId);
+      } catch (error) {
+        console.error('Failed to clear existing attendance records:', error);
+        throw error;
+      }
+
+      while (hasMore && iterationCount < MAX_ITERATIONS) {
         const params: Record<string, string> = { 
           event_api_id: eventId 
         };
@@ -855,11 +866,24 @@ export async function registerRoutes(app: Express) {
 
         hasMore = response.has_more;
         cursor = response.next_cursor;
+        iterationCount++;
+
+        console.log('Pagination status:', {
+          iteration: iterationCount,
+          guestsCollected: allGuests.length,
+          hasMore,
+          cursor
+        });
+      }
+
+      if (iterationCount >= MAX_ITERATIONS) {
+        console.warn('Reached maximum iteration limit while syncing guests');
       }
 
       console.log('Completed guest sync:', {
         eventId,
-        totalGuests: allGuests.length
+        totalGuests: allGuests.length,
+        totalIterations: iterationCount
       });
 
       res.json({
@@ -922,7 +946,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const result = await db
-        .select()
+                .select()
         .from(people)
         .orderBy(people.id);
 
