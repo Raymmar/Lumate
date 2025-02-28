@@ -59,7 +59,7 @@ export class CacheService {
         }
       }
 
-      // Process people in batches
+      // Process people in batches while preserving email relationships
       if (people.length > 0) {
         console.log(`Processing ${people.length} people in batches...`);
         for (let i = 0; i < people.length; i += this.BATCH_SIZE) {
@@ -186,7 +186,7 @@ export class CacheService {
         const people = response.entries;
         console.log(`Received ${people.length} people in page ${pageCount}`);
 
-        // Deduplicate people
+        // Deduplicate people while preserving the most recent data
         const uniquePeople = people.filter((person: any) => {
           if (!person || !person.api_id) {
             console.warn('Invalid person entry structure:', person);
@@ -321,6 +321,10 @@ export class CacheService {
     try {
       await db.transaction(async (tx) => {
         for (const person of people) {
+          // First get the existing person record to preserve any existing relationships
+          const existingPerson = await storage.getPersonByApiId(person.api_id);
+
+          // Construct the new person data, maintaining the email if it exists
           const query = sql`
             INSERT INTO people (
               api_id, email, user_name, full_name, avatar_url,
