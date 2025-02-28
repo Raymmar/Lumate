@@ -162,7 +162,7 @@ export default function PeopleDirectory() {
             </div>
           </div>
           <div className="pt-2 mt-2 border-t flex-none">
-            <div className="text-xs text-muted-foreground mb-2">
+            <div className="text-xs text-muted-foreground mb-2 text-center">
               Showing {data.people.length} of {data.total} total people
             </div>
             <Pagination>
@@ -185,6 +185,7 @@ export default function PeopleDirectory() {
               </PaginationContent>
             </Pagination>
           </div>
+
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
