@@ -232,10 +232,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   </div>
                 )}
               </AuthGuard>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">User ID</dt>
-                <dd className="font-mono text-sm">{person.api_id}</dd>
-              </div>
             </dl>
           </CardContent>
         </Card>
