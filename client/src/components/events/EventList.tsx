@@ -103,15 +103,18 @@ export default function EventList() {
 
   return (
     <div className="space-y-3">
-      <a
-        href="https://lu.ma/SarasotaTech"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
-      >
-        <span>View Full Calendar</span>
-        <ExternalLink className="h-3.5 w-3.5" />
-      </a>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-medium">Next Event</h2>
+        <a
+          href="https://lu.ma/SarasotaTech"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
+        >
+          <span>View Full Calendar</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
 
       {isLoading ? (
         <div className="space-y-2">
