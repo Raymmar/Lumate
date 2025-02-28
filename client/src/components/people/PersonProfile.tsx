@@ -118,6 +118,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
   const isOwnProfile = user?.api_id === person?.api_id;
+  const isClaimed = userStatus?.isClaimed || user !== null;
 
   return (
     <div className="space-y-6">
