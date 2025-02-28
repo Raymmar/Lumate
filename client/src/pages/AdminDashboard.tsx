@@ -4,6 +4,7 @@ import { Users, Calendar, UserPlus, CreditCard } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
 import AdminMenu from "@/components/AdminMenu";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 function StatCard({ 
   title, 
@@ -50,9 +51,9 @@ export default function AdminDashboard() {
       <div className="min-h-screen bg-background flex flex-col">
         {/* Fixed header */}
         <div className="fixed top-0 left-0 right-0 z-50">
-          <div className="max-w-[1440px] mx-auto">
+          <PageContainer>
             <NavBar />
-          </div>
+          </PageContainer>
         </div>
 
         <div className="flex pt-16">
@@ -83,34 +84,36 @@ export default function AdminDashboard() {
 
           {/* Main content */}
           <div className="flex-1 p-6">
-            <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
+            <PageContainer>
+              <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
 
-            <div className="grid gap-4 md:grid-cols-4">
-              <StatCard
-                title="Total Events"
-                value={statsData?.events || 0}
-                icon={Calendar}
-                isLoading={isLoading}
-              />
-              <StatCard
-                title="Total Attendees"
-                value={statsData?.people || 0}
-                icon={Users}
-                isLoading={isLoading}
-              />
-              <StatCard
-                title="Registered Users"
-                value={statsData?.users || 0}
-                icon={UserPlus}
-                isLoading={isLoading}
-              />
-              <StatCard
-                title="Paid Users"
-                value={statsData?.paidUsers || 0}
-                icon={CreditCard}
-                isLoading={isLoading}
-              />
-            </div>
+              <div className="grid gap-4 md:grid-cols-4">
+                <StatCard
+                  title="Total Events"
+                  value={statsData?.events || 0}
+                  icon={Calendar}
+                  isLoading={isLoading}
+                />
+                <StatCard
+                  title="Total Attendees"
+                  value={statsData?.people || 0}
+                  icon={Users}
+                  isLoading={isLoading}
+                />
+                <StatCard
+                  title="Registered Users"
+                  value={statsData?.users || 0}
+                  icon={UserPlus}
+                  isLoading={isLoading}
+                />
+                <StatCard
+                  title="Paid Users"
+                  value={statsData?.paidUsers || 0}
+                  icon={CreditCard}
+                  isLoading={isLoading}
+                />
+              </div>
+            </PageContainer>
           </div>
         </div>
       </div>
