@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express) {
   // Verify token endpoint
   app.post("/api/auth/verify", async (req, res) => {
     try {
-      const { token, password } = req.body;
+      const { token } = req.body;
 
       if (!token) {
         return res.status(400).json({ error: "Missing verification token" });
@@ -231,61 +231,33 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
-      // If password is provided, validate it
-      if (password) {
-        try {
-          const validatedPassword = updatePasswordSchema.parse({ password });
-          const hashedPassword = await hashPassword(validatedPassword.password);
+      // Create initial user record with normalized email
+      const userData = {
+        email: verificationToken.email.toLowerCase(),
+        personId: person.id,
+        displayName: person.userName || person.fullName || undefined,
+        isVerified: false // Will be set to true after password is set
+      };
 
-          // Create user record with normalized email and password
-          const userData = {
-            email: verificationToken.email.toLowerCase(),
-            personId: person.id,
-            displayName: person.userName || person.fullName || undefined,
-            password: hashedPassword,
-          };
-
-          const user = await storage.createUser(userData);
-
-          // Verify the user
-          await storage.verifyUser(user.id);
-
-          // Clean up the verification token
-          await storage.deleteVerificationToken(token);
-
-          return res.json({ 
-            message: "Email verified and account created successfully",
-            user: {
-              id: user.id,
-              email: user.email,
-              displayName: user.displayName,
-              isVerified: user.isVerified
-            }
-          });
-        } catch (e) {
-          if (e instanceof ZodError) {
-            return res.status(400).json({ 
-              error: "Invalid password",
-              details: e.errors 
-            });
-          }
-          throw e;
-        }
-      } else {
-        // If no password provided, return success but indicate password needs to be set
-        return res.json({ 
-          message: "Email verified. Please set your password.",
-          requiresPassword: true,
-          email: verificationToken.email
-        });
+      // Create or get existing user
+      let user = await storage.getUserByEmail(userData.email);
+      if (!user) {
+        user = await storage.createUser(userData);
       }
+
+      // Don't delete token yet - we'll need it valid for password setting
+      return res.json({ 
+        message: "Email verified. Please set your password.",
+        requiresPassword: true,
+        email: verificationToken.email
+      });
     } catch (error) {
       console.error('Failed to verify token:', error);
       res.status(500).json({ error: "Failed to verify email" });
     }
   });
 
-  // New route to handle password creation after verification
+  // Route to handle password creation after verification
   app.post("/api/auth/set-password", async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -298,27 +270,29 @@ export async function registerRoutes(app: Express) {
       const validatedPassword = updatePasswordSchema.parse({ password });
 
       // Get user by email
-      const user = await storage.getUserByEmail(email);
+      const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (!user.isVerified) {
-        return res.status(400).json({ error: "Email not verified" });
-      }
-
       const hashedPassword = await hashPassword(validatedPassword.password);
 
-      // Update user's password
+      // Update user's password and set verified to true
       const updatedUser = await storage.updateUserPassword(user.id, hashedPassword);
+
+      // Now verify the user since they've set their password
+      const verifiedUser = await storage.verifyUser(updatedUser.id);
+
+      // Clean up any verification tokens for this email
+      await storage.deleteVerificationTokensByEmail(email.toLowerCase());
 
       return res.json({ 
         message: "Password set successfully",
         user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          displayName: updatedUser.displayName,
-          isVerified: updatedUser.isVerified
+          id: verifiedUser.id,
+          email: verifiedUser.email,
+          displayName: verifiedUser.displayName,
+          isVerified: verifiedUser.isVerified
         }
       });
     } catch (error) {

@@ -44,6 +44,8 @@ export interface IStorage {
   getPersonByApiId(apiId: string): Promise<Person | null>;
   // Add new methods for password management
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
+  // Add new method for deleting verification tokens by email
+  deleteVerificationTokensByEmail(email: string): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -286,25 +288,26 @@ export class PostgresStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log('Creating new user with email:', userData.email);
-      
+
       // First get the person by email to ensure we have the latest data
       const person = await this.getPersonByEmail(userData.email);
-      
+
       if (!person) {
         throw new Error(`No matching person found for email: ${userData.email}`);
       }
-      
+
       const [newUser] = await db
         .insert(users)
         .values({
           ...userData,
           email: userData.email.toLowerCase(), // Ensure consistent email format
-          personId: person.id, // We'll still store the ID but use email as the primary link
+          personId: person.id,
+          isVerified: false, // Always start as unverified
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
         .returning();
-      
+
       console.log('Successfully created user:', newUser.id, 'linked to person:', person.id);
       return newUser;
     } catch (error) {
@@ -480,14 +483,24 @@ export class PostgresStorage implements IStorage {
         })
         .where(eq(users.id, userId))
         .returning();
-
+    
       if (!updatedUser) {
         throw new Error(`User with ID ${userId} not found`);
       }
-
+    
       return updatedUser;
     } catch (error) {
       console.error('Failed to update user password:', error);
+      throw error;
+    }
+  }
+  async deleteVerificationTokensByEmail(email: string): Promise<void> {
+    try {
+      await db
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.email, email.toLowerCase()));
+    } catch (error) {
+      console.error('Failed to delete verification tokens for email:', email, error);
       throw error;
     }
   }
