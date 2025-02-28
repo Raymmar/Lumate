@@ -630,13 +630,13 @@ export async function registerRoutes(app: Express) {
       console.log('Checked RSVP status:', {
         eventId: event_api_id,
         userEmail: user.email,
-        status: response.approval_status,
+        status: response.guest?.approval_status,
         fullResponse: response
       });
 
       res.json({ 
-        isGoing: response.approval_status === 'approved',
-        status: response.approval_status
+        isGoing: response.guest?.approval_status === 'approved',
+        status: response.guest?.approval_status
       });
     } catch (error) {
       console.error('Failed to check RSVP status:', error);
