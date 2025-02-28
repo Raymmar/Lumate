@@ -176,13 +176,19 @@ export class PostgresStorage implements IStorage {
 
         console.log(`Found ${userEmails.length} user emails to preserve`);
 
-        // Clear all people records
+        // First set person_id to NULL for all users to avoid constraint violations
+        await tx.execute(sql`UPDATE users SET person_id = NULL`);
+        console.log('Temporarily unlinked users from people records');
+
+        // Now safe to clear people table
         await tx.delete(people);
+        console.log('Cleared people table');
 
         // Reset the sequence
         await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
+        console.log('Reset people table ID sequence');
 
-        console.log('Successfully cleared people table while preserving user relationships');
+        console.log('Successfully cleared people table while preserving user table');
       });
     } catch (error) {
       console.error('Failed to clear people table:', error);

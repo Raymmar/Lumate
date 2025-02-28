@@ -2,6 +2,7 @@ import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
+import { users } from '../db/schema'; // Assuming users table is imported here
 
 export class CacheService {
   private static instance: CacheService;
@@ -341,11 +342,15 @@ export class CacheService {
 
     try {
       await db.transaction(async (tx) => {
-        for (const person of people) {
-          // First get the existing person record to preserve any existing relationships
-          const existingPerson = await storage.getPersonByApiId(person.api_id);
+        // First get all existing users to preserve relationships
+        const existingUsers = await tx
+          .select()
+          .from(users);
 
-          // Construct the new person data, maintaining the email if it exists
+        console.log(`Found ${existingUsers.length} existing users to maintain relationships with`);
+
+        for (const person of people) {
+          // Construct the new person data
           const query = sql`
             INSERT INTO people (
               api_id, email, user_name, full_name, avatar_url,
@@ -378,7 +383,22 @@ export class CacheService {
             RETURNING *
           `;
 
-          await tx.execute(query);
+          const result = await tx.execute(query);
+          const insertedPerson = result.rows[0];
+
+          // If this person has a matching user, update the relationship
+          const matchingUser = existingUsers.find(user => 
+            user.email.toLowerCase() === insertedPerson.email.toLowerCase()
+          );
+
+          if (matchingUser) {
+            console.log(`Relinking user ${matchingUser.email} with person ${insertedPerson.email}`);
+            await tx.execute(sql`
+              UPDATE users 
+              SET person_id = ${insertedPerson.id} 
+              WHERE id = ${matchingUser.id}
+            `);
+          }
         }
       });
 
