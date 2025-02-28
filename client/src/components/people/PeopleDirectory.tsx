@@ -37,7 +37,8 @@ export default function PeopleDirectory() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [focusedIndex, setFocusedIndex] = useState(0);
+  const [focusedIndex, setFocusedIndex] = useState(-1); // -1 means no focus
+  const [isSearchActive, setIsSearchActive] = useState(false);
   const pageSize = 50;
 
   const { data, isLoading, error } = useQuery<PeopleResponse>({
@@ -49,10 +50,10 @@ export default function PeopleDirectory() {
     }
   });
 
-  // Reset focused index when search query changes
+  // Reset focused index when search query changes or search becomes inactive
   useEffect(() => {
-    setFocusedIndex(0);
-  }, [searchQuery]);
+    setFocusedIndex(isSearchActive ? 0 : -1);
+  }, [searchQuery, isSearchActive]);
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -64,7 +65,7 @@ export default function PeopleDirectory() {
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (!data?.people.length) return;
+    if (!data?.people.length || !isSearchActive) return;
 
     switch (e.key) {
       case 'ArrowDown':
@@ -112,6 +113,8 @@ export default function PeopleDirectory() {
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsSearchActive(true)}
+          onBlur={() => setIsSearchActive(false)}
           className="pl-9"
         />
       </div>
@@ -130,7 +133,7 @@ export default function PeopleDirectory() {
                 <div
                   key={person.api_id}
                   className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                    index === focusedIndex
+                    index === focusedIndex && isSearchActive
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   }`}
