@@ -108,12 +108,16 @@ export class PostgresStorage implements IStorage {
   
   async clearEvents(): Promise<void> {
     console.log('Clearing all events from database...');
-    await db.delete(events);
-    
-    // Reset the sequence to start from 1 again
-    await db.execute(sql`ALTER SEQUENCE events_id_seq RESTART WITH 1`);
-    
-    console.log('Successfully cleared events and reset ID sequence');
+    try {
+      await db.transaction(async (tx) => {
+        await tx.delete(events);
+        await tx.execute(sql`ALTER SEQUENCE events_id_seq RESTART WITH 1`);
+        console.log('Successfully cleared events and reset ID sequence');
+      });
+    } catch (error) {
+      console.error('Failed to clear events table:', error);
+      throw error;
+    }
   }
   
   async getPeople(): Promise<Person[]> {
@@ -163,12 +167,32 @@ export class PostgresStorage implements IStorage {
   
   async clearPeople(): Promise<void> {
     console.log('Clearing all people from database...');
-    await db.delete(people);
-    
-    // Reset the sequence to start from 1 again
-    await db.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
-    
-    console.log('Successfully cleared people and reset ID sequence');
+    try {
+      await db.transaction(async (tx) => {
+        // First get all existing person IDs that are linked to users
+        const linkedPersons = await tx
+          .select({ 
+            email: people.email,
+            personId: people.id 
+          })
+          .from(people)
+          .innerJoin(users, eq(users.email, people.email));
+
+        console.log(`Found ${linkedPersons.length} people linked to user accounts`);
+
+        // Clear the people table while preserving email relationships
+        await tx.delete(people);
+
+        // Reset the sequence
+        await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
+
+        console.log('Successfully cleared people and reset ID sequence');
+        return linkedPersons;
+      });
+    } catch (error) {
+      console.error('Failed to clear people table:', error);
+      throw error;
+    }
   }
   
   async getLastCacheUpdate(): Promise<Date | null> {
@@ -253,14 +277,14 @@ export class PostgresStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log('Creating new user with email:', userData.email);
-
+      
       // First get the person by email to ensure we have the latest data
       const person = await this.getPersonByEmail(userData.email);
-
+      
       if (!person) {
         throw new Error(`No matching person found for email: ${userData.email}`);
       }
-
+      
       const [newUser] = await db
         .insert(users)
         .values({
@@ -271,7 +295,7 @@ export class PostgresStorage implements IStorage {
           updatedAt: new Date().toISOString()
         })
         .returning();
-
+      
       console.log('Successfully created user:', newUser.id, 'linked to person:', person.id);
       return newUser;
     } catch (error) {
@@ -314,11 +338,11 @@ export class PostgresStorage implements IStorage {
     try {
       const user = await this.getUserById(userId);
       if (!user) return null;
-
+      
       // Get the person by email instead of ID
       const person = await this.getPersonByEmail(user.email);
       if (!person) return null;
-
+      
       return {
         ...user,
         person

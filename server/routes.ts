@@ -247,33 +247,41 @@ export async function registerRoutes(app: Express) {
 
       console.log('Starting database reset process');
 
-      // Clear both events and people tables
-      await Promise.all([
-        storage.clearEvents(),
-        storage.clearPeople()
-      ]);
+      try {
+        // Clear tables within a transaction
+        await db.transaction(async (tx) => {
+          // First clear events as they don't have dependencies
+          await storage.clearEvents();
 
-      // Also reset cache metadata sequence and clear the cache_metadata table
-      await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
+          // Then clear people while preserving email relationships
+          await storage.clearPeople();
 
-      console.log('Database cleared successfully. Tables reset to empty state with ID sequences reset.');
+          // Reset cache metadata
+          await tx.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
-      // Import CacheService to trigger a refresh
-      const { CacheService } = await import('./services/CacheService');
-      const cacheService = CacheService.getInstance();
+          console.log('Database cleared successfully. Tables reset to empty state with ID sequences reset.');
+        });
 
-      // Initialize a new sync from the beginning of time
-      const oldestPossibleDate = new Date(0);
-      await storage.setLastCacheUpdate(oldestPossibleDate);
+        // Import CacheService to trigger a refresh
+        const { CacheService } = await import('./services/CacheService');
+        const cacheService = CacheService.getInstance();
 
-      // Trigger the cache update process
-      console.log('Triggering fresh data fetch from Luma API');
-      cacheService.updateCache();
+        // Initialize a new sync from the beginning of time
+        const oldestPossibleDate = new Date(0);
+        await storage.setLastCacheUpdate(oldestPossibleDate);
 
-      return res.json({ 
-        success: true, 
-        message: "Database reset completed. Fresh data sync from Luma API is in progress." 
-      });
+        // Trigger the cache update process
+        console.log('Triggering fresh data fetch from Luma API');
+        await cacheService.updateCache();
+
+        return res.json({ 
+          success: true, 
+          message: "Database reset completed. Fresh data sync from Luma API is in progress." 
+        });
+      } catch (error) {
+        console.error('Transaction failed during database reset:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Failed to reset database:', error);
       return res.status(500).json({ 
