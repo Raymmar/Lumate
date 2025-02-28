@@ -108,7 +108,9 @@ export async function ensureTablesExist() {
           "guest_api_id" VARCHAR(255) NOT NULL UNIQUE,
           "approval_status" VARCHAR(50) NOT NULL,
           "registered_at" TIMESTAMPTZ,
-          "last_synced_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+          "last_synced_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          "user_id" INTEGER REFERENCES users(id),
+          "person_id" INTEGER REFERENCES people(id)
         );
       `];
 

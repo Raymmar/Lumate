@@ -83,6 +83,8 @@ export const attendance = pgTable("attendance", {
   approvalStatus: varchar("approval_status", { length: 50 }).notNull(),
   registeredAt: timestamp("registered_at", { mode: 'string', withTimezone: true }),
   lastSyncedAt: timestamp("last_synced_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  userId: serial("user_id").references(() => users.id),
+  personId: serial("person_id").references(() => people.id),
 });
 
 export const insertEventSchema = createInsertSchema(events);

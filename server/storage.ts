@@ -603,16 +603,33 @@ export class PostgresStorage implements IStorage {
 
   async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
     try {
+      // First, try to find matching user and person by email
+      const [matchingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, data.userEmail.toLowerCase()))
+        .limit(1);
+
+      const [matchingPerson] = await db
+        .select()
+        .from(people)
+        .where(eq(people.email, data.userEmail.toLowerCase()))
+        .limit(1);
+
       const [result] = await db
         .insert(attendance)
         .values({
           ...data,
+          userId: matchingUser?.id,
+          personId: matchingPerson?.id,
           lastSyncedAt: new Date().toISOString()
         })
         .onConflictDoUpdate({
           target: attendance.guestApiId,
           set: {
             approvalStatus: data.approvalStatus,
+            userId: matchingUser?.id,
+            personId: matchingPerson?.id,
             lastSyncedAt: new Date().toISOString()
           }
         })
