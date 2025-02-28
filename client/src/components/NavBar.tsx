@@ -27,13 +27,13 @@ export function NavBar() {
 
   return (
     <div className="border-b">
-      <div className="flex h-16 items-center px-6">
+      <div className="flex h-16 items-center pl-2 pr-4">
         <Link href="/">
           <div className="flex items-center">
             <img 
               src="/256x256.png" 
               alt="Luma Logo" 
-              className="h-12 w-12 object-contain"
+              className="h-14 w-14 object-contain"
             />
           </div>
         </Link>
