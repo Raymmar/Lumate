@@ -1,14 +1,7 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,23 +16,12 @@ export function NavBar() {
 
   return (
     <div className="border-b">
-      <div className="flex h-16 items-center px-4 container mx-auto">
+      <div className="flex h-16 items-center px-6">
         <Link href="/">
           <a className="text-2xl font-bold text-primary flex items-center">
-            Luma Dashboard
+            Luma
           </a>
         </Link>
-        <NavigationMenu className="ml-6">
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <Link href="/dashboard">
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                  Dashboard
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
         <div className="ml-auto flex items-center space-x-4">
           {user ? (
             <DropdownMenu>
