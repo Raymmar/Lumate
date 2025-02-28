@@ -766,12 +766,12 @@ export async function registerRoutes(app: Express) {
       }
 
       // Get events sorted by startTime in descending order
-      const events = await db
+      const eventsList = await db
         .select()
         .from(events)
         .orderBy(sql`start_time DESC`);
 
-      res.json(events);
+      res.json(eventsList);
     } catch (error) {
       console.error('Failed to fetch admin events:', error);
       res.status(500).json({ error: "Failed to fetch events" });
