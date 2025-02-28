@@ -82,6 +82,27 @@ export class CacheService {
     }
   }
 
+  startCaching() {
+    // Set up a periodic sync interval (4 hours)
+    const FOUR_HOURS = 4 * 60 * 60 * 1000;
+    this.cacheInterval = setInterval(() => {
+      console.log('Running scheduled cache update...');
+      this.updateCache();
+    }, FOUR_HOURS);
+
+    // Also run an immediate update when starting
+    console.log('Running initial cache update...');
+    this.updateCache();
+
+    console.log(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
+  }
+
+  stopCaching() {
+    if (this.cacheInterval) {
+      clearInterval(this.cacheInterval);
+      this.cacheInterval = null;
+    }
+  }
   private async fetchAllEvents(lastUpdateTime: Date): Promise<any[]> {
     console.log('Starting fetch of events from Luma API...');
     console.log('Using created_after:', lastUpdateTime.toISOString());
@@ -367,28 +388,6 @@ export class CacheService {
     } catch (error) {
       console.error('Failed to batch insert people:', error);
       throw error;
-    }
-  }
-
-  startCaching() {
-    // Set up a periodic sync interval (4 hours)
-    const FOUR_HOURS = 4 * 60 * 60 * 1000;
-    this.cacheInterval = setInterval(() => {
-      console.log('Running scheduled cache update...');
-      this.updateCache();
-    }, FOUR_HOURS);
-
-    // Also run an immediate update when starting
-    console.log('Running initial cache update...');
-    this.updateCache();
-
-    console.log(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
-  }
-
-  stopCaching() {
-    if (this.cacheInterval) {
-      clearInterval(this.cacheInterval);
-      this.cacheInterval = null;
     }
   }
 }

@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express) {
 
         return res.json({ 
           success: true, 
-          message: "Database reset completed. Fresh data sync from Luma API is in progress." 
+          message: "Database reset completed and fresh data sync from Luma API has finished." 
         });
       } catch (error) {
         console.error('Transaction failed during database reset:', error);
