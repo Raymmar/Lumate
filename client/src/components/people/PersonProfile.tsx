@@ -21,9 +21,71 @@ import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ADMIN_EMAILS } from "@/components/AdminGuard";
+import { CalendarDays, Users, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface PersonProfileProps {
   personId: string;
+}
+
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  description?: string;
+}
+
+function StatsCard({ title, value, icon, description }: StatsCardProps) {
+  return (
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-center gap-4">
+          <div className="p-2 bg-primary/10 rounded-full">
+            {icon}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <h3 className="text-2xl font-bold">{value}</h3>
+            {description && (
+              <p className="text-sm text-muted-foreground">{description}</p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function EventsList() {
+  // Placeholder data - will be replaced with real data later
+  const events = [
+    { name: "Tech JAM 2024", date: "2024-02-15", status: "Going" },
+    { name: "March Tech JAM", date: "2024-03-20", status: "Going" },
+    { name: "April Tech JAM", date: "2024-04-17", status: "Going" },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Events</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {events.map((event) => (
+            <div key={event.name} className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{event.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(event.date), 'MMM d, yyyy')}
+                </p>
+              </div>
+              <Badge variant="secondary">{event.status}</Badge>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function PersonProfile({ personId }: PersonProfileProps) {
@@ -121,92 +183,93 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isClaimed = userStatus?.isClaimed || user !== null;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-20 w-20">
-            {person.avatarUrl ? (
-              <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
-            ) : (
-              <AvatarFallback className="text-xl">
-                {person.userName
-                  ? person.userName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                  : "?"}
-              </AvatarFallback>
-            )}
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              {person.userName || "Anonymous"}
-              {person.role && (
-                <Badge variant="secondary" className="ml-2">
-                  {person.role}
-                </Badge>
+    <div className="grid gap-6 md:grid-cols-3">
+      {/* Main content area */}
+      <div className="md:col-span-2 space-y-6">
+        {/* Profile header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Avatar className="h-20 w-20">
+              {person.avatarUrl ? (
+                <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
+              ) : (
+                <AvatarFallback className="text-xl">
+                  {person.userName
+                    ? person.userName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                    : "?"}
+                </AvatarFallback>
               )}
-              {isAdmin && (
-                <AdminBadge />
-              )}
-            </h1>
-            <div className="flex items-center gap-2">
-              <AuthGuard>
-                <p className="text-muted-foreground">{person.email}</p>
-              </AuthGuard>
-              {isOwnProfile && (
-                <Badge variant="outline" className="bg-white text-xs font-normal">
-                  your profile
-                </Badge>
-              )}
+            </Avatar>
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                {person.userName || "Anonymous"}
+                {person.role && (
+                  <Badge variant="secondary" className="ml-2">
+                    {person.role}
+                  </Badge>
+                )}
+                {isAdmin && <AdminBadge />}
+              </h1>
+              <div className="flex items-center gap-2">
+                <AuthGuard>
+                  <p className="text-muted-foreground">{person.email}</p>
+                </AuthGuard>
+                {isOwnProfile && (
+                  <Badge variant="outline" className="bg-white text-xs font-normal">
+                    your profile
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
+
+          {!user && (
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant={isClaimed ? "outline" : "default"}
+                  className={isClaimed ? "cursor-default" : ""}
+                  disabled={isClaimed}
+                >
+                  {isClaimed ? "Profile Claimed" : "Claim Profile"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Claim Your Profile</DialogTitle>
+                  <DialogDescription>
+                    Enter your email address to verify and claim this profile. We'll send you a verification link.
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleClaimProfile} className="space-y-4">
+                  <div>
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      required
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={claimProfileMutation.isPending}
+                    className="w-full"
+                  >
+                    {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
-        {!user && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                variant={isClaimed ? "outline" : "default"}
-                className={isClaimed ? "cursor-default" : ""}
-                disabled={isClaimed}
-              >
-                {isClaimed ? "Profile Claimed" : "Claim Profile"}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Claim Your Profile</DialogTitle>
-                <DialogDescription>
-                  Enter your email address to verify and claim this profile. We'll send you a verification link.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleClaimProfile} className="space-y-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    required
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  disabled={claimProfileMutation.isPending}
-                  className="w-full"
-                >
-                  {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
+        {/* Personal Information card */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -242,8 +305,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
 
+        {/* Biography card */}
         {person.bio && (
-          <Card className="md:col-span-2">
+          <Card>
             <CardHeader>
               <CardTitle>Biography</CardTitle>
             </CardHeader>
@@ -252,6 +316,30 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* Sidebar */}
+      <div className="space-y-6">
+        {/* Stats Cards */}
+        <StatsCard
+          title="First Seen"
+          value={format(new Date("2023-10-11"), "MMM d, yyyy")}
+          icon={<CalendarDays className="h-4 w-4 text-primary" />}
+        />
+        <StatsCard
+          title="Events Attended"
+          value="16"
+          description="6 checked in"
+          icon={<Users className="h-4 w-4 text-primary" />}
+        />
+        <StatsCard
+          title="Revenue"
+          value="$0.00"
+          icon={<DollarSign className="h-4 w-4 text-primary" />}
+        />
+
+        {/* Events List */}
+        <EventsList />
       </div>
     </div>
   );
