@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function AdminMenu() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
 
   const handleResetDatabase = async () => {
     setIsResetting(true);
@@ -27,7 +27,7 @@ export default function AdminMenu() {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include' // Add this to ensure cookies are sent
+        credentials: 'include'
       });
 
       if (!response.ok) {
@@ -44,7 +44,7 @@ export default function AdminMenu() {
       });
 
       // Show a syncing toast that won't auto-dismiss
-      const syncToastId = toast({
+      const syncToast = toast({
         title: "Sync in Progress",
         description: "Please wait while data is being synced...",
         duration: Infinity, // Won't auto-dismiss
@@ -60,17 +60,16 @@ export default function AdminMenu() {
           if (statsResponse.ok) {
             const stats = await statsResponse.json();
             if (stats.events > 0 && stats.people > 0) {
-              // Sync completed successfully
+              // Dismiss the infinite sync toast
+              dismiss(syncToast);
+
+              // Show completion toast
               toast({
                 title: "Sync Completed",
                 description: `Successfully synced ${stats.events} events and ${stats.people} people.`,
                 variant: "default",
               });
-              // Dismiss the syncing toast
-              toast({
-                id: syncToastId,
-                duration: 0,
-              });
+
               window.location.reload();
               return;
             }
