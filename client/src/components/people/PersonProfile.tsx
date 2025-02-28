@@ -114,6 +114,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   }
 
   const isClaimed = userStatus?.isClaimed || user !== null;
+  const isOwnProfile = user?.api_id === person.api_id;
 
   return (
     <div className="space-y-6">
@@ -139,6 +140,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               {person.role && (
                 <Badge variant="secondary" className="ml-2">
                   {person.role}
+                </Badge>
+              )}
+              {isOwnProfile && (
+                <Badge variant="default" className="ml-2">
+                  Your Profile
                 </Badge>
               )}
             </h1>
