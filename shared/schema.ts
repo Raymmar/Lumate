@@ -79,7 +79,9 @@ export type Person = typeof people.$inferSelect;
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  api_id?: string;
+};
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;

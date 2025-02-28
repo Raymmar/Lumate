@@ -56,9 +56,9 @@ export function NavBar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                {user.id && (
+                {user.api_id && (
                   <DropdownMenuItem asChild>
-                    <Link href={`/people/${user.id}`}>
+                    <Link href={`/people/${user.api_id}`}>
                       <span className="flex items-center">
                         <User className="mr-2 h-4 w-4" />
                         Profile

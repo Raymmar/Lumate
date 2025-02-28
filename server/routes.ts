@@ -339,12 +339,22 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
+      // Get the linked person's api_id if it exists
+      let api_id = null;
+      if (user.personId) {
+        const person = await storage.getPerson(user.personId);
+        if (person) {
+          api_id = person.api_id;
+        }
+      }
+
       return res.json({
         id: user.id,
         email: user.email,
         displayName: user.displayName,
         isVerified: user.isVerified,
-        personId: user.personId
+        personId: user.personId,
+        api_id: api_id // Include the person's api_id
       });
     } catch (error) {
       console.error('Failed to get user info:', error);
