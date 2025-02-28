@@ -228,28 +228,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Professional Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="space-y-2">
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Organization</dt>
-                <dd>{person.organizationName || "Not specified"}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Job Title</dt>
-                <dd>{person.jobTitle || "Not specified"}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Role</dt>
-                <dd>{person.role || "Not specified"}</dd>
-              </div>
-            </dl>
-          </CardContent>
-        </Card>
-
         {person.bio && (
           <Card className="md:col-span-2">
             <CardHeader>
