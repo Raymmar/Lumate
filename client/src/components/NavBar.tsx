@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 // Add ADMIN_EMAILS constant
 const ADMIN_EMAILS = [
   "admin@example.com",
+  "me@raymmar.com",
   // Add more admin emails here
 ];
 
