@@ -19,11 +19,13 @@ export default function AdminMenu() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [syncStatus, setSyncStatus] = useState("");
   const { toast, dismiss } = useToast();
 
   const handleResetDatabase = async () => {
     setIsResetting(true);
     setSyncProgress(0);
+    setSyncStatus("Starting sync process...");
     try {
       const response = await fetch('/_internal/reset-database', {
         method: 'POST',
@@ -62,40 +64,56 @@ export default function AdminMenu() {
 
           if (statsResponse.ok) {
             const stats = await statsResponse.json();
-            setSyncProgress(prevProgress => Math.min(prevProgress + 20, 95)); // Increment progress but cap at 95%
 
-            if (stats.events > 0 && stats.people > 0) {
-              // Dismiss the infinite sync toast
-              dismiss(syncToast);
-              setSyncProgress(100);
+            // Calculate progress based on stats
+            if (stats.events > 0 || stats.people > 0) {
+              // Update status message based on counts
+              if (stats.events === 0) {
+                setSyncStatus("Fetching events...");
+                setSyncProgress(25);
+              } else if (stats.people === 0) {
+                setSyncStatus(`Fetched ${stats.events} events. Now syncing people...`);
+                setSyncProgress(50);
+              } else {
+                setSyncStatus(`Processing ${stats.events} events and ${stats.people} people...`);
+                setSyncProgress(75);
+              }
 
-              // Show completion toast with detailed stats
-              toast({
-                title: "✅ Sync Completed Successfully",
-                description: (
-                  <div className="space-y-2">
-                    <p>Data has been successfully synchronized:</p>
-                    <ul className="list-disc pl-4">
-                      <li>{stats.events} events synced</li>
-                      <li>{stats.people} people synced</li>
-                    </ul>
-                  </div>
-                ),
-                variant: "default",
-                duration: 5000,
-              });
+              if (stats.events > 0 && stats.people > 0) {
+                // Dismiss the infinite sync toast
+                dismiss(syncToast);
+                setSyncProgress(100);
+                setSyncStatus("Sync completed successfully!");
 
-              // Short delay before reload to show 100% progress
-              setTimeout(() => {
-                window.location.reload();
-              }, 1000);
-              return;
+                // Show completion toast with detailed stats
+                toast({
+                  title: "✅ Sync Completed Successfully",
+                  description: (
+                    <div className="space-y-2">
+                      <p>Data has been successfully synchronized:</p>
+                      <ul className="list-disc pl-4">
+                        <li>{stats.events} events synced</li>
+                        <li>{stats.people} people synced</li>
+                      </ul>
+                    </div>
+                  ),
+                  variant: "default",
+                  duration: 5000,
+                });
+
+                // Short delay before reload to show 100% progress
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+                return;
+              }
             }
           }
           // Check again in 5 seconds
           setTimeout(checkSync, 5000);
         } catch (error) {
           console.error('Error checking sync status:', error);
+          setSyncStatus("Error checking sync status. Retrying...");
           // Continue polling even if check fails
           setTimeout(checkSync, 5000);
         }
@@ -115,6 +133,7 @@ export default function AdminMenu() {
       if (!isResetDialogOpen) {
         setIsResetting(false);
         setSyncProgress(0);
+        setSyncStatus("");
       }
     }
   };
@@ -166,7 +185,7 @@ export default function AdminMenu() {
             <AlertDialogDescription className="space-y-4">
               {isResetting ? (
                 <>
-                  <p>Please wait while we sync data from Luma API...</p>
+                  <p>{syncStatus}</p>
                   <div className="space-y-2">
                     <Progress value={syncProgress} className="w-full" />
                     <p className="text-sm text-muted-foreground text-center">
