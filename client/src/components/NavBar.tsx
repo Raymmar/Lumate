@@ -50,9 +50,7 @@ export function NavBar() {
                 <Avatar className="h-8 w-8">
                   <AvatarFallback>
                     {user ? (
-                      user.displayName?.charAt(0)?.toUpperCase() || 
-                      user.email?.charAt(0)?.toUpperCase() || 
-                      'U'
+                      (user.displayName || user.email).charAt(0).toUpperCase()
                     ) : (
                       <User className="h-4 w-4" />
                     )}
@@ -63,7 +61,7 @@ export function NavBar() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               {user ? (
                 <>
-                  {user.api_id && (
+                  {user.personId && user.api_id && (
                     <DropdownMenuItem asChild>
                       <Link href={`/people/${user.api_id}`}>
                         <span className="flex items-center">
