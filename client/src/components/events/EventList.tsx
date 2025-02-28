@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, ExternalLink } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface Event {
@@ -103,6 +103,16 @@ export default function EventList() {
 
   return (
     <div className="space-y-3">
+      <a
+        href="https://lu.ma/SarasotaTech"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
+      >
+        <span>View Full Calendar</span>
+        <ExternalLink className="h-3.5 w-3.5" />
+      </a>
+
       {isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-[88px]" />
