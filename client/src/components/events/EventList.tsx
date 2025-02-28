@@ -27,9 +27,14 @@ interface EventsResponse {
 
 function formatEventDate(utcDateStr: string, timezone: string | null): string {
   try {
-    const targetTimezone = timezone || 'America/New_York';
+    // Default to the user's local timezone if no timezone is specified
+    const targetTimezone = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Parse the date string as it is (preserving the original timezone)
+    const date = new Date(utcDateStr);
+
     return formatInTimeZone(
-      new Date(utcDateStr),
+      date,
       targetTimezone,
       'MMM d, h:mm a'
     );
