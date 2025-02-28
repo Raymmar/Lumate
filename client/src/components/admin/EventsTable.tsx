@@ -5,11 +5,12 @@ import type { Event } from "@shared/schema";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useState } from "react";
 import { EventPreview } from "./EventPreview";
+import { Badge } from "@/components/ui/badge";
 
 export function EventsTable() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const { data: events = [], isLoading } = useQuery<Event[]>({
+  const { data: events = [], isLoading } = useQuery<(Event & { isSynced: boolean; lastSyncedAt: string | null })>({
     queryKey: ["/api/admin/events"],
     queryFn: async () => {
       const response = await fetch("/api/admin/events");
@@ -28,6 +29,24 @@ export function EventsTable() {
       key: "startTime",
       header: "Start Date",
       cell: (row: Event) => format(new Date(row.startTime), "PPP"),
+    },
+    {
+      key: "sync",
+      header: "Sync Status",
+      cell: (row: any) => (
+        <Badge variant={row.isSynced ? "outline" : "secondary"}>
+          {row.isSynced ? (
+            <>
+              Synced
+              <span className="ml-1 text-xs text-muted-foreground">
+                ({format(new Date(row.lastSyncedAt!), "MMM d, h:mm a")})
+              </span>
+            </>
+          ) : (
+            "Not synced"
+          )}
+        </Badge>
+      ),
     },
   ];
 

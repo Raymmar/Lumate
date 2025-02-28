@@ -58,6 +58,7 @@ export interface IStorage {
   upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
   getAttendanceByEmail(email: string): Promise<Attendance[]>;
   deleteAttendanceByEvent(eventApiId: string): Promise<void>; // Added deleteAttendanceByEvent method
+  updateEventAttendanceSync(eventApiId: string): Promise<Event>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -682,6 +683,26 @@ export class PostgresStorage implements IStorage {
       console.log('Successfully deleted attendance records for event:', eventApiId);
     } catch (error) {
       console.error('Failed to delete attendance records:', error);
+      throw error;
+    }
+  }
+  async updateEventAttendanceSync(eventApiId: string): Promise<Event> {
+    try {
+      const [updatedEvent] = await db
+        .update(events)
+        .set({
+          lastAttendanceSync: new Date().toISOString()
+        })
+        .where(eq(events.api_id, eventApiId))
+        .returning();
+
+      if (!updatedEvent) {
+        throw new Error(`Event with API ID ${eventApiId} not found`);
+      }
+
+      return updatedEvent;
+    } catch (error) {
+      console.error('Failed to update event attendance sync timestamp:', error);
       throw error;
     }
   }

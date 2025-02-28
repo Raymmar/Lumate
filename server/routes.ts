@@ -771,7 +771,11 @@ export async function registerRoutes(app: Express) {
         .from(events)
         .orderBy(sql`start_time DESC`);
 
-      res.json(eventsList);
+      res.json(eventsList.map(event => ({
+        ...event,
+        isSynced: !!event.lastAttendanceSync,
+        lastSyncedAt: event.lastAttendanceSync
+      })));
     } catch (error) {
       console.error('Failed to fetch admin events:', error);
       res.status(500).json({ error: "Failed to fetch events" });
@@ -781,12 +785,11 @@ export async function registerRoutes(app: Express) {
   // Modify the existing /api/admin/events/:eventId/guests endpoint
   app.get("/api/admin/events/:eventId/guests", async (req, res) => {
     try {
-      // Check if user is authenticated
+      // Authentication checks remain unchanged...
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         return res.status(403).json({ error: "Not authorized" });
@@ -879,6 +882,9 @@ export async function registerRoutes(app: Express) {
       if (iterationCount >= MAX_ITERATIONS) {
         console.warn('Reached maximum iteration limit while syncing guests');
       }
+
+      // Update the event's last sync timestamp
+      await storage.updateEventAttendanceSync(eventId);
 
       console.log('Completed guest sync:', {
         eventId,

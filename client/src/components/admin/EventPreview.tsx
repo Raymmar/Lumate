@@ -1,18 +1,21 @@
 import { Event } from "@shared/schema";
 import { format } from "date-fns";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, MapPin, Users, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface EventPreviewProps {
-  event: Event;
+  event: Event & { isSynced?: boolean; lastSyncedAt?: string | null };
 }
 
 export function EventPreview({ event }: EventPreviewProps) {
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSyncAttendees = async () => {
     setIsSyncing(true);
@@ -25,8 +28,10 @@ export function EventPreview({ event }: EventPreviewProps) {
       console.log('Attendees data:', data);
       toast({
         title: "Success",
-        description: "Successfully fetched attendees data",
+        description: "Successfully synced attendees data",
       });
+      // Invalidate events query to refresh sync status
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
     } catch (error) {
       console.error('Error fetching attendees:', error);
       toast({
@@ -58,26 +63,50 @@ export function EventPreview({ event }: EventPreviewProps) {
                 Manage event
               </Button>
             )}
-            <Button
-              variant="default"
-              className="bg-black/75 text-white hover:bg-black/90"
-              onClick={handleSyncAttendees}
-              disabled={isSyncing}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              {isSyncing ? "Syncing..." : "Sync Attendees"}
-            </Button>
           </div>
         </div>
       )}
 
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold mb-2">{event.title}</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-2xl font-semibold">{event.title}</h2>
+            <Badge variant={event.isSynced ? "outline" : "secondary"}>
+              {event.isSynced ? (
+                <>
+                  Synced
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({format(new Date(event.lastSyncedAt!), "MMM d, h:mm a")})
+                  </span>
+                </>
+              ) : (
+                "Not synced"
+              )}
+            </Badge>
+          </div>
           {event.description && (
             <p className="text-muted-foreground line-clamp-2">{event.description}</p>
           )}
         </div>
+
+        <Button
+          variant="default"
+          className="w-full bg-black/75 text-white hover:bg-black/90"
+          onClick={handleSyncAttendees}
+          disabled={isSyncing}
+        >
+          <Users className="h-4 w-4 mr-2" />
+          {isSyncing ? (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              Syncing Attendees...
+            </>
+          ) : event.isSynced ? (
+            "Re-sync Attendees"
+          ) : (
+            "Sync Attendees"
+          )}
+        </Button>
 
         <Card>
           <CardContent className="p-6 space-y-4">

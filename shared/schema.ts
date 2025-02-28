@@ -30,6 +30,7 @@ export const events = pgTable("events", {
   visibility: varchar("visibility", { length: 50 }),
   meetingUrl: varchar("meeting_url", { length: 255 }),
   calendarApiId: varchar("calendar_api_id", { length: 255 }),
+  lastAttendanceSync: timestamp("last_attendance_sync", { mode: 'string', withTimezone: true }),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
