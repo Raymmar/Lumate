@@ -3,8 +3,9 @@ import { storage } from '../storage';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { users } from '@shared/schema';
+import { EventEmitter } from 'events';
 
-export class CacheService {
+export class CacheService extends EventEmitter {
   private static instance: CacheService;
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
@@ -13,6 +14,7 @@ export class CacheService {
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
 
   private constructor() {
+    super(); // Initialize EventEmitter
     console.log('Starting CacheService...');
     this.startCaching();
   }
@@ -25,6 +27,13 @@ export class CacheService {
     return this.instance;
   }
 
+  private emitProgress(message: string, progress: number) {
+    this.emit('fetchProgress', {
+      message,
+      progress: Math.min(Math.round(progress), 100)
+    });
+  }
+
   async updateCache() {
     if (this.isCaching) {
       console.log('Cache update already in progress, skipping...');
@@ -34,6 +43,7 @@ export class CacheService {
     this.isCaching = true;
     const syncStartTime = Date.now();
     console.log('Starting cache update process...');
+    this.emitProgress('Starting cache update process...', 0);
 
     try {
       const lastUpdate = await storage.getLastCacheUpdate();
@@ -44,31 +54,46 @@ export class CacheService {
       const lastUpdateTime = lastUpdate || new Date(0); // Use epoch time for fresh sync
 
       // First fetch all data from Luma API
+      this.emitProgress('Fetching events and people from Luma API...', 10);
       console.log('Fetching events and people from Luma API...');
+
       const [events, people] = await Promise.all([
         this.fetchAllEvents(lastUpdateTime),
         this.fetchAllPeople(lastUpdateTime)
       ]);
 
       console.log(`Successfully fetched ${events.length} events and ${people.length} people from API`);
+      this.emitProgress(`Successfully fetched ${events.length} events and ${people.length} people from API`, 50);
 
       // Process events in batches
       if (events.length > 0) {
         console.log(`Processing ${events.length} events in batches...`);
+        this.emitProgress(`Processing ${events.length} events...`, 60);
+
         for (let i = 0; i < events.length; i += this.BATCH_SIZE) {
           const batch = events.slice(i, i + this.BATCH_SIZE);
           await this.batchInsertEvents(batch);
-          console.log(`Processed events batch ${i / this.BATCH_SIZE + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`);
+          const progress = 60 + (i / events.length) * 20;
+          this.emitProgress(
+            `Processed events batch ${i / this.BATCH_SIZE + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`,
+            progress
+          );
         }
       }
 
       // Process people in batches while preserving email relationships
       if (people.length > 0) {
         console.log(`Processing ${people.length} people in batches...`);
+        this.emitProgress(`Processing ${people.length} people...`, 80);
+
         for (let i = 0; i < people.length; i += this.BATCH_SIZE) {
           const batch = people.slice(i, i + this.BATCH_SIZE);
           await this.batchInsertPeople(batch);
-          console.log(`Processed people batch ${i / this.BATCH_SIZE + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`);
+          const progress = 80 + (i / people.length) * 15;
+          this.emitProgress(
+            `Processed people batch ${i / this.BATCH_SIZE + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`,
+            progress
+          );
         }
       }
 
@@ -86,7 +111,10 @@ export class CacheService {
       await storage.setLastCacheUpdate(now);
 
       const totalDuration = (Date.now() - syncStartTime) / 1000;
-      console.log(`Cache update completed in ${totalDuration}s. Processed ${events.length} events and ${people.length} people.`);
+      const finalMessage = `Cache update completed in ${totalDuration}s. Processed ${events.length} events and ${people.length} people.`;
+      console.log(finalMessage);
+      this.emitProgress(finalMessage, 100);
+
     } catch (error) {
       console.error('Cache update process failed:', error);
       if (error instanceof Error) {
@@ -95,6 +123,7 @@ export class CacheService {
           stack: error.stack,
           name: error.name
         });
+        this.emitProgress(`Error: ${error.message}`, 0);
       }
       throw error;
     } finally {
