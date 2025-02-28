@@ -143,9 +143,9 @@ export default function PeopleDirectory() {
                 data.people.map((person, index) => (
                   <li
                     key={person.id}
-                    className={`cursor-pointer py-4 hover:bg-secondary/50 flex items-center gap-4 ${
+                    className={`cursor-pointer p-3 hover:bg-secondary/50 flex items-center gap-4 rounded-md transition-colors ${
                       index === focusedIndex && isSearchActive
-                        ? 'bg-muted ring-1 ring-inset ring-ring'
+                        ? 'bg-muted/80 ring-1 ring-inset ring-ring shadow-sm'
                         : ''
                     }`}
                     onClick={() => handlePersonClick(person.api_id)}
