@@ -9,6 +9,8 @@ export class CacheService {
   private cacheInterval: NodeJS.Timeout | null = null;
   private isCaching = false;
   private readonly BATCH_SIZE = 50;  // Luma API's pagination limit
+  private readonly MAX_RETRIES = 3;  // Maximum number of retries for failed requests
+  private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
 
   private constructor() {
     console.log('Starting CacheService...');
@@ -70,6 +72,16 @@ export class CacheService {
         }
       }
 
+      // Verify the sync was successful
+      const [eventCount, peopleCount] = await Promise.all([
+        storage.getEventCount(),
+        storage.getPeopleCount()
+      ]);
+
+      if (eventCount === 0 || peopleCount === 0) {
+        throw new Error(`Sync verification failed: Expected non-zero counts, got events=${eventCount}, people=${peopleCount}`);
+      }
+
       // Update the last cache time
       await storage.setLastCacheUpdate(now);
 
@@ -77,10 +89,38 @@ export class CacheService {
       console.log(`Cache update completed in ${totalDuration}s. Processed ${events.length} events and ${people.length} people.`);
     } catch (error) {
       console.error('Cache update process failed:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
       throw error;
     } finally {
       this.isCaching = false;
     }
+  }
+
+  private async fetchWithRetry(endpoint: string, params: Record<string, string>): Promise<any> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        return await lumaApiRequest(endpoint, params);
+      } catch (error) {
+        console.error(`Attempt ${attempt} failed for ${endpoint}:`, error);
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        if (attempt < this.MAX_RETRIES) {
+          const delay = this.RETRY_DELAY * attempt;
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError || new Error(`Failed to fetch ${endpoint} after ${this.MAX_RETRIES} attempts`);
   }
 
   private async fetchAllEvents(lastUpdateTime: Date): Promise<any[]> {
@@ -106,11 +146,11 @@ export class CacheService {
       try {
         pageCount++;
         console.log(`Fetching events page ${pageCount} with params:`, params);
-        const response = await lumaApiRequest('calendar/list-events', params);
+        const response = await this.fetchWithRetry('calendar/list-events', params);
 
         if (!response || !Array.isArray(response.entries)) {
           console.error('Invalid response format:', response);
-          break;
+          throw new Error('Invalid API response format');
         }
 
         const events = response.entries;
@@ -177,11 +217,11 @@ export class CacheService {
       try {
         pageCount++;
         console.log(`Fetching people page ${pageCount} with params:`, params);
-        const response = await lumaApiRequest('calendar/list-people', params);
+        const response = await this.fetchWithRetry('calendar/list-people', params);
 
         if (!response || !Array.isArray(response.entries)) {
           console.error('Invalid response format:', response);
-          break;
+          throw new Error('Invalid API response format');
         }
 
         const people = response.entries;
