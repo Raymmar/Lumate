@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { Person } from "@/components/people/PeopleDirectory";
+import { Link } from "wouter";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface EventPreviewProps {
   event: Event & { isSynced?: boolean; lastSyncedAt?: string | null };
@@ -22,6 +25,17 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
     lastSyncedAt: event.lastSyncedAt
   });
   const queryClient = useQueryClient();
+
+  // Query to fetch attendees for this event
+  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
+    queryKey: [`/api/admin/events/${event.api_id}/attendees`],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
+      if (!response.ok) throw new Error('Failed to fetch attendees');
+      return response.json();
+    },
+    enabled: !!event.api_id // Only run query if we have an event ID
+  });
 
   const formatLastSyncTime = (dateStr: string) => {
     try {
@@ -74,6 +88,8 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
 
         // Invalidate events query to refresh sync status
         queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+        // Also invalidate attendees query to refresh the list
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
       })
       .catch((error) => {
         console.error('Error fetching attendees:', error);
@@ -196,6 +212,50 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                   )}
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Attendees List */}
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Event Attendees</h3>
+              <Badge variant="secondary">{attendees.length} registered</Badge>
+            </div>
+
+            {isLoadingAttendees ? (
+              <div className="space-y-2">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
+                ))}
+              </div>
+            ) : attendees.length > 0 ? (
+              <div className="space-y-2">
+                {attendees.map((person) => (
+                  <Link 
+                    key={person.id} 
+                    href={`/admin/people/${person.id}`}
+                    className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                  >
+                    <Avatar className="h-8 w-8">
+                      {person.avatarUrl ? (
+                        <AvatarImage src={person.avatarUrl} alt={person.userName} />
+                      ) : (
+                        <AvatarFallback>
+                          {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div>
+                      <p className="font-medium">{person.userName || "Anonymous"}</p>
+                      <p className="text-xs text-muted-foreground">{person.email}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No attendees found</p>
             )}
           </CardContent>
         </Card>

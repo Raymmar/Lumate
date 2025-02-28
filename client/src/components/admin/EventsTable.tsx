@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
-import { format } from "date-fns";
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Event } from "@shared/schema";
 import { Sheet, SheetContent } from "@/components/ui/sheet";

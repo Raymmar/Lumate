@@ -8,10 +8,11 @@ import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events } from '@shared/schema'; //Import events schema
+import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
-import { Response } from 'express';
+import { eq } from 'drizzle-orm';
+
 
 // Add SSE helper function at the top of the file
 function initSSE(res: Response) {
@@ -960,6 +961,46 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch people:', error);
       res.status(500).json({ error: "Failed to fetch people" });
+    }
+  });
+
+  // Get attendees for a specific event
+  app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.eventId;
+      if (!eventId) {
+        return res.status(400).json({ error: "Missing event ID" });
+      }
+
+      // Query attendance records and join with people table
+      const result = await db
+        .select({
+          id: people.id,
+          userName: people.userName,
+          email: people.email,
+          avatarUrl: people.avatarUrl,
+          api_id: people.api_id,
+        })
+        .from(attendance)
+        .innerJoin(people, eq(attendance.userEmail, people.email))
+        .where(eq(attendance.eventApiId, eventId))
+        .orderBy(attendance.registeredAt);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to fetch event attendees:', error);
+      res.status(500).json({ error: "Failed to fetch attendees" });
     }
   });
 
