@@ -25,8 +25,12 @@ export function NavBar() {
     <div className="border-b">
       <div className="flex h-16 items-center px-4 container mx-auto">
         <Link href="/">
-          <a className="text-2xl font-bold text-primary flex items-center">
-            Luma Dashboard
+          <a className="flex items-center">
+            <img 
+              src="/attached_assets/sarasota.tech logo full.svg" 
+              alt="Sarasota.tech" 
+              className="h-8"
+            />
           </a>
         </Link>
         <NavigationMenu className="ml-6">
