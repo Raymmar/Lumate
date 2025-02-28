@@ -56,35 +56,36 @@ export default function AdminDashboard() {
           </PageContainer>
         </div>
 
-        <div className="flex pt-16">
-          {/* Sidebar */}
-          <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r p-4 flex flex-col">
-            <div className="flex-1">
-              <h2 className="font-semibold mb-4">Admin Panel</h2>
-              <nav className="space-y-2">
-                <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                  Dashboard
-                </a>
-                <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                  Users
-                </a>
-                <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                  Events
-                </a>
-                <a href="#" className="block p-2 hover:bg-muted rounded-md">
-                  Settings
-                </a>
-              </nav>
+        {/* Content area with sidebar and main content */}
+        <PageContainer className="flex-1 pt-16">
+          <div className="flex w-full">
+            {/* Sidebar */}
+            <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r p-4 flex flex-col">
+              <div className="flex-1">
+                <h2 className="font-semibold mb-4">Admin Panel</h2>
+                <nav className="space-y-2">
+                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                    Dashboard
+                  </a>
+                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                    Users
+                  </a>
+                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                    Events
+                  </a>
+                  <a href="#" className="block p-2 hover:bg-muted rounded-md">
+                    Settings
+                  </a>
+                </nav>
+              </div>
+              {/* AdminMenu fixed to bottom */}
+              <div className="border-t pt-4">
+                <AdminMenu />
+              </div>
             </div>
-            {/* AdminMenu fixed to bottom */}
-            <div className="border-t pt-4">
-              <AdminMenu />
-            </div>
-          </div>
 
-          {/* Main content */}
-          <div className="flex-1 p-6">
-            <PageContainer>
+            {/* Main content */}
+            <div className="flex-1 p-6">
               <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
 
               <div className="grid gap-4 md:grid-cols-4">
@@ -113,9 +114,9 @@ export default function AdminDashboard() {
                   isLoading={isLoading}
                 />
               </div>
-            </PageContainer>
+            </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
     </AdminGuard>
   );
