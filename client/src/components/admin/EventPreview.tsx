@@ -22,7 +22,7 @@ export function EventPreview({ event }: EventPreviewProps) {
             <div className="absolute bottom-4 left-4">
               <Button 
                 variant="default" 
-                className="bg-background/90 backdrop-blur-sm hover:bg-background/70"
+                className="bg-black/75 text-white hover:bg-black/90"
                 onClick={() => window.open(event.url, '_blank')}
               >
                 Manage event
