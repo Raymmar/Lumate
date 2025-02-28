@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ADMIN_EMAILS } from "@/components/AdminGuard";
-import { CalendarDays, Users, DollarSign } from 'lucide-react';
+import { CalendarDays, Users, DollarSign, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PersonProfileProps {
@@ -37,49 +37,54 @@ interface StatsCardProps {
 
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-center gap-4">
-          <div className="p-2 bg-primary/10 rounded-full">
-            {icon}
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold">{value}</h3>
-            {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
-            )}
-          </div>
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-primary/5 rounded-md">
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs text-muted-foreground">{title}</p>
+        <div className="flex items-baseline gap-1">
+          <p className="text-lg font-semibold">{value}</p>
+          {description && (
+            <span className="text-xs text-muted-foreground">({description})</span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
 function EventsList() {
-  // Placeholder data - will be replaced with real data later
   const events = [
-    { name: "Tech JAM 2024", date: "2024-02-15", status: "Going" },
-    { name: "March Tech JAM", date: "2024-03-20", status: "Going" },
-    { name: "April Tech JAM", date: "2024-04-17", status: "Going" },
+    { name: "April Tech JAM", date: "2025-04-17", status: "Going" },
+    { name: "March Tech JAM", date: "2025-03-20", status: "Going" },
+    { name: "February Tech JAM", date: "2025-02-20", status: "Going" },
+    { name: "October Tech JAM", date: "2024-10-24", status: "Going" },
+    { name: "September Tech JAM", date: "2024-09-19", status: "Going" },
+    { name: "August Tech JAM", date: "2024-08-15", status: "Going" },
   ];
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Events</CardTitle>
+    <Card className="mt-6">
+      <CardHeader className="flex flex-row items-center justify-between py-2">
+        <CardTitle className="text-base">Events</CardTitle>
+        <Button variant="ghost" size="sm" className="h-8 text-xs">
+          All Events <ChevronDown className="ml-1 h-4 w-4" />
+        </Button>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-0">
+        <div className="space-y-1">
           {events.map((event) => (
-            <div key={event.name} className="flex items-center justify-between">
+            <div key={event.name} className="flex items-center justify-between py-2 border-t">
               <div>
-                <p className="font-medium">{event.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(event.date), 'MMM d, yyyy')}
+                <p className="text-sm font-medium">{event.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {format(new Date(event.date), 'MMM d, yyyy, h:mm a')}
                 </p>
               </div>
-              <Badge variant="secondary">{event.status}</Badge>
+              <Badge variant="secondary" className="text-xs font-normal">
+                {event.status}
+              </Badge>
             </div>
           ))}
         </div>
@@ -319,24 +324,28 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       </div>
 
       {/* Sidebar */}
-      <div className="space-y-6">
-        {/* Stats Cards */}
-        <StatsCard
-          title="First Seen"
-          value={format(new Date("2023-10-11"), "MMM d, yyyy")}
-          icon={<CalendarDays className="h-4 w-4 text-primary" />}
-        />
-        <StatsCard
-          title="Events Attended"
-          value="16"
-          description="6 checked in"
-          icon={<Users className="h-4 w-4 text-primary" />}
-        />
-        <StatsCard
-          title="Revenue"
-          value="$0.00"
-          icon={<DollarSign className="h-4 w-4 text-primary" />}
-        />
+      <div>
+        {/* Stats Section */}
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <StatsCard
+              title="First Seen"
+              value={format(new Date("2023-10-11"), "MMM d, yyyy")}
+              icon={<CalendarDays className="h-4 w-4 text-primary" />}
+            />
+            <StatsCard
+              title="Events Attended"
+              value="16"
+              description="6 checked in"
+              icon={<Users className="h-4 w-4 text-primary" />}
+            />
+            <StatsCard
+              title="Revenue"
+              value="$0.00"
+              icon={<DollarSign className="h-4 w-4 text-primary" />}
+            />
+          </CardContent>
+        </Card>
 
         {/* Events List */}
         <EventsList />
