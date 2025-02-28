@@ -9,11 +9,15 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { AdminBadge } from "@/components/AdminBadge";
+import { ADMIN_EMAILS } from "@/components/AdminGuard";
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
+
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   const updateProfileMutation = useMutation({
     mutationFn: async (newDisplayName: string) => {
@@ -55,11 +59,14 @@ export default function UserSettingsPage() {
     <DashboardLayout>
       <div className="container max-w-2xl mx-auto py-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Profile Settings</CardTitle>
-            <CardDescription>
-              Update your profile information
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Profile Settings</CardTitle>
+              <CardDescription>
+                Update your profile information
+              </CardDescription>
+            </div>
+            {isAdmin && <AdminBadge />}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">

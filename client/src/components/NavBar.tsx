@@ -11,13 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { User, Settings, LogOut, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-// Add ADMIN_EMAILS constant
-const ADMIN_EMAILS = [
-  "admin@example.com",
-  "me@raymmar.com",
-  // Add more admin emails here
-];
+import { AdminBadge } from "@/components/AdminBadge";
+import { ADMIN_EMAILS } from "@/components/AdminGuard";
 
 export function NavBar() {
   const { user, logout } = useAuth();
@@ -38,6 +33,9 @@ export function NavBar() {
           </div>
         </Link>
         <div className="ml-auto flex items-center space-x-4">
+          {user && isAdmin && (
+            <AdminBadge className="mr-2" />
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -60,7 +58,7 @@ export function NavBar() {
                       <Link href="/admin">
                         <span className="flex items-center">
                           <Shield className="mr-2 h-4 w-4" />
-                          Admin
+                          Admin Dashboard
                         </span>
                       </Link>
                     </DropdownMenuItem>
