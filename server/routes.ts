@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema } from "@shared/schema";
+import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; // Added import for users table
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
@@ -747,6 +747,81 @@ export async function registerRoutes(app: Express) {
         error: "Failed to check RSVP status",
         message: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // Add these routes inside registerRoutes function after existing routes
+
+  // Admin routes for fetching data
+  app.get("/api/admin/events", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const events = await storage.getEvents();
+      res.json(events);
+    } catch (error) {
+      console.error('Failed to fetch admin events:', error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/admin/members", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get all users
+      const result = await db
+        .select()
+        .from(users)
+        .orderBy(users.id);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      res.status(500).json({ error: "Failed to fetch members" });
+    }
+  });
+
+  app.get("/api/admin/people", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const result = await db
+        .select()
+        .from(people)
+        .orderBy(people.id);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to fetch people:', error);
+      res.status(500).json({ error: "Failed to fetch people" });
     }
   });
 
