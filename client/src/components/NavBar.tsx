@@ -39,9 +39,9 @@ export function NavBar() {
     <div className="border-b">
       <div className="flex h-16 items-center px-6">
         <Link href="/">
-          <a className="text-2xl font-bold text-primary flex items-center">
+          <Button variant="link" className="text-2xl font-bold text-primary">
             Luma
-          </a>
+          </Button>
         </Link>
         <div className="ml-auto flex items-center space-x-4">
           <DropdownMenu>
@@ -61,16 +61,15 @@ export function NavBar() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               {user ? (
                 <>
-                  {user.personId && user.api_id && (
-                    <DropdownMenuItem asChild>
-                      <Link href={`/people/${user.api_id}`}>
-                        <span className="flex items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          Profile
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  {/* Show profile link if user exists */}
+                  <DropdownMenuItem asChild>
+                    <Link href={`/profile`}>
+                      <span className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </span>
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/settings">
                       <span className="flex items-center">
