@@ -52,8 +52,9 @@ export default function PeopleDirectory() {
 
   // Reset focused index when search query changes or search becomes inactive
   useEffect(() => {
-    setFocusedIndex(isSearchActive ? 0 : -1);
-  }, [searchQuery, isSearchActive]);
+    setFocusedIndex(searchQuery.length > 0 ? 0 : -1);
+    setIsSearchActive(searchQuery.length > 0);
+  }, [searchQuery]);
 
   const handleSearch = (value: string) => {
     setSearchQuery(value);
@@ -113,9 +114,7 @@ export default function PeopleDirectory() {
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsSearchActive(true)}
-          onBlur={() => setIsSearchActive(false)}
-          className="pl-9"
+          className="pl-9 focus:outline-none focus:ring-0"
         />
       </div>
 
