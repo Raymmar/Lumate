@@ -1,7 +1,8 @@
 import { Event } from "@shared/schema";
 import { format } from "date-fns";
-import { Calendar, Globe, MapPin } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface EventPreviewProps {
   event: Event;
@@ -17,6 +18,17 @@ export function EventPreview({ event }: EventPreviewProps) {
             alt={event.title}
             className="w-full h-full object-cover rounded-lg"
           />
+          {event.url && (
+            <div className="absolute bottom-4 left-4">
+              <Button 
+                variant="default" 
+                className="bg-background/90 backdrop-blur-sm hover:bg-background/70"
+                onClick={() => window.open(event.url, '_blank')}
+              >
+                Manage event
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -63,20 +75,6 @@ export function EventPreview({ event }: EventPreviewProps) {
                     </p>
                   )}
                 </div>
-              </div>
-            )}
-
-            {event.url && (
-              <div className="flex items-start gap-3">
-                <Globe className="h-5 w-5 mt-0.5 text-muted-foreground" />
-                <a
-                  href={event.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  View Event Page
-                </a>
               </div>
             )}
           </CardContent>

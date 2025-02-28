@@ -33,16 +33,11 @@ export function EventsTable() {
 
   const actions = [
     {
-      label: "View Details",
+      label: "Manage event",
       onClick: (event: Event) => {
-        setSelectedEvent(event);
-      },
-    },
-    {
-      label: "Edit",
-      onClick: (event: Event) => {
-        // Placeholder for edit action
-        console.log("Edit event:", event);
+        if (event.url) {
+          window.open(event.url, '_blank');
+        }
       },
     },
   ];
