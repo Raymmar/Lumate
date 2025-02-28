@@ -27,23 +27,12 @@ export function NavBar() {
         <Link href="/">
           <a className="flex items-center">
             <img 
-              src="/attached_assets/sarasota.tech logo full.svg" 
+              src="/attached_assets/Sarasota.Tech%20logo%20full.svg" 
               alt="Sarasota.tech" 
               className="h-8"
             />
           </a>
         </Link>
-        <NavigationMenu className="ml-6">
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <Link href="/dashboard">
-                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                  Dashboard
-                </NavigationMenuLink>
-              </Link>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
         <div className="ml-auto flex items-center space-x-4">
           {user ? (
             <DropdownMenu>
