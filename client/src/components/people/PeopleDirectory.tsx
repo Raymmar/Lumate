@@ -1,7 +1,7 @@
 import React, { useState, useEffect, KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
 import { useLocation } from 'wouter';
@@ -139,14 +139,18 @@ export default function PeopleDirectory() {
                   onClick={() => handlePersonClick(person.api_id)}
                 >
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
-                      {person.userName
-                        ? person.userName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                        : "?"}
-                    </AvatarFallback>
+                    {person.avatarUrl ? (
+                      <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
+                    ) : (
+                      <AvatarFallback className="text-xs">
+                        {person.userName
+                          ? person.userName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                          : "?"}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
