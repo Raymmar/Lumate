@@ -16,12 +16,12 @@ export function NavBar() {
 
   return (
     <div className="border-b">
-      <div className="flex items-center container mx-auto">
+      <div className="flex items-center justify-between w-full">
         <Link href="/">
-          <a className="p-2">
+          <a className="flex-shrink-0">
             <svg 
-              viewBox="0 0 8996 1884" 
-              style={{ width: '200px', minWidth: '200px' }}
+              viewBox="0 0 8996 1884"
+              style={{ width: '300px' }}
               aria-label="Sarasota.tech"
             >
               <g>
@@ -32,7 +32,7 @@ export function NavBar() {
             </svg>
           </a>
         </Link>
-        <div className="ml-auto flex items-center space-x-4">
+        <div className="flex items-center space-x-4 p-4">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
