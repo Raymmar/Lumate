@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,6 @@ import { Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function LoginPage() {
-  const [, setLocation] = useLocation();
   const { user, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,12 +16,6 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   if (user) {
-    // If the user has an api_id, redirect to their profile page
-    if (user.api_id) {
-      setLocation(`/people/${user.api_id}`);
-    } else {
-      setLocation("/");
-    }
     return null;
   }
 
@@ -34,7 +26,6 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // The redirect will happen automatically when the user state updates
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);

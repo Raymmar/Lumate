@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type AuthContextType = {
   user: User | null;
@@ -16,6 +17,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const {
     data: user,
@@ -47,11 +49,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/me"], data.user);
+      queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
         description: "Logged in successfully",
       });
+      // Redirect to profile page if user has an api_id
+      if (data.api_id) {
+        setLocation(`/people/${data.api_id}`);
+      } else {
+        setLocation("/");
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -77,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Logged out successfully",
       });
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({
