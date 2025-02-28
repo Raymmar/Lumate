@@ -35,6 +35,7 @@ export interface IStorage {
   getUserById(id: number): Promise<User | null>;
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   verifyUser(userId: number): Promise<User>;
+  getUser(id: number): Promise<User | null>;  // Add this method
   
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -288,14 +289,14 @@ export class PostgresStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log('Creating new user with email:', userData.email);
-
+      
       // First get the person by email to ensure we have the latest data
       const person = await this.getPersonByEmail(userData.email);
-
+      
       if (!person) {
         throw new Error(`No matching person found for email: ${userData.email}`);
       }
-
+      
       const [newUser] = await db
         .insert(users)
         .values({
@@ -307,7 +308,7 @@ export class PostgresStorage implements IStorage {
           updatedAt: new Date().toISOString()
         })
         .returning();
-
+      
       console.log('Successfully created user:', newUser.id, 'linked to person:', person.id);
       return newUser;
     } catch (error) {
@@ -501,6 +502,20 @@ export class PostgresStorage implements IStorage {
         .where(eq(verificationTokens.email, email.toLowerCase()));
     } catch (error) {
       console.error('Failed to delete verification tokens for email:', email, error);
+      throw error;
+    }
+  }
+  async getUser(id: number): Promise<User | null> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get user:', error);
       throw error;
     }
   }

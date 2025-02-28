@@ -8,6 +8,8 @@ import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
+import session from 'express-session';
+import connectPg from 'connect-pg-simple';
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
@@ -55,6 +57,23 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
 }
 
 export async function registerRoutes(app: Express) {
+  // Set up session handling
+  const PostgresStore = connectPg(session);
+  app.use(session({
+    store: new PostgresStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+    }),
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    }
+  }));
+
   app.get("/api/events", async (_req, res) => {
     try {
       console.log('Fetching events from storage...');
@@ -307,7 +326,32 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add login route
+  // Add user info endpoint
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      return res.json({
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        isVerified: user.isVerified,
+        personId: user.personId
+      });
+    } catch (error) {
+      console.error('Failed to get user info:', error);
+      res.status(500).json({ error: "Failed to get user info" });
+    }
+  });
+
+  // Update login route
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -334,8 +378,14 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Create session
+      // Set up session
       req.session.userId = user.id;
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve(undefined);
+        });
+      });
 
       return res.json({ 
         message: "Logged in successfully",
@@ -343,7 +393,8 @@ export async function registerRoutes(app: Express) {
           id: user.id,
           email: user.email,
           displayName: user.displayName,
-          isVerified: user.isVerified
+          isVerified: user.isVerified,
+          personId: user.personId
         }
       });
     } catch (error) {
@@ -352,13 +403,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add logout route
+  // Update logout route
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(err => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not logged in" });
+    }
+
+    req.session.destroy((err) => {
       if (err) {
         console.error('Logout failed:', err);
         return res.status(500).json({ error: "Logout failed" });
       }
+      res.clearCookie('connect.sid');
       res.json({ message: "Logged out successfully" });
     });
   });
