@@ -41,7 +41,7 @@ export default function LoginPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-center" style={{ minHeight: 'calc(100vh - 4rem - 3rem)' }}>
+      <div className="h-full flex items-center justify-center">
         <Card className="w-[400px]">
           <CardHeader>
             <CardTitle>Welcome Back</CardTitle>
