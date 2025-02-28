@@ -1,14 +1,44 @@
 import { Event } from "@shared/schema";
 import { format } from "date-fns";
-import { Calendar, MapPin } from "lucide-react";
+import { Calendar, MapPin, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface EventPreviewProps {
   event: Event;
 }
 
 export function EventPreview({ event }: EventPreviewProps) {
+  const { toast } = useToast();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSyncAttendees = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch(`/api/admin/events/${event.api_id}/guests`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch attendees');
+      }
+      const data = await response.json();
+      console.log('Attendees data:', data);
+      toast({
+        title: "Success",
+        description: "Successfully fetched attendees data",
+      });
+    } catch (error) {
+      console.error('Error fetching attendees:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync attendees",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {event.coverUrl && (
@@ -18,8 +48,8 @@ export function EventPreview({ event }: EventPreviewProps) {
             alt={event.title}
             className="w-full h-full object-cover rounded-lg"
           />
-          {event.url && (
-            <div className="absolute bottom-4 left-4">
+          <div className="absolute bottom-4 left-4 flex gap-2">
+            {event.url && (
               <Button 
                 variant="default" 
                 className="bg-black/75 text-white hover:bg-black/90"
@@ -27,8 +57,17 @@ export function EventPreview({ event }: EventPreviewProps) {
               >
                 Manage event
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              variant="default"
+              className="bg-black/75 text-white hover:bg-black/90"
+              onClick={handleSyncAttendees}
+              disabled={isSyncing}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              {isSyncing ? "Syncing..." : "Sync Attendees"}
+            </Button>
+          </div>
         </div>
       )}
 

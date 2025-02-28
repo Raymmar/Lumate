@@ -778,6 +778,41 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/events/:eventId/guests", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.eventId;
+      if (!eventId) {
+        return res.status(400).json({ error: "Missing event ID" });
+      }
+
+      console.log('Fetching guests for event:', eventId);
+      const response = await lumaApiRequest(
+        'event/get-guests',
+        { event_api_id: eventId }
+      );
+
+      console.log('Luma API response:', response);
+      res.json(response);
+    } catch (error) {
+      console.error('Failed to fetch event guests:', error);
+      res.status(500).json({ 
+        error: "Failed to fetch event guests",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   app.get("/api/admin/members", async (req, res) => {
     try {
       // Check if user is authenticated
