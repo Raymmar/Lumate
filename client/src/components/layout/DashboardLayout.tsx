@@ -18,9 +18,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex-none">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-medium">Next event</h2>
-                <a href="/calendar" className="text-xs text-muted-foreground hover:text-primary">
-                  View full calendar
-                </a>
               </div>
               <EventList />
             </div>
