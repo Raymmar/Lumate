@@ -37,7 +37,8 @@ export interface IStorage {
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   verifyUser(userId: number): Promise<User>;
   getUser(id: number): Promise<User | null>;  
-  
+  getUserCount(): Promise<number>; // Added getUserCount method
+
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
   validateVerificationToken(token: string): Promise<VerificationToken | null>;
@@ -532,6 +533,11 @@ export class PostgresStorage implements IStorage {
       console.error('Failed to get person:', error);
       throw error;
     }
+  }
+  async getUserCount(): Promise<number> {
+    const result = await db.select({ count: sql`COUNT(*)` }).from(users);
+    const count = Number(result[0].count);
+    return count;
   }
 }
 

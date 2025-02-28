@@ -93,7 +93,7 @@ export default function AdminDashboard() {
                 isLoading={isLoading}
               />
               <StatCard
-                title="Total People"
+                title="Total Attendees"
                 value={statsData?.people || 0}
                 icon={Users}
                 isLoading={isLoading}

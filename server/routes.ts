@@ -11,6 +11,12 @@ import { ZodError } from 'zod';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 
+// Define admin emails directly in routes since we can't import from client components
+const ADMIN_EMAILS = [
+  "admin@example.com",
+  "me@raymmar.com"
+];
+
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
@@ -508,5 +514,44 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add the new admin stats endpoint after the existing routes
+  app.get("/api/admin/stats", async (req, res) => {
+    try {
+      // Get the authenticated user
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Fetch stats
+      const [eventCount, peopleCount, userCount] = await Promise.all([
+        storage.getEventCount(),
+        storage.getPeopleCount(),
+        storage.getUserCount()
+      ]);
+
+      res.json({
+        events: eventCount,
+        people: peopleCount,
+        users: userCount,
+        paidUsers: 0 // Placeholder for now
+      });
+    } catch (error) {
+      console.error('Failed to fetch admin stats:', error);
+      res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
   return createServer(app);
+}
+
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
 }

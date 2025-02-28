@@ -3,7 +3,7 @@ import { ReactNode } from "react";
 import { Redirect } from "wouter";
 
 // List of admin emails - in a real application, this would be in a database
-const ADMIN_EMAILS = [
+export const ADMIN_EMAILS = [
   "admin@example.com",
   "me@raymmar.com",
   // Add more admin emails here
