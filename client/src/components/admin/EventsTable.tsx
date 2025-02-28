@@ -24,16 +24,6 @@ export function EventsTable() {
       header: "Start Date",
       cell: (row: Event) => format(new Date(row.startTime), "PPP"),
     },
-    {
-      key: "endTime",
-      header: "End Date",
-      cell: (row: Event) => format(new Date(row.endTime), "PPP"),
-    },
-    {
-      key: "url",
-      header: "URL",
-      cell: (row: Event) => row.url || "—",
-    },
   ];
 
   const actions = [
