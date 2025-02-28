@@ -75,39 +75,12 @@ export const eventRsvpStatus = pgTable("event_rsvp_status", {
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
-export const attendance = pgTable("attendance", {
-  id: serial("id").primaryKey(),
-  api_id: varchar("api_id", { length: 255 }).notNull().unique(),
-  eventApiId: varchar("event_api_id", { length: 255 }).notNull(),
-  userApiId: varchar("user_api_id", { length: 255 }).notNull(),
-  approvalStatus: varchar("approval_status", { length: 50 }).notNull(),
-  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull(),
-  registeredAt: timestamp("registered_at", { mode: 'string', withTimezone: true }),
-  checkedInAt: timestamp("checked_in_at", { mode: 'string', withTimezone: true }),
-  userName: varchar("user_name", { length: 255 }),
-  userEmail: varchar("user_email", { length: 255 }),
-  checkInQrCode: varchar("check_in_qr_code", { length: 255 }),
-  ticketData: json("ticket_data").$type<{
-    amount: number;
-    amount_discount: number;
-    amount_tax: number;
-    api_id: string;
-    checked_in_at: string | null;
-    currency: string | null;
-    event_ticket_type_api_id: string;
-    is_captured: boolean;
-    name: string;
-  }>(),
-  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-});
-
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true });
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
-export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, updatedAt: true });
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
@@ -123,8 +96,6 @@ export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
 export type EventRsvpStatus = typeof eventRsvpStatus.$inferSelect;
 export type InsertEventRsvpStatus = z.infer<typeof insertEventRsvpStatusSchema>;
-export type Attendance = typeof attendance.$inferSelect;
-export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 
 export const updatePasswordSchema = z.object({
   password: z.string()

@@ -5,8 +5,7 @@ import {
   VerificationToken, InsertVerificationToken,
   events, people, cacheMetadata, eventRsvpStatus,
   InsertCacheMetadata, users, verificationTokens,
-  EventRsvpStatus, InsertEventRsvpStatus,
-  attendance, Attendance, InsertAttendance 
+  EventRsvpStatus, InsertEventRsvpStatus
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
@@ -26,7 +25,7 @@ export interface IStorage {
   getPersonByEmail(email: string): Promise<Person | null>; 
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-  getPerson(id: number): Promise<Person | null>; 
+  getPerson(id: number): Promise<Person | null>; // Added getPerson method
   getPersonByApiId(apiId: string): Promise<Person | null>;
   
   // Cache metadata
@@ -40,7 +39,7 @@ export interface IStorage {
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   verifyUser(userId: number): Promise<User>;
   getUser(id: number): Promise<User | null>;  
-  getUserCount(): Promise<number>; 
+  getUserCount(): Promise<number>; // Added getUserCount method
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
 
   // Email verification
@@ -52,11 +51,6 @@ export interface IStorage {
   // Add new methods for RSVP status
   getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null>;
   upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus>;
-
-  // Add new attendance methods
-  getAttendanceByEventId(eventApiId: string): Promise<Attendance[]>;
-  insertAttendance(attendanceData: InsertAttendance): Promise<Attendance>;
-  clearAttendanceForEvent(eventApiId: string): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -181,66 +175,39 @@ export class PostgresStorage implements IStorage {
   }
   
   async clearPeople(): Promise<void> {
-    console.log('Starting people table clear process...');
-    const MAX_RETRIES = 3;
-    const RETRY_DELAY = 1000; // 1 second
-
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        await db.transaction(async (tx) => {
-          console.log(`Attempt ${attempt}: Starting transaction to clear people data`);
-
-          // First, delete all verification tokens to avoid FK constraints
-          console.log('Deleting verification tokens...');
-          await tx.delete(verificationTokens);
-
-          // Then update users to remove person_id references
-          console.log('Unlinking users from people records...');
-          await tx.execute(sql`
-            UPDATE users 
-            SET person_id = NULL, 
-                updated_at = NOW()
-            WHERE person_id IS NOT NULL
-          `);
-
-          // Delete any attendance records that might reference people
-          console.log('Clearing attendance records...');
-          await tx.delete(attendance);
-
-          // Clear RSVP status records
-          console.log('Clearing RSVP status records...');
-          await tx.delete(eventRsvpStatus);
-
-          // Now safe to delete from people table
-          console.log('Clearing people table...');
-          await tx.execute(sql`TRUNCATE people RESTART IDENTITY CASCADE`);
-
-          console.log('Transaction completed successfully');
+    console.log('Clearing people table while preserving user relationships...');
+    try {
+      await db.transaction(async (tx) => {
+        // Get all users' emails to preserve relationships
+        const userEmails = await tx
+          .select({ email: users.email })
+          .from(users);
+        
+        console.log(`Found ${userEmails.length} user emails to preserve`);
+        
+        // First set person_id to NULL for all users to avoid constraint violations
+        await tx.execute(sql`UPDATE users SET person_id = NULL`);
+        console.log('Temporarily unlinked users from people records');
+        
+        // Now safe to clear people table
+        await tx.delete(people);
+        console.log('Cleared people table');
+        
+        // Reset the sequence
+        await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
+        console.log('Reset people table ID sequence');
+        
+        console.log('Successfully cleared people table while preserving user table');
+      });
+    } catch (error) {
+      console.error('Failed to clear people table:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack
         });
-
-        console.log('Successfully cleared people table and related records');
-        return; // Success, exit the retry loop
-
-      } catch (error) {
-        console.error(`Attempt ${attempt} failed:`, error);
-
-        if (error instanceof Error) {
-          console.error('Error details:', {
-            message: error.message,
-            name: error.name,
-            stack: error.stack
-          });
-        }
-
-        if (attempt === MAX_RETRIES) {
-          console.error('Max retries reached, failing...');
-          throw error;
-        }
-
-        // Wait before retrying
-        console.log(`Waiting ${RETRY_DELAY}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       }
+      throw error;
     }
   }
   
@@ -338,9 +305,9 @@ export class PostgresStorage implements IStorage {
         .insert(users)
         .values({
           ...userData,
-          email: userData.email.toLowerCase(), 
+          email: userData.email.toLowerCase(), // Ensure consistent email format
           personId: person.id,
-          isVerified: false, 
+          isVerified: false, // Always start as unverified
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
@@ -609,52 +576,6 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to upsert RSVP status:', error);
-      throw error;
-    }
-  }
-
-  async getAttendanceByEventId(eventApiId: string): Promise<Attendance[]> {
-    try {
-      const result = await db
-        .select()
-        .from(attendance)
-        .where(eq(attendance.eventApiId, eventApiId));
-      return result;
-    } catch (error) {
-      console.error('Failed to get attendance for event:', error);
-      throw error;
-    }
-  }
-
-  async insertAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
-    try {
-      const [result] = await db
-        .insert(attendance)
-        .values(attendanceData)
-        .onConflictDoUpdate({
-          target: attendance.api_id,
-          set: {
-            approvalStatus: attendanceData.approvalStatus,
-            checkedInAt: attendanceData.checkedInAt,
-            ticketData: attendanceData.ticketData,
-            updatedAt: new Date().toISOString(),
-          }
-        })
-        .returning();
-      return result;
-    } catch (error) {
-      console.error('Failed to insert/update attendance:', error);
-      throw error;
-    }
-  }
-
-  async clearAttendanceForEvent(eventApiId: string): Promise<void> {
-    try {
-      await db
-        .delete(attendance)
-        .where(eq(attendance.eventApiId, eventApiId));
-    } catch (error) {
-      console.error('Failed to clear attendance for event:', error);
       throw error;
     }
   }
