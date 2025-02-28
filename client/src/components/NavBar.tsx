@@ -56,28 +56,36 @@ export function NavBar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                {user.personId && (
-                  <DropdownMenuItem className="flex items-center">
-                    <User className="mr-2 h-4 w-4" />
-                    <Link href={`/people/${user.personId}`}>
-                      <span>Profile</span>
+                {user.id && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/people/${user.id}`}>
+                      <span className="flex items-center">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </span>
                     </Link>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem className="flex items-center">
-                  <Settings className="mr-2 h-4 w-4" />
+                <DropdownMenuItem asChild>
                   <Link href="/settings">
-                    <span>Settings</span>
+                    <span className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center" onSelect={handleResync}>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  <span>Re-sync Database</span>
+                <DropdownMenuItem className="cursor-pointer" onSelect={handleResync}>
+                  <span className="flex items-center">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Re-sync Database
+                  </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex items-center" onClick={() => logout()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
+                <DropdownMenuItem className="cursor-pointer" onSelect={() => logout()}>
+                  <span className="flex items-center">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
