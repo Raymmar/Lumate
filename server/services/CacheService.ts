@@ -2,7 +2,7 @@ import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { users } from '../db/schema'; // Assuming users table is imported here
+import { users } from '@shared/schema';
 
 export class CacheService {
   private static instance: CacheService;
@@ -83,27 +83,6 @@ export class CacheService {
     }
   }
 
-  startCaching() {
-    // Set up a periodic sync interval (4 hours)
-    const FOUR_HOURS = 4 * 60 * 60 * 1000;
-    this.cacheInterval = setInterval(() => {
-      console.log('Running scheduled cache update...');
-      this.updateCache();
-    }, FOUR_HOURS);
-
-    // Also run an immediate update when starting
-    console.log('Running initial cache update...');
-    this.updateCache();
-
-    console.log(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
-  }
-
-  stopCaching() {
-    if (this.cacheInterval) {
-      clearInterval(this.cacheInterval);
-      this.cacheInterval = null;
-    }
-  }
   private async fetchAllEvents(lastUpdateTime: Date): Promise<any[]> {
     console.log('Starting fetch of events from Luma API...');
     console.log('Using created_after:', lastUpdateTime.toISOString());
@@ -137,7 +116,7 @@ export class CacheService {
         const events = response.entries;
         console.log(`Received ${events.length} events in page ${pageCount}`);
 
-        // Deduplicate events
+        // Process events
         const uniqueEvents = events.filter((entry: any) => {
           if (!entry || !entry.event || !entry.event.api_id) {
             console.warn('Invalid event entry structure:', entry);
@@ -163,11 +142,11 @@ export class CacheService {
           break;
         }
 
-        // Small delay between requests to avoid rate limiting
+        // Small delay between requests
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
         console.error(`Error fetching events page ${pageCount}:`, error);
-        break;
+        throw error;
       }
     }
 
@@ -208,7 +187,7 @@ export class CacheService {
         const people = response.entries;
         console.log(`Received ${people.length} people in page ${pageCount}`);
 
-        // Deduplicate people while preserving the most recent data
+        // Process people
         const uniquePeople = people.filter((person: any) => {
           if (!person || !person.api_id) {
             console.warn('Invalid person entry structure:', person);
@@ -233,11 +212,11 @@ export class CacheService {
           break;
         }
 
-        // Small delay between requests to avoid rate limiting
+        // Small delay between requests
         await new Promise(resolve => setTimeout(resolve, 100));
       } catch (error) {
         console.error(`Error fetching people page ${pageCount}:`, error);
-        break;
+        throw error;
       }
     }
 
@@ -248,14 +227,11 @@ export class CacheService {
   private async batchInsertEvents(events: any[]): Promise<void> {
     if (events.length === 0) return;
 
-    const batchStartTime = Date.now();
-    console.log(`Starting batch insert of ${events.length} events...`);
-
     try {
       await db.transaction(async (tx) => {
-        // Map the event data to match our schema
-        const values = events.map(entry => {
+        for (const entry of events) {
           const eventData = entry.event;
+
           const location = eventData.geo_address_json ? {
             city: eventData.geo_address_json.city,
             region: eventData.geo_address_json.region,
@@ -265,25 +241,7 @@ export class CacheService {
             full_address: eventData.geo_address_json.full_address,
           } : null;
 
-          return {
-            api_id: eventData.api_id,
-            title: eventData.name,
-            description: eventData.description || null,
-            start_time: eventData.start_at,
-            end_time: eventData.end_at,
-            cover_url: eventData.cover_url || null,
-            url: eventData.url || null,
-            timezone: eventData.timezone || null,
-            location: location ? JSON.stringify(location) : null,
-            visibility: eventData.visibility || null,
-            meeting_url: eventData.meeting_url || eventData.zoom_meeting_url || null,
-            calendar_api_id: eventData.calendar_api_id || null,
-            created_at: eventData.created_at || null,
-          };
-        });
-
-        // Create the SQL query with exact column names from our schema
-        for (const event of values) {
+          // Use SQL template for better control over the insert/update
           const query = sql`
             INSERT INTO events (
               api_id, title, description, start_time, end_time,
@@ -291,19 +249,19 @@ export class CacheService {
               meeting_url, calendar_api_id, created_at
             ) 
             VALUES (
-              ${event.api_id}, 
-              ${event.title}, 
-              ${event.description}, 
-              ${event.start_time}, 
-              ${event.end_time},
-              ${event.cover_url}, 
-              ${event.url}, 
-              ${event.timezone}, 
-              ${event.location}::jsonb, 
-              ${event.visibility}, 
-              ${event.meeting_url}, 
-              ${event.calendar_api_id}, 
-              ${event.created_at}
+              ${eventData.api_id}, 
+              ${eventData.name}, 
+              ${eventData.description || null}, 
+              ${eventData.start_at}, 
+              ${eventData.end_at},
+              ${eventData.cover_url || null}, 
+              ${eventData.url || null}, 
+              ${eventData.timezone || null}, 
+              ${location ? JSON.stringify(location) : null}::jsonb, 
+              ${eventData.visibility || null}, 
+              ${eventData.meeting_url || eventData.zoom_meeting_url || null}, 
+              ${eventData.calendar_api_id || null}, 
+              ${eventData.created_at || null}
             )
             ON CONFLICT (api_id) DO UPDATE SET
               title = EXCLUDED.title,
@@ -318,16 +276,11 @@ export class CacheService {
               meeting_url = EXCLUDED.meeting_url,
               calendar_api_id = EXCLUDED.calendar_api_id,
               created_at = EXCLUDED.created_at
-            RETURNING *
           `;
 
           await tx.execute(query);
         }
       });
-
-      const duration = Date.now() - batchStartTime;
-      const recordsPerSecond = Math.round((events.length / duration) * 1000);
-      console.log(`Events batch insert completed in ${duration}ms (${recordsPerSecond} records/sec)`);
     } catch (error) {
       console.error('Failed to batch insert events:', error);
       throw error;
@@ -337,77 +290,98 @@ export class CacheService {
   private async batchInsertPeople(people: any[]): Promise<void> {
     if (people.length === 0) return;
 
-    const batchStartTime = Date.now();
-    console.log(`Starting batch insert of ${people.length} people...`);
-
     try {
       await db.transaction(async (tx) => {
-        // First get all existing users to preserve relationships
-        const existingUsers = await tx
-          .select()
-          .from(users);
-
+        // Get existing users to maintain email relationships
+        const existingUsers = await db.select().from(users);
         console.log(`Found ${existingUsers.length} existing users to maintain relationships with`);
 
         for (const person of people) {
-          // Construct the new person data
-          const query = sql`
-            INSERT INTO people (
-              api_id, email, user_name, full_name, avatar_url,
-              role, phone_number, bio, organization_name, job_title, created_at
-            )
-            VALUES (
-              ${person.api_id},
-              ${person.email},
-              ${person.userName || person.user?.name || null},
-              ${person.fullName || person.user?.full_name || null},
-              ${person.avatarUrl || person.user?.avatar_url || null},
-              ${person.role || null},
-              ${person.phoneNumber || person.user?.phone_number || null},
-              ${person.bio || person.user?.bio || null},
-              ${person.organizationName || person.user?.organization_name || null},
-              ${person.jobTitle || person.user?.job_title || null},
-              ${person.created_at || null}
-            )
-            ON CONFLICT (api_id) DO UPDATE SET
-              email = EXCLUDED.email,
-              user_name = EXCLUDED.user_name,
-              full_name = EXCLUDED.full_name,
-              avatar_url = EXCLUDED.avatar_url,
-              role = EXCLUDED.role,
-              phone_number = EXCLUDED.phone_number,
-              bio = EXCLUDED.bio,
-              organization_name = EXCLUDED.organization_name,
-              job_title = EXCLUDED.job_title,
-              created_at = EXCLUDED.created_at
-            RETURNING *
-          `;
+          try {
+            // Insert/update person
+            const query = sql`
+              INSERT INTO people (
+                api_id, email, user_name, full_name, avatar_url,
+                role, phone_number, bio, organization_name, job_title, created_at
+              )
+              VALUES (
+                ${person.api_id},
+                ${person.email},
+                ${person.userName || person.user?.name || null},
+                ${person.fullName || person.user?.full_name || null},
+                ${person.avatarUrl || person.user?.avatar_url || null},
+                ${person.role || null},
+                ${person.phoneNumber || person.user?.phone_number || null},
+                ${person.bio || person.user?.bio || null},
+                ${person.organizationName || person.user?.organization_name || null},
+                ${person.jobTitle || person.user?.job_title || null},
+                ${person.created_at || null}
+              )
+              ON CONFLICT (api_id) DO UPDATE SET
+                email = EXCLUDED.email,
+                user_name = EXCLUDED.user_name,
+                full_name = EXCLUDED.full_name,
+                avatar_url = EXCLUDED.avatar_url,
+                role = EXCLUDED.role,
+                phone_number = EXCLUDED.phone_number,
+                bio = EXCLUDED.bio,
+                organization_name = EXCLUDED.organization_name,
+                job_title = EXCLUDED.job_title,
+                created_at = EXCLUDED.created_at
+              RETURNING *
+            `;
 
-          const result = await tx.execute(query);
-          const insertedPerson = result.rows[0];
+            const result = await tx.execute(query);
+            const insertedPerson = result.rows[0];
 
-          // If this person has a matching user, update the relationship
-          const matchingUser = existingUsers.find(user => 
-            user.email.toLowerCase() === insertedPerson.email.toLowerCase()
-          );
+            // Find any user with matching email and update the relationship
+            const matchingUser = existingUsers.find(user => 
+              user.email.toLowerCase() === person.email.toLowerCase()
+            );
 
-          if (matchingUser) {
-            console.log(`Relinking user ${matchingUser.email} with person ${insertedPerson.email}`);
-            await tx.execute(sql`
-              UPDATE users 
-              SET person_id = ${insertedPerson.id} 
-              WHERE id = ${matchingUser.id}
-            `);
+            if (matchingUser) {
+              console.log(`Relinking user ${matchingUser.email} with person ${person.email}`);
+              await tx.execute(sql`
+                UPDATE users 
+                SET person_id = ${insertedPerson.id} 
+                WHERE id = ${matchingUser.id}
+              `);
+            }
+          } catch (error) {
+            console.error(`Failed to process person ${person.api_id}:`, error);
+            throw error;
           }
         }
       });
 
-      const duration = Date.now() - batchStartTime;
-      const recordsPerSecond = Math.round((people.length / duration) * 1000);
-      console.log(`People batch insert completed in ${duration}ms (${recordsPerSecond} records/sec)`);
+      console.log(`Successfully processed ${people.length} people`);
     } catch (error) {
       console.error('Failed to batch insert people:', error);
       throw error;
+    }
+  }
+
+  startCaching() {
+    const FOUR_HOURS = 4 * 60 * 60 * 1000;
+    this.cacheInterval = setInterval(() => {
+      console.log('Running scheduled cache update...');
+      this.updateCache().catch(error => {
+        console.error('Scheduled cache update failed:', error);
+      });
+    }, FOUR_HOURS);
+
+    console.log('Running initial cache update...');
+    this.updateCache().catch(error => {
+      console.error('Initial cache update failed:', error);
+    });
+
+    console.log(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
+  }
+
+  stopCaching() {
+    if (this.cacheInterval) {
+      clearInterval(this.cacheInterval);
+      this.cacheInterval = null;
     }
   }
 }
