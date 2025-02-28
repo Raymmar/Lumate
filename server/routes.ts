@@ -354,7 +354,7 @@ export async function registerRoutes(app: Express) {
         displayName: user.displayName,
         isVerified: user.isVerified,
         personId: user.personId,
-        api_id: api_id // Include the person's api_id
+        api_id 
       });
     } catch (error) {
       console.error('Failed to get user info:', error);

@@ -24,6 +24,7 @@ export interface IStorage {
   getPersonByEmail(email: string): Promise<Person | null>; 
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
+  getPerson(id: number): Promise<Person | null>; // Added getPerson method
   
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
@@ -35,7 +36,7 @@ export interface IStorage {
   getUserById(id: number): Promise<User | null>;
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   verifyUser(userId: number): Promise<User>;
-  getUser(id: number): Promise<User | null>;  // Add this method
+  getUser(id: number): Promise<User | null>;  
   
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -512,10 +513,23 @@ export class PostgresStorage implements IStorage {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
-
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get user:', error);
+      throw error;
+    }
+  }
+  async getPerson(id: number): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.id, id))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person:', error);
       throw error;
     }
   }
