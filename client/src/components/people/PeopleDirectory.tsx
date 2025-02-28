@@ -114,7 +114,7 @@ export default function PeopleDirectory() {
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pl-9 focus:outline-none focus:ring-0"
+          className="pl-9 focus:outline-none focus:ring-0 focus-visible:ring-0"
         />
       </div>
 
