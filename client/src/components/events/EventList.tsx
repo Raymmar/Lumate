@@ -1,10 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Event {
   id: number;
@@ -15,6 +17,7 @@ interface Event {
   coverUrl: string | null;
   url: string | null;
   timezone: string | null;
+  api_id: string;
 }
 
 interface EventsResponse {
@@ -37,6 +40,49 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
 }
 
 function EventCard({ event }: { event: Event }) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const rsvpMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/events/rsvp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event_api_id: event.api_id,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to RSVP');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "You've successfully RSVP'd to this event.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRSVP = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent the parent link from being clicked
+    e.stopPropagation();
+    rsvpMutation.mutate();
+  };
+
   return (
     <a 
       href={event.url || "#"} 
@@ -64,8 +110,13 @@ function EventCard({ event }: { event: Event }) {
           {/* RSVP Button - Only visible for logged in users */}
           <AuthGuard>
             <div className="absolute bottom-2 left-2">
-              <Button size="sm" className="text-xs">
-                RSVP
+              <Button 
+                size="sm" 
+                className="text-xs"
+                onClick={handleRSVP}
+                disabled={rsvpMutation.isPending}
+              >
+                {rsvpMutation.isPending ? "..." : "RSVP"}
               </Button>
             </div>
           </AuthGuard>

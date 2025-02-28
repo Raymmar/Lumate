@@ -19,7 +19,11 @@ const ADMIN_EMAILS = [
 
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
-export async function lumaApiRequest(endpoint: string, params?: Record<string, string>) {
+export async function lumaApiRequest(
+  endpoint: string, 
+  params?: Record<string, string>,
+  options: { method?: string; body?: string } = {}
+) {
     const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
 
     if (params) {
@@ -32,14 +36,16 @@ export async function lumaApiRequest(endpoint: string, params?: Record<string, s
       throw new Error('LUMA_API_KEY environment variable is not set');
     }
 
-    console.log(`Making request to ${url.toString()}`);
+    console.log(`Making ${options.method || 'GET'} request to ${url.toString()}`);
 
     const response = await fetch(url.toString(), {
-      method: 'GET',
+      method: options.method || 'GET',
       headers: {
         'accept': 'application/json',
+        'content-type': 'application/json',
         'x-luma-api-key': process.env.LUMA_API_KEY
-      }
+      },
+      ...(options.body ? { body: options.body } : {})
     });
 
     if (!response.ok) {
@@ -96,6 +102,43 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch events" });
     }
   });
+
+  app.post("/api/events/rsvp", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { event_api_id } = req.body;
+      if (!event_api_id) {
+        return res.status(400).json({ error: "Missing event_api_id" });
+      }
+
+      // Get user's email
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Make request to Luma API
+      const response = await lumaApiRequest('event/add-guests', { event_api_id: event_api_id });
+
+      console.log('Successfully RSVP\'d to event:', {
+        eventId: event_api_id,
+        userEmail: user.email
+      });
+
+      res.json({ message: 'Successfully RSVP\'d to event' });
+    } catch (error) {
+      console.error('Failed to RSVP to event:', error);
+      res.status(500).json({ 
+        error: "Failed to RSVP to event",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
 
   app.get("/api/people", async (req, res) => {
     try {
