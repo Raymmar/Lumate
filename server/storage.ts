@@ -107,7 +107,7 @@ export class PostgresStorage implements IStorage {
   }
   
   async clearEvents(): Promise<void> {
-    console.log('Clearing all events from database...');
+    console.log('Clearing events table...');
     try {
       await db.transaction(async (tx) => {
         await tx.delete(events);
@@ -166,46 +166,23 @@ export class PostgresStorage implements IStorage {
   }
   
   async clearPeople(): Promise<void> {
-    console.log('Clearing all people from database...');
+    console.log('Clearing people table while preserving user relationships...');
     try {
       await db.transaction(async (tx) => {
-        console.log('Starting transaction for clearing people table...');
+        // Get all users' emails to preserve relationships
+        const userEmails = await tx
+          .select({ email: users.email })
+          .from(users);
 
-        // First get all existing person-user relationships
-        const linkedUsers = await tx
-          .select({
-            userId: users.id,
-            userEmail: users.email,
-            personId: users.personId,
-          })
-          .from(users)
-          .innerJoin(people, eq(users.email, people.email));
+        console.log(`Found ${userEmails.length} user emails to preserve`);
 
-        console.log(`Found ${linkedUsers.length} user-person relationships to preserve`);
-
-        // First remove the foreign key constraint temporarily
-        console.log('Temporarily disabling foreign key constraint...');
-        await tx.execute(sql`ALTER TABLE users DROP CONSTRAINT users_person_id_fkey`);
-
-        // Clear the people table
-        console.log('Clearing people table...');
+        // Clear all people records
         await tx.delete(people);
 
         // Reset the sequence
-        console.log('Resetting people table ID sequence...');
         await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
 
-        // Restore the foreign key constraint
-        console.log('Restoring foreign key constraint...');
-        await tx.execute(sql`
-          ALTER TABLE users 
-          ADD CONSTRAINT users_person_id_fkey 
-          FOREIGN KEY (person_id) 
-          REFERENCES people(id)
-          ON DELETE SET NULL
-        `);
-
-        console.log('Successfully cleared people table and reset sequences while preserving user relationships');
+        console.log('Successfully cleared people table while preserving user relationships');
       });
     } catch (error) {
       console.error('Failed to clear people table:', error);

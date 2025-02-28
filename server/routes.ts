@@ -230,14 +230,11 @@ export async function registerRoutes(app: Express) {
   });
 
   // Internal-only route to reset database and fetch fresh data from Luma
-  // This is not exposed to the public API and should only be called directly from the server
   app.post("/_internal/reset-database", async (req, res) => {
     try {
       // Check if request is coming from localhost
       const requestIP = req.ip || req.socket.remoteAddress;
       const isLocalRequest = requestIP === '127.0.0.1' || requestIP === '::1' || requestIP === 'localhost';
-
-      // Only allow this endpoint to be called from the local machine or development environment
       const isDevelopment = process.env.NODE_ENV === 'development';
 
       if (!isLocalRequest && !isDevelopment) {
@@ -248,24 +245,15 @@ export async function registerRoutes(app: Express) {
       console.log('Starting database reset process');
 
       try {
-        // Clear tables within a transaction
-        await db.transaction(async (tx) => {
-          console.log('Starting transaction for database reset...');
+        // Clear only events and people tables
+        console.log('Clearing events table...');
+        await storage.clearEvents();
 
-          // First clear events as they don't have dependencies
-          console.log('Clearing events table...');
-          await storage.clearEvents();
+        console.log('Clearing people table (preserving user relationships)...');
+        await storage.clearPeople();
 
-          // Then clear people while preserving email relationships
-          console.log('Clearing people table...');
-          await storage.clearPeople();
-
-          // Reset cache metadata
-          console.log('Clearing cache metadata...');
-          await tx.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
-
-          console.log('Database cleared successfully. Tables reset to empty state with ID sequences reset.');
-        });
+        console.log('Clearing cache metadata...');
+        await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
         // Import CacheService to trigger a refresh
         const { CacheService } = await import('./services/CacheService');
@@ -275,16 +263,32 @@ export async function registerRoutes(app: Express) {
         const oldestPossibleDate = new Date(0);
         await storage.setLastCacheUpdate(oldestPossibleDate);
 
-        // Trigger the cache update process
-        console.log('Triggering fresh data fetch from Luma API');
+        // Trigger and await the cache update process
+        console.log('Starting fresh data fetch from Luma API');
         await cacheService.updateCache();
+
+        // Verify data was fetched
+        const [eventCount, peopleCount] = await Promise.all([
+          storage.getEventCount(),
+          storage.getPeopleCount()
+        ]);
+
+        console.log(`Verification: Fetched ${eventCount} events and ${peopleCount} people`);
+
+        if (eventCount === 0 && peopleCount === 0) {
+          throw new Error('No data was fetched from Luma API');
+        }
 
         return res.json({ 
           success: true, 
-          message: "Database reset completed and fresh data sync from Luma API has finished." 
+          message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
+          data: {
+            eventCount,
+            peopleCount
+          }
         });
       } catch (error) {
-        console.error('Transaction failed during database reset:', error);
+        console.error('Failed during database reset:', error);
         if (error instanceof Error) {
           console.error('Error details:', {
             message: error.message,
