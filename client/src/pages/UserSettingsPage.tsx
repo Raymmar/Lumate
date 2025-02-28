@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { NavBar } from "@/components/NavBar";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
@@ -52,9 +52,8 @@ export default function UserSettingsPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <NavBar />
-      <div className="container mx-auto py-10">
+    <DashboardLayout>
+      <div className="container max-w-2xl mx-auto py-6">
         <Card>
           <CardHeader>
             <CardTitle>Profile Settings</CardTitle>
@@ -99,6 +98,6 @@ export default function UserSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
