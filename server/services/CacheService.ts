@@ -204,7 +204,7 @@ export class CacheService {
     let nextCursor: string | null = null;
     let pageCount = 0;
 
-    while (hasMore) {
+    while (hasMore || nextCursor) { //Fixed Pagination Logic
       const params: Record<string, string> = {
         pagination_limit: String(this.BATCH_SIZE),
         created_after: lastUpdateTime.toISOString()
@@ -244,10 +244,17 @@ export class CacheService {
         allPeople.push(...uniquePeople);
         console.log(`Added ${uniquePeople.length} unique people (Total: ${allPeople.length}, Page: ${pageCount})`);
 
+        // Check for more pages
+        console.log('Pagination metadata:', {
+          hasMore: response.has_more,
+          nextCursor: response.next_cursor,
+          currentTotal: allPeople.length
+        });
+
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
 
-        if (!hasMore || !nextCursor) {
+        if (!hasMore && !nextCursor) {
           console.log(`No more people to fetch after ${pageCount} pages`);
           break;
         }
