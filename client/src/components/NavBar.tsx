@@ -56,22 +56,26 @@ export function NavBar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/settings">
+                {user.personId && (
+                  <Link href={`/people/${user.personId}`}>
+                    <DropdownMenuItem className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </DropdownMenuItem>
+                  </Link>
+                )}
+                <Link href="/settings">
+                  <DropdownMenuItem className="flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleResync}>
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuItem className="flex items-center" onSelect={handleResync}>
                   <RefreshCw className="mr-2 h-4 w-4" />
                   <span>Re-sync Database</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logout()}>
+                <DropdownMenuItem className="flex items-center" onClick={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
