@@ -603,6 +603,12 @@ export class PostgresStorage implements IStorage {
 
   async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
     try {
+      console.log('Attempting to upsert attendance record:', {
+        eventApiId: data.eventApiId,
+        userEmail: data.userEmail,
+        guestApiId: data.guestApiId
+      });
+
       // First, try to find matching user and person by email
       const [matchingUser] = await db
         .select()
@@ -615,6 +621,11 @@ export class PostgresStorage implements IStorage {
         .from(people)
         .where(eq(people.email, data.userEmail.toLowerCase()))
         .limit(1);
+
+      console.log('Found matching records:', {
+        foundUser: matchingUser ? { id: matchingUser.id, email: matchingUser.email } : null,
+        foundPerson: matchingPerson ? { id: matchingPerson.id, email: matchingPerson.email } : null
+      });
 
       const [result] = await db
         .insert(attendance)
@@ -634,6 +645,14 @@ export class PostgresStorage implements IStorage {
           }
         })
         .returning();
+
+      console.log('Successfully upserted attendance record:', {
+        id: result.id,
+        guestApiId: result.guestApiId,
+        userId: result.userId,
+        personId: result.personId
+      });
+
       return result;
     } catch (error) {
       console.error('Failed to upsert attendance:', error);
@@ -656,6 +675,7 @@ export class PostgresStorage implements IStorage {
   }
   async deleteAttendanceByEvent(eventApiId: string): Promise<void> {
     try {
+      // Modified to only delete records for the specific event
       await db
         .delete(attendance)
         .where(eq(attendance.eventApiId, eventApiId));
