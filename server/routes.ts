@@ -121,8 +121,18 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Make request to Luma API
-      const response = await lumaApiRequest('event/add-guests', { event_api_id: event_api_id });
+      // Make request to Luma API with correct body structure
+      const response = await lumaApiRequest(
+        'event/add-guests',
+        undefined, // no query params needed
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            guests: [{ email: user.email }],
+            event_api_id
+          })
+        }
+      );
 
       console.log('Successfully RSVP\'d to event:', {
         eventId: event_api_id,
