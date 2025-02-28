@@ -12,9 +12,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { AuthGuard } from "@/components/AuthGuard";
 
-// existing interfaces remain unchanged
+// Keep existing interfaces
 export interface Person {
   id: number;
   api_id: string;
@@ -38,7 +37,7 @@ export default function PeopleDirectory() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [focusedIndex, setFocusedIndex] = useState(-1); // -1 means no focus
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const params = useParams<{ id: string }>();
   const pageSize = 50;
@@ -52,7 +51,6 @@ export default function PeopleDirectory() {
     }
   });
 
-  // Reset focused index when search query changes or search becomes inactive
   useEffect(() => {
     setFocusedIndex(searchQuery.length > 0 ? 0 : -1);
     setIsSearchActive(searchQuery.length > 0);
@@ -109,7 +107,7 @@ export default function PeopleDirectory() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="relative mb-4">
+      <div className="relative mb-2">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search people..."
@@ -121,26 +119,26 @@ export default function PeopleDirectory() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-12" />
-          <Skeleton className="h-12" />
-          <Skeleton className="h-12" />
+        <div className="space-y-1">
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
         </div>
       ) : data?.people && data.people.length > 0 ? (
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="space-y-2">
+            <div className="space-y-1">
               {data.people.map((person, index) => (
                 <div
                   key={person.api_id}
-                  className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
+                  className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
                     (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handlePersonClick(person.api_id)}
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-7 w-7">
                     {person.avatarUrl ? (
                       <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
                     ) : (
@@ -156,9 +154,6 @@ export default function PeopleDirectory() {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
-                    <AuthGuard>
-                      <p className="text-xs text-muted-foreground truncate">{person.email}</p>
-                    </AuthGuard>
                   </div>
                 </div>
               ))}
@@ -188,7 +183,6 @@ export default function PeopleDirectory() {
               </PaginationContent>
             </Pagination>
           </div>
-
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
