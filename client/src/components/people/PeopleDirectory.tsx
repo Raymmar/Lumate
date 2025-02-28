@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
+// existing interfaces remain unchanged
 export interface Person {
   id: number;
   api_id: string;
@@ -62,7 +63,7 @@ export default function PeopleDirectory() {
     setLocation(`/people/${personId}`);
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (!data?.people.length) return;
 
     switch (e.key) {
@@ -103,13 +104,14 @@ export default function PeopleDirectory() {
   }
 
   return (
-    <div className="h-full flex flex-col" onKeyDown={handleKeyDown} tabIndex={0}>
+    <div className="h-full flex flex-col">
       <div className="relative mb-4">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search people..."
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
+          onKeyDown={handleKeyDown}
           className="pl-9"
         />
       </div>
@@ -129,7 +131,7 @@ export default function PeopleDirectory() {
                   key={person.api_id}
                   className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
                     index === focusedIndex
-                      ? 'bg-muted ring-2 ring-ring'
+                      ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handlePersonClick(person.api_id)}
