@@ -91,6 +91,15 @@ export async function ensureTablesExist() {
           "expires_at" TIMESTAMPTZ NOT NULL,
           "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
         );
+
+        CREATE TABLE IF NOT EXISTS "event_rsvp_status" (
+          "id" SERIAL PRIMARY KEY,
+          "user_api_id" VARCHAR(255) NOT NULL,
+          "event_api_id" VARCHAR(255) NOT NULL,
+          "status" VARCHAR(50) NOT NULL,
+          "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE("user_api_id", "event_api_id")
+        );
       `];
 
       // Execute the queries
