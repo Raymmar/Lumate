@@ -1,19 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-
-interface User {
-  id: string;
-  email: string;
-  displayName: string | null;
-  created_at: string;
-}
+import type { User } from "@shared/schema";
 
 export function MembersTable() {
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/users"],
+  const { data: users = [], isLoading } = useQuery<User[]>({
+    queryKey: ["/api/admin/members"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/users");
+      const response = await fetch("/api/admin/members");
       if (!response.ok) throw new Error("Failed to fetch members");
       return response.json();
     },
@@ -31,9 +25,14 @@ export function MembersTable() {
       cell: (row: User) => row.displayName || "—",
     },
     {
-      key: "created_at",
-      header: "Created At",
-      cell: (row: User) => format(new Date(row.created_at), "PPP"),
+      key: "isVerified",
+      header: "Status",
+      cell: (row: User) => row.isVerified ? "Verified" : "Pending",
+    },
+    {
+      key: "createdAt",
+      header: "Joined",
+      cell: (row: User) => format(new Date(row.createdAt), "PPP"),
     },
   ];
 
