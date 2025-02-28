@@ -825,13 +825,29 @@ export async function registerRoutes(app: Express) {
           // Store each guest's attendance record
           for (const entry of response.entries) {
             const guest = entry.guest;
-            await storage.upsertAttendance({
-              eventApiId: eventId,
-              userEmail: guest.email.toLowerCase(),
-              guestApiId: guest.api_id,
-              approvalStatus: guest.approval_status,
+            console.log('Processing guest:', {
+              guestId: guest.api_id,
+              email: guest.email,
+              status: guest.approval_status,
               registeredAt: guest.registered_at
             });
+
+            try {
+              await storage.upsertAttendance({
+                eventApiId: eventId,
+                userEmail: guest.email.toLowerCase(),
+                guestApiId: guest.api_id,
+                approvalStatus: guest.approval_status,
+                registeredAt: guest.registered_at
+              });
+              console.log('Successfully stored attendance for guest:', guest.api_id);
+            } catch (error) {
+              console.error('Failed to store attendance for guest:', {
+                guestId: guest.api_id,
+                error: error instanceof Error ? error.message : String(error)
+              });
+              throw error;
+            }
           }
 
           allGuests = allGuests.concat(response.entries);
@@ -852,6 +868,13 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       console.error('Failed to fetch event guests:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
       res.status(500).json({ 
         error: "Failed to fetch event guests",
         message: error instanceof Error ? error.message : String(error)
