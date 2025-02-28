@@ -10,11 +10,16 @@ import { useQueryClient } from "@tanstack/react-query";
 
 interface EventPreviewProps {
   event: Event & { isSynced?: boolean; lastSyncedAt?: string | null };
+  onSync?: (eventId: string) => void;
 }
 
-export function EventPreview({ event }: EventPreviewProps) {
+export function EventPreview({ event, onSync }: EventPreviewProps) {
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [localSyncStatus, setLocalSyncStatus] = useState({
+    isSynced: event.isSynced,
+    lastSyncedAt: event.lastSyncedAt
+  });
   const queryClient = useQueryClient();
 
   const handleSyncAttendees = async () => {
@@ -26,10 +31,24 @@ export function EventPreview({ event }: EventPreviewProps) {
       }
       const data = await response.json();
       console.log('Attendees data:', data);
+
+      // Optimistically update local state
+      const now = new Date().toISOString();
+      setLocalSyncStatus({
+        isSynced: true,
+        lastSyncedAt: now
+      });
+
+      // Notify parent component if callback exists
+      if (onSync) {
+        onSync(event.api_id);
+      }
+
       toast({
         title: "Success",
         description: "Successfully synced attendees data",
       });
+
       // Invalidate events query to refresh sync status
       queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
     } catch (error) {
@@ -43,6 +62,10 @@ export function EventPreview({ event }: EventPreviewProps) {
       setIsSyncing(false);
     }
   };
+
+  // Use local state for rendering
+  const syncStatus = localSyncStatus.isSynced;
+  const lastSyncTime = localSyncStatus.lastSyncedAt;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -71,12 +94,12 @@ export function EventPreview({ event }: EventPreviewProps) {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-semibold">{event.title}</h2>
-            <Badge variant={event.isSynced ? "outline" : "secondary"}>
-              {event.isSynced ? (
+            <Badge variant={syncStatus ? "outline" : "secondary"}>
+              {syncStatus ? (
                 <>
                   Synced
                   <span className="ml-1 text-xs text-muted-foreground">
-                    ({format(new Date(event.lastSyncedAt!), "MMM d, h:mm a")})
+                    ({format(new Date(lastSyncTime!), "MMM d, h:mm a")})
                   </span>
                 </>
               ) : (
@@ -101,7 +124,7 @@ export function EventPreview({ event }: EventPreviewProps) {
               <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
               Syncing Attendees...
             </>
-          ) : event.isSynced ? (
+          ) : syncStatus ? (
             "Re-sync Attendees"
           ) : (
             "Sync Attendees"

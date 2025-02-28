@@ -8,9 +8,9 @@ import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 
 export function EventsTable() {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<(Event & { isSynced: boolean; lastSyncedAt: string | null; api_id: string }) | null>(null);
 
-  const { data: events = [], isLoading } = useQuery<(Event & { isSynced: boolean; lastSyncedAt: string | null })>({
+  const { data: events = [], isLoading } = useQuery<(Event & { isSynced: boolean; lastSyncedAt: string | null })[]>({
     queryKey: ["/api/admin/events"],
     queryFn: async () => {
       const response = await fetch("/api/admin/events");
@@ -18,6 +18,18 @@ export function EventsTable() {
       return response.json();
     },
   });
+
+  const handleSync = (eventId: string) => {
+    // Update selected event's sync status optimistically
+    if (selectedEvent && selectedEvent.api_id === eventId) {
+      const now = new Date().toISOString();
+      setSelectedEvent({
+        ...selectedEvent,
+        isSynced: true,
+        lastSyncedAt: now
+      });
+    }
+  };
 
   const columns = [
     {
@@ -86,7 +98,7 @@ export function EventsTable() {
 
       <Sheet open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
         <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
-          {selectedEvent && <EventPreview event={selectedEvent} />}
+          {selectedEvent && <EventPreview event={selectedEvent} onSync={handleSync} />}
         </SheetContent>
       </Sheet>
     </>
