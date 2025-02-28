@@ -35,11 +35,14 @@ export function EventsTable() {
     });
   };
 
-  const formatLastSyncTime = (dateStr: string) => {
+  const formatLastSyncTime = (dateStr: string, timezone: string | null) => {
     try {
+      // First parse the date string, ensuring we interpret it as UTC
+      const utcDate = new Date(dateStr + 'Z');
+
       return formatInTimeZone(
-        new Date(dateStr),
-        'America/New_York', // Default to ET if no timezone provided
+        utcDate,
+        timezone || 'America/New_York', // Use event timezone if available
         'MMM d, h:mm aa zzz'
       );
     } catch (error) {
@@ -57,7 +60,7 @@ export function EventsTable() {
     {
       key: "startTime",
       header: "Start Date",
-      cell: (row: Event) => format(new Date(row.startTime), "PPP"),
+      cell: (row: Event) => formatLastSyncTime(row.startTime, row.timezone),
     },
     {
       key: "sync",
@@ -80,7 +83,7 @@ export function EventsTable() {
               <>
                 Synced
                 <span className="ml-1 text-xs text-muted-foreground">
-                  ({formatLastSyncTime(row.lastSyncedAt!)})
+                  ({formatLastSyncTime(row.lastSyncedAt!, row.timezone)})
                 </span>
               </>
             ) : (

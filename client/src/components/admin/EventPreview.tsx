@@ -1,5 +1,4 @@
 import { Event } from "@shared/schema";
-import { format } from "date-fns";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,8 +25,11 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
 
   const formatLastSyncTime = (dateStr: string) => {
     try {
+      // First parse the date string, ensuring we interpret it as UTC
+      const utcDate = new Date(dateStr + 'Z');
+
       return formatInTimeZone(
-        new Date(dateStr),
+        utcDate,
         event.timezone || 'America/New_York', // Use event timezone if available
         'MMM d, h:mm aa zzz'
       );
@@ -161,14 +163,14 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
               <div>
                 <p className="font-medium">
                   {formatInTimeZone(
-                    new Date(event.startTime),
+                    new Date(event.startTime + 'Z'),
                     event.timezone || 'America/New_York',
                     'EEEE, MMMM d, yyyy'
                   )}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatInTimeZone(new Date(event.startTime), event.timezone || 'America/New_York', 'h:mm a')} - 
-                  {formatInTimeZone(new Date(event.endTime), event.timezone || 'America/New_York', 'h:mm a')}
+                  {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
+                  {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
                   {event.timezone && ` (${event.timezone})`}
                 </p>
               </div>
