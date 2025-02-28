@@ -18,7 +18,12 @@ export default function LoginPage() {
 
   // Redirect if already logged in
   if (user) {
-    setLocation("/");
+    // If the user has an api_id, redirect to their profile page
+    if (user.api_id) {
+      setLocation(`/people/${user.api_id}`);
+    } else {
+      setLocation("/");
+    }
     return null;
   }
 
@@ -29,7 +34,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      setLocation("/");
+      // The redirect will happen automatically when the user state updates
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
