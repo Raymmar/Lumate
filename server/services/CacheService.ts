@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
 import { users } from '@shared/schema';
+import { AttendanceService } from './AttendanceService';
 
 export class CacheService {
   private static instance: CacheService;
@@ -11,9 +12,11 @@ export class CacheService {
   private readonly BATCH_SIZE = 50;  // Luma API's pagination limit
   private readonly MAX_RETRIES = 3;  // Maximum number of retries for failed requests
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
+  private attendanceService: AttendanceService;
 
   private constructor() {
     console.log('Starting CacheService...');
+    this.attendanceService = AttendanceService.getInstance();
     this.startCaching();
   }
 
@@ -80,6 +83,16 @@ export class CacheService {
 
       if (eventCount === 0 || peopleCount === 0) {
         throw new Error(`Sync verification failed: Expected non-zero counts, got events=${eventCount}, people=${peopleCount}`);
+      }
+
+      // Update attendance data
+      try {
+        console.log('Starting attendance data sync...');
+        await this.attendanceService.updateAttendance();
+        console.log('Successfully updated attendance data');
+      } catch (error) {
+        console.error('Failed to update attendance data:', error);
+        // Don't throw here - we want to continue with cache update even if attendance sync fails
       }
 
       // Update the last cache time

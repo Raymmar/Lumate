@@ -5,7 +5,8 @@ import {
   VerificationToken, InsertVerificationToken,
   events, people, cacheMetadata, eventRsvpStatus,
   InsertCacheMetadata, users, verificationTokens,
-  EventRsvpStatus, InsertEventRsvpStatus
+  EventRsvpStatus, InsertEventRsvpStatus,
+  attendance, Attendance, InsertAttendance 
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and } from "drizzle-orm";
@@ -25,7 +26,7 @@ export interface IStorage {
   getPersonByEmail(email: string): Promise<Person | null>; 
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-  getPerson(id: number): Promise<Person | null>; // Added getPerson method
+  getPerson(id: number): Promise<Person | null>; 
   getPersonByApiId(apiId: string): Promise<Person | null>;
   
   // Cache metadata
@@ -39,7 +40,7 @@ export interface IStorage {
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   verifyUser(userId: number): Promise<User>;
   getUser(id: number): Promise<User | null>;  
-  getUserCount(): Promise<number>; // Added getUserCount method
+  getUserCount(): Promise<number>; 
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
 
   // Email verification
@@ -51,6 +52,11 @@ export interface IStorage {
   // Add new methods for RSVP status
   getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null>;
   upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus>;
+
+  // Add new attendance methods
+  getAttendanceByEventId(eventApiId: string): Promise<Attendance[]>;
+  insertAttendance(attendanceData: InsertAttendance): Promise<Attendance>;
+  clearAttendanceForEvent(eventApiId: string): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -305,9 +311,9 @@ export class PostgresStorage implements IStorage {
         .insert(users)
         .values({
           ...userData,
-          email: userData.email.toLowerCase(), // Ensure consistent email format
+          email: userData.email.toLowerCase(), 
           personId: person.id,
-          isVerified: false, // Always start as unverified
+          isVerified: false, 
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
@@ -576,6 +582,52 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to upsert RSVP status:', error);
+      throw error;
+    }
+  }
+
+  async getAttendanceByEventId(eventApiId: string): Promise<Attendance[]> {
+    try {
+      const result = await db
+        .select()
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventApiId));
+      return result;
+    } catch (error) {
+      console.error('Failed to get attendance for event:', error);
+      throw error;
+    }
+  }
+
+  async insertAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
+    try {
+      const [result] = await db
+        .insert(attendance)
+        .values(attendanceData)
+        .onConflictDoUpdate({
+          target: attendance.api_id,
+          set: {
+            approvalStatus: attendanceData.approvalStatus,
+            checkedInAt: attendanceData.checkedInAt,
+            ticketData: attendanceData.ticketData,
+            updatedAt: new Date().toISOString(),
+          }
+        })
+        .returning();
+      return result;
+    } catch (error) {
+      console.error('Failed to insert/update attendance:', error);
+      throw error;
+    }
+  }
+
+  async clearAttendanceForEvent(eventApiId: string): Promise<void> {
+    try {
+      await db
+        .delete(attendance)
+        .where(eq(attendance.eventApiId, eventApiId));
+    } catch (error) {
+      console.error('Failed to clear attendance for event:', error);
       throw error;
     }
   }
