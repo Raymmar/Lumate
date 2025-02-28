@@ -1,47 +1,14 @@
 import { Event } from "@shared/schema";
 import { format } from "date-fns";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 interface EventPreviewProps {
   event: Event;
 }
 
 export function EventPreview({ event }: EventPreviewProps) {
-  const { toast } = useToast();
-
-  const handleSyncAttendees = async () => {
-    try {
-      const response = await fetch(`https://api.lu.ma/public/v1/event/get-guests?event_api_id=${event.api_id}`, {
-        headers: {
-          'accept': 'application/json',
-          'x-luma-api-key': import.meta.env.VITE_LUMA_API_KEY
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch attendees');
-      }
-
-      const data = await response.json();
-      console.log('Luma guests response:', data);
-
-      toast({
-        title: "Success",
-        description: "Successfully fetched attendees from Luma",
-      });
-    } catch (error) {
-      console.error('Error fetching attendees:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch attendees from Luma",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <div className="flex flex-col h-full overflow-y-auto">
       {event.coverUrl && (
@@ -56,7 +23,7 @@ export function EventPreview({ event }: EventPreviewProps) {
               <Button 
                 variant="default" 
                 className="bg-black/75 text-white hover:bg-black/90"
-                onClick={() => event.url && window.open(event.url, '_blank')}
+                onClick={() => window.open(event.url, '_blank')}
               >
                 Manage event
               </Button>
@@ -110,17 +77,6 @@ export function EventPreview({ event }: EventPreviewProps) {
                 </div>
               </div>
             )}
-
-            <div className="pt-2">
-              <Button 
-                onClick={handleSyncAttendees}
-                variant="outline"
-                className="w-full"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Sync Attendees
-              </Button>
-            </div>
           </CardContent>
         </Card>
       </div>
