@@ -145,7 +145,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               )}
             </h1>
             <div className="flex items-center gap-2">
-              <p className="text-muted-foreground">{person.email}</p>
+              <AuthGuard
+                fallback={
+                  <p className="text-muted-foreground">Sign in to view</p>
+                }
+              >
+                <p className="text-muted-foreground">{person.email}</p>
+              </AuthGuard>
               {isOwnProfile && (
                 <Badge variant="outline" className="bg-white text-xs font-normal">
                   your profile
