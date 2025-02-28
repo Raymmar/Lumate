@@ -56,12 +56,19 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 
 function EventsList() {
   const events = [
-    { name: "April Tech JAM", date: "2025-04-17", status: "Going" },
-    { name: "March Tech JAM", date: "2025-03-20", status: "Going" },
-    { name: "February Tech JAM", date: "2025-02-20", status: "Going" },
-    { name: "October Tech JAM", date: "2024-10-24", status: "Going" },
-    { name: "September Tech JAM", date: "2024-09-19", status: "Going" },
-    { name: "August Tech JAM", date: "2024-08-15", status: "Going" },
+    { name: "April Tech JAM", date: "2025-04-17T17:00:00" },
+    { name: "March Tech JAM", date: "2025-03-20T17:00:00" },
+    { name: "February Tech JAM", date: "2025-02-20T17:00:00" },
+    { name: "October Tech JAM", date: "2024-10-24T17:00:00" },
+    { name: "September Tech JAM", date: "2024-09-19T17:00:00" },
+    { name: "We're back! August Tech JAM!", date: "2024-08-15T17:00:00" },
+    { name: "Summer JAM 2024", date: "2024-06-20T19:00:00" },
+    { name: "May Tech JAM", date: "2024-05-16T17:00:00" },
+    { name: "April Tech JAM @ S-One", date: "2024-04-18T17:00:00" },
+    { name: "March Tech JAM", date: "2024-03-21T17:00:00" },
+    { name: "Tech JAM 2024", date: "2024-02-15T17:00:00" },
+    { name: "Sarasota Tech - January Social", date: "2024-01-18T17:00:00" },
+    { name: "#4 - Sarasota Tech - Holiday Happy Hour", date: "2023-12-06T17:00:00" }
   ];
 
   return (
@@ -82,9 +89,6 @@ function EventsList() {
                   {format(new Date(event.date), 'MMM d, yyyy, h:mm a')}
                 </p>
               </div>
-              <Badge variant="secondary" className="text-xs font-normal">
-                {event.status}
-              </Badge>
             </div>
           ))}
         </div>
@@ -183,7 +187,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
   const isOwnProfile = user?.api_id === person?.api_id;
   const isClaimed = userStatus?.isClaimed || user !== null;
 
@@ -227,6 +231,12 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     your profile
                   </Badge>
                 )}
+              </div>
+              {/* Add Tag Button */}
+              <div className="mt-2">
+                <Button variant="outline" size="sm" className="text-xs">
+                  + Add Tag
+                </Button>
               </div>
             </div>
           </div>
