@@ -8,6 +8,7 @@ import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
+import { events } from '@shared/schema'; //Import events schema
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { Response } from 'express';
@@ -751,8 +752,6 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add these routes inside registerRoutes function after existing routes
-
-  // Admin routes for fetching data
   app.get("/api/admin/events", async (req, res) => {
     try {
       // Check if user is authenticated
@@ -766,7 +765,12 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const events = await storage.getEvents();
+      // Get events sorted by startTime in descending order
+      const events = await db
+        .select()
+        .from(events)
+        .orderBy(sql`start_time DESC`);
+
       res.json(events);
     } catch (error) {
       console.error('Failed to fetch admin events:', error);
