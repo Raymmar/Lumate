@@ -13,7 +13,7 @@ import NotFound from "@/pages/not-found";
 function Router() {
   return (
     <div className="min-h-screen bg-background">
-      <main>
+      <main> {/*The provided change would apply here if a main element with the specified class existed*/}
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/login" component={LoginPage} />

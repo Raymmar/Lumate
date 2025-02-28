@@ -36,8 +36,8 @@ export function NavBar() {
   };
 
   return (
-    <div className="border-b">
-      <div className="flex h-16 items-center px-6">
+    <header className="border-b bg-background fixed top-0 left-0 right-0 z-50">
+      <div className="container flex h-10 items-center max-w-screen-lg mx-auto">
         <Link href="/">
           <a className="text-2xl font-bold text-primary flex items-center">
             Luma
@@ -96,6 +96,6 @@ export function NavBar() {
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 }
