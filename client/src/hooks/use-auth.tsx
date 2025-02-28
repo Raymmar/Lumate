@@ -54,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Logged in successfully",
       });
-      // Redirect to profile page if user has an api_id
       if (data.api_id) {
         setLocation(`/people/${data.api_id}`);
       } else {
