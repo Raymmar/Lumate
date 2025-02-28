@@ -8,6 +8,7 @@ import PersonProfilePage from "@/pages/PersonProfilePage";
 import VerifyPage from "@/pages/VerifyPage";
 import LoginPage from "@/pages/LoginPage";
 import UserSettingsPage from "@/pages/UserSettingsPage";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
           <Route path="/settings" component={UserSettingsPage} />
           <Route path="/people/:id" component={PersonProfilePage} />
           <Route path="/verify" component={VerifyPage} />
+          <Route path="/admin" component={AdminDashboard} />
           <Route component={NotFound} />
         </Switch>
       </main>

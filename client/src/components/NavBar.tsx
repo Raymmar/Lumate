@@ -9,12 +9,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, RefreshCw, LogIn } from "lucide-react";
+import { User, Settings, LogOut, RefreshCw, LogIn, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// Add ADMIN_EMAILS constant
+const ADMIN_EMAILS = [
+  "admin@example.com",
+  // Add more admin emails here
+];
 
 export function NavBar() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
   const handleResync = async () => {
     try {
@@ -61,13 +69,22 @@ export function NavBar() {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               {user ? (
                 <>
-                  {/* Only show profile link if api_id exists */}
                   {user.api_id && (
                     <DropdownMenuItem asChild>
                       <Link href={`/people/${user.api_id}`}>
                         <span className="flex items-center">
                           <User className="mr-2 h-4 w-4" />
                           Profile
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <span className="flex items-center">
+                          <Shield className="mr-2 h-4 w-4" />
+                          Admin Dashboard
                         </span>
                       </Link>
                     </DropdownMenuItem>
