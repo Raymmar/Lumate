@@ -630,7 +630,8 @@ export async function registerRoutes(app: Express) {
       console.log('Checked RSVP status:', {
         eventId: event_api_id,
         userEmail: user.email,
-        status: response.approval_status
+        status: response.approval_status,
+        fullResponse: response
       });
 
       res.json({ 

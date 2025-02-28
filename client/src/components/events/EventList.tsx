@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ExternalLink } from "lucide-react";
@@ -42,6 +42,7 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
 function EventCard({ event }: { event: Event }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Query to check if user is going to the event
   const { data: rsvpStatus } = useQuery({
@@ -80,6 +81,8 @@ function EventCard({ event }: { event: Event }) {
         title: "Success!",
         description: "You've successfully RSVP'd to this event.",
       });
+      // Invalidate the RSVP status query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
     },
     onError: (error: Error) => {
       toast({
