@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,10 +15,10 @@ import { AdminBadge } from "@/components/AdminBadge";
 import { ADMIN_EMAILS } from "@/components/AdminGuard";
 
 export function NavBar() {
-  const { user, logout } = useAuth();
-  const { toast } = useToast();
-
+  const { user } = useAuth();
+  const [location] = useLocation();
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isAdminDashboard = location === "/admin";
 
   return (
     <div className="border-b">
@@ -32,6 +32,17 @@ export function NavBar() {
             />
           </div>
         </Link>
+        {/* Add View Directory button only in admin dashboard */}
+        {isAdminDashboard && (
+          <Link href="/">
+            <Button 
+              variant="ghost" 
+              className="ml-4"
+            >
+              View Directory
+            </Button>
+          </Link>
+        )}
         <div className="ml-auto flex items-center space-x-4">
           {user && isAdmin && (
             <AdminBadge className="mr-2" asLink />

@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, UserPlus, CreditCard } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard, RefreshCcw } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { AdminTabs } from "@/components/admin/AdminTabs";
-import AdminMenu from "@/components/AdminMenu";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 function StatCard({ 
   title, 
@@ -47,6 +49,43 @@ export default function AdminDashboard() {
     }
   });
 
+  const [isResetting, setIsResetting] = useState(false);
+  const { toast } = useToast();
+
+  const handleResetAndSync = async () => {
+    setIsResetting(true);
+    try {
+      const response = await fetch('/_internal/reset-database', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to reset and sync data');
+      }
+
+      toast({
+        title: "Success",
+        description: "Data has been reset and synced successfully.",
+      });
+
+      // Reload the page to show updated data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reset and sync data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <AdminGuard>
       <div className="min-h-screen bg-background flex flex-col">
@@ -65,13 +104,32 @@ export default function AdminDashboard() {
               <div className="p-4 space-y-4">
                 <h2 className="font-semibold">Admin Panel</h2>
                 <AdminTabs />
-                <AdminMenu />  {/* Added back the AdminMenu component */}
               </div>
             </div>
 
             {/* Main content */}
             <div className="flex-1 p-6">
-              <h1 className="text-2xl font-bold mb-6">Dashboard Overview</h1>
+              <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+                <Button
+                  variant="default"
+                  className="bg-black hover:bg-black/90"
+                  onClick={handleResetAndSync}
+                  disabled={isResetting}
+                >
+                  {isResetting ? (
+                    <>
+                      <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                      Syncing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      Reset & Sync Data
+                    </>
+                  )}
+                </Button>
+              </div>
 
               <div className="grid gap-4 md:grid-cols-4">
                 <StatCard

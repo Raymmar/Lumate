@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "wouter";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -10,8 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { RefreshCcw, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -125,130 +123,69 @@ export default function AdminMenu() {
   };
 
   return (
-    <>
-      <div className="px-4">
-        <div className="space-y-2">
-          <Link href="/">
-            <Button 
-              variant="outline" 
-              className="w-full"
-            >
-              View Directory
-            </Button>
-          </Link>
-          <Button 
-            variant="default" 
-            className="w-full bg-black hover:bg-black/90"
-            onClick={() => setIsResetDialogOpen(true)}
-            disabled={isResetting}
-          >
-            {isResetting ? (
-              <>
-                <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                Syncing...
-              </>
-            ) : (
-              <>
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Reset & Sync Data
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
-      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center">
-              {isComplete ? (
-                <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
-              ) : isResetting ? (
-                <RefreshCcw className="mr-2 h-5 w-5 animate-spin text-blue-500" />
-              ) : (
-                <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
-              )}
-              {isComplete ? "Sync Completed Successfully" : isResetting ? "Sync in Progress" : "Reset & Sync Luma Data"}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-4">
-              {isComplete ? (
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/10">
-                    <p className="font-medium text-green-900 dark:text-green-50">
-                      Successfully synchronized data from Luma API:
-                    </p>
-                    <ul className="mt-2 list-disc pl-5 text-green-800 dark:text-green-100">
-                      <li>{syncStats?.eventCount} events synced</li>
-                      <li>{syncStats?.peopleCount} people synced</li>
-                    </ul>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Click "Close & Refresh" to see the updated data.
-                  </div>
-                </div>
-              ) : isResetting ? (
-                <>
-                  <p>{syncStatus}</p>
-                  <div className="space-y-2">
-                    <Progress value={syncProgress} className="w-full" />
-                    <p className="text-sm text-muted-foreground text-center">
-                      {syncProgress}% Complete
-                    </p>
-                  </div>
-                  <ScrollArea className="h-[200px] w-full rounded-md border p-4">
-                    <div className="space-y-2">
-                      {syncLogs.map((log, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">
-                          {log}
-                        </p>
-                      ))}
-                      <div ref={logsEndRef} />
-                    </div>
-                  </ScrollArea>
-                </>
-              ) : (
-                <>
-                  This action will clear all existing data and fetch fresh data from the Luma API.
-                  <br /><br />
-                  <strong>This action cannot be undone.</strong> The database will be cleared and all IDs will be reset.
-                  The sync process may take several minutes to complete.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
+    <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="flex items-center">
             {isComplete ? (
-              <AlertDialogAction 
-                onClick={handleCloseAndRefresh}
-                className="bg-green-600 hover:bg-green-700 focus:ring-green-600"
-              >
-                Close & Refresh
-              </AlertDialogAction>
+              <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
+            ) : (
+              <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
+            )}
+            {isComplete ? "Sync Completed Successfully" : "Reset & Sync Luma Data"}
+          </AlertDialogTitle>
+          <AlertDialogDescription className="space-y-4">
+            {isComplete ? (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/10">
+                  <p className="font-medium text-green-900 dark:text-green-50">
+                    Successfully synchronized data from Luma API:
+                  </p>
+                  <ul className="mt-2 list-disc pl-5 text-green-800 dark:text-green-100">
+                    <li>{syncStats?.eventCount} events synced</li>
+                    <li>{syncStats?.peopleCount} people synced</li>
+                  </ul>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Click "Close & Refresh" to see the updated data.
+                </div>
+              </div>
             ) : (
               <>
-                <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleResetDatabase();
-                  }}
-                  disabled={isResetting}
-                  className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-                >
-                  {isResetting ? (
-                    <>
-                      <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                      Syncing...
-                    </>
-                  ) : (
-                    "Reset & Sync"
-                  )}
-                </AlertDialogAction>
+                <p>{syncStatus}</p>
+                <div className="space-y-2">
+                  <Progress value={syncProgress} className="w-full" />
+                  <p className="text-sm text-muted-foreground text-center">
+                    {syncProgress}% Complete
+                  </p>
+                </div>
+                <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                  <div className="space-y-2">
+                    {syncLogs.map((log, index) => (
+                      <p key={index} className="text-sm text-muted-foreground">
+                        {log}
+                      </p>
+                    ))}
+                    <div ref={logsEndRef} />
+                  </div>
+                </ScrollArea>
               </>
             )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          {isComplete ? (
+            <AlertDialogAction 
+              onClick={handleCloseAndRefresh}
+              className="bg-green-600 hover:bg-green-700 focus:ring-green-600"
+            >
+              Close & Refresh
+            </AlertDialogAction>
+          ) : (
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          )}
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
