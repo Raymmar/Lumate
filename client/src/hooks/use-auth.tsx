@@ -47,9 +47,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (data) => {
-      // Ensure we're setting the complete user object
+      // Ensure we preserve all user fields including api_id
       const userData = data.user || data;
+
+      // Invalidate all user-related queries to force a fresh fetch
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
+      // Update the cache with the complete user data
       queryClient.setQueryData(["/api/auth/me"], userData);
+
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -74,7 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
+      // Clear the cache and invalidate queries
       queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
       toast({
         title: "Success",
         description: "Logged out successfully",
