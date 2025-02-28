@@ -96,7 +96,9 @@ function EventCard({ event }: { event: Event }) {
   const handleRSVP = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent the parent link from being clicked
     e.stopPropagation();
-    rsvpMutation.mutate();
+    if (!rsvpStatus?.isGoing) {
+      rsvpMutation.mutate();
+    }
   };
 
   return (
@@ -131,7 +133,7 @@ function EventCard({ event }: { event: Event }) {
                 className="text-xs"
                 variant={rsvpStatus?.isGoing ? "outline" : "default"}
                 onClick={handleRSVP}
-                disabled={rsvpMutation.isPending}
+                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
               >
                 {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
               </Button>
