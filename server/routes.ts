@@ -600,6 +600,52 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/events/check-rsvp", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { event_api_id } = req.query;
+      if (!event_api_id) {
+        return res.status(400).json({ error: "Missing event_api_id" });
+      }
+
+      // Get user's email
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      // Make request to Luma API to check guest status
+      const response = await lumaApiRequest(
+        'event/get-guest',
+        { 
+          event_api_id: event_api_id as string,
+          email: user.email 
+        }
+      );
+
+      console.log('Checked RSVP status:', {
+        eventId: event_api_id,
+        userEmail: user.email,
+        status: response.approval_status
+      });
+
+      res.json({ 
+        isGoing: response.approval_status === 'approved',
+        status: response.approval_status
+      });
+    } catch (error) {
+      console.error('Failed to check RSVP status:', error);
+      res.status(500).json({ 
+        error: "Failed to check RSVP status",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   return createServer(app);
 }
 

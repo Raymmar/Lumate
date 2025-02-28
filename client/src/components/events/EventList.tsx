@@ -43,6 +43,19 @@ function EventCard({ event }: { event: Event }) {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Query to check if user is going to the event
+  const { data: rsvpStatus } = useQuery({
+    queryKey: ['/api/events/check-rsvp', event.api_id],
+    queryFn: async () => {
+      const response = await fetch(`/api/events/check-rsvp?event_api_id=${event.api_id}`);
+      if (!response.ok) {
+        throw new Error('Failed to check RSVP status');
+      }
+      return response.json();
+    },
+    enabled: !!user // Only run query if user is logged in
+  });
+
   const rsvpMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/events/rsvp', {
@@ -113,10 +126,11 @@ function EventCard({ event }: { event: Event }) {
               <Button 
                 size="sm" 
                 className="text-xs"
+                variant={rsvpStatus?.isGoing ? "outline" : "default"}
                 onClick={handleRSVP}
                 disabled={rsvpMutation.isPending}
               >
-                {rsvpMutation.isPending ? "..." : "RSVP"}
+                {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
               </Button>
             </div>
           </AuthGuard>
