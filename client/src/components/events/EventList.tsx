@@ -3,6 +3,8 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ExternalLink } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Button } from "@/components/ui/button";
+import { AuthGuard } from "@/components/AuthGuard";
 
 interface Event {
   id: number;
@@ -43,8 +45,8 @@ function EventCard({ event }: { event: Event }) {
       className="block"
     >
       <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
-        {/* Event thumbnail */}
-        <div className="w-full">
+        {/* Event thumbnail with relative positioning */}
+        <div className="w-full relative">
           <AspectRatio ratio={16 / 9}>
             {event.coverUrl ? (
               <img
@@ -58,6 +60,15 @@ function EventCard({ event }: { event: Event }) {
               </div>
             )}
           </AspectRatio>
+
+          {/* RSVP Button - Only visible for logged in users */}
+          <AuthGuard>
+            <div className="absolute bottom-2 left-2">
+              <Button size="sm" className="text-xs">
+                RSVP
+              </Button>
+            </div>
+          </AuthGuard>
         </div>
 
         {/* Event details */}
