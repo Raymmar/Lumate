@@ -38,7 +38,7 @@ export default function PeopleDirectory() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [focusedIndex, setFocusedIndex] = useState(-1); // -1 means no focus
   const [isSearchActive, setIsSearchActive] = useState(false);
   const params = useParams<{ id: string }>();
   const pageSize = 50;
@@ -52,6 +52,7 @@ export default function PeopleDirectory() {
     }
   });
 
+  // Reset focused index when search query changes or search becomes inactive
   useEffect(() => {
     setFocusedIndex(searchQuery.length > 0 ? 0 : -1);
     setIsSearchActive(searchQuery.length > 0);
@@ -108,95 +109,92 @@ export default function PeopleDirectory() {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Search bar */}
-      <div className="flex-none p-4 pb-2">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search people..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="pl-9 focus:outline-none focus:ring-0 focus-visible:ring-0"
-          />
-        </div>
+      <div className="relative mb-4">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search people..."
+          value={searchQuery}
+          onChange={(e) => handleSearch(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="pl-9 focus:outline-none focus:ring-0 focus-visible:ring-0"
+        />
       </div>
 
-      {/* People list */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-4">
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-            <Skeleton className="h-12" />
-          </div>
-        ) : data?.people && data.people.length > 0 ? (
-          <div className="space-y-2">
-            {data.people.map((person, index) => (
-              <div
-                key={person.api_id}
-                className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                  (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
-                    ? 'bg-muted ring-1 ring-inset ring-ring'
-                    : 'hover:bg-muted/50'
-                }`}
-                onClick={() => handlePersonClick(person.api_id)}
-              >
-                <Avatar className="h-8 w-8">
-                  {person.avatarUrl ? (
-                    <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
-                  ) : (
-                    <AvatarFallback className="text-xs">
-                      {person.userName
-                        ? person.userName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                        : "?"}
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
-                  <AuthGuard>
-                    <p className="text-xs text-muted-foreground truncate">{person.email}</p>
-                  </AuthGuard>
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
+        </div>
+      ) : data?.people && data.people.length > 0 ? (
+        <>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="space-y-2">
+              {data.people.map((person, index) => (
+                <div
+                  key={person.api_id}
+                  className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
+                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
+                      ? 'bg-muted ring-1 ring-inset ring-ring'
+                      : 'hover:bg-muted/50'
+                  }`}
+                  onClick={() => handlePersonClick(person.api_id)}
+                >
+                  <Avatar className="h-8 w-8">
+                    {person.avatarUrl ? (
+                      <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
+                    ) : (
+                      <AvatarFallback className="text-xs">
+                        {person.userName
+                          ? person.userName
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                          : "?"}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
+                    <AuthGuard>
+                      <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+                    </AuthGuard>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            {searchQuery ? "No matching people found" : "No people available"}
-          </p>
-        )}
-      </div>
+          <div className="pt-2 mt-2 border-t flex-none">
+            <div className="text-xs text-muted-foreground mb-2 text-center">
+              Showing {data.people.length} of {data.total} total people
+            </div>
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={handlePreviousPage}
+                    className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} text-xs`}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="px-4 text-xs">Page {currentPage} of {totalPages}</span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={handleNextPage}
+                    className={`${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''} text-xs`}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
 
-      {/* Pagination footer */}
-      <div className="flex-none p-4 border-t bg-background">
-        <div className="text-xs text-muted-foreground mb-2 text-center">
-          Showing {data?.people.length || 0} of {data?.total || 0} total people
-        </div>
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={handlePreviousPage}
-                className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} text-xs`}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <span className="px-4 text-xs">Page {currentPage} of {totalPages}</span>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                onClick={handleNextPage}
-                className={`${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''} text-xs`}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">
+          {searchQuery ? "No matching people found" : "No people available"}
+        </p>
+      )}
     </div>
   );
 }
