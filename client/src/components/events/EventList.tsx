@@ -27,17 +27,14 @@ interface EventsResponse {
 
 function formatEventDate(utcDateStr: string, timezone: string | null): string {
   try {
-    // Parse the date directly without timezone conversion
-    const date = new Date(utcDateStr);
+    // Use event timezone or fall back to America/New_York
+    const eventTimezone = timezone || 'America/New_York';
 
-    // Format the date using the built-in toLocaleString to preserve the original time
-    return date.toLocaleString('en-US', {
-      month: 'short', // "MMM"
-      day: 'numeric', // "d"
-      hour: 'numeric', // "h"
-      minute: '2-digit', // "mm"
-      hour12: true // "a" for AM/PM
-    });
+    return formatInTimeZone(
+      new Date(utcDateStr),
+      eventTimezone,
+      'MMM d, h:mm aa'
+    );
   } catch (error) {
     console.error("Invalid date format:", utcDateStr, error);
     return "Date not available";
