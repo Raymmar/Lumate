@@ -142,13 +142,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   {person.role}
                 </Badge>
               )}
-              {isOwnProfile && (
-                <Badge variant="default" className="ml-2">
-                  Your Profile
-                </Badge>
-              )}
             </h1>
             <p className="text-muted-foreground">{person.email}</p>
+            {isOwnProfile && (
+              <p className="text-sm text-muted-foreground mt-1">This is your profile</p>
+            )}
           </div>
         </div>
 
