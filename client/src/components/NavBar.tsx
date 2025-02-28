@@ -1,7 +1,14 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,17 +23,24 @@ export function NavBar() {
 
   return (
     <div className="border-b">
-      <div className="flex items-center justify-between w-full">
+      <div className="flex h-16 items-center px-4 container mx-auto">
         <Link href="/">
-          <a className="flex-shrink-0">
-            <img 
-              src="/Sarasota.Tech-logo-full.png" 
-              alt="Sarasota.tech" 
-              style={{ height: '40px' }}
-            />
+          <a className="text-2xl font-bold text-primary flex items-center">
+            Luma Dashboard
           </a>
         </Link>
-        <div className="flex items-center space-x-4 p-4">
+        <NavigationMenu className="ml-6">
+          <NavigationMenuList>
+            <NavigationMenuItem>
+              <Link href="/dashboard">
+                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                  Dashboard
+                </NavigationMenuLink>
+              </Link>
+            </NavigationMenuItem>
+          </NavigationMenuList>
+        </NavigationMenu>
+        <div className="ml-auto flex items-center space-x-4">
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -39,18 +53,18 @@ export function NavBar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuItem className="flex items-center">
+                <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center">
-                  <Link href="/settings" className="flex items-center w-full">
+                <DropdownMenuItem>
+                  <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => logout()} className="flex items-center">
+                <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
