@@ -71,6 +71,30 @@ function JoinUsSection() {
   );
 }
 
+// Featured Section
+function FeaturedSection() {
+  return (
+    <Card className="border relative overflow-hidden h-[300px] group">
+      <div 
+        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070')] 
+        bg-cover bg-center"
+      />
+      <div className="absolute inset-0 bg-black/50" />
+      <CardContent className="relative h-full flex flex-col justify-end p-6 text-white">
+        <h3 className="text-2xl font-bold mb-2">Join Our Next Tech Meetup</h3>
+        <p className="text-white/90 mb-4">
+          Connect with fellow tech enthusiasts and industry leaders in Sarasota's growing tech scene.
+        </p>
+        <Button 
+          className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
+        >
+          Learn More
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
 // Sponsors Section
 function SponsorsSection() {
   return (
@@ -160,6 +184,9 @@ export function BulletinBoard() {
           description="Individual event attendees"
         />
       </div>
+
+      {/* Featured Section */}
+      <FeaturedSection />
 
       <CommunityNews />
       <SponsorsSection />
