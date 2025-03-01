@@ -21,7 +21,7 @@ import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ADMIN_EMAILS } from "@/components/AdminGuard";
-import { CalendarDays, Users, DollarSign, ChevronDown } from 'lucide-react';
+import { CalendarDays, Users, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PersonProfileProps {
@@ -54,27 +54,61 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
   );
 }
 
-function EventsList() {
-  const events = [
-    { id: 1, name: "April Tech JAM", date: "2025-04-17T17:00:00" },
-    { id: 2, name: "March Tech JAM", date: "2025-03-20T17:00:00" },
-    { id: 3, name: "February Tech JAM", date: "2025-02-20T17:00:00" },
-    { id: 4, name: "October Tech JAM", date: "2024-10-24T17:00:00" },
-    { id: 5, name: "September Tech JAM", date: "2024-09-19T17:00:00" },
-    { id: 6, name: "We're back! August Tech JAM!", date: "2024-08-15T17:00:00" },
-    { id: 7, name: "Summer JAM 2024", date: "2024-06-20T19:00:00" },
-    { id: 8, name: "May Tech JAM", date: "2024-05-16T17:00:00" },
-    { id: 9, name: "April Tech JAM @ S-One", date: "2024-04-18T17:00:00" },
-    { id: 10, name: "March Tech JAM", date: "2024-03-21T17:00:00" },
-    { id: 11, name: "Tech JAM 2024", date: "2024-02-15T17:00:00" },
-    { id: 12, name: "Sarasota Tech - January Social", date: "2024-01-18T17:00:00" },
-    { id: 13, name: "#4 - Sarasota Tech - Holiday Happy Hour", date: "2023-12-06T17:00:00" }
-  ];
+interface Event {
+  id: number;
+  api_id: string;
+  title: string;
+  description: string | null;
+  startTime: string;
+  endTime: string;
+  coverUrl: string | null;
+  url: string | null;
+}
+
+function EventsList({ personId }: { personId: string }) {
+  const { data: events, isLoading } = useQuery<Event[]>({
+    queryKey: ['/api/people', personId, 'events'],
+    queryFn: async () => {
+      const response = await fetch(`/api/people/${personId}/events`);
+      if (!response.ok) throw new Error('Failed to fetch events');
+      return response.json();
+    }
+  });
+
+  if (isLoading) {
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!events?.length) {
+    return (
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="text-base">Events</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No events attended yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mt-6">
       <CardHeader className="flex flex-row items-center justify-between py-2">
-        <CardTitle className="text-base">Events</CardTitle>
+        <CardTitle className="text-base">Events Attended</CardTitle>
         <Button variant="ghost" size="sm" className="h-8 text-xs">
           All Events <ChevronDown className="ml-1 h-4 w-4" />
         </Button>
@@ -82,11 +116,11 @@ function EventsList() {
       <CardContent className="pt-0">
         <div className="space-y-1">
           {events.map((event) => (
-            <div key={`${event.id}-${event.date}`} className="flex items-center justify-between py-2 border-t">
+            <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
               <div>
-                <p className="text-sm font-medium">{event.name}</p>
+                <p className="text-sm font-medium">{event.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {format(new Date(event.date), 'MMM d, yyyy, h:mm a')}
+                  {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
                 </p>
               </div>
             </div>
@@ -202,7 +236,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
   const isOwnProfile = user?.api_id === person?.api_id;
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
-
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
@@ -365,7 +398,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         </Card>
 
         {/* Events List */}
-        <EventsList />
+        <EventsList personId={personId} />
       </div>
     </div>
   );
