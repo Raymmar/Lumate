@@ -33,43 +33,43 @@ async function syncEventAttendees(event: Event) {
       }
 
       const data = await response.json();
-      // Filter for approved guests only and extract from nested structure
-      const approvedGuests = (data.guests || [])
-        .filter((guestWrapper: any) => guestWrapper.guest.approval_status === 'approved')
-        .map((guestWrapper: any) => guestWrapper.guest);
 
-      // Process this batch of guests
-      for (const guest of approvedGuests) {
-        console.log('Processing approved guest:', {
-          guestId: guest.api_id,
-          email: guest.email,
-          status: guest.approval_status,
-          registeredAt: guest.registered_at,
-          checkedInAt: guest.checked_in_at // Log check-in time from API
-        });
+      // Process each guest wrapper in this batch
+      for (const guestWrapper of (data.guests || [])) {
+        const guest = guestWrapper.guest;
 
-        await storage.upsertAttendance({
-          guestApiId: guest.api_id,
-          eventApiId: event.api_id,
-          userEmail: guest.email.toLowerCase(),
-          registeredAt: guest.registered_at,
-          checkedInAt: guest.checked_in_at,
-          approvalStatus: guest.approval_status,
-        });
+        if (guest.approval_status === 'approved') {
+          console.log('Processing approved guest:', {
+            guestId: guest.api_id,
+            email: guest.email,
+            status: guest.approval_status,
+            registeredAt: guest.registered_at,
+            checkedInAt: guest.checked_in_at // Log check-in time from API
+          });
 
-        allGuests.push(guest);
+          await storage.upsertAttendance({
+            guestApiId: guest.api_id,
+            eventApiId: event.api_id,
+            userEmail: guest.email.toLowerCase(),
+            registeredAt: guest.registered_at,
+            checkedInAt: guest.checked_in_at,
+            approvalStatus: guest.approval_status,
+          });
+
+          allGuests.push(guest);
+        }
       }
-
-      hasMore = data.has_more;
-      cursor = data.pagination_cursor;
-      page++;
 
       console.log('Pagination status:', {
         iteration: page,
         guestsCollected: allGuests.length,
-        hasMore,
-        cursor
+        hasMore: data.has_more,
+        cursor: data.pagination_cursor
       });
+
+      hasMore = data.has_more;
+      cursor = data.pagination_cursor;
+      page++;
     }
 
     // Update event sync timestamp
