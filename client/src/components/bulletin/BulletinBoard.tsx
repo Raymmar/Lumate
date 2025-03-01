@@ -48,7 +48,10 @@ function JoinUsSection() {
   return (
     <Card className="border-2">
       <CardHeader className="pb-3">
-        <CardTitle>Join us</CardTitle>
+        <CardTitle>Sarasota.Tech</CardTitle>
+        <p className="text-muted-foreground mt-1">
+          Connecting Sarasota's tech community and driving the city forward.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="flex gap-2">
@@ -109,13 +112,6 @@ function CommunityNews() {
 export function BulletinBoard() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Sarasota.Tech</h1>
-        <p className="text-muted-foreground">
-          Connecting Sarasota's tech community and driving the city forward.
-        </p>
-      </div>
-
       <div className="grid gap-6 grid-cols-2">
         <LinksSection />
         <JoinUsSection />
