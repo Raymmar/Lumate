@@ -69,6 +69,8 @@ export interface IStorage {
   updatePersonStats(personId: number): Promise<Person>;
   getTopAttendees(limit?: number): Promise<Person[]>;
   getFeaturedEvent(): Promise<Event | null>;
+  // Add new method for getting attendance by guest ID
+  getAttendanceByGuestId(guestApiId: string): Promise<Attendance | null>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -897,6 +899,20 @@ export class PostgresStorage implements IStorage {
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get featured event:', error);
+      throw error;
+    }
+  }
+  async getAttendanceByGuestId(guestApiId: string): Promise<Attendance | null> {
+    try {
+      const result = await db
+        .select()
+        .from(attendance)
+        .where(eq(attendance.guestApiId, guestApiId))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get attendance by guest ID:', error);
       throw error;
     }
   }

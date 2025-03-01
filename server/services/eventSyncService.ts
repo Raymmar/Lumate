@@ -34,17 +34,27 @@ async function syncEventAttendees(event: Event) {
 
       const data = await response.json();
 
+      // Log the raw API response to inspect the data structure
+      console.log('Raw API Response for first guest:', {
+        firstGuest: data.guests?.[0],
+        totalGuests: data.guests?.length,
+        hasMore: data.has_more,
+        cursor: data.pagination_cursor
+      });
+
       // Process each guest wrapper in this batch
       for (const guestWrapper of (data.guests || [])) {
         const guest = guestWrapper.guest;
 
         if (guest.approval_status === 'approved') {
-          console.log('Processing approved guest:', {
+          // Add detailed logging for check-in data
+          console.log('Guest data from API:', {
             guestId: guest.api_id,
             email: guest.email,
             status: guest.approval_status,
             registeredAt: guest.registered_at,
-            checkedInAt: guest.checked_in_at // Log check-in time from API
+            checkedInAt: guest.checked_in_at,
+            rawGuestData: guest // Log the complete guest object for debugging
           });
 
           await storage.upsertAttendance({
@@ -55,6 +65,10 @@ async function syncEventAttendees(event: Event) {
             checkedInAt: guest.checked_in_at,
             approvalStatus: guest.approval_status,
           });
+
+          // Verify storage after upsert
+          const storedAttendance = await storage.getAttendanceByGuestId(guest.api_id);
+          console.log('Stored attendance record:', storedAttendance);
 
           allGuests.push(guest);
         }
