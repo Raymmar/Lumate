@@ -122,6 +122,15 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
+  const { data: userStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ['/api/auth/check-profile', personId],
+    queryFn: async () => {
+      const response = await fetch(`/api/auth/check-profile/${personId}`);
+      if (!response.ok) throw new Error('Failed to check profile status');
+      return response.json();
+    }
+  });
+
   const claimProfileMutation = useMutation({
     mutationFn: async (email: string) => {
       console.log('Submitting claim profile request:', { email, personId });
@@ -165,7 +174,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     claimProfileMutation.mutate(email);
   };
 
-  const isLoading = personLoading || statsLoading;
+  const isLoading = personLoading || statsLoading || statusLoading;
   const error = personError;
 
   if (error) {
@@ -192,7 +201,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
   const isOwnProfile = user?.api_id === person?.api_id;
-  const isClaimed =  userStatus?.isClaimed || user !== null;
+  const isClaimed = userStatus?.isClaimed || isOwnProfile;
 
 
   return (
