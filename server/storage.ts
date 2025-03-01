@@ -16,16 +16,17 @@ export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
   getEventCount(): Promise<number>;
-  getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; 
+  getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; // Added
+  getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
-  getRecentlyEndedEvents(): Promise<Event[]>; 
+  getRecentlyEndedEvents(): Promise<Event[]>; // Added
   clearEvents(): Promise<void>;
-  getEventByApiId(apiId: string): Promise<Event | null>;
-
+  
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
-  getPerson(id: number): Promise<Person | null>; 
+  getPerson(id: number): Promise<Person | null>; // Added getPerson method
+  getPersonById(id: number): Promise<Person | null>;
   getPersonByEmail(email: string): Promise<Person | null>; 
   getPersonByApiId(apiId: string): Promise<Person | null>;
   insertPerson(person: InsertPerson): Promise<Person>;
@@ -40,7 +41,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
   getUser(id: number): Promise<User | null>;  
-  getUserCount(): Promise<number>; 
+  getUserCount(): Promise<number>; // Added getUserCount method
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
@@ -59,7 +60,7 @@ export interface IStorage {
   getAttendanceByEvent(eventApiId: string): Promise<Attendance[]>;
   upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
   getAttendanceByEmail(email: string): Promise<Attendance[]>;
-  deleteAttendanceByEvent(eventApiId: string): Promise<void>; 
+  deleteAttendanceByEvent(eventApiId: string): Promise<void>; // Added deleteAttendanceByEvent method
   updateEventAttendanceSync(eventApiId: string): Promise<Event>;
 }
 
@@ -269,7 +270,7 @@ export class PostgresStorage implements IStorage {
   }
   
   // People methods
-  async getPerson(id: number): Promise<Person | null> {
+  async getPersonById(id: number): Promise<Person | null> {
     try {
       const result = await db
         .select()
@@ -284,7 +285,6 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-
   async getPersonByEmail(email: string): Promise<Person | null> {
     try {
       const result = await db
@@ -533,20 +533,23 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-
-  async getEventByApiId(apiId: string): Promise<Event | null> {
+  async getPerson(id: number): Promise<Person | null> {
     try {
       const result = await db
         .select()
-        .from(events)
-        .where(eq(events.api_id, apiId))
+        .from(people)
+        .where(eq(people.id, id))
         .limit(1);
-
       return result.length > 0 ? result[0] : null;
     } catch (error) {
-      console.error('Failed to get event by API ID:', error);
+      console.error('Failed to get person:', error);
       throw error;
     }
+  }
+  async getUserCount(): Promise<number> {
+    const result = await db.select({ count: sql`COUNT(*)` }).from(users);
+    const count = Number(result[0].count);
+    return count;
   }
 
   async getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null> {
@@ -783,6 +786,19 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  async getPerson(id: number): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.id, id))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person:', error);
+      throw error;
+    }
+  }
   async getPersonByApiId(apiId: string): Promise<Person | null> {
     try {
       const result = await db
@@ -794,15 +810,6 @@ export class PostgresStorage implements IStorage {
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
-      throw error;
-    }
-  }
-  async getUserCount(): Promise<number> {
-    try {
-      const result = await db.select({ count: sql`COUNT(*)` }).from(users);
-      return Number(result[0].count);
-    } catch (error) {
-      console.error('Failed to get user count:', error);
       throw error;
     }
   }

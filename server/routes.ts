@@ -13,24 +13,18 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
 
-// Update the SSE helper functions at the top of the file
+
+// Add SSE helper function at the top of the file
 function initSSE(res: Response) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
-
-  // Send an initial message to keep the connection alive
-  res.write(':\n\n');
 }
 
 function sendSSEUpdate(res: Response, data: any) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
-  // Flush the response to ensure immediate delivery
-  if (typeof (res as any).flush === 'function') {
-    (res as any).flush();
-  }
 }
 
 // Define admin emails directly in routes since we can't import from client components
@@ -42,7 +36,7 @@ const ADMIN_EMAILS = [
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(
-  endpoint: string,
+  endpoint: string, 
   params?: Record<string, string>,
   options: { method?: string; body?: string } = {}
 ) {
@@ -89,108 +83,6 @@ export async function lumaApiRequest(
 
     return data;
 }
-
-async function syncEventAttendees(event: any) {
-  try {
-    const eventId = event.api_id;
-    let allGuests: any[] = [];
-    let hasMore = true;
-    let cursor = undefined;
-    let iterationCount = 0;
-    const MAX_ITERATIONS = 100; // Safety limit
-
-    console.log('Starting guest sync for event:', eventId);
-
-    // First, delete all existing attendance records for this event
-    try {
-      await storage.deleteAttendanceByEvent(eventId);
-      console.log('Cleared existing attendance records for event:', eventId);
-    } catch (error) {
-      console.error('Failed to clear existing attendance records:', error);
-      throw error;
-    }
-
-    while (hasMore && iterationCount < MAX_ITERATIONS) {
-      const params: Record<string, string> = {
-        event_api_id: eventId
-      };
-
-      if (cursor) {
-        params.pagination_cursor = cursor;
-      }
-
-      console.log('Fetching guests with params:', params);
-      const response = await lumaApiRequest('event/get-guests', params);
-
-      console.log('Response details:', {
-        currentBatch: response.entries?.length,
-        hasMore: response.has_more,
-        nextCursor: response.next_cursor
-      });
-
-      if (response.entries) {
-        // Filter for approved guests only and store their attendance records
-        const approvedEntries = response.entries.filter((entry: any) => entry.guest.approval_status === 'approved');
-
-        for (const entry of approvedEntries) {
-          const guest = entry.guest;
-          console.log('Processing approved guest:', {
-            guestId: guest.api_id,
-            email: guest.email,
-            status: guest.approval_status,
-            registeredAt: guest.registered_at
-          });
-
-          try {
-            await storage.upsertAttendance({
-              eventApiId: eventId,
-              userEmail: guest.email.toLowerCase(),
-              guestApiId: guest.api_id,
-              approvalStatus: guest.approval_status,
-              registeredAt: guest.registered_at
-            });
-            console.log('Successfully stored attendance for guest:', guest.api_id);
-          } catch (error) {
-            console.error('Failed to store attendance for guest:', {
-              guestId: guest.api_id,
-              error: error instanceof Error ? error.message : String(error)
-            });
-            throw error;
-          }
-        }
-      }
-
-      allGuests = allGuests.concat(response.entries);
-
-      hasMore = response.has_more;
-      cursor = response.next_cursor;
-      iterationCount++;
-
-      console.log('Pagination status:', {
-        iteration: iterationCount,
-        guestsCollected: allGuests.length,
-        hasMore,
-        cursor
-      });
-    }
-
-    if (iterationCount >= MAX_ITERATIONS) {
-      console.warn('Reached maximum iteration limit while syncing guests');
-    }
-
-    // Update the event's last sync timestamp
-    await storage.updateEventAttendanceSync(eventId);
-
-    console.log('Completed guest sync:', {
-      eventId,
-      totalGuests: allGuests.length,
-      totalIterations: iterationCount
-    });
-  } catch (error) {
-    console.error('Failed to sync event attendees:', error);
-  }
-}
-
 
 export async function registerRoutes(app: Express) {
   // Set up session handling
@@ -286,7 +178,7 @@ export async function registerRoutes(app: Express) {
       res.json({ message: 'Successfully RSVP\'d to event' });
     } catch (error) {
       console.error('Failed to RSVP to event:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to RSVP to event",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -392,10 +284,10 @@ export async function registerRoutes(app: Express) {
 
       // Ensure the email matches the person's record
       const emailsMatch = person.email.toLowerCase() === normalizedEmail;
-      console.log('Email match check:', {
-        provided: normalizedEmail,
+      console.log('Email match check:', { 
+        provided: normalizedEmail, 
         stored: person.email.toLowerCase(),
-        matches: emailsMatch
+        matches: emailsMatch 
       });
 
       if (!emailsMatch) {
@@ -422,7 +314,7 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: "Failed to send verification email" });
       }
 
-      return res.json({
+      return res.json({ 
         message: "Verification email sent",
         // Only include token in development for testing
         token: process.env.NODE_ENV === 'development' ? verificationToken.token : undefined
@@ -469,7 +361,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Don't delete token yet - we'll need it valid for password setting
-      return res.json({
+      return res.json({ 
         message: "Email verified. Please set your password.",
         requiresPassword: true,
         email: verificationToken.email
@@ -509,7 +401,7 @@ export async function registerRoutes(app: Express) {
       // Clean up any verification tokens for this email
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
 
-      return res.json({
+      return res.json({ 
         message: "Password set successfully",
         user: {
           id: verifiedUser.id,
@@ -520,9 +412,9 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({
+        return res.status(400).json({ 
           error: "Invalid password",
-          details: error.errors
+          details: error.errors 
         });
       }
       console.error('Failed to set password:', error);
@@ -557,7 +449,7 @@ export async function registerRoutes(app: Express) {
         displayName: user.displayName,
         isVerified: user.isVerified,
         personId: user.personId,
-        api_id
+        api_id 
       });
     } catch (error) {
       console.error('Failed to get user info:', error);
@@ -601,7 +493,7 @@ export async function registerRoutes(app: Express) {
         });
       });
 
-      return res.json({
+      return res.json({ 
         message: "Logged in successfully",
         user: {
           id: user.id,
@@ -634,7 +526,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Internal-only route to reset database and fetch fresh data from Luma
-  app.get("/_internal/reset-database", async (req, res) => {
+  app.post("/_internal/reset-database", async (req, res) => {
     try {
       // Check if request is coming from localhost
       const requestIP = req.ip || req.socket.remoteAddress;
@@ -648,94 +540,50 @@ export async function registerRoutes(app: Express) {
 
       // Initialize SSE
       initSSE(res);
-
-      let cacheService = null;
+      sendSSEUpdate(res, { 
+        type: 'status', 
+        message: 'Starting database reset process',
+        progress: 0 
+      });
 
       try {
-        console.log('Starting database reset process');
-
-        // Store existing attendance records
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Backing up attendance records...',
-          progress: 5
-        });
-
-        console.log('Fetching existing attendance records...');
-        const existingAttendance = await db
-          .select()
-          .from(attendance)
-          .where(eq(attendance.approvalStatus, 'approved'));
-
-        console.log(`Backed up ${existingAttendance.length} approved attendance records`);
-
         // Clear events table
-        sendSSEUpdate(res, {
-          type: 'status',
+        sendSSEUpdate(res, { 
+          type: 'status', 
           message: 'Clearing events table...',
-          progress: 10
+          progress: 5 
         });
-
-        console.log('Clearing events table...');
         await storage.clearEvents();
 
-        // Get existing user emails before clearing people
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Preparing to update people records...',
-          progress: 15
+        // Clear people table
+        sendSSEUpdate(res, { 
+          type: 'status', 
+          message: 'Clearing people table (preserving user relationships)...',
+          progress: 10 
         });
-
-        console.log('Fetching existing user emails...');
-        const existingUsers = await db
-          .select({ email: users.email })
-          .from(users)
-          .where(sql`person_id IS NOT NULL`);
-
-        const userEmails = existingUsers.map(u => u.email.toLowerCase());
-        console.log(`Found ${userEmails.length} user emails to preserve`);
-
-        // Temporarily unlink users from people records
-        if (userEmails.length > 0) {
-          console.log('Temporarily unlinking users from people records...');
-          await db
-            .update(users)
-            .set({ personId: null })
-            .where(sql`email = ANY(${userEmails})`);
-        }
-
-        console.log('Clearing people table...');
         await storage.clearPeople();
 
         // Clear cache metadata
-        sendSSEUpdate(res, {
-          type: 'status',
+        sendSSEUpdate(res, { 
+          type: 'status', 
           message: 'Clearing cache metadata...',
-          progress: 20
+          progress: 15 
         });
-
-        console.log('Clearing cache metadata...');
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
-        // Initialize sync
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Fetching fresh data from Luma API',
-          progress: 25
-        });
-
-        console.log('Initializing cache service...');
         // Import CacheService
         const { CacheService } = await import('./services/CacheService');
-        cacheService = CacheService.getInstance();
+        const cacheService = CacheService.getInstance();
 
-        if (!cacheService) {
-          throw new Error('Failed to initialize CacheService');
-        }
+        // Initialize sync
+        sendSSEUpdate(res, { 
+          type: 'status', 
+          message: 'Initializing fresh data fetch from Luma API',
+          progress: 20 
+        });
 
         // Set up event listeners for cache service
         cacheService.on('fetchProgress', (data) => {
-          console.log('Cache service progress:', data);
           sendSSEUpdate(res, {
             type: 'progress',
             ...data
@@ -743,68 +591,13 @@ export async function registerRoutes(app: Express) {
         });
 
         // Initialize a new sync
-        console.log('Setting last cache update to oldest possible date...');
         const oldestPossibleDate = new Date(0);
         await storage.setLastCacheUpdate(oldestPossibleDate);
 
         // Start the cache update
-        console.log('Starting cache update...');
         await cacheService.updateCache();
-        console.log('Cache update completed');
-
-        // Relink users with their people records
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Relinking user accounts with people records...',
-          progress: 85
-        });
-
-        console.log('Relinking user accounts...');
-        for (const email of userEmails) {
-          try {
-            const person = await storage.getPersonByEmail(email);
-            if (person) {
-              await db
-                .update(users)
-                .set({ personId: person.id })
-                .where(eq(users.email, email));
-              console.log(`Relinked user ${email} with person ${person.id}`);
-            }
-          } catch (error) {
-            console.error(`Failed to relink user ${email}:`, error);
-          }
-        }
-
-        // Restore attendance records
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Restoring attendance records...',
-          progress: 90
-        });
-
-        console.log('Restoring attendance records...');
-        for (const record of existingAttendance) {
-          try {
-            const person = await storage.getPersonByEmail(record.userEmail);
-            const event = await storage.getEventByApiId(record.eventApiId);
-
-            if (person && event) {
-              await storage.upsertAttendance({
-                guestApiId: record.guestApiId,
-                eventApiId: record.eventApiId,
-                userEmail: record.userEmail,
-                registeredAt: record.registeredAt,
-                approvalStatus: record.approvalStatus
-              });
-              console.log(`Restored attendance record for ${record.userEmail} in event ${record.eventApiId}`);
-            }
-          } catch (error) {
-            console.error('Failed to restore attendance record:', error);
-          }
-        }
 
         // Verify data was fetched
-        console.log('Verifying data fetch...');
         const [eventCount, peopleCount] = await Promise.all([
           storage.getEventCount(),
           storage.getPeopleCount()
@@ -815,8 +608,7 @@ export async function registerRoutes(app: Express) {
         }
 
         // Send final success message
-        console.log('Sync completed successfully');
-        sendSSEUpdate(res, {
+        sendSSEUpdate(res, { 
           type: 'complete',
           message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
           data: {
@@ -831,22 +623,27 @@ export async function registerRoutes(app: Express) {
 
       } catch (error) {
         console.error('Failed during database reset:', error);
+        if (error instanceof Error) {
+          console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+          });
+        }
         sendSSEUpdate(res, {
           type: 'error',
-          message: error instanceof Error ? error.message : String(error)
+          message: error instanceof Error ? error.message : String(error),
+          progress: 0
         });
         res.end();
-      } finally {
-        if (cacheService) {
-          cacheService.removeAllListeners('fetchProgress');
-        }
+        throw error;
       }
     } catch (error) {
       console.error('Failed to reset database:', error);
       if (!res.headersSent) {
-        return res.status(500).json({
-          error: "Failed to reset database",
-          details: error instanceof Error ? error.message : String(error)
+        return res.status(500).json({ 
+          error: "Failed to reset database", 
+          details: error instanceof Error ? error.message : String(error) 
         });
       }
     }
@@ -920,9 +717,9 @@ export async function registerRoutes(app: Express) {
       // If no cached status, check with Luma API
       const response = await lumaApiRequest(
         'event/get-guest',
-        {
+        { 
           event_api_id: event_api_id as string,
-          email: user.email
+          email: user.email 
         }
       );
 
@@ -942,13 +739,13 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      res.json({
+      res.json({ 
         isGoing: response.guest?.approval_status === 'approved',
         status: response.guest?.approval_status
       });
     } catch (error) {
       console.error('Failed to check RSVP status:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to check RSVP status",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -960,7 +757,7 @@ export async function registerRoutes(app: Express) {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated"});
+        return res.status(401).json({ error: "Not authenticated" });
       }
 
       // Check if user is admin
@@ -986,6 +783,135 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Modify the existing /api/admin/events/:eventId/guests endpoint
+  app.get("/api/admin/events/:eventId/guests", async (req, res) => {
+    try {
+      // Authentication checks remain unchanged...
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.eventId;
+      if (!eventId) {
+        return res.status(400).json({ error: "Missing event ID" });
+      }
+
+      let allGuests: any[] = [];
+      let hasMore = true;
+      let cursor = undefined;
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 100; // Safety limit
+
+      console.log('Starting guest sync for event:', eventId);
+
+      // First, delete all existing attendance records for this event
+      try {
+        await storage.deleteAttendanceByEvent(eventId);
+        console.log('Cleared existing attendance records for event:', eventId);
+      } catch (error) {
+        console.error('Failed to clear existing attendance records:', error);
+        throw error;
+      }
+
+      while (hasMore && iterationCount < MAX_ITERATIONS) {
+        const params: Record<string, string> = { 
+          event_api_id: eventId 
+        };
+
+        if (cursor) {
+          params.pagination_cursor = cursor;
+        }
+
+        console.log('Fetching guests with params:', params);
+        const response = await lumaApiRequest('event/get-guests', params);
+
+        console.log('Response details:', {
+          currentBatch: response.entries?.length,
+          hasMore: response.has_more,
+          nextCursor: response.next_cursor
+        });
+
+        if (response.entries) {
+          // Store each guest's attendance record
+          for (const entry of response.entries) {
+            const guest = entry.guest;
+            console.log('Processing guest:', {
+              guestId: guest.api_id,
+              email: guest.email,
+              status: guest.approval_status,
+              registeredAt: guest.registered_at
+            });
+
+            try {
+              await storage.upsertAttendance({
+                eventApiId: eventId,
+                userEmail: guest.email.toLowerCase(),
+                guestApiId: guest.api_id,
+                approvalStatus: guest.approval_status,
+                registeredAt: guest.registered_at
+              });
+              console.log('Successfully stored attendance for guest:', guest.api_id);
+            } catch (error) {
+              console.error('Failed to store attendance for guest:', {
+                guestId: guest.api_id,
+                error: error instanceof Error ? error.message : String(error)
+              });
+              throw error;
+            }
+          }
+
+          allGuests = allGuests.concat(response.entries);
+        }
+
+        hasMore = response.has_more;
+        cursor = response.next_cursor;
+        iterationCount++;
+
+        console.log('Pagination status:', {
+          iteration: iterationCount,
+          guestsCollected: allGuests.length,
+          hasMore,
+          cursor
+        });
+      }
+
+      if (iterationCount >= MAX_ITERATIONS) {
+        console.warn('Reached maximum iteration limit while syncing guests');
+      }
+
+      // Update the event's last sync timestamp
+      await storage.updateEventAttendanceSync(eventId);
+
+      console.log('Completed guest sync:', {
+        eventId,
+        totalGuests: allGuests.length,
+        totalIterations: iterationCount
+      });
+
+      res.json({
+        guests: allGuests,
+        total: allGuests.length
+      });
+    } catch (error) {
+      console.error('Failed to fetch event guests:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      res.status(500).json({ 
+        error: "Failed to fetch event guests",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.get("/api/admin/members", async (req, res) => {
     try {
@@ -1004,7 +930,7 @@ export async function registerRoutes(app: Express) {
       const result = await db
         .select()
         .from(users)
-        .orderBy(users.email);
+        .orderBy(users.id);
 
       res.json(result);
     } catch (error) {
@@ -1027,7 +953,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const result = await db
-        .select()
+                .select()
         .from(people)
         .orderBy(people.id);
 
@@ -1078,21 +1004,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  setInterval(async () => {
-    try {
-      const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
-
-      console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
-
-      for (const event of recentlyEndedEvents) {
-        await syncEventAttendees(event);
-      }
-    } catch (error) {
-      console.error('Failed to sync recently ended events:', error);
-    }
-  }, 5 * 60 * 1000); // Check every 5 minutes
-
-  console.log('Started event sync scheduler');
   return createServer(app);
 }
 

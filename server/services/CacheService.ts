@@ -16,6 +16,7 @@ export class CacheService extends EventEmitter {
   private constructor() {
     super(); // Initialize EventEmitter
     console.log('Starting CacheService...');
+    this.startCaching();
   }
 
   static getInstance() {
@@ -27,7 +28,6 @@ export class CacheService extends EventEmitter {
   }
 
   private emitProgress(message: string, progress: number) {
-    console.log('Emitting progress:', { message, progress });
     this.emit('fetchProgress', {
       message,
       progress: Math.min(Math.round(progress), 100)
@@ -81,7 +81,7 @@ export class CacheService extends EventEmitter {
         }
       }
 
-      // Process people in batches
+      // Process people in batches while preserving email relationships
       if (people.length > 0) {
         console.log(`Processing ${people.length} people in batches...`);
         this.emitProgress(`Processing ${people.length} people...`, 80);
@@ -103,7 +103,7 @@ export class CacheService extends EventEmitter {
         storage.getPeopleCount()
       ]);
 
-      if (eventCount === 0 && peopleCount === 0) {
+      if (eventCount === 0 || peopleCount === 0) {
         throw new Error(`Sync verification failed: Expected non-zero counts, got events=${eventCount}, people=${peopleCount}`);
       }
 
@@ -233,7 +233,7 @@ export class CacheService extends EventEmitter {
     let nextCursor: string | null = null;
     let pageCount = 0;
 
-    while (hasMore || nextCursor) {
+    while (hasMore || nextCursor) { //Fixed Pagination Logic
       const params: Record<string, string> = {
         pagination_limit: String(this.BATCH_SIZE),
         created_after: lastUpdateTime.toISOString()
@@ -272,6 +272,13 @@ export class CacheService extends EventEmitter {
 
         allPeople.push(...uniquePeople);
         console.log(`Added ${uniquePeople.length} unique people (Total: ${allPeople.length}, Page: ${pageCount})`);
+
+        // Check for more pages
+        console.log('Pagination metadata:', {
+          hasMore: response.has_more,
+          nextCursor: response.next_cursor,
+          currentTotal: allPeople.length
+        });
 
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
