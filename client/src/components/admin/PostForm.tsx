@@ -50,7 +50,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2">
         <FormField
           control={form.control}
           name="title"
@@ -59,7 +59,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
               <FormControl>
                 <Input 
                   {...field} 
-                  className="text-xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                  className="text-2xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
                   placeholder="Post title" 
                 />
               </FormControl>
@@ -73,13 +73,12 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           name="summary"
           render={({ field: { value, ...field }}) => (
             <FormItem className="space-y-1">
-              <FormLabel className="text-sm text-muted-foreground">Summary</FormLabel>
               <FormControl>
                 <Textarea 
                   {...field} 
                   value={value || ""} 
-                  placeholder="A brief summary of your post"
-                  className="resize-none h-20 min-h-[80px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  placeholder="Add your summary here and this will be used as post meta description as well."
+                  className="resize-none h-20 min-h-[80px] border-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </FormControl>
               <FormMessage />
@@ -91,12 +90,12 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           control={form.control}
           name="body"
           render={({ field }) => (
-            <FormItem className="space-y-1">
+            <FormItem className="space-y-0">
               <FormControl>
                 <RichTextEditor
                   value={field.value}
                   onChange={field.onChange}
-                  className="min-h-[400px] border-none [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:p-0"
+                  className="min-h-[400px] border-none [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:p-0 [&_.ProseMirror]:text-base"
                 />
               </FormControl>
               <FormMessage />
