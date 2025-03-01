@@ -57,7 +57,7 @@ export default function UserSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-2xl mx-auto py-6">
+      <div className="py-6 max-w-2xl mx-auto">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
