@@ -62,6 +62,12 @@ export interface IStorage {
   getAttendanceByEmail(email: string): Promise<Attendance[]>;
   deleteAttendanceByEvent(eventApiId: string): Promise<void>; // Added deleteAttendanceByEvent method
   updateEventAttendanceSync(eventApiId: string): Promise<Event>;
+
+  // Add new method for checking event attendance
+  getEventAttendanceStatus(eventApiId: string): Promise<{ 
+    hasAttendees: boolean;
+    lastSyncTime: string | null;
+  }>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -811,6 +817,30 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
       throw error;
+    }
+  }
+  async getEventAttendanceStatus(eventApiId: string): Promise<{ hasAttendees: boolean; lastSyncTime: string | null; }> {
+    try {
+      // Check if there are any attendees for this event
+      const result = await db
+        .select({
+          count: sql<number>`COUNT(*)`,
+          lastSync: sql<string | null>`MAX(last_synced_at)`
+        })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventApiId))
+        .limit(1);
+
+      return {
+        hasAttendees: Number(result[0].count) > 0,
+        lastSyncTime: result[0].lastSync
+      };
+    } catch (error) {
+      console.error('Failed to get event attendance status:', error);
+      return {
+        hasAttendees: false,
+        lastSyncTime: null
+      };
     }
   }
 }

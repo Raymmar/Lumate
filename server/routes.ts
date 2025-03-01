@@ -13,7 +13,6 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
 
-
 // Add SSE helper function at the top of the file
 function initSSE(res: Response) {
   res.writeHead(200, {
@@ -772,11 +771,20 @@ export async function registerRoutes(app: Express) {
         .from(events)
         .orderBy(sql`start_time DESC`);
 
-      res.json(eventsList.map(event => ({
-        ...event,
-        isSynced: !!event.lastAttendanceSync,
-        lastSyncedAt: event.lastAttendanceSync
-      })));
+      // Get attendance status for each event
+      const eventsWithStatus = await Promise.all(
+        eventsList.map(async (event) => {
+          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+          return {
+            ...event,
+            isSynced: attendanceStatus.hasAttendees,
+            lastSyncedAt: attendanceStatus.lastSyncTime,
+            lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
+          };
+        })
+      );
+
+      res.json(eventsWithStatus);
     } catch (error) {
       console.error('Failed to fetch admin events:', error);
       res.status(500).json({ error: "Failed to fetch events" });
