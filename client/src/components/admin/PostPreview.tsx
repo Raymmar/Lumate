@@ -1,16 +1,27 @@
-import { Post } from "@shared/schema";
+import { Post, type InsertPost } from "@shared/schema";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
+import { PostForm } from "./PostForm";
 
 interface PostPreviewProps {
-  post: Post;
+  post?: Post;
+  isNew?: boolean;
   onClose: () => void;
+  onSave: (data: InsertPost) => Promise<void>;
 }
 
-export function PostPreview({ post, onClose }: PostPreviewProps) {
+export function PostPreview({ post, isNew = false, onClose, onSave }: PostPreviewProps) {
+  if (isNew || !post) {
+    return (
+      <PreviewSidebar title="New Post" onClose={onClose}>
+        <PostForm onSubmit={onSave} />
+      </PreviewSidebar>
+    );
+  }
+
   return (
     <PreviewSidebar title="Post Details" onClose={onClose}>
       <div className="space-y-6">
