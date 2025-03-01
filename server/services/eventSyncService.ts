@@ -23,7 +23,9 @@ async function syncEventAttendees(event: Event) {
         `https://api.lu.ma/public/v1/event/get-guests?${params}`,
         {
           headers: {
-            'Authorization': `Bearer ${process.env.LUMA_API_KEY}`
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'x-luma-api-key': process.env.LUMA_API_KEY || ''
           }
         }
       );
@@ -39,7 +41,7 @@ async function syncEventAttendees(event: Event) {
         firstGuest: data.guests?.[0],
         totalGuests: data.guests?.length,
         hasMore: data.has_more,
-        cursor: data.pagination_cursor
+        nextCursor: data.next_cursor
       });
 
       // Process each guest wrapper in this batch
@@ -78,15 +80,15 @@ async function syncEventAttendees(event: Event) {
         iteration: page,
         guestsCollected: allGuests.length,
         hasMore: data.has_more,
-        cursor: data.pagination_cursor
+        cursor: data.next_cursor
       });
 
       hasMore = data.has_more;
-      cursor = data.pagination_cursor;
+      cursor = data.next_cursor;
       page++;
     }
 
-    // Update event sync timestamp
+    // Update event sync timestamp - Moved this line as per the edited code's intention.
     await storage.updateEventAttendanceSync(event.api_id);
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
