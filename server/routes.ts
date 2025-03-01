@@ -12,9 +12,6 @@ import { events, attendance } from '@shared/schema'; //Import events schema and 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
-import { uploadImage, getImageUrl } from './services/ObjectStorageService';
-import multer from 'multer';
-import path from 'path';
 
 // Add SSE helper function at the top of the file
 function initSSE(res: Response) {
@@ -1127,49 +1124,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);
       res.status(500).json({ error: "Failed to fetch attendees" });
-    }
-  });
-
-  // Configure multer for memory storage
-  const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-    fileFilter: (_req, file, cb) => {
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!allowedTypes.includes(file.mimetype)) {
-        return cb(new Error('Only .png, .jpg and .webp format allowed!'));
-      }
-      cb(null, true);
-    }
-  });
-
-  // Add image upload endpoint
-  app.post('/api/upload/image', upload.single('image'), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const filename = `uploads/${Date.now()}-${path.basename(req.file.originalname)}`;
-      const url = await uploadImage(req.file.buffer, filename);
-
-      res.json({ url });
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      res.status(500).json({ error: "Failed to upload image" });
-    }
-  });
-
-  // Add endpoint to get image URL
-  app.get('/api/images/:filename', async (req, res) => {
-    try {
-      const url = await getImageUrl(req.params.filename);
-      res.json({ url });
-    } catch (error) {
-      console.error('Failed to get image URL:', error);
-      res.status(500).json({ error: "Failed to get image URL" });
     }
   });
 
