@@ -17,16 +17,16 @@ function LinksSection() {
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
           <div className="flex gap-2">
-            <a href="#" className="text-black hover:text-black/80 transition-colors">
+            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiInstagram className="h-4 w-4" />
             </a>
-            <a href="#" className="text-black hover:text-black/80 transition-colors">
+            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiX className="h-4 w-4" />
             </a>
-            <a href="#" className="text-black hover:text-black/80 transition-colors">
+            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiYoutube className="h-4 w-4" />
             </a>
-            <a href="#" className="text-black hover:text-black/80 transition-colors">
+            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiLinkedin className="h-4 w-4" />
             </a>
           </div>
