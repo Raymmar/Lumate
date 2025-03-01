@@ -121,24 +121,24 @@ export default function PeopleDirectory() {
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
-          className="pl-9 focus:outline-none focus:ring-0 focus-visible:ring-0"
+          className="pl-9"
         />
       </div>
 
       {isLoading ? (
-        <div className="space-y-1">
-          <Skeleton className="h-12" />
-          <Skeleton className="h-12" />
-          <Skeleton className="h-12" />
+        <div className="space-y-0.5">
+          <Skeleton className="h-11" />
+          <Skeleton className="h-11" />
+          <Skeleton className="h-11" />
         </div>
       ) : data?.people && data.people.length > 0 ? (
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {data.people.map((person, index) => (
                 <div
                   key={person.api_id}
-                  className={`flex items-center gap-2 py-2 px-2 rounded-lg transition-colors cursor-pointer ${
+                  className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
                     (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
