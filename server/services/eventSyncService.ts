@@ -48,12 +48,16 @@ async function syncEventAttendees(event: Event) {
             name: guest.name,
             status: guest.approval_status,
             registeredAt: guest.registered_at,
-            checkedInAt: guest.checked_in_at, // Log the check-in time specifically
-            eventTicketCheckedInAt: guest.event_ticket?.checked_in_at, // Also log ticket check-in time
+            guestCheckedInAt: guest.checked_in_at, // Direct check-in time
+            ticketCheckedInAt: guest.event_ticket?.checked_in_at, // Ticket check-in time
           });
 
-          // Determine the actual check-in time (either from guest or ticket)
-          const checkedInAt = guest.checked_in_at || guest.event_ticket?.checked_in_at || null;
+          // Determine the actual check-in time by checking both sources
+          const checkedInAt = guest.checked_in_at || (guest.event_ticket && guest.event_ticket.checked_in_at) || null;
+
+          if (checkedInAt) {
+            console.log(`Found check-in time for guest ${guest.email}: ${checkedInAt}`);
+          }
 
           // Store attendance with check-in data
           const storedAttendance = await storage.upsertAttendance({
@@ -61,43 +65,45 @@ async function syncEventAttendees(event: Event) {
             eventApiId: event.api_id,
             userEmail: guest.email.toLowerCase(),
             registeredAt: guest.registered_at,
-            checkedInAt: checkedInAt, // Make sure we're passing the check-in time
+            checkedInAt: checkedInAt,
             approvalStatus: guest.approval_status,
           });
 
           // Verify storage after upsert
           console.log('Stored attendance record:', {
             guestId: guest.api_id,
+            email: guest.email,
             storedCheckedInAt: storedAttendance.checkedInAt,
-            originalCheckedInAt: checkedInAt
+            originalCheckedInAt: checkedInAt,
+            storedSuccessfully: storedAttendance.checkedInAt === checkedInAt
           });
 
           allGuests.push(guest);
         }
       }
 
-      console.log('Pagination status:', {
-        iteration: page,
-        guestsCollected: allGuests.length,
-        hasMore: data.has_more,
-        cursor: data.next_cursor
-      });
-
       hasMore = data.has_more;
       cursor = data.next_cursor;
       page++;
+
+      // Small delay between requests to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     // Update event sync timestamp
     await storage.updateEventAttendanceSync(event.api_id);
-    console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
 
-    // Log final check-in statistics
-    const checkedInCount = allGuests.filter(guest => guest.checked_in_at || guest.event_ticket?.checked_in_at).length;
-    console.log('Check-in statistics:', {
+    // Log final statistics
+    const checkedInCount = allGuests.filter(guest => 
+      guest.checked_in_at || (guest.event_ticket && guest.event_ticket.checked_in_at)
+    ).length;
+
+    console.log('Sync completed - Check-in statistics:', {
+      eventId: event.api_id,
+      eventTitle: event.title,
       totalGuests: allGuests.length,
       checkedInGuests: checkedInCount,
-      eventId: event.api_id
+      checkInPercentage: allGuests.length ? (checkedInCount / allGuests.length * 100).toFixed(1) + '%' : '0%'
     });
 
   } catch (error) {
