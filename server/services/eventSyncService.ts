@@ -36,6 +36,19 @@ async function syncEventAttendees(event: Event) {
 
       const data = await response.json();
 
+      // Log raw API response for debugging
+      console.log('Raw API Response:', {
+        totalGuests: data.guests?.length,
+        firstGuest: data.guests?.[0]?.guest ? {
+          guestId: data.guests[0].guest.api_id,
+          email: data.guests[0].guest.email,
+          checkedInAt: data.guests[0].guest.checked_in_at,
+          eventTicket: data.guests[0].guest.event_ticket,
+          hasTicketCheckIn: data.guests[0].guest.event_ticket?.checked_in_at !== null
+        } : null,
+        hasMore: data.has_more
+      });
+
       // Process each guest wrapper in this batch
       for (const guestWrapper of (data.guests || [])) {
         const guest = guestWrapper.guest;
@@ -53,10 +66,23 @@ async function syncEventAttendees(event: Event) {
           });
 
           // Determine the actual check-in time by checking both sources
-          const checkedInAt = guest.checked_in_at || (guest.event_ticket && guest.event_ticket.checked_in_at) || null;
+          let checkedInAt = null;
+          const guestCheckIn = guest.checked_in_at;
+          const ticketCheckIn = guest.event_ticket?.checked_in_at;
+
+          // Convert valid timestamps to ISO string format
+          if (guestCheckIn) {
+            checkedInAt = new Date(guestCheckIn).toISOString();
+          } else if (ticketCheckIn) {
+            checkedInAt = new Date(ticketCheckIn).toISOString();
+          }
 
           if (checkedInAt) {
-            console.log(`Found check-in time for guest ${guest.email}: ${checkedInAt}`);
+            console.log(`Found and formatted check-in time for guest ${guest.email}:`, {
+              originalGuestCheckIn: guestCheckIn,
+              originalTicketCheckIn: ticketCheckIn,
+              formattedCheckInTime: checkedInAt
+            });
           }
 
           // Store attendance with check-in data
@@ -64,8 +90,8 @@ async function syncEventAttendees(event: Event) {
             guestApiId: guest.api_id,
             eventApiId: event.api_id,
             userEmail: guest.email.toLowerCase(),
-            registeredAt: guest.registered_at,
-            checkedInAt: checkedInAt,
+            registeredAt: new Date(guest.registered_at).toISOString(),
+            checkedInAt,
             approvalStatus: guest.approval_status,
           });
 
