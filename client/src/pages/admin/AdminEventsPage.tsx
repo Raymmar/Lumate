@@ -15,23 +15,25 @@ export default function AdminEventsPage() {
           </PageContainer>
         </div>
 
-        {/* Fixed Sidebar */}
-        <div className="fixed top-16 left-0 bottom-0 w-64 bg-muted/10 border-r z-40 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            <h2 className="font-semibold">Admin Panel</h2>
-            <AdminTabs />
-          </div>
-        </div>
+        <PageContainer>
+          <div className="flex pt-16">
+            {/* Fixed Sidebar */}
+            <div className="w-64 fixed top-16 bottom-0 bg-muted/10 border-r z-40 overflow-y-auto">
+              <div className="p-4 space-y-4">
+                <h2 className="font-semibold">Admin Panel</h2>
+                <AdminTabs />
+              </div>
+            </div>
 
-        {/* Main content area with independent scroll */}
-        <div className="pl-64 pt-16">
-          <div className="min-h-screen overflow-auto">
-            <div className="p-6">
-              <h1 className="text-2xl font-bold mb-6">Events</h1>
-              <EventsTable />
+            {/* Main content area with independent scroll */}
+            <div className="flex-1 pl-64">
+              <div className="p-6">
+                <h1 className="text-2xl font-bold mb-6">Events</h1>
+                <EventsTable />
+              </div>
             </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
     </AdminGuard>
   );
