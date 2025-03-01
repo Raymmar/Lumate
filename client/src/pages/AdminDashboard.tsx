@@ -9,16 +9,16 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-function StatCard({ 
-  title, 
-  value, 
-  icon: Icon, 
+function StatCard({
+  title,
+  value,
+  icon: Icon,
   isLoading,
   description
-}: { 
-  title: string; 
-  value: number | string; 
-  icon: React.ElementType; 
+}: {
+  title: string;
+  value: number | string;
+  icon: React.ElementType;
   isLoading: boolean;
   description?: string;
 }) {
@@ -140,32 +140,11 @@ export default function AdminDashboard() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 <StatCard
-                  title="Membership Revenue"
-                  value="$0.00"
-                  icon={DollarSign}
-                  isLoading={isLoading}
-                  description="Total revenue from memberships"
-                />
-                <StatCard
-                  title="Paid Members"
-                  value={statsData?.paidUsers || 0}
-                  icon={CreditCard}
-                  isLoading={isLoading}
-                  description="Members with active paid subscriptions"
-                />
-                <StatCard
                   title="Total Events"
                   value={statsData?.events || 0}
                   icon={Calendar}
                   isLoading={isLoading}
                   description="Total number of events hosted"
-                />
-                <StatCard
-                  title="Registered Members"
-                  value={statsData?.users || 0}
-                  icon={UserPlus}
-                  isLoading={isLoading}
-                  description="Total number of registered members"
                 />
                 <StatCard
                   title="Total Attendees"
@@ -180,6 +159,27 @@ export default function AdminDashboard() {
                   icon={Users}
                   isLoading={isLoading}
                   description="Individual people who have attended events"
+                />
+                <StatCard
+                  title="Registered Members"
+                  value={statsData?.users || 0}
+                  icon={UserPlus}
+                  isLoading={isLoading}
+                  description="Total number of registered members"
+                />
+                <StatCard
+                  title="Paid Members"
+                  value={statsData?.paidUsers || 0}
+                  icon={CreditCard}
+                  isLoading={isLoading}
+                  description="Members with active paid subscriptions"
+                />
+                <StatCard
+                  title="Membership Revenue"
+                  value="$0.00"
+                  icon={DollarSign}
+                  isLoading={isLoading}
+                  description="Total revenue from memberships"
                 />
               </div>
             </div>
