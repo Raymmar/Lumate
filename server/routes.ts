@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express) {
         })
         .from(attendance)
         .innerJoin(events, eq(attendance.eventApiId, events.api_id))
-        .where(eq(attendance.personId, person.id))
+        .where(eq(attendance.userEmail, person.email)) // Use email as it's the persistent identifier
         .orderBy(events.startTime);
 
       res.json(attendedEvents);
