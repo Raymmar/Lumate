@@ -621,7 +621,8 @@ export class PostgresStorage implements IStorage {
       console.log('Attempting to upsert attendance record:', {
         eventApiId: data.eventApiId,
         userEmail: data.userEmail,
-        guestApiId: data.guestApiId
+        guestApiId: data.guestApiId,
+        checkedInAt: data.checkedInAt
       });
 
       // First, try to find matching user and person by email
@@ -654,6 +655,7 @@ export class PostgresStorage implements IStorage {
           target: attendance.guestApiId,
           set: {
             approvalStatus: data.approvalStatus,
+            checkedInAt: data.checkedInAt,
             userId: matchingUser?.id,
             personId: matchingPerson?.id,
             lastSyncedAt: new Date().toISOString()
@@ -665,7 +667,8 @@ export class PostgresStorage implements IStorage {
         id: result.id,
         guestApiId: result.guestApiId,
         userId: result.userId,
-        personId: result.personId
+        personId: result.personId,
+        checkedInAt: result.checkedInAt
       });
 
       // After successfully upserting attendance, update the person's stats

@@ -95,6 +95,7 @@ export const attendance = pgTable("attendance", {
   guestApiId: varchar("guest_api_id", { length: 255 }).notNull().unique(),
   approvalStatus: varchar("approval_status", { length: 50 }).notNull(),
   registeredAt: timestamp("registered_at", { mode: 'string', withTimezone: true }),
+  checkedInAt: timestamp("checked_in_at", { mode: 'string', withTimezone: true }),
   lastSyncedAt: timestamp("last_synced_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   userId: serial("user_id").references(() => users.id),
   personId: serial("person_id").references(() => people.id),
