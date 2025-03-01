@@ -185,7 +185,6 @@ export async function registerRoutes(app: Express) {
   });
 
 
-  // Update the /api/people endpoint to add sorting
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -207,7 +206,8 @@ export async function registerRoutes(app: Express) {
       // Add sorting based primarily on event attendance count
       if (sort === 'events') {
         query = query
-          .orderBy(sql`COALESCE((stats->>'totalEventsAttended')::int, 0) DESC`)
+          .where(sql`stats->>'totalEventsAttended' IS NOT NULL`)
+          .orderBy(sql`(stats->>'totalEventsAttended')::int DESC`)
           .orderBy(sql`COALESCE((stats->>'lastEventDate')::timestamptz, '1970-01-01'::timestamptz) DESC`);
       } else {
         query = query.orderBy(people.id);
