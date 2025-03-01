@@ -32,11 +32,11 @@ export function NavBar() {
             />
           </div>
         </Link>
-        {/* Add View Directory button only in admin dashboard */}
+        {/* Update View Directory button style */}
         {isAdminDashboard && (
           <Link href="/">
             <Button 
-              variant="ghost" 
+              variant="secondary"
               className="ml-4"
             >
               View Directory
