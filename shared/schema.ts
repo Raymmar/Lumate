@@ -100,6 +100,65 @@ export const attendance = pgTable("attendance", {
   personId: serial("person_id").references(() => people.id),
 });
 
+// Add new tables for posts and tags
+export const tags = pgTable("tags", {
+  id: serial("id").primaryKey(),
+  text: varchar("text", { length: 255 }).notNull().unique(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  summary: text("summary"),
+  body: text("body").notNull(),
+  featuredImage: varchar("featured_image", { length: 255 }),
+  videoUrl: varchar("video_url", { length: 255 }),
+  ctaLink: varchar("cta_link", { length: 255 }),
+  ctaLabel: varchar("cta_label", { length: 255 }),
+  isPinned: boolean("is_pinned").notNull().default(false),
+  creatorId: serial("creator_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const postTags = pgTable("post_tags", {
+  id: serial("id").primaryKey(),
+  postId: serial("post_id").references(() => posts.id).notNull(),
+  tagId: serial("tag_id").references(() => tags.id).notNull(),
+});
+
+// Add insert schemas for new tables
+export const insertTagSchema = createInsertSchema(tags).omit({ 
+  id: true, 
+  createdAt: true 
+}).transform((data) => ({
+  ...data,
+  text: data.text.toLowerCase() // Ensure tags are stored in lowercase
+}));
+
+export const insertPostSchema = createInsertSchema(posts).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  creatorId: true
+});
+
+export const insertPostTagSchema = createInsertSchema(postTags).omit({ 
+  id: true 
+});
+
+// Add types for new tables
+export type Tag = typeof tags.$inferSelect;
+export type InsertTag = z.infer<typeof insertTagSchema>;
+
+export type Post = typeof posts.$inferSelect;
+export type InsertPost = z.infer<typeof insertPostSchema>;
+
+export type PostTag = typeof postTags.$inferSelect;
+export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
+
+
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
