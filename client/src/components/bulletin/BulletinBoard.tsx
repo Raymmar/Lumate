@@ -102,10 +102,16 @@ function JoinUsSection() {
   return (
     <Card className="border">
       <CardHeader className="pb-3">
-        <CardTitle>Sarasota.Tech</CardTitle>
-        <p className="text-muted-foreground mt-1">
-          Connecting Sarasota's tech community and driving the city forward.
-        </p>
+        {isSubmitted ? (
+          <CardTitle>Welcome to Sarasota Tech</CardTitle>
+        ) : (
+          <>
+            <CardTitle>Sarasota.Tech</CardTitle>
+            <p className="text-muted-foreground mt-1">
+              Connecting Sarasota's tech community and driving the city forward.
+            </p>
+          </>
+        )}
       </CardHeader>
       <CardContent>
         {isSubmitted ? (
