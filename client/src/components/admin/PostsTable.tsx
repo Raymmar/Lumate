@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Post } from "@shared/schema";
+import type { Post } from "@shared/schema";
 import { DataTable } from "./DataTable";
-import { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
@@ -10,7 +10,7 @@ interface PostsTableProps {
 }
 
 export function PostsTable({ onSelect }: PostsTableProps) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/admin/posts"],
     queryFn: async () => {
       const response = await fetch("/api/admin/posts");
@@ -53,7 +53,7 @@ export function PostsTable({ onSelect }: PostsTableProps) {
     <DataTable
       columns={columns}
       data={data?.posts || []}
-      isLoading={isLoading}
+      loading={isLoading}
       onRowClick={onSelect}
     />
   );
