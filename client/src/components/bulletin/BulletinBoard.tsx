@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 
 // Links Section
@@ -38,28 +37,6 @@ function JoinUsSection() {
         <div className="flex gap-2">
           <Input placeholder="Email" type="email" className="flex-1" />
           <Button>Join</Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Member Spotlight Section
-function MemberSpotlight() {
-  return (
-    <Card className="border-2">
-      <CardHeader className="pb-3">
-        <CardTitle>Member spotlight</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12">
-            <AvatarFallback>UN</AvatarFallback>
-          </Avatar>
-          <div>
-            <div className="font-medium">Username</div>
-            <p className="text-sm text-muted-foreground">Active Member</p>
-          </div>
         </div>
       </CardContent>
     </Card>
@@ -127,11 +104,7 @@ export function BulletinBoard() {
         <JoinUsSection />
       </div>
 
-      <div className="grid gap-6 grid-cols-2">
-        <MemberSpotlight />
-        <SponsorsSection />
-      </div>
-
+      <SponsorsSection />
       <CommunityNews />
     </div>
   );
