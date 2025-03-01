@@ -361,11 +361,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               value={stats?.attendanceCount || 0}
               icon={<Users className="h-4 w-4 text-primary" />}
             />
-            <StatsCard
-              title="Revenue"
-              value="$0.00"
-              icon={<DollarSign className="h-4 w-4 text-primary" />}
-            />
           </CardContent>
         </Card>
 
