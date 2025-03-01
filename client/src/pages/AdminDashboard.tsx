@@ -3,6 +3,13 @@ import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink } from 
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
+import { useState } from "react";
+import { PostsTable } from "@/components/admin/PostsTable";
+import { PostPreview } from "@/components/admin/PostPreview";
+import { Plus } from "lucide-react";
+import type { Post, InsertPost } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function AdminDashboard() {
   const { data: statsData, isLoading } = useQuery({
@@ -16,21 +23,53 @@ export default function AdminDashboard() {
     }
   });
 
+  // Posts management state
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const { toast } = useToast();
+
+  const handleCreatePost = async (data: InsertPost) => {
+    try {
+      await apiRequest('/api/admin/posts', 'POST', data);
+      setIsCreating(false);
+      toast({
+        title: "Success",
+        description: "Post created successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <AdminLayout title={
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-        <Button
-          variant="default"
-          className="bg-primary hover:bg-primary/90"
-          onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuB2gziq', '_blank')}
-        >
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Manage Calendar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuJw79D', '_blank')}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Manage Calendar
+          </Button>
+          <Button 
+            className="bg-primary hover:bg-primary/90"
+            onClick={() => setIsCreating(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Post
+          </Button>
+        </div>
       </div>
     }>
-      <div className="grid gap-4 md:grid-cols-3">
+      {/* Stats Grid */}
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
         <StatCard
           title="Total Events"
           value={statsData?.events || 0}
@@ -73,6 +112,23 @@ export default function AdminDashboard() {
           isLoading={isLoading}
           description="Total revenue from memberships"
         />
+      </div>
+
+      {/* Posts Section */}
+      <div className="mt-8">
+        <h2 className="text-xl font-semibold mb-4">Posts</h2>
+        <PostsTable onSelect={setSelectedPost} />
+        {(selectedPost || isCreating) && (
+          <PostPreview
+            post={selectedPost || undefined}
+            isNew={isCreating}
+            onClose={() => {
+              setSelectedPost(null);
+              setIsCreating(false);
+            }}
+            onSave={handleCreatePost}
+          />
+        )}
       </div>
     </AdminLayout>
   );
