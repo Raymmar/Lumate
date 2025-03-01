@@ -13,12 +13,14 @@ function StatCard({
   title, 
   value, 
   icon: Icon, 
-  isLoading 
+  isLoading,
+  description
 }: { 
   title: string; 
   value: number | string; 
   icon: React.ElementType; 
   isLoading: boolean;
+  description?: string;
 }) {
   return (
     <Card>
@@ -32,6 +34,11 @@ function StatCard({
         <div className="text-2xl font-bold">
           {isLoading ? "..." : value}
         </div>
+        {description && (
+          <p className="text-xs text-muted-foreground mt-1">
+            {description}
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -131,7 +138,7 @@ export default function AdminDashboard() {
                 </Button>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-5">
                 <StatCard
                   title="Total Events"
                   value={statsData?.events || 0}
@@ -139,10 +146,18 @@ export default function AdminDashboard() {
                   isLoading={isLoading}
                 />
                 <StatCard
-                  title="Total Attendees"
-                  value={statsData?.people || 0}
+                  title="Unique Attendees"
+                  value={statsData?.uniqueAttendees || 0}
                   icon={Users}
                   isLoading={isLoading}
+                  description="Individual people who have attended events"
+                />
+                <StatCard
+                  title="Total Attendees"
+                  value={statsData?.totalAttendees || 0}
+                  icon={Users}
+                  isLoading={isLoading}
+                  description="Total event attendance count"
                 />
                 <StatCard
                   title="Registered Users"

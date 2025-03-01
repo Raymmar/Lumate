@@ -16,16 +16,16 @@ export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
   getEventCount(): Promise<number>;
-  getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; // Added
+  getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; 
   getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
-  getRecentlyEndedEvents(): Promise<Event[]>; // Added
+  getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
   
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
-  getPerson(id: number): Promise<Person | null>; // Added getPerson method
+  getPerson(id: number): Promise<Person | null>; 
   getPersonById(id: number): Promise<Person | null>;
   getPersonByEmail(email: string): Promise<Person | null>; 
   getPersonByApiId(apiId: string): Promise<Person | null>;
@@ -41,7 +41,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
   getUser(id: number): Promise<User | null>;  
-  getUserCount(): Promise<number>; // Added getUserCount method
+  getUserCount(): Promise<number>; 
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
@@ -60,7 +60,7 @@ export interface IStorage {
   getAttendanceByEvent(eventApiId: string): Promise<Attendance[]>;
   upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
   getAttendanceByEmail(email: string): Promise<Attendance[]>;
-  deleteAttendanceByEvent(eventApiId: string): Promise<void>; // Added deleteAttendanceByEvent method
+  deleteAttendanceByEvent(eventApiId: string): Promise<void>; 
   updateEventAttendanceSync(eventApiId: string): Promise<Event>;
 
   // Add new method for checking event attendance
@@ -68,6 +68,9 @@ export interface IStorage {
     hasAttendees: boolean;
     lastSyncTime: string | null;
   }>;
+
+  // Add new method for getting total attendees count
+  getTotalAttendeesCount(): Promise<number>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -322,9 +325,9 @@ export class PostgresStorage implements IStorage {
         .insert(users)
         .values({
           ...userData,
-          email: userData.email.toLowerCase(), // Ensure consistent email format
+          email: userData.email.toLowerCase(), 
           personId: person.id,
-          isVerified: false, // Always start as unverified
+          isVerified: false, 
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
@@ -841,6 +844,17 @@ export class PostgresStorage implements IStorage {
         hasAttendees: false,
         lastSyncTime: null
       };
+    }
+  }
+  async getTotalAttendeesCount(): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(attendance);
+      return Number(result[0].count);
+    } catch (error) {
+      console.error('Failed to get total attendees count:', error);
+      throw error;
     }
   }
 }

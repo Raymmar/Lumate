@@ -663,17 +663,20 @@ export async function registerRoutes(app: Express) {
       }
 
       // Fetch stats
-      const [eventCount, peopleCount, userCount] = await Promise.all([
+      const [eventCount, peopleCount, userCount, totalAttendeesCount] = await Promise.all([
         storage.getEventCount(),
         storage.getPeopleCount(),
-        storage.getUserCount()
+        storage.getUserCount(),
+        storage.getTotalAttendeesCount()
       ]);
 
       res.json({
         events: eventCount,
         people: peopleCount,
         users: userCount,
-        paidUsers: 0 // Placeholder for now
+        uniqueAttendees: peopleCount, 
+        totalAttendees: totalAttendeesCount, 
+        paidUsers: 0 
       });
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
