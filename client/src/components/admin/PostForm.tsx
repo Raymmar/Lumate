@@ -56,7 +56,6 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           name="title"
           render={({ field }) => (
             <FormItem className="space-y-1">
-              <FormLabel className="text-sm text-muted-foreground">Title</FormLabel>
               <FormControl>
                 <Input 
                   {...field} 
