@@ -147,17 +147,25 @@ export default function AdminDashboard() {
                   description="Total revenue from memberships"
                 />
                 <StatCard
+                  title="Paid Members"
+                  value={statsData?.paidUsers || 0}
+                  icon={CreditCard}
+                  isLoading={isLoading}
+                  description="Members with active paid subscriptions"
+                />
+                <StatCard
                   title="Total Events"
                   value={statsData?.events || 0}
                   icon={Calendar}
                   isLoading={isLoading}
+                  description="Total number of events hosted"
                 />
                 <StatCard
-                  title="Unique Attendees"
-                  value={statsData?.uniqueAttendees || 0}
-                  icon={Users}
+                  title="Registered Members"
+                  value={statsData?.users || 0}
+                  icon={UserPlus}
                   isLoading={isLoading}
-                  description="Individual people who have attended events"
+                  description="Total number of registered members"
                 />
                 <StatCard
                   title="Total Attendees"
@@ -167,16 +175,11 @@ export default function AdminDashboard() {
                   description="Total event attendance count"
                 />
                 <StatCard
-                  title="Registered Users"
-                  value={statsData?.users || 0}
-                  icon={UserPlus}
+                  title="Unique Attendees"
+                  value={statsData?.uniqueAttendees || 0}
+                  icon={Users}
                   isLoading={isLoading}
-                />
-                <StatCard
-                  title="Paid Users"
-                  value={statsData?.paidUsers || 0}
-                  icon={CreditCard}
-                  isLoading={isLoading}
+                  description="Individual people who have attended events"
                 />
               </div>
             </div>
