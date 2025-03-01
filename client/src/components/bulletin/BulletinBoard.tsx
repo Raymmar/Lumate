@@ -54,9 +54,14 @@ function JoinUsSection() {
         </p>
       </CardHeader>
       <CardContent>
-        <div className="flex gap-2">
-          <Input placeholder="Email" type="email" className="flex-1" />
-          <Button>Join</Button>
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <Input placeholder="Email" type="email" className="flex-1" />
+            <Button>Join</Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Drop your email for an invite to our next event and start networking with the region's top tech professionals.
+          </p>
         </div>
       </CardContent>
     </Card>
