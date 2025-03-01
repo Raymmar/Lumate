@@ -104,7 +104,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: person, isLoading, error } = useQuery<Person>({
+  const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people', personId],
     queryFn: async () => {
       const response = await fetch(`/api/people/${personId}`);
@@ -113,11 +113,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  const { data: userStatus } = useQuery({
-    queryKey: ['/api/auth/check-profile', personId],
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/people', personId, 'stats'],
     queryFn: async () => {
-      const response = await fetch(`/api/auth/check-profile/${personId}`);
-      if (!response.ok) throw new Error('Failed to check profile status');
+      const response = await fetch(`/api/people/${personId}/stats`);
+      if (!response.ok) throw new Error('Failed to fetch person stats');
       return response.json();
     }
   });
@@ -165,6 +165,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     claimProfileMutation.mutate(email);
   };
 
+  const isLoading = personLoading || statsLoading;
+  const error = personError;
+
   if (error) {
     return (
       <div className="rounded-lg border bg-destructive/10 p-3">
@@ -189,7 +192,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
   const isOwnProfile = user?.api_id === person?.api_id;
-  const isClaimed = userStatus?.isClaimed || user !== null;
+  const isClaimed =  userStatus?.isClaimed || user !== null;
+
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
@@ -340,13 +344,12 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           <CardContent className="space-y-4 pt-6">
             <StatsCard
               title="First Seen"
-              value={format(new Date("2023-10-11"), "MMM d, yyyy")}
+              value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
               icon={<CalendarDays className="h-4 w-4 text-primary" />}
             />
             <StatsCard
               title="Events Attended"
-              value="16"
-              description="6 checked in"
+              value={stats?.attendanceCount || 0}
               icon={<Users className="h-4 w-4 text-primary" />}
             />
             <StatsCard

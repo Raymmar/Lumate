@@ -236,6 +236,32 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add new endpoint for person attendance stats
+  app.get("/api/people/:id/stats", async (req, res) => {
+    try {
+      const personId = req.params.id;
+      const person = await storage.getPersonByApiId(personId);
+
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      // Count number of events attended
+      const attendanceCount = await db
+        .select({ count: sql`count(*)` })
+        .from(attendance)
+        .where(person.id ? eq(attendance.personId, person.id) : sql`1=0`); // Handle missing person.id
+
+      res.json({
+        attendanceCount: Number(attendanceCount[0]?.count || 0),
+        firstSeen: person.createdAt
+      });
+    } catch (error) {
+      console.error('Failed to fetch person stats:', error);
+      res.status(500).json({ error: "Failed to fetch person stats" });
+    }
+  });
+
   app.get("/api/auth/check-profile/:id", async (req, res) => {
     try {
       const personId = req.params.id;
