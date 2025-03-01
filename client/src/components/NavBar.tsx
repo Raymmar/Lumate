@@ -9,13 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, LogIn, Shield } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ADMIN_EMAILS } from "@/components/AdminGuard";
 
 export function NavBar() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
   const isAdminPage = location.startsWith("/admin");
@@ -32,7 +32,6 @@ export function NavBar() {
             />
           </div>
         </Link>
-        {/* Update View Directory button style */}
         {isAdminPage && (
           <Link href="/">
             <Button 
@@ -93,10 +92,17 @@ export function NavBar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => logout()}>
+                  <DropdownMenuItem 
+                    onSelect={() => logoutMutation.mutate()}
+                    disabled={logoutMutation.isPending}
+                  >
                     <span className="flex items-center">
-                      <LogOut className="mr-2 h-4 w-4" />
-                      Log out
+                      {logoutMutation.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <LogOut className="mr-2 h-4 w-4" />
+                      )}
+                      {logoutMutation.isPending ? "Logging out..." : "Log out"}
                     </span>
                   </DropdownMenuItem>
                 </>
