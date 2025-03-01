@@ -2,8 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import type { Person } from "@shared/schema";
+import { useState } from "react";
+import { PreviewSidebar } from "./PreviewSidebar";
+import { PersonPreview } from "./PersonPreview";
 
 export function PeopleTable() {
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+
   const { data: people = [], isLoading } = useQuery<Person[]>({
     queryKey: ["/api/admin/people"],
     queryFn: async () => {
@@ -40,8 +45,7 @@ export function PeopleTable() {
     {
       label: "View Profile",
       onClick: (person: Person) => {
-        // Placeholder for view action
-        console.log("View person:", person);
+        setSelectedPerson(person);
       },
     },
     {
@@ -53,9 +57,31 @@ export function PeopleTable() {
     },
   ];
 
+  const onRowClick = (person: Person) => {
+    setSelectedPerson(person);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  return <DataTable data={people} columns={columns} actions={actions} />;
+  return (
+    <>
+      <DataTable 
+        data={people} 
+        columns={columns} 
+        actions={actions}
+        onRowClick={onRowClick}
+      />
+
+      <PreviewSidebar 
+        open={!!selectedPerson} 
+        onOpenChange={() => setSelectedPerson(null)}
+      >
+        {selectedPerson && (
+          <PersonPreview person={selectedPerson} />
+        )}
+      </PreviewSidebar>
+    </>
+  );
 }
