@@ -88,7 +88,7 @@ async function syncEventAttendees(event: Event) {
       page++;
     }
 
-    // Update event sync timestamp - Moved this line as per the edited code's intention.
+    // Update event sync timestamp
     await storage.updateEventAttendanceSync(event.api_id);
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {

@@ -297,14 +297,18 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      // Count number of events attended
-      const attendanceCount = await db
-        .select({ count: sql`count(*)` })
+      // Get all events attended and check-ins
+      const attendanceStats = await db
+        .select({
+          totalEvents: sql`COUNT(DISTINCT event_api_id)`,
+          totalCheckins: sql`COUNT(CASE WHEN checked_in_at IS NOT NULL THEN 1 END)`
+        })
         .from(attendance)
         .where(person.id ? eq(attendance.personId, person.id) : sql`1=0`); // Handle missing person.id
 
       res.json({
-        attendanceCount: Number(attendanceCount[0]?.count || 0),
+        attendanceCount: Number(attendanceStats[0]?.totalEvents || 0),
+        checkinCount: Number(attendanceStats[0]?.totalCheckins || 0),
         firstSeen: person.createdAt
       });
     } catch (error) {
