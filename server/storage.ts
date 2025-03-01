@@ -6,8 +6,7 @@ import {
   events, people, cacheMetadata, eventRsvpStatus, attendance,
   InsertCacheMetadata, users, verificationTokens,
   EventRsvpStatus, InsertEventRsvpStatus,
-  Attendance, InsertAttendance,
-  featuredContent, type FeaturedContent, type InsertFeaturedContent
+  Attendance, InsertAttendance
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -69,10 +68,6 @@ export interface IStorage {
   // Attendance stats
   updatePersonStats(personId: number): Promise<Person>;
   getTopAttendees(limit?: number): Promise<Person[]>;
-
-  // Featured content methods
-  getFeaturedContent(): Promise<FeaturedContent | null>;
-  upsertFeaturedContent(content: InsertFeaturedContent): Promise<FeaturedContent>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -877,55 +872,6 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get top attendees:', error);
-      throw error;
-    }
-  }
-
-  async getFeaturedContent(): Promise<FeaturedContent | null> {
-    try {
-      const result = await db
-        .select()
-        .from(featuredContent)
-        .orderBy(sql`${featuredContent.updatedAt} DESC`)
-        .limit(1);
-
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get featured content:', error);
-      throw error;
-    }
-  }
-
-  async upsertFeaturedContent(content: InsertFeaturedContent): Promise<FeaturedContent> {
-    try {
-      // First try to get existing content
-      const existing = await this.getFeaturedContent();
-
-      if (existing) {
-        // Update existing content
-        const [updated] = await db
-          .update(featuredContent)
-          .set({
-            ...content,
-            updatedAt: new Date().toISOString()
-          })
-          .where(eq(featuredContent.id, existing.id))
-          .returning();
-        return updated;
-      } else {
-        // Insert new content
-        const [created] = await db
-          .insert(featuredContent)
-          .values({
-            ...content,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          })
-          .returning();
-        return created;
-      }
-    } catch (error) {
-      console.error('Failed to upsert featured content:', error);
       throw error;
     }
   }

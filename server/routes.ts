@@ -12,8 +12,6 @@ import { events, attendance } from '@shared/schema'; //Import events schema and 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
-import { insertFeaturedContentSchema } from "@shared/schema"; //Import the schema
-
 
 // Add SSE helper function at the top of the file
 function initSSE(res: Response) {
@@ -868,17 +866,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add these routes inside registerRoutes function after existing routes
-  app.get("/api/featured-content", async (_req, res) => {
-    try {
-      const content = await storage.getFeaturedContent();
-      res.json(content);
-    } catch (error) {
-      console.error('Failed to fetch featured content:', error);
-      res.status(500).json({ error: "Failed to fetch featured content" });
-    }
-  });
-
-  app.post("/api/featured-content", async (req, res) => {
+  app.get("/api/admin/events", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -891,36 +879,11 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Validate and update content
-      const content = insertFeaturedContentSchema.parse(req.body);
-      const updated = await storage.upsertFeaturedContent(content);
-      res.json(updated);
-    } catch (error) {
-      console.error('Failed to update featured content:', error);
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid content format", details: error.errors });
-      }
-      res.status(500).json({ error: "Failed to update featured content" });
-    }
-  });
-
-  app.get("/api/admin/events", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Check if user is admin
-      const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-        return res.status(403).json({ error: "Not authorized" });      }
-
       // Get events sorted by startTime in descending order
       const eventsList = await db
         .select()
         .from(events)
-        .orderBy`(sql`start_time DESC`);
+        .orderBy(sql`start_time DESC`);
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(

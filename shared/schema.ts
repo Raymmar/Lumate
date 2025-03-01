@@ -100,17 +100,6 @@ export const attendance = pgTable("attendance", {
   personId: serial("person_id").references(() => people.id),
 });
 
-export const featuredContent = pgTable("featured_content", {
-  id: serial("id").primaryKey(),
-  backgroundUrl: varchar("background_url", { length: 255 }).notNull(),
-  headline: text("headline").notNull(),
-  subtext: text("subtext").notNull(),
-  buttonText: varchar("button_text", { length: 100 }).notNull(),
-  videoUrl: varchar("video_url", { length: 255 }),
-  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-});
-
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
@@ -119,12 +108,6 @@ export const insertVerificationTokenSchema = createInsertSchema(verificationToke
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });
 
-export const insertFeaturedContentSchema = createInsertSchema(featuredContent).omit({ 
-  id: true,
-  createdAt: true,
-  updatedAt: true 
-});
-
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Person = typeof people.$inferSelect;
@@ -132,7 +115,6 @@ export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 export type User = typeof users.$inferSelect & {
-  role?: 'admin' | 'user';
   api_id?: string;
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -142,8 +124,6 @@ export type EventRsvpStatus = typeof eventRsvpStatus.$inferSelect;
 export type InsertEventRsvpStatus = z.infer<typeof insertEventRsvpStatusSchema>;
 export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
-export type FeaturedContent = typeof featuredContent.$inferSelect;
-export type InsertFeaturedContent = z.infer<typeof insertFeaturedContentSchema>;
 
 export const updatePasswordSchema = z.object({
   password: z.string()
