@@ -6,7 +6,9 @@ import {
   events, people, cacheMetadata, eventRsvpStatus, attendance,
   InsertCacheMetadata, users, verificationTokens,
   EventRsvpStatus, InsertEventRsvpStatus,
-  Attendance, InsertAttendance
+  Attendance, InsertAttendance,
+  Post, InsertPost,
+  posts,
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -69,6 +71,10 @@ export interface IStorage {
   updatePersonStats(personId: number): Promise<Person>;
   getTopAttendees(limit?: number): Promise<Person[]>;
   getFeaturedEvent(): Promise<Event | null>;
+
+  // Posts
+  getPosts(): Promise<Post[]>;
+  createPost(post: InsertPost): Promise<Post>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -163,7 +169,6 @@ export class PostgresStorage implements IStorage {
   async insertPerson(person: InsertPerson): Promise<Person> {
     try {
       console.log('Attempting to upsert person:', person.email);
-
       const [newPerson] = await db
         .insert(people)
         .values({
@@ -191,7 +196,6 @@ export class PostgresStorage implements IStorage {
           },
         })
         .returning();
-
       console.log('Successfully upserted person:', newPerson.email);
       return newPerson;
     } catch (error) {
@@ -890,6 +894,34 @@ export class PostgresStorage implements IStorage {
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get featured event:', error);
+      throw error;
+    }
+  }
+
+  async getPosts(): Promise<Post[]> {
+    console.log('Fetching all posts from database...');
+    const result = await db.select().from(posts).orderBy(posts.createdAt);
+    console.log(`Found ${result.length} posts in database`);
+    return result;
+  }
+
+  async createPost(post: InsertPost): Promise<Post> {
+    try {
+      console.log('Creating new post:', post.title);
+
+      const [newPost] = await db
+        .insert(posts)
+        .values({
+          ...post,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .returning();
+
+      console.log('Successfully created post:', newPost.id);
+      return newPost;
+    } catch (error) {
+      console.error('Failed to create post:', error);
       throw error;
     }
   }
