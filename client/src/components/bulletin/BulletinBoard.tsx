@@ -39,41 +39,62 @@ function CommunityUpdates() {
   );
 }
 
-// Member Spotlights Section
+// Member Spotlight Section
 function MemberSpotlights() {
   return (
-    <Card>
+    <Card className="col-span-2">
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl flex items-center gap-2">
             <Trophy className="h-5 w-5" />
-            Member Spotlights
+            Featured Member
           </CardTitle>
-          <Button variant="ghost" size="sm">
-            View All
-          </Button>
         </div>
+        <CardDescription>
+          Meet one of our outstanding community members
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {[1, 2].map((i) => (
-          <div key={i} className="flex space-x-4">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={`https://avatar.vercel.sh/user${i}.png`} />
-              <AvatarFallback>MB</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <h4 className="font-medium flex items-center gap-2">
-                Member Name
-                <Badge variant="secondary" className="text-xs">
-                  Top Contributor
-                </Badge>
-              </h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                "Contributing to our community has been an amazing journey..."
+      <CardContent>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Member Info */}
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src="https://avatar.vercel.sh/featured-member.png" />
+                <AvatarFallback>FM</AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="text-xl font-semibold">Sarah Chen</h3>
+                <p className="text-muted-foreground">Community Leader</p>
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="secondary">AI Researcher</Badge>
+                  <Badge variant="secondary">Tech Speaker</Badge>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm leading-relaxed">
+                Sarah has been an invaluable member of our community, contributing to over 20 events and mentoring new members. Her work in AI ethics has inspired many of our technical discussions.
               </p>
+              <Button variant="outline" size="sm" className="mt-4">
+                View Full Profile
+              </Button>
             </div>
           </div>
-        ))}
+
+          {/* Video Section */}
+          <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+            <iframe
+              width="100%"
+              height="100%"
+              src="https://www.youtube.com/embed/JMy4CmxWMlE"
+              title="Featured Member Video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              className="w-full h-full"
+            />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -158,12 +179,12 @@ export function BulletinBoard() {
           </p>
         </div>
       </div>
-      
+
       <div className="grid gap-6 md:grid-cols-2">
         <CommunityUpdates />
         <MemberSpotlights />
       </div>
-      
+
       <Sponsors />
       <CommunityNews />
     </div>
