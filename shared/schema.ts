@@ -51,7 +51,7 @@ export const people = pgTable("people", {
     totalEventsAttended: number;
     lastEventDate: string | null;
     firstEventDate: string | null;
-    averageEventsPerMonth?: number;
+    averageEventsPerYear?: number;
     lastUpdated: string;
   }>().default({
     totalEventsAttended: 0,

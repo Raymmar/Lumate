@@ -825,15 +825,16 @@ export class PostgresStorage implements IStorage {
         lastUpdated: new Date().toISOString()
       };
 
-      // Calculate average events per month if we have attendance
+      // Calculate average events per year if we have attendance
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
-        const monthsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44); // Average month length
-        if (monthsDiff > 0) {
-          stats.averageEventsPerMonth = stats.totalEventsAttended / monthsDiff;
+        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); // Average year length
+        if (yearsDiff > 0) {
+          stats.averageEventsPerYear = stats.totalEventsAttended / yearsDiff;
         } else {
-          stats.averageEventsPerMonth = stats.totalEventsAttended;
+          // If less than a year, project to annual rate
+          stats.averageEventsPerYear = stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
         }
       }
 
@@ -857,10 +858,15 @@ export class PostgresStorage implements IStorage {
 
   async getTopAttendees(limit: number = 10): Promise<Person[]> {
     try {
+      // Order by total events attended first, then by most recent event
       const result = await db
         .select()
         .from(people)
-        .orderBy(sql`(stats->>'totalEventsAttended')::int DESC`)
+        .where(sql`stats->>'totalEventsAttended' IS NOT NULL`)
+        .orderBy(
+          sql`(stats->>'totalEventsAttended')::int DESC`,
+          sql`(stats->>'lastEventDate')::timestamptz DESC NULLS LAST`
+        )
         .limit(limit);
 
       return result;

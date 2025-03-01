@@ -185,23 +185,35 @@ export async function registerRoutes(app: Express) {
   });
 
 
+  // Update the /api/people endpoint to add sorting
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
       const searchQuery = (req.query.search as string || '').toLowerCase();
+      const sort = req.query.sort as string;
 
-      console.log("Fetching people from storage with search:", searchQuery);
+      console.log("Fetching people from storage with search:", searchQuery, "sort:", sort);
 
-      const allPeople = await db
+      let query = db
         .select()
         .from(people)
         .where(
           searchQuery
             ? sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
-        )
-        .orderBy(people.id);
+        );
+
+      // Add sorting based on events attendance and recency
+      if (sort === 'events') {
+        query = query
+          .orderBy(sql`(stats->>'totalEventsAttended')::int DESC NULLS LAST`)
+          .orderBy(sql`(stats->>'lastEventDate')::timestamptz DESC NULLS LAST`);
+      } else {
+        query = query.orderBy(people.id);
+      }
+
+      const allPeople = await query;
 
       console.log(`Total matching people: ${allPeople.length}`);
 
@@ -916,7 +928,7 @@ export async function registerRoutes(app: Express) {
             console.log('Processing approved guest:', {
               guestId: guest.api_id,
               email: guest.email,
-              status: guest.approval_status,
+              status:guest.approval_status,
               registeredAt: guest.registered_at
             });
 
