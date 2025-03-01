@@ -8,6 +8,9 @@ import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { PublicPostsTable } from "./PublicPostsTable";
+import { PostPreview } from "@/components/admin/PostPreview";
+import type { Post } from "@shared/schema";
 
 // Links Section
 function LinksSection() {
@@ -224,28 +227,6 @@ function SponsorsSection() {
   );
 }
 
-// Community News Section
-function CommunityNews() {
-  return (
-    <Card className="border">
-      <CardHeader className="pb-3">
-        <CardTitle>Community news</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="pb-4 border-b last:border-0">
-              <h4 className="font-medium">Community Update {i}</h4>
-              <p className="text-sm text-muted-foreground mt-1">
-                Latest updates and news from our community...
-              </p>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 export function BulletinBoard() {
   const { data: statsData, isLoading } = useQuery({
@@ -258,6 +239,8 @@ export function BulletinBoard() {
       return response.json();
     }
   });
+
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   return (
     <div className="space-y-6">
@@ -294,7 +277,17 @@ export function BulletinBoard() {
       {/* Featured Section */}
       <FeaturedSection />
 
-      <CommunityNews />
+      {/* Latest Posts Section */}
+      <PublicPostsTable onSelect={setSelectedPost} />
+
+      {selectedPost && (
+        <PostPreview
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          readOnly
+        />
+      )}
+
       <SponsorsSection />
     </div>
   );
