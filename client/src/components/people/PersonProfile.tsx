@@ -55,7 +55,7 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
       <div>
         <p className="text-xs text-muted-foreground">{title}</p>
         <div className="flex items-baseline gap-1">
-          <p className="text-lg font-semibold">{value}</p>
+          <p className="text-lg font-semibold text-foreground">{value}</p>
           {description && (
             <span className="text-xs text-muted-foreground">({description})</span>
           )}
@@ -182,9 +182,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
-      {/* Main content area */}
       <div className="md:col-span-2 space-y-6">
-        {/* Profile header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
@@ -221,7 +219,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   </Badge>
                 )}
               </div>
-              {/* Add Tag Button */}
               <div className="mt-2">
                 <Button variant="outline" size="sm" className="text-xs">
                   + Add Tag
@@ -273,7 +270,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        {/* Personal Information card */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -309,7 +305,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Biography card */}
         {person.bio && (
           <Card>
             <CardHeader>
@@ -322,26 +317,22 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         )}
       </div>
 
-      {/* Sidebar */}
       <div>
-        {/* Stats and Events Combined Card */}
         <Card>
           <CardContent className="space-y-6 pt-6">
-            {/* Stats Section */}
             <div className="space-y-4">
               <StatsCard
                 title="First Seen"
                 value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
-                icon={<CalendarDays className="h-4 w-4 text-primary" />}
+                icon={<CalendarDays className="h-4 w-4 text-foreground" />}
               />
               <StatsCard
                 title="Events Attended"
                 value={stats?.attendanceCount || 0}
-                icon={<Users className="h-4 w-4 text-primary" />}
+                icon={<Users className="h-4 w-4 text-foreground" />}
               />
             </div>
 
-            {/* Events List Section */}
             {isLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
