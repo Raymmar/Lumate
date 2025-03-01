@@ -20,10 +20,17 @@ function initSSE(res: Response) {
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
+
+  // Send an initial message to keep the connection alive
+  res.write(':\n\n');
 }
 
 function sendSSEUpdate(res: Response, data: any) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
+  // Flush the response to ensure immediate delivery
+  if (typeof (res as any).flush === 'function') {
+    (res as any).flush();
+  }
 }
 
 // Define admin emails directly in routes since we can't import from client components
@@ -641,19 +648,20 @@ export async function registerRoutes(app: Express) {
 
       // Initialize SSE
       initSSE(res);
-      sendSSEUpdate(res, {
-        type: 'status',
-        message: 'Starting database reset process',
-        progress: 0
-      });
+
+      let cacheService = null;
 
       try {
+        console.log('Starting database reset process');
+
         // Store existing attendance records
         sendSSEUpdate(res, {
           type: 'status',
           message: 'Backing up attendance records...',
           progress: 5
         });
+
+        console.log('Fetching existing attendance records...');
         const existingAttendance = await db
           .select()
           .from(attendance)
@@ -667,6 +675,8 @@ export async function registerRoutes(app: Express) {
           message: 'Clearing events table...',
           progress: 10
         });
+
+        console.log('Clearing events table...');
         await storage.clearEvents();
 
         // Get existing user emails before clearing people
@@ -676,6 +686,7 @@ export async function registerRoutes(app: Express) {
           progress: 15
         });
 
+        console.log('Fetching existing user emails...');
         const existingUsers = await db
           .select({ email: users.email })
           .from(users)
@@ -686,13 +697,14 @@ export async function registerRoutes(app: Express) {
 
         // Temporarily unlink users from people records
         if (userEmails.length > 0) {
+          console.log('Temporarily unlinking users from people records...');
           await db
             .update(users)
-            .set({ personId: undefined })
+            .set({ personId: null })
             .where(sql`email = ANY(${userEmails})`);
-          console.log('Temporarily unlinked users from people records');
         }
 
+        console.log('Clearing people table...');
         await storage.clearPeople();
 
         // Clear cache metadata
@@ -701,6 +713,8 @@ export async function registerRoutes(app: Express) {
           message: 'Clearing cache metadata...',
           progress: 20
         });
+
+        console.log('Clearing cache metadata...');
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
         // Initialize sync
@@ -710,12 +724,18 @@ export async function registerRoutes(app: Express) {
           progress: 25
         });
 
+        console.log('Initializing cache service...');
         // Import CacheService
         const { CacheService } = await import('./services/CacheService');
-        const cacheService = CacheService.getInstance();
+        cacheService = CacheService.getInstance();
+
+        if (!cacheService) {
+          throw new Error('Failed to initialize CacheService');
+        }
 
         // Set up event listeners for cache service
         cacheService.on('fetchProgress', (data) => {
+          console.log('Cache service progress:', data);
           sendSSEUpdate(res, {
             type: 'progress',
             ...data
@@ -723,11 +743,14 @@ export async function registerRoutes(app: Express) {
         });
 
         // Initialize a new sync
+        console.log('Setting last cache update to oldest possible date...');
         const oldestPossibleDate = new Date(0);
         await storage.setLastCacheUpdate(oldestPossibleDate);
 
         // Start the cache update
+        console.log('Starting cache update...');
         await cacheService.updateCache();
+        console.log('Cache update completed');
 
         // Relink users with their people records
         sendSSEUpdate(res, {
@@ -736,14 +759,19 @@ export async function registerRoutes(app: Express) {
           progress: 85
         });
 
+        console.log('Relinking user accounts...');
         for (const email of userEmails) {
-          console.log(`Relinking user ${email} with person record`);
-          const person = await storage.getPersonByEmail(email);
-          if (person) {
-            await db
-              .update(users)
-              .set({ personId: person.id })
-              .where(eq(users.email, email));
+          try {
+            const person = await storage.getPersonByEmail(email);
+            if (person) {
+              await db
+                .update(users)
+                .set({ personId: person.id })
+                .where(eq(users.email, email));
+              console.log(`Relinked user ${email} with person ${person.id}`);
+            }
+          } catch (error) {
+            console.error(`Failed to relink user ${email}:`, error);
           }
         }
 
@@ -754,7 +782,7 @@ export async function registerRoutes(app: Express) {
           progress: 90
         });
 
-        // Then restore records that still have valid event and person references
+        console.log('Restoring attendance records...');
         for (const record of existingAttendance) {
           try {
             const person = await storage.getPersonByEmail(record.userEmail);
@@ -768,6 +796,7 @@ export async function registerRoutes(app: Express) {
                 registeredAt: record.registeredAt,
                 approvalStatus: record.approvalStatus
               });
+              console.log(`Restored attendance record for ${record.userEmail} in event ${record.eventApiId}`);
             }
           } catch (error) {
             console.error('Failed to restore attendance record:', error);
@@ -775,6 +804,7 @@ export async function registerRoutes(app: Express) {
         }
 
         // Verify data was fetched
+        console.log('Verifying data fetch...');
         const [eventCount, peopleCount] = await Promise.all([
           storage.getEventCount(),
           storage.getPeopleCount()
@@ -785,6 +815,7 @@ export async function registerRoutes(app: Express) {
         }
 
         // Send final success message
+        console.log('Sync completed successfully');
         sendSSEUpdate(res, {
           type: 'complete',
           message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
@@ -805,6 +836,10 @@ export async function registerRoutes(app: Express) {
           message: error instanceof Error ? error.message : String(error)
         });
         res.end();
+      } finally {
+        if (cacheService) {
+          cacheService.removeAllListeners('fetchProgress');
+        }
       }
     } catch (error) {
       console.error('Failed to reset database:', error);
@@ -925,7 +960,7 @@ export async function registerRoutes(app: Express) {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+        return res.status(401).json({ error: "Not authenticated"});
       }
 
       // Check if user is admin
@@ -960,7 +995,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Check if user is admin
-      const user = await storage.getUser(reqsession.userId);
+      const user = await storage.getUser(req.session.userId);
       if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         return res.status(403).json({ error: "Not authorized" });
       }
