@@ -76,7 +76,7 @@ function FeaturedSection() {
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
       <div 
-        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070')] 
+        className="absolute inset-0 bg-[url('https://storage.replit.com/v2/user_storage/STS_Jan'25-109 compressed.jpg')] 
         bg-cover bg-center"
       />
       <div className="absolute inset-0 bg-black/50" />
