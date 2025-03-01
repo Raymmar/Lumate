@@ -123,7 +123,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
             {event.url && (
               <Button 
                 variant="default" 
-                className="bg-black/75 text-white hover:bg-black/90"
+                className="bg-black hover:bg-black/90 text-white"
                 onClick={() => event.url && window.open(event.url, '_blank')}
               >
                 Manage event
@@ -143,7 +143,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
           <div className="space-y-2">
             <Button
               variant="default"
-              className="w-full bg-black/75 text-white hover:bg-black/90"
+              className="w-full bg-black hover:bg-black/90 text-white"
               onClick={handleSyncAttendees}
               disabled={isSyncing}
             >

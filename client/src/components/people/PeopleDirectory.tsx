@@ -175,7 +175,7 @@ export default function PeopleDirectory() {
                 <PaginationItem>
                   <PaginationPrevious
                     onClick={handlePreviousPage}
-                    className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} text-xs`}
+                    className={`${currentPage === 1 ? 'pointer-events-none opacity-50' : ''} text-xs hover:bg-muted`}
                   />
                 </PaginationItem>
                 <PaginationItem>
@@ -184,7 +184,7 @@ export default function PeopleDirectory() {
                 <PaginationItem>
                   <PaginationNext
                     onClick={handleNextPage}
-                    className={`${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''} text-xs`}
+                    className={`${currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''} text-xs hover:bg-muted`}
                   />
                 </PaginationItem>
               </PaginationContent>

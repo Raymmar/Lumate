@@ -31,13 +31,13 @@ function LinksSection() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <Button variant="outline" className="w-full justify-start font-normal">
+          <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
             Community Guidelines
           </Button>
-          <Button variant="outline" className="w-full justify-start font-normal">
+          <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
             Event Calendar
           </Button>
-          <Button variant="outline" className="w-full justify-start font-normal">
+          <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
             Resources
           </Button>
         </div>
@@ -60,7 +60,7 @@ function JoinUsSection() {
         <div className="space-y-4">
           <div className="flex gap-2">
             <Input placeholder="Email" type="email" className="flex-1" />
-            <Button>Join</Button>
+            <Button className="hover:bg-black/90">Join</Button>
           </div>
           <p className="text-sm text-muted-foreground">
             Drop your email for an invite to our next event and start networking with the region's top tech professionals.
