@@ -204,11 +204,11 @@ export async function registerRoutes(app: Express) {
             : sql`1=1`
         );
 
-      // Add sorting based on events attendance and recency
+      // Add sorting based primarily on event attendance count
       if (sort === 'events') {
         query = query
-          .orderBy(sql`(stats->>'totalEventsAttended')::int DESC NULLS LAST`)
-          .orderBy(sql`(stats->>'lastEventDate')::timestamptz DESC NULLS LAST`);
+          .orderBy(sql`COALESCE((stats->>'totalEventsAttended')::int, 0) DESC`)
+          .orderBy(sql`COALESCE((stats->>'lastEventDate')::timestamptz, '1970-01-01'::timestamptz) DESC`);
       } else {
         query = query.orderBy(people.id);
       }
