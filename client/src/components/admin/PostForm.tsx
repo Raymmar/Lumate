@@ -72,13 +72,13 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           control={form.control}
           name="summary"
           render={({ field: { value, ...field }}) => (
-            <FormItem className="space-y-1">
+            <FormItem className="space-y-0">
               <FormControl>
                 <Textarea 
                   {...field} 
                   value={value || ""} 
                   placeholder="Add your summary here and this will be used as post meta description as well."
-                  className="resize-none h-20 min-h-[80px] border-0 text-base focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                 />
               </FormControl>
               <FormMessage />
@@ -95,7 +95,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
                 <RichTextEditor
                   value={field.value}
                   onChange={field.onChange}
-                  className="min-h-[400px] border-none [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:p-0 [&_.ProseMirror]:text-base"
+                  className="min-h-[400px] border-none [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit"
                 />
               </FormControl>
               <FormMessage />

@@ -1,3 +1,4 @@
+import * as React from "react"
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { cn } from "@/lib/utils"
@@ -123,7 +124,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
 
       <EditorContent 
         editor={editor} 
-        className="prose prose-sm max-w-none min-h-[200px] p-0 focus:outline-none cursor-text [&_*]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-base" 
+        className="prose prose-sm max-w-none min-h-[200px] p-0 focus:outline-none cursor-text [&_*]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit" 
       />
     </div>
   )
