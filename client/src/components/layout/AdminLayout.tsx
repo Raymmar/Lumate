@@ -2,10 +2,11 @@ import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { AdminTabs } from "@/components/admin/AdminTabs";
+import { ReactNode } from "react";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
-  title: string;
+  title: ReactNode;
 }
 
 export function AdminLayout({ children, title }: AdminLayoutProps) {
@@ -26,7 +27,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             {/* Main content area with independent scroll */}
             <div className="flex-1 pl-64">
               <div className="p-4">
-                <h1 className="text-2xl font-bold mb-4">{title}</h1>
+                <div className="mb-4">{title}</div>
                 {children}
               </div>
             </div>
