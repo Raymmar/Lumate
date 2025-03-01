@@ -21,7 +21,7 @@ export function NavBar() {
   const isAdminDashboard = location === "/admin";
 
   return (
-    <div className="border-b">
+    <div className="border-b bg-white relative z-50">
       <div className="flex h-16 items-center pl-2 pr-4">
         <Link href="/">
           <div className="flex items-center">
@@ -93,7 +93,7 @@ export function NavBar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer" onSelect={() => logout()}>
+                  <DropdownMenuItem onSelect={() => logout()}>
                     <span className="flex items-center">
                       <LogOut className="mr-2 h-4 w-4" />
                       Log out
