@@ -44,13 +44,26 @@ async function syncEventAttendees(event: Event) {
 
     // Process and store approved guests
     for (const guest of allGuests) {
-      await storage.upsertAttendance({
-        guestApiId: guest.api_id,
-        eventApiId: event.api_id,
-        userEmail: guest.email.toLowerCase(),
-        registeredAt: guest.registered_at,
-        approvalStatus: guest.approval_status,
-      });
+      try {
+        // Try to find an existing person record by email
+        const person = await storage.getPersonByEmail(guest.email.toLowerCase());
+
+        if (person) {
+          console.log(`Found existing person record for email ${guest.email}`);
+        } else {
+          console.log(`No existing person record found for email ${guest.email}`);
+        }
+
+        await storage.upsertAttendance({
+          guestApiId: guest.api_id,
+          eventApiId: event.api_id,
+          userEmail: guest.email.toLowerCase(),
+          registeredAt: guest.registered_at,
+          approvalStatus: guest.approval_status,
+        });
+      } catch (error) {
+        console.error(`Failed to process guest ${guest.api_id}:`, error);
+      }
     }
 
     // Update event sync timestamp

@@ -555,19 +555,46 @@ export async function registerRoutes(app: Express) {
         });
         await storage.clearEvents();
 
-        // Clear people table
+        // Clear attendance table first to prevent foreign key constraints
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Clearing attendance records...',
+          progress: 10
+        });
+        await db.execute(sql`TRUNCATE TABLE attendance RESTART IDENTITY CASCADE`);
+
+        // Clear people table while preserving user relationships
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Clearing people table (preserving user relationships)...',
-          progress: 10 
+          progress: 15 
         });
+
+        // Get existing user emails before clearing people
+        const existingUsers = await db
+          .select({ email: users.email })
+          .from(users)
+          .where(sql`person_id IS NOT NULL`);
+
+        const userEmails = existingUsers.map(u => u.email.toLowerCase());
+        console.log(`Found ${userEmails.length} user emails to preserve`);
+
+        // Temporarily unlink users from people records
+        if (userEmails.length > 0) {
+          await db
+            .update(users)
+            .set({ personId: null })
+            .where(sql`email = ANY(${userEmails})`);
+          console.log('Temporarily unlinked users from people records');
+        }
+
         await storage.clearPeople();
 
         // Clear cache metadata
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Clearing cache metadata...',
-          progress: 15 
+          progress: 20 
         });
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
@@ -579,7 +606,7 @@ export async function registerRoutes(app: Express) {
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Initializing fresh data fetch from Luma API',
-          progress: 20 
+          progress: 25 
         });
 
         // Set up event listeners for cache service
@@ -596,6 +623,24 @@ export async function registerRoutes(app: Express) {
 
         // Start the cache update
         await cacheService.updateCache();
+
+        // Relink users with their people records
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Relinking user accounts with people records...',
+          progress: 90
+        });
+
+        for (const email of userEmails) {
+          console.log(`Relinking user ${email} with person ${email}`);
+          const person = await storage.getPersonByEmail(email);
+          if (person) {
+            await db
+              .update(users)
+              .set({ personId: person.id })
+              .where(eq(users.email, email));
+          }
+        }
 
         // Verify data was fetched
         const [eventCount, peopleCount] = await Promise.all([
