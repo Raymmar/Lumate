@@ -622,7 +622,8 @@ export class PostgresStorage implements IStorage {
         eventApiId: data.eventApiId,
         userEmail: data.userEmail,
         guestApiId: data.guestApiId,
-        checkedInAt: data.checkedInAt
+        checkedInAt: data.checkedInAt,
+        registeredAt: data.registeredAt
       });
 
       // First, try to find matching user and person by email
@@ -656,6 +657,7 @@ export class PostgresStorage implements IStorage {
           set: {
             approvalStatus: data.approvalStatus,
             checkedInAt: data.checkedInAt,
+            registeredAt: data.registeredAt,
             userId: matchingUser?.id,
             personId: matchingPerson?.id,
             lastSyncedAt: new Date().toISOString()
@@ -668,7 +670,8 @@ export class PostgresStorage implements IStorage {
         guestApiId: result.guestApiId,
         userId: result.userId,
         personId: result.personId,
-        checkedInAt: result.checkedInAt
+        checkedInAt: result.checkedInAt,
+        registeredAt: result.registeredAt
       });
 
       // After successfully upserting attendance, update the person's stats
