@@ -185,7 +185,6 @@ export async function registerRoutes(app: Express) {
   });
 
 
-
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -882,7 +881,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add these routes inside registerRoutes function after existing routes
+  // Update the /api/admin/events endpoint
   app.get("/api/admin/events", async (req, res) => {
     try {
       // Check if user is authenticated
@@ -896,11 +895,24 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Get events sorted by startTime in descending order
+      // Get pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(events)
+        .then(result => Number(result[0].count));
+
+      // Get paginated events sorted by startTime in descending order
       const eventsList = await db
         .select()
         .from(events)
-        .orderBy(sql`start_time DESC`);
+        .orderBy(sql`start_time DESC`)
+        .limit(limit)
+        .offset(offset);
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
@@ -915,10 +927,97 @@ export async function registerRoutes(app: Express) {
         })
       );
 
-      res.json(eventsWithStatus);
+      res.json({
+        events: eventsWithStatus,
+        total: totalCount
+      });
     } catch (error) {
       console.error('Failed to fetch admin events:', error);
       res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  // Add pagination to /api/admin/members endpoint
+  app.get("/api/admin/members", async (req, res) => {
+    try {
+      // Authentication checks
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users)
+        .then(result => Number(result[0].count));
+
+      // Get paginated users
+      const usersList = await db
+        .select()
+        .from(users)
+        .orderBy(users.createdAt)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        users: usersList,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      res.status(500).json({ error: "Failed to fetch members" });
+    }
+  });
+
+  // Add pagination to /api/admin/people endpoint
+  app.get("/api/admin/people", async (req, res) => {
+    try {
+      // Authentication checks
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(people)
+        .then(result => Number(result[0].count));
+
+      // Get paginated people
+      const peopleList = await db
+        .select()
+        .from(people)
+        .orderBy(people.id)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        people: peopleList,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch people:', error);
+      res.status(500).json({ error: "Failed to fetch people" });
     }
   });
 
@@ -1052,32 +1151,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/members", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Check if user is admin
-      const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      // Get all users
-      const result = await db
-        .select()
-        .from(users)
-        .orderBy(users.id);
-
-      res.json(result);
-    } catch (error) {
-      console.error('Failed to fetch members:', error);
-      res.status(500).json({ error: "Failed to fetch members" });
-    }
-  });
-
   app.get("/api/admin/people", async (req, res) => {
     try {
       // Check if user is authenticated
@@ -1091,12 +1164,29 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const result = await db
-                .select()
-        .from(people)
-        .orderBy(people.id);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
 
-      res.json(result);
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(people)
+        .then(result => Number(result[0].count));
+
+      // Get paginated people
+      const peopleList = await db
+        .select()
+        .from(people)
+        .orderBy(people.id)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        people: peopleList,
+        total: totalCount
+      });
     } catch (error) {
       console.error('Failed to fetch people:', error);
       res.status(500).json({ error: "Failed to fetch people" });

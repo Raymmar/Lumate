@@ -7,6 +7,13 @@ import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 import { PreviewSidebar } from "./PreviewSidebar";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface EventWithSync extends Event {
   isSynced: boolean;
@@ -14,18 +21,29 @@ interface EventWithSync extends Event {
   lastAttendanceSync: string | null;
 }
 
+interface EventsResponse {
+  events: EventWithSync[];
+  total: number;
+}
+
 export function EventsTable() {
   const [selectedEvent, setSelectedEvent] = useState<EventWithSync | null>(null);
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 100;
 
-  const { data: events = [], isLoading } = useQuery<EventWithSync[]>({
-    queryKey: ["/api/admin/events"],
+  const { data, isLoading } = useQuery<EventsResponse>({
+    queryKey: ["/api/admin/events", currentPage, itemsPerPage],
     queryFn: async () => {
-      const response = await fetch("/api/admin/events");
+      const response = await fetch(`/api/admin/events?page=${currentPage}&limit=${itemsPerPage}`);
       if (!response.ok) throw new Error("Failed to fetch events");
       return response.json();
     },
   });
+
+  const events = data?.events || [];
+  const totalItems = data?.total || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleStartSync = (eventId: string) => {
     setSyncingEvents(prev => [...prev, eventId]);
@@ -39,9 +57,7 @@ export function EventsTable() {
     if (!dateStr) return "Never synced";
 
     try {
-      // First parse the date string, ensuring we interpret it as UTC
       const utcDate = new Date(dateStr + 'Z');
-
       return formatInTimeZone(
         utcDate,
         timezone || 'America/New_York',
@@ -119,18 +135,53 @@ export function EventsTable() {
     setSelectedEvent(event);
   };
 
+  const handlePreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(prev => prev - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <>
+    <div className="space-y-4">
       <DataTable 
         data={events} 
         columns={columns}
         actions={actions}
         onRowClick={onRowClick}
       />
+
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          Showing {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+        </p>
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                onClick={handlePreviousPage}
+                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <span className="px-4">
+                Page {currentPage} of {totalPages}
+              </span>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext
+                onClick={handleNextPage}
+                className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
 
       <PreviewSidebar 
         open={!!selectedEvent} 
@@ -144,6 +195,6 @@ export function EventsTable() {
           />
         )}
       </PreviewSidebar>
-    </>
+    </div>
   );
 }
