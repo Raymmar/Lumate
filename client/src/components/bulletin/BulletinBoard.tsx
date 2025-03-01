@@ -6,7 +6,7 @@ import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 // Links Section
 function LinksSection() {
   return (
-    <Card className="border-2">
+    <Card className="border">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
@@ -46,7 +46,7 @@ function LinksSection() {
 // Join Us Section
 function JoinUsSection() {
   return (
-    <Card className="border-2">
+    <Card className="border">
       <CardHeader className="pb-3">
         <CardTitle>Sarasota.Tech</CardTitle>
         <p className="text-muted-foreground mt-1">
@@ -71,7 +71,7 @@ function JoinUsSection() {
 // Sponsors Section
 function SponsorsSection() {
   return (
-    <Card className="border-2">
+    <Card className="border">
       <CardHeader className="pb-3">
         <CardTitle>Sponsors</CardTitle>
       </CardHeader>
@@ -80,7 +80,7 @@ function SponsorsSection() {
           {[1, 2, 3].map((i) => (
             <div 
               key={i} 
-              className="aspect-square bg-muted/50 rounded-lg border-2 border-dashed flex items-center justify-center text-muted-foreground"
+              className="aspect-square bg-muted/50 rounded-lg border border-dashed flex items-center justify-center text-muted-foreground"
             >
               Sponsor {i}
             </div>
@@ -94,7 +94,7 @@ function SponsorsSection() {
 // Community News Section
 function CommunityNews() {
   return (
-    <Card className="border-2">
+    <Card className="border">
       <CardHeader className="pb-3">
         <CardTitle>Community news</CardTitle>
       </CardHeader>
