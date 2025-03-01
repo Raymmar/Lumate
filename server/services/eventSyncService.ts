@@ -36,41 +36,41 @@ async function syncEventAttendees(event: Event) {
 
       const data = await response.json();
 
-      // Log the raw API response to inspect the data structure
-      console.log('Raw API Response for first guest:', {
-        firstGuest: data.guests?.[0],
-        totalGuests: data.guests?.length,
-        hasMore: data.has_more,
-        nextCursor: data.next_cursor
-      });
-
       // Process each guest wrapper in this batch
       for (const guestWrapper of (data.guests || [])) {
         const guest = guestWrapper.guest;
 
         if (guest.approval_status === 'approved') {
-          // Add detailed logging for check-in data
-          console.log('Guest data from API:', {
+          // Enhanced logging for check-in data
+          console.log('Processing guest check-in data:', {
             guestId: guest.api_id,
             email: guest.email,
+            name: guest.name,
             status: guest.approval_status,
             registeredAt: guest.registered_at,
-            checkedInAt: guest.checked_in_at,
-            rawGuestData: guest // Log the complete guest object for debugging
+            checkedInAt: guest.checked_in_at, // Log the check-in time specifically
+            eventTicketCheckedInAt: guest.event_ticket?.checked_in_at, // Also log ticket check-in time
           });
 
-          await storage.upsertAttendance({
+          // Determine the actual check-in time (either from guest or ticket)
+          const checkedInAt = guest.checked_in_at || guest.event_ticket?.checked_in_at || null;
+
+          // Store attendance with check-in data
+          const storedAttendance = await storage.upsertAttendance({
             guestApiId: guest.api_id,
             eventApiId: event.api_id,
             userEmail: guest.email.toLowerCase(),
             registeredAt: guest.registered_at,
-            checkedInAt: guest.checked_in_at,
+            checkedInAt: checkedInAt, // Make sure we're passing the check-in time
             approvalStatus: guest.approval_status,
           });
 
           // Verify storage after upsert
-          const storedAttendance = await storage.getAttendanceByGuestId(guest.api_id);
-          console.log('Stored attendance record:', storedAttendance);
+          console.log('Stored attendance record:', {
+            guestId: guest.api_id,
+            storedCheckedInAt: storedAttendance.checkedInAt,
+            originalCheckedInAt: checkedInAt
+          });
 
           allGuests.push(guest);
         }
@@ -91,6 +91,15 @@ async function syncEventAttendees(event: Event) {
     // Update event sync timestamp
     await storage.updateEventAttendanceSync(event.api_id);
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
+
+    // Log final check-in statistics
+    const checkedInCount = allGuests.filter(guest => guest.checked_in_at || guest.event_ticket?.checked_in_at).length;
+    console.log('Check-in statistics:', {
+      totalGuests: allGuests.length,
+      checkedInGuests: checkedInCount,
+      eventId: event.api_id
+    });
+
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
   }
@@ -103,7 +112,6 @@ export function startEventSyncService() {
   setInterval(async () => {
     try {
       const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
-
       console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
 
       for (const event of recentlyEndedEvents) {
