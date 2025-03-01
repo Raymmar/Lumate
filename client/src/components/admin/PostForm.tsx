@@ -17,7 +17,7 @@ interface PostFormProps {
 
 export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const { toast } = useToast();
-  
+
   const form = useForm<InsertPost>({
     resolver: zodResolver(insertPostSchema),
     defaultValues: {
@@ -77,11 +77,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         <FormField
           control={form.control}
           name="summary"
-          render={({ field }) => (
+          render={({ field: { value, ...field }}) => (
             <FormItem>
               <FormLabel>Summary</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} value={value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,11 +107,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         <FormField
           control={form.control}
           name="featuredImage"
-          render={({ field }) => (
+          render={({ field: { value, ...field }}) => (
             <FormItem>
               <FormLabel>Featured Image URL</FormLabel>
               <FormControl>
-                <Input {...field} type="url" />
+                <Input {...field} type="url" value={value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -121,11 +121,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         <FormField
           control={form.control}
           name="videoUrl"
-          render={({ field }) => (
+          render={({ field: { value, ...field }}) => (
             <FormItem>
               <FormLabel>Video URL</FormLabel>
               <FormControl>
-                <Input {...field} type="url" />
+                <Input {...field} type="url" value={value || ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -136,11 +136,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="ctaLink"
-            render={({ field }) => (
+            render={({ field: { value, ...field }}) => (
               <FormItem>
                 <FormLabel>CTA Link</FormLabel>
                 <FormControl>
-                  <Input {...field} type="url" />
+                  <Input {...field} type="url" value={value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -150,11 +150,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="ctaLabel"
-            render={({ field }) => (
+            render={({ field: { value, ...field }}) => (
               <FormItem>
                 <FormLabel>CTA Label</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={value || ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

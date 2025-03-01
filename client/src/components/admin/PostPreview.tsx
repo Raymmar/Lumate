@@ -14,16 +14,33 @@ interface PostPreviewProps {
 }
 
 export function PostPreview({ post, isNew = false, onClose, onSave }: PostPreviewProps) {
+  console.log("PostPreview render - isNew:", isNew, "post:", post);
+
   if (isNew || !post) {
+    console.log("Rendering new post form");
     return (
-      <PreviewSidebar title="New Post" onClose={onClose}>
+      <PreviewSidebar 
+        title="New Post"
+        open={true}
+        onOpenChange={(open) => {
+          console.log("PreviewSidebar onOpenChange:", open);
+          if (!open) onClose();
+        }}
+      >
         <PostForm onSubmit={onSave} />
       </PreviewSidebar>
     );
   }
 
   return (
-    <PreviewSidebar title="Post Details" onClose={onClose}>
+    <PreviewSidebar 
+      title="Post Details"
+      open={true}
+      onOpenChange={(open) => {
+        console.log("PreviewSidebar onOpenChange:", open);
+        if (!open) onClose();
+      }}
+    >
       <div className="space-y-6">
         <div>
           <h3 className="text-lg font-semibold">{post.title}</h3>
@@ -55,7 +72,7 @@ export function PostPreview({ post, isNew = false, onClose, onSave }: PostPrevie
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => window.open(post.ctaLink, '_blank')}
+            onClick={() => window.open(post.ctaLink || '', '_blank')}
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             {post.ctaLabel || 'Learn More'}

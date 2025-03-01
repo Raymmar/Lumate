@@ -50,7 +50,7 @@ export function PostsTable({ onSelect }: PostsTableProps) {
   ];
 
   return (
-    <DataTable
+    <DataTable 
       columns={columns}
       data={data?.posts || []}
       loading={isLoading}

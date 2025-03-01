@@ -33,13 +33,21 @@ export default function PostsPage() {
     }
   };
 
+  const handleNewPostClick = () => {
+    console.log("New Post button clicked");
+    setIsCreating(true);
+    console.log("isCreating set to true");
+  };
+
+  console.log("PostsPage render - isCreating:", isCreating, "selectedPost:", selectedPost);
+
   return (
     <AdminLayout title={
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Posts</h1>
         <Button 
           className="bg-primary hover:bg-primary/90"
-          onClick={() => setIsCreating(true)}
+          onClick={handleNewPostClick}
         >
           <Plus className="w-4 h-4 mr-2" />
           New Post
@@ -52,6 +60,7 @@ export default function PostsPage() {
           post={selectedPost || undefined}
           isNew={isCreating}
           onClose={() => {
+            console.log("PostPreview onClose called");
             setSelectedPost(null);
             setIsCreating(false);
           }}
