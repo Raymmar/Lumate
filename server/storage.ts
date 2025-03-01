@@ -816,7 +816,8 @@ export class PostgresStorage implements IStorage {
       // Get all attendance records for this person
       const attendanceRecords = await db
         .select({
-          registeredAt: attendance.registeredAt
+          registeredAt: attendance.registeredAt,
+          checkedInAt: attendance.checkedInAt
         })
         .from(attendance)
         .where(eq(attendance.personId, personId))
@@ -824,6 +825,7 @@ export class PostgresStorage implements IStorage {
 
       const stats: Record<string, any> = {
         totalEventsAttended: attendanceRecords.length,
+        totalCheckins: attendanceRecords.filter(record => record.checkedInAt !== null).length,
         firstEventDate: attendanceRecords[0]?.registeredAt || null,
         lastEventDate: attendanceRecords[attendanceRecords.length - 1]?.registeredAt || null,
         lastUpdated: new Date().toISOString()
@@ -833,11 +835,10 @@ export class PostgresStorage implements IStorage {
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
-        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); // Average year length
+        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
         if (yearsDiff > 0) {
           stats.averageEventsPerYear = stats.totalEventsAttended / yearsDiff;
         } else {
-          // If less than a year, project to annual rate
           stats.averageEventsPerYear = stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
         }
       }

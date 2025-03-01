@@ -49,12 +49,14 @@ export const people = pgTable("people", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
   stats: json("stats").$type<{
     totalEventsAttended: number;
+    totalCheckins: number;
     lastEventDate: string | null;
     firstEventDate: string | null;
     averageEventsPerYear?: number;
     lastUpdated: string;
   }>().default({
     totalEventsAttended: 0,
+    totalCheckins: 0,
     lastEventDate: null,
     firstEventDate: null,
     lastUpdated: new Date().toISOString()
