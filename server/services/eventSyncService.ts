@@ -37,19 +37,35 @@ async function syncEventAttendees(event: Event) {
       const approvedGuests = (data.guests || []).filter((guest: any) => guest.approval_status === 'approved');
       allGuests.push(...approvedGuests);
 
+      console.log('Processing approved guest:', {
+        guestId: guest.api_id,
+        email: guest.email,
+        status: guest.approval_status,
+        registeredAt: guest.registered_at,
+        checkedInAt: guest.checked_in_at // Log check-in time from API
+      });
+
+      // Process and store approved guests
+      for (const guest of allGuests) {
+        await storage.upsertAttendance({
+          guestApiId: guest.api_id,
+          eventApiId: event.api_id,
+          userEmail: guest.email.toLowerCase(),
+          registeredAt: guest.registered_at,
+          checkedInAt: guest.checked_in_at, // Pass check-in time to storage
+          approvalStatus: guest.approval_status,
+        });
+      }
+
       hasMore = data.has_more;
       cursor = data.pagination_cursor;
       page++;
-    }
 
-    // Process and store approved guests
-    for (const guest of allGuests) {
-      await storage.upsertAttendance({
-        guestApiId: guest.api_id,
-        eventApiId: event.api_id,
-        userEmail: guest.email.toLowerCase(),
-        registeredAt: guest.registered_at,
-        approvalStatus: guest.approval_status,
+      console.log('Pagination status:', {
+        iteration: page,
+        guestsCollected: allGuests.length,
+        hasMore,
+        cursor
       });
     }
 

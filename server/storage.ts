@@ -622,7 +622,7 @@ export class PostgresStorage implements IStorage {
         eventApiId: data.eventApiId,
         userEmail: data.userEmail,
         guestApiId: data.guestApiId,
-        checkedInAt: data.checkedInAt,
+        checkedInAt: data.checkedInAt, // Log check-in time
         registeredAt: data.registeredAt
       });
 
@@ -670,7 +670,7 @@ export class PostgresStorage implements IStorage {
         guestApiId: result.guestApiId,
         userId: result.userId,
         personId: result.personId,
-        checkedInAt: result.checkedInAt,
+        checkedInAt: result.checkedInAt, // Log the stored check-in time
         registeredAt: result.registeredAt
       });
 
