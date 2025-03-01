@@ -13,6 +13,17 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
 
+// Add new interface for Post at the top of the file after imports
+interface Post {
+  id: number;
+  title: string;
+  summary: string | null;
+  body: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // Add SSE helper function at the top of the file
 function initSSE(res: Response) {
   res.writeHead(200, {
@@ -916,8 +927,7 @@ export async function registerRoutes(app: Express) {
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
-        eventsList.map(async (event) => {
-          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+        eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
             ...event,
             isSynced: attendanceStatus.hasAttendees,
@@ -1274,6 +1284,27 @@ export async function registerRoutes(app: Express) {
         error: "Failed to send invite",
         message: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // Add the new public posts endpoint
+  app.get("/api/public/posts", async (_req, res) => {
+    try {
+      console.log('Fetching public posts...');
+      const posts = await storage.getPosts();
+
+      // Sort posts with pinned posts first, then by creation date
+      const sortedPosts = posts.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      console.log(`Retrieved ${posts.length} public posts`);
+      res.json({ posts: sortedPosts });
+    } catch (error) {
+      console.error('Failed to fetch public posts:', error);
+      res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
 
