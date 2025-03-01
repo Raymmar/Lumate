@@ -1277,6 +1277,56 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add the posts endpoints
+  app.post("/api/admin/posts", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const postData = req.body;
+
+      // Add the creator ID to the post data
+      postData.creatorId = user.id;
+
+      // Create the post
+      const post = await storage.createPost(postData);
+
+      res.json(post);
+    } catch (error) {
+      console.error('Failed to create post:', error);
+      res.status(500).json({ error: "Failed to create post" });
+    }
+  });
+
+  app.get("/api/admin/posts", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const posts = await storage.getPosts();
+      res.json({ posts });
+    } catch (error) {
+      console.error('Failed to fetch posts:', error);
+      res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
   return createServer(app);
 }
 
