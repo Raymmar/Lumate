@@ -326,10 +326,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       <div>
         {/* Stats and Events Combined Card */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Activity & Events</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 pt-6">
             {/* Stats Section */}
             <div className="space-y-4">
               <StatsCard
@@ -344,9 +341,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               />
             </div>
 
-            {/* Divider */}
-            <div className="h-px bg-border" />
-
             {/* Events List Section */}
             {isLoading ? (
               <div className="space-y-4">
@@ -357,25 +351,17 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             ) : !events?.length ? (
               <p className="text-sm text-muted-foreground">No events attended yet.</p>
             ) : (
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-medium">Recent Events</h3>
-                  <Button variant="ghost" size="sm" className="h-8 text-xs">
-                    All Events <ChevronDown className="ml-1 h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="space-y-1">
-                  {events.map((event) => (
-                    <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
-                      <div>
-                        <p className="text-sm font-medium">{event.title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
-                        </p>
-                      </div>
+              <div className="space-y-1">
+                {events.map((event) => (
+                  <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
+                    <div>
+                      <p className="text-sm font-medium">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
+                      </p>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>
