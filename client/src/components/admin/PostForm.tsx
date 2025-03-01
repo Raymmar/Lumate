@@ -50,15 +50,19 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
+            <FormItem className="space-y-1">
+              <FormLabel className="text-sm text-muted-foreground">Title</FormLabel>
               <FormControl>
-                <Input {...field} className="text-xl font-semibold" placeholder="Post title" />
+                <Input 
+                  {...field} 
+                  className="text-xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
+                  placeholder="Post title" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -69,14 +73,14 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           control={form.control}
           name="summary"
           render={({ field: { value, ...field }}) => (
-            <FormItem>
-              <FormLabel>Summary</FormLabel>
+            <FormItem className="space-y-1">
+              <FormLabel className="text-sm text-muted-foreground">Summary</FormLabel>
               <FormControl>
                 <Textarea 
                   {...field} 
                   value={value || ""} 
                   placeholder="A brief summary of your post"
-                  className="resize-none h-24"
+                  className="resize-none h-20 min-h-[80px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </FormControl>
               <FormMessage />
@@ -88,7 +92,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           control={form.control}
           name="body"
           render={({ field }) => (
-            <FormItem className="space-y-2">
+            <FormItem className="space-y-1">
               <FormControl>
                 <RichTextEditor
                   value={field.value}
@@ -101,43 +105,21 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="featuredImage"
-          render={({ field: { value, ...field }}) => (
-            <FormItem>
-              <FormLabel>Featured Image URL</FormLabel>
-              <FormControl>
-                <Input {...field} type="url" value={value || ""} placeholder="https://..." />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="videoUrl"
-          render={({ field: { value, ...field }}) => (
-            <FormItem>
-              <FormLabel>Video URL</FormLabel>
-              <FormControl>
-                <Input {...field} type="url" value={value || ""} placeholder="https://..." />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-4 pt-4 border-t">
           <FormField
             control={form.control}
-            name="ctaLink"
+            name="featuredImage"
             render={({ field: { value, ...field }}) => (
-              <FormItem>
-                <FormLabel>CTA Link</FormLabel>
+              <FormItem className="space-y-1">
+                <FormLabel className="text-sm text-muted-foreground">Featured Image URL</FormLabel>
                 <FormControl>
-                  <Input {...field} type="url" value={value || ""} placeholder="https://..." />
+                  <Input 
+                    {...field} 
+                    type="url" 
+                    value={value || ""} 
+                    placeholder="https://..." 
+                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -146,41 +128,88 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
 
           <FormField
             control={form.control}
-            name="ctaLabel"
+            name="videoUrl"
             render={({ field: { value, ...field }}) => (
-              <FormItem>
-                <FormLabel>CTA Label</FormLabel>
+              <FormItem className="space-y-1">
+                <FormLabel className="text-sm text-muted-foreground">Video URL</FormLabel>
                 <FormControl>
-                  <Input {...field} value={value || ""} placeholder="Learn more" />
+                  <Input 
+                    {...field} 
+                    type="url" 
+                    value={value || ""} 
+                    placeholder="https://..." 
+                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="ctaLink"
+              render={({ field: { value, ...field }}) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm text-muted-foreground">CTA Link</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      type="url" 
+                      value={value || ""} 
+                      placeholder="https://..." 
+                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="ctaLabel"
+              render={({ field: { value, ...field }}) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm text-muted-foreground">CTA Label</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      value={value || ""} 
+                      placeholder="Learn more" 
+                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <FormField
+            control={form.control}
+            name="isPinned"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-between rounded-lg bg-muted/50 p-3 space-y-0">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-sm">Pin Post</FormLabel>
+                  <div className="text-xs text-muted-foreground">
+                    Pinned posts will appear at the top of the list
+                  </div>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </FormItem>
             )}
           />
         </div>
 
-        <FormField
-          control={form.control}
-          name="isPinned"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel>Pin Post</FormLabel>
-                <div className="text-sm text-muted-foreground">
-                  Pinned posts will appear at the top of the list
-                </div>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <Button type="submit" className="w-full">
+        <Button type="submit" className="w-full mt-6">
           Save Post
         </Button>
       </form>
