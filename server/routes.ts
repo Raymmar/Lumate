@@ -317,6 +317,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add new endpoint for fetching events attended by a person
+  app.get("/api/people/:id/events", async (req, res) => {
+    try {
+      const personId = req.params.id;
+      const person = await storage.getPersonByApiId(personId);
+
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      // Get all events attended by the person through attendance records
+      const attendedEvents = await db
+        .select({
+          id: events.id,
+          api_id: events.api_id,
+          title: events.title,
+          description: events.description,
+          startTime: events.startTime,
+          endTime: events.endTime,
+          coverUrl: events.coverUrl,
+          url: events.url
+        })
+        .from(attendance)
+        .innerJoin(events, eq(attendance.eventApiId, events.api_id))
+        .where(eq(attendance.userEmail, person.email)) // Use email as it's the persistent identifier
+        .orderBy(sql`start_time DESC`); // Changed to DESC for most recent first
+
+      res.json(attendedEvents);
+    } catch (error) {
+      console.error('Failed to fetch attended events:', error);
+      res.status(500).json({ error: "Failed to fetch attended events" });
+    }
+  });
+
   app.get("/api/auth/check-profile/:id", async (req, res) => {
     try {
       const personId = req.params.id;
@@ -925,7 +959,7 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 100;
       const offset = (page - 1) * limit;
 
-            // Get total count
+      // Get total count
       const totalCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(users)
