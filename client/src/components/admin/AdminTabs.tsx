@@ -2,7 +2,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useLocation } from "wouter";
 
 const ADMIN_TABS = [
-  { id: "overview", label: "Overview", path: "/admin" },
+  { id: "overview", label: "Dashboard", path: "/admin" },
   { id: "members", label: "Members", path: "/admin/members" },
   { id: "events", label: "Events", path: "/admin/events" },
   { id: "people", label: "People", path: "/admin/people" },
