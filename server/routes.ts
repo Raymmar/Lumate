@@ -866,6 +866,22 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add new featured event endpoint
+  app.get("/api/events/featured", async (_req, res) => {
+    try {
+      const featuredEvent = await storage.getFeaturedEvent();
+
+      if (!featuredEvent) {
+        return res.status(404).json({ error: "No featured event found" });
+      }
+
+      res.json(featuredEvent);
+    } catch (error) {
+      console.error('Failed to fetch featured event:', error);
+      res.status(500).json({ error: "Failed to fetch featured event" });
+    }
+  });
+
   // Add these routes inside registerRoutes function after existing routes
   app.get("/api/admin/events", async (req, res) => {
     try {

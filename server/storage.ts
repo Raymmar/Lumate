@@ -68,6 +68,7 @@ export interface IStorage {
   // Attendance stats
   updatePersonStats(personId: number): Promise<Person>;
   getTopAttendees(limit?: number): Promise<Person[]>;
+  getFeaturedEvent(): Promise<Event | null>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -872,6 +873,23 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get top attendees:', error);
+      throw error;
+    }
+  }
+
+  async getFeaturedEvent(): Promise<Event | null> {
+    try {
+      // Get the most recent upcoming event
+      const result = await db
+        .select()
+        .from(events)
+        .where(sql`end_time > NOW()`)
+        .orderBy(events.startTime)
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get featured event:', error);
       throw error;
     }
   }

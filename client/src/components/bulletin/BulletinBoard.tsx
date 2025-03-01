@@ -56,8 +56,17 @@ function JoinUsSection() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
-  // Hard-coding the featured event ID for now - this should come from your events data
-  const FEATURED_EVENT_ID = "evt-KUEx5csMUv6otHD";
+  // Fetch featured event
+  const { data: featuredEvent, isLoading: isEventLoading } = useQuery({
+    queryKey: ["/api/events/featured"],
+    queryFn: async () => {
+      const response = await fetch("/api/events/featured");
+      if (!response.ok) {
+        throw new Error("Failed to fetch featured event");
+      }
+      return response.json();
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +80,7 @@ function JoinUsSection() {
         },
         body: JSON.stringify({
           email,
-          event_api_id: FEATURED_EVENT_ID
+          event_api_id: featuredEvent?.api_id
         })
       });
 
@@ -122,7 +131,7 @@ function JoinUsSection() {
               stay connected with the community.
             </p>
             <p className="text-sm text-muted-foreground">
-              Be sure to check your inbox (and spam folder) for the invitation email from Luma.
+              Be sure to check your inbox (or spam folder) for the invitation email.
             </p>
           </div>
         ) : (
@@ -135,12 +144,12 @@ function JoinUsSection() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={isLoading || isEventLoading || !featuredEvent}
               />
               <Button 
                 className="hover:bg-black/90"
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isEventLoading || !featuredEvent}
               >
                 {isLoading ? (
                   <>
@@ -153,7 +162,13 @@ function JoinUsSection() {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Drop your email for an invite to our next event and start networking with the region's top tech professionals.
+              {isEventLoading ? (
+                "Loading event details..."
+              ) : !featuredEvent ? (
+                "No upcoming events available at the moment."
+              ) : (
+                "Drop your email for an invite to our next event and start networking with the region's top tech professionals."
+              )}
             </p>
           </form>
         )}
