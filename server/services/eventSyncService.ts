@@ -33,28 +33,31 @@ async function syncEventAttendees(event: Event) {
       }
 
       const data = await response.json();
-      // Filter for approved guests only
-      const approvedGuests = (data.guests || []).filter((guest: any) => guest.approval_status === 'approved');
-      allGuests.push(...approvedGuests);
+      // Filter for approved guests only and extract from nested structure
+      const approvedGuests = (data.guests || [])
+        .filter((guestWrapper: any) => guestWrapper.guest.approval_status === 'approved')
+        .map((guestWrapper: any) => guestWrapper.guest);
 
-      console.log('Processing approved guest:', {
-        guestId: guest.api_id,
-        email: guest.email,
-        status: guest.approval_status,
-        registeredAt: guest.registered_at,
-        checkedInAt: guest.checked_in_at // Log check-in time from API
-      });
+      // Process this batch of guests
+      for (const guest of approvedGuests) {
+        console.log('Processing approved guest:', {
+          guestId: guest.api_id,
+          email: guest.email,
+          status: guest.approval_status,
+          registeredAt: guest.registered_at,
+          checkedInAt: guest.checked_in_at // Log check-in time from API
+        });
 
-      // Process and store approved guests
-      for (const guest of allGuests) {
         await storage.upsertAttendance({
           guestApiId: guest.api_id,
           eventApiId: event.api_id,
           userEmail: guest.email.toLowerCase(),
           registeredAt: guest.registered_at,
-          checkedInAt: guest.checked_in_at, // Pass check-in time to storage
+          checkedInAt: guest.checked_in_at,
           approvalStatus: guest.approval_status,
         });
+
+        allGuests.push(guest);
       }
 
       hasMore = data.has_more;
