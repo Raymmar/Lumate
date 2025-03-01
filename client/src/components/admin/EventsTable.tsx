@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Event } from "@shared/schema";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useState } from "react";
 import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
+import { PreviewSidebar } from "./PreviewSidebar";
 
 interface EventWithSync extends Event {
   isSynced: boolean;
@@ -132,17 +132,18 @@ export function EventsTable() {
         onRowClick={onRowClick}
       />
 
-      <Sheet open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-        <SheetContent className="w-[480px] sm:max-w-[480px] overflow-y-auto">
-          {selectedEvent && (
-            <EventPreview 
-              event={selectedEvent} 
-              onSync={handleSync}
-              onStartSync={handleStartSync}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
+      <PreviewSidebar 
+        open={!!selectedEvent} 
+        onOpenChange={() => setSelectedEvent(null)}
+      >
+        {selectedEvent && (
+          <EventPreview 
+            event={selectedEvent} 
+            onSync={handleSync}
+            onStartSync={handleStartSync}
+          />
+        )}
+      </PreviewSidebar>
     </>
   );
 }
