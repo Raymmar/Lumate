@@ -287,7 +287,7 @@ export async function registerRoutes(app: Express) {
         .from(attendance)
         .innerJoin(events, eq(attendance.eventApiId, events.api_id))
         .where(eq(attendance.userEmail, person.email)) // Use email as it's the persistent identifier
-        .orderBy(events.startTime);
+        .orderBy(sql`start_time DESC`); // Changed to DESC for most recent first
 
       res.json(attendedEvents);
     } catch (error) {
@@ -928,8 +928,7 @@ export async function registerRoutes(app: Express) {
                 approvalStatus: guest.approval_status,
                 registeredAt: guest.registered_at
               });
-              console.log('Successfully stored attendance for guest:', guest.api_id);
-            } catch (error) {
+              console.log('Successfully stored attendance for guest:', guest.api_id);            } catch (error) {
               console.error('Failed to store attendance for guest:', {
                 guestId: guest.api_id,
                 error: error instanceof Error ? error.message : String(error)

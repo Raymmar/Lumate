@@ -77,57 +77,41 @@ function EventsList({ personId }: { personId: string }) {
 
   if (isLoading) {
     return (
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">Events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-16 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-16 w-full" />
+        ))}
+      </div>
     );
   }
 
   if (!events?.length) {
     return (
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="text-base">Events</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">No events attended yet.</p>
-        </CardContent>
-      </Card>
+      <p className="text-sm text-muted-foreground">No events attended yet.</p>
     );
   }
 
   return (
-    <Card className="mt-6">
-      <CardHeader className="flex flex-row items-center justify-between py-2">
-        <CardTitle className="text-base">Events Attended</CardTitle>
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-medium">Recent Events</h3>
         <Button variant="ghost" size="sm" className="h-8 text-xs">
           All Events <ChevronDown className="ml-1 h-4 w-4" />
         </Button>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-1">
-          {events.map((event) => (
-            <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
-              <div>
-                <p className="text-sm font-medium">{event.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
-                </p>
-              </div>
+      </div>
+      <div className="space-y-1">
+        {events.map((event) => (
+          <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
+            <div>
+              <p className="text-sm font-medium">{event.title}</p>
+              <p className="text-xs text-muted-foreground">
+                {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
+              </p>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -381,24 +365,62 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
       {/* Sidebar */}
       <div>
-        {/* Stats Section */}
+        {/* Stats and Events Combined Card */}
         <Card>
-          <CardContent className="space-y-4 pt-6">
-            <StatsCard
-              title="First Seen"
-              value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
-              icon={<CalendarDays className="h-4 w-4 text-primary" />}
-            />
-            <StatsCard
-              title="Events Attended"
-              value={stats?.attendanceCount || 0}
-              icon={<Users className="h-4 w-4 text-primary" />}
-            />
+          <CardHeader>
+            <CardTitle className="text-base">Activity & Events</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Stats Section */}
+            <div className="space-y-4">
+              <StatsCard
+                title="First Seen"
+                value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
+                icon={<CalendarDays className="h-4 w-4 text-primary" />}
+              />
+              <StatsCard
+                title="Events Attended"
+                value={stats?.attendanceCount || 0}
+                icon={<Users className="h-4 w-4 text-primary" />}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-border" />
+
+            {/* Events List Section */}
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full" />
+                ))}
+              </div>
+            ) : !events?.length ? (
+              <p className="text-sm text-muted-foreground">No events attended yet.</p>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium">Recent Events</h3>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs">
+                    All Events <ChevronDown className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="space-y-1">
+                  {events.map((event) => (
+                    <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
+                      <div>
+                        <p className="text-sm font-medium">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {/* Events List */}
-        <EventsList personId={personId} />
       </div>
     </div>
   );
