@@ -5,6 +5,9 @@ import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Calendar } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 // Links Section
 function LinksSection() {
@@ -48,6 +51,53 @@ function LinksSection() {
 
 // Join Us Section
 function JoinUsSection() {
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Hard-coding the featured event ID for now - this should come from your events data
+  const FEATURED_EVENT_ID = "evt-KUEx5csMUv6otHD";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/events/send-invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          event_api_id: FEATURED_EVENT_ID
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to send invite');
+      }
+
+      toast({
+        title: "Success!",
+        description: "Please check your email for the invitation.",
+      });
+
+      // Clear the form
+      setEmail("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invite",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Card className="border">
       <CardHeader className="pb-3">
@@ -57,15 +107,36 @@ function JoinUsSection() {
         </p>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-2">
-            <Input placeholder="Email" type="email" className="flex-1" />
-            <Button className="hover:bg-black/90">Join</Button>
+            <Input 
+              placeholder="Email" 
+              type="email" 
+              className="flex-1"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+            <Button 
+              className="hover:bg-black/90"
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Join"
+              )}
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground">
             Drop your email for an invite to our next event and start networking with the region's top tech professionals.
           </p>
-        </div>
+        </form>
       </CardContent>
     </Card>
   );
