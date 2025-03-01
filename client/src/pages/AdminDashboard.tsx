@@ -74,7 +74,7 @@ export default function AdminDashboard() {
                     value={statsData?.uniqueAttendees || 0}
                     icon={Users}
                     isLoading={isLoading}
-                    description="Individual people who have attended events"
+                    description="Individual event attendees"
                   />
                   <StatCard
                     title="Registered Members"
