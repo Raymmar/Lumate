@@ -18,7 +18,7 @@ export function NavBar() {
   const { user } = useAuth();
   const [location] = useLocation();
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
-  const isAdminDashboard = location === "/admin";
+  const isAdminPage = location.startsWith("/admin");
 
   return (
     <div className="border-b bg-white relative z-50">
@@ -33,7 +33,7 @@ export function NavBar() {
           </div>
         </Link>
         {/* Update View Directory button style */}
-        {isAdminDashboard && (
+        {isAdminPage && (
           <Link href="/">
             <Button 
               variant="secondary"
