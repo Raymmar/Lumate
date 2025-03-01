@@ -1,13 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 
 // Links Section
 function LinksSection() {
   return (
     <Card className="border-2">
       <CardHeader className="pb-3">
-        <CardTitle>Links</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle>Links</CardTitle>
+          <div className="flex gap-2">
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <SiInstagram className="h-4 w-4" />
+            </a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <SiX className="h-4 w-4" />
+            </a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <SiYoutube className="h-4 w-4" />
+            </a>
+            <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <SiLinkedin className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
