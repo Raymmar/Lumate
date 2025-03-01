@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, UserPlus, CreditCard, DollarSign } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { AdminTabs } from "@/components/admin/AdminTabs";
+import { Button } from "@/components/ui/button";
 
 function StatCard({
   title,
@@ -78,6 +79,14 @@ export default function AdminDashboard() {
             <div className="flex-1 p-6">
               <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+                <Button
+                  variant="default"
+                  className="bg-black hover:bg-black/90"
+                  onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuB2gziq', '_blank')}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  Manage Calendar
+                </Button>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
