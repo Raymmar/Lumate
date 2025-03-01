@@ -194,75 +194,65 @@ export async function registerRoutes(app: Express) {
 
       console.log("Fetching people from storage with search:", searchQuery, "sort:", sort);
 
-      // First get attendance counts
-      const attendanceCounts = await db.execute(sql`
-        WITH attendance_counts AS (
+      let baseQuery = sql`
+        WITH attendance_stats AS (
           SELECT 
             LOWER(user_email) as email,
             COUNT(DISTINCT event_api_id) as event_count,
-            MAX(registered_at) as last_attended
+            MIN(registered_at) as first_event,
+            MAX(registered_at) as last_event
           FROM attendance
           GROUP BY LOWER(user_email)
         )
-        SELECT * FROM attendance_counts
-      `);
+        SELECT 
+          p.*,
+          COALESCE(a.event_count, 0) as total_events_attended,
+          a.first_event,
+          a.last_event
+        FROM people p
+        LEFT JOIN attendance_stats a ON LOWER(p.email) = a.email
+        WHERE ${searchQuery ? sql`(LOWER(p.user_name) LIKE ${`%${searchQuery}%`} OR LOWER(p.email) LIKE ${`%${searchQuery}%`})` : sql`1=1`}
+      `;
 
-      // Create a lookup map for quick access
-      const countMap = new Map(
-        attendanceCounts.rows.map((row: any) => [row.email.toLowerCase(), row])
-      );
-
-      let query = db
-        .select()
-        .from(people)
-        .where(
-          searchQuery
-            ? sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
-            : sql`1=1`
-        );
-
-      // Add sorting based primarily on event attendance count
+      // Add sorting logic
       if (sort === 'events') {
-        const allPeople = await query;
-
-        // Sort people by their actual attendance count
-        const sortedPeople = allPeople.sort((a, b) => {
-          const aCount = countMap.get(a.email.toLowerCase())?.event_count || 0;
-          const bCount = countMap.get(b.email.toLowerCase())?.event_count || 0;
-
-          if (bCount !== aCount) {
-            return bCount - aCount; // Sort by count first
-          }
-
-          // If counts are equal, sort by most recent attendance
-          const aDate = countMap.get(a.email.toLowerCase())?.last_attended || '1970-01-01';
-          const bDate = countMap.get(b.email.toLowerCase())?.last_attended || '1970-01-01';
-          return new Date(bDate).getTime() - new Date(aDate).getTime();
-        });
-
-        // Apply pagination
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        const paginatedPeople = sortedPeople.slice(start, end);
-
-        console.log(`Returning sorted people from index ${start} to ${end -1}`);
-
-        res.json({
-          people: paginatedPeople,
-          total: sortedPeople.length
-        });
-        return;
+        baseQuery = sql`
+          ${baseQuery}
+          ORDER BY total_events_attended DESC NULLS LAST, last_event DESC NULLS LAST
+        `;
+      } else {
+        baseQuery = sql`
+          ${baseQuery}
+          ORDER BY p.id ASC
+        `;
       }
 
-      // If not sorting by events, use default ordering
-      const allPeople = await query.orderBy(people.id);
-      const start = (page - 1) * limit;
-      const end = start + limit;
-      const paginatedPeople = allPeople.slice(start, end);
+      // Add pagination
+      const countQuery = sql`SELECT COUNT(*) FROM (${baseQuery}) as total`;
+      const totalCount = await db.execute(countQuery).then(result => Number(result.rows[0].count));
+
+      const paginatedQuery = sql`
+        ${baseQuery}
+        LIMIT ${limit}
+        OFFSET ${(page - 1) * limit}
+      `;
+
+      const results = await db.execute(paginatedQuery);
+
+      // Transform the results to include stats
+      const people = results.rows.map(person => ({
+        ...person,
+        stats: {
+          totalEventsAttended: Number(person.total_events_attended),
+          firstEventDate: person.first_event,
+          lastEventDate: person.last_event,
+          lastUpdated: new Date().toISOString()
+        }
+      }));
 
       res.json({
-        people: paginatedPeople,
-        total: allPeople.length
+        people,
+        total: totalCount
       });
 
     } catch (error) {
@@ -945,8 +935,8 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      const user =await storage.getUser(req.session.userId);
+if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
         return res.status(403).json({ error: "Not authorized" });
       }
 

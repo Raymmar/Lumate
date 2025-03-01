@@ -2,7 +2,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Person } from "@shared/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Card,
   CardHeader,
   CardContent
@@ -16,6 +16,14 @@ interface PersonPreviewProps {
 export function PersonPreview({ person }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
+
+  // Initialize stats with default values if not present
+  const stats = person.stats || {
+    totalEventsAttended: 0,
+    firstEventDate: null,
+    lastEventDate: null,
+    lastUpdated: new Date().toISOString()
+  };
 
   return (
     <div className="space-y-6">
@@ -77,18 +85,18 @@ export function PersonPreview({ person }: PersonPreviewProps) {
         <CardContent className="space-y-2">
           <div className="flex justify-between py-1">
             <span className="text-muted-foreground">Total Events Attended</span>
-            <span>{person.stats.totalEventsAttended}</span>
+            <span>{stats.totalEventsAttended}</span>
           </div>
-          {person.stats.firstEventDate && (
+          {stats.firstEventDate && (
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">First Event</span>
-              <span>{format(new Date(person.stats.firstEventDate), 'PPP')}</span>
+              <span>{format(new Date(stats.firstEventDate), 'PPP')}</span>
             </div>
           )}
-          {person.stats.lastEventDate && (
+          {stats.lastEventDate && (
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Last Event</span>
-              <span>{format(new Date(person.stats.lastEventDate), 'PPP')}</span>
+              <span>{format(new Date(stats.lastEventDate), 'PPP')}</span>
             </div>
           )}
         </CardContent>
