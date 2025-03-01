@@ -2,8 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import type { User } from "@shared/schema";
+import { useState } from "react";
+import { PreviewSidebar } from "./PreviewSidebar";
+import { MemberPreview } from "./MemberPreview";
 
 export function MembersTable() {
+  const [selectedMember, setSelectedMember] = useState<User | null>(null);
+
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/members"],
     queryFn: async () => {
@@ -39,23 +44,44 @@ export function MembersTable() {
   const actions = [
     {
       label: "View Profile",
-      onClick: (user: User) => {
-        // Placeholder for view action
-        console.log("View member:", user);
+      onClick: (member: User) => {
+        setSelectedMember(member);
       },
     },
     {
       label: "Edit",
-      onClick: (user: User) => {
+      onClick: (member: User) => {
         // Placeholder for edit action
-        console.log("Edit member:", user);
+        console.log("Edit member:", member);
       },
     },
   ];
+
+  const onRowClick = (member: User) => {
+    setSelectedMember(member);
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  return <DataTable data={users} columns={columns} actions={actions} />;
+  return (
+    <>
+      <DataTable 
+        data={users} 
+        columns={columns} 
+        actions={actions}
+        onRowClick={onRowClick}
+      />
+
+      <PreviewSidebar 
+        open={!!selectedMember} 
+        onOpenChange={() => setSelectedMember(null)}
+      >
+        {selectedMember && (
+          <MemberPreview member={selectedMember} />
+        )}
+      </PreviewSidebar>
+    </>
+  );
 }
