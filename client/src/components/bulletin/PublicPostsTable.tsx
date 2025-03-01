@@ -3,6 +3,7 @@ import type { Post } from "@shared/schema";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ImageIcon } from "lucide-react";
 
 interface PublicPostsTableProps {
   onSelect: (post: Post) => void;
@@ -37,8 +38,13 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="pb-4 border-b last:border-0">
-                <Skeleton className="h-5 w-2/3 mb-2" />
-                <Skeleton className="h-4 w-full" />
+                <div className="flex gap-4">
+                  <Skeleton className="h-16 w-16 flex-shrink-0" />
+                  <div className="flex-1">
+                    <Skeleton className="h-5 w-2/3 mb-2" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -61,15 +67,32 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
                   onSelect(post);
                 }}
               >
-                <h4 className="font-medium">{post.title}</h4>
-                {post.summary && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {post.summary}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  {format(new Date(post.createdAt), 'MMM d, yyyy')}
-                </p>
+                <div className="flex gap-4">
+                  {post.featuredImage ? (
+                    <div className="h-16 w-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                      <img 
+                        src={post.featuredImage} 
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h4 className="font-medium">{post.title}</h4>
+                    {post.summary && (
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {post.summary}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(new Date(post.createdAt), 'MMM d, yyyy')}
+                    </p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
