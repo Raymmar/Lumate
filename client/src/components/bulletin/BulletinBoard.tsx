@@ -53,6 +53,7 @@ function LinksSection() {
 function JoinUsSection() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
   // Hard-coding the featured event ID for now - this should come from your events data
@@ -85,8 +86,8 @@ function JoinUsSection() {
         description: "Please check your email for the invitation.",
       });
 
-      // Clear the form
-      setEmail("");
+      // Set submitted state to true
+      setIsSubmitted(true);
     } catch (error) {
       toast({
         title: "Error",
@@ -107,36 +108,49 @@ function JoinUsSection() {
         </p>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex gap-2">
-            <Input 
-              placeholder="Email" 
-              type="email" 
-              className="flex-1"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-            />
-            <Button 
-              className="hover:bg-black/90"
-              type="submit"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                "Join"
-              )}
-            </Button>
+        {isSubmitted ? (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Thanks for joining! We've sent an invite to your email for our next event. 
+              Once you receive it, you can claim your profile to track your attendance and 
+              stay connected with the community.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Be sure to check your inbox (and spam folder) for the invitation email from Luma.
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Drop your email for an invite to our next event and start networking with the region's top tech professionals.
-          </p>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex gap-2">
+              <Input 
+                placeholder="Email" 
+                type="email" 
+                className="flex-1"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+              <Button 
+                className="hover:bg-black/90"
+                type="submit"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Join"
+                )}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Drop your email for an invite to our next event and start networking with the region's top tech professionals.
+            </p>
+          </form>
+        )}
       </CardContent>
     </Card>
   );
