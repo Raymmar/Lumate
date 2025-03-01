@@ -1,14 +1,13 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPostSchema, type InsertPost } from "@shared/schema";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost) => Promise<void>;
@@ -30,14 +29,6 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
       ctaLabel: "",
       isPinned: false,
       ...defaultValues
-    }
-  });
-
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: defaultValues?.body || "",
-    onUpdate: ({ editor }) => {
-      form.setValue("body", editor.getHTML());
     }
   });
 
@@ -67,7 +58,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             <FormItem>
               <FormLabel>Title</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} className="text-xl font-semibold" placeholder="Post title" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -81,7 +72,12 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             <FormItem>
               <FormLabel>Summary</FormLabel>
               <FormControl>
-                <Textarea {...field} value={value || ""} />
+                <Textarea 
+                  {...field} 
+                  value={value || ""} 
+                  placeholder="A brief summary of your post"
+                  className="resize-none h-24"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,12 +88,14 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           control={form.control}
           name="body"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="space-y-2">
               <FormLabel>Content</FormLabel>
               <FormControl>
-                <div className="min-h-[200px] rounded-md border">
-                  <EditorContent editor={editor} className="prose prose-sm max-w-none p-4" />
-                </div>
+                <RichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  className="min-h-[400px]"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -111,7 +109,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             <FormItem>
               <FormLabel>Featured Image URL</FormLabel>
               <FormControl>
-                <Input {...field} type="url" value={value || ""} />
+                <Input {...field} type="url" value={value || ""} placeholder="https://..." />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -125,7 +123,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             <FormItem>
               <FormLabel>Video URL</FormLabel>
               <FormControl>
-                <Input {...field} type="url" value={value || ""} />
+                <Input {...field} type="url" value={value || ""} placeholder="https://..." />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -140,7 +138,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
               <FormItem>
                 <FormLabel>CTA Link</FormLabel>
                 <FormControl>
-                  <Input {...field} type="url" value={value || ""} />
+                  <Input {...field} type="url" value={value || ""} placeholder="https://..." />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -154,7 +152,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
               <FormItem>
                 <FormLabel>CTA Label</FormLabel>
                 <FormControl>
-                  <Input {...field} value={value || ""} />
+                  <Input {...field} value={value || ""} placeholder="Learn more" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
