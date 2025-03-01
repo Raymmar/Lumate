@@ -19,7 +19,6 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
             {/* Fixed Sidebar */}
             <div className="w-64 fixed left-0 top-14 bottom-0 bg-background border-r z-40 overflow-y-auto">
               <div className="p-4 space-y-4">
-                <h2 className="font-semibold">Admin Panel</h2>
                 <AdminTabs />
               </div>
             </div>
