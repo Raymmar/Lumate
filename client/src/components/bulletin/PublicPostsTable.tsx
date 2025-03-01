@@ -8,14 +8,19 @@ interface PublicPostsTableProps {
 }
 
 export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
+  console.log("PublicPostsTable: Rendering");
+
   const { data, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/posts"],
     queryFn: async () => {
+      console.log("PublicPostsTable: Fetching posts");
       const response = await fetch("/api/posts");
       if (!response.ok) {
         throw new Error("Failed to fetch posts");
       }
-      return response.json();
+      const data = await response.json();
+      console.log("PublicPostsTable: Received posts", data);
+      return data;
     }
   });
 
@@ -34,7 +39,10 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
             <div 
               key={post.id}
               className="pb-4 border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors p-2 rounded-lg"
-              onClick={() => onSelect(post)}
+              onClick={() => {
+                console.log("PublicPostsTable: Post clicked", post);
+                onSelect(post);
+              }}
             >
               <h4 className="font-medium">{post.title}</h4>
               {post.summary && (
