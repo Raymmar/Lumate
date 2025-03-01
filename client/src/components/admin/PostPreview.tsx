@@ -20,7 +20,6 @@ export function PostPreview({ post, isNew = false, onClose, onSave }: PostPrevie
     console.log("Rendering new post form");
     return (
       <PreviewSidebar 
-        title="New Post"
         open={true}
         onOpenChange={(open) => {
           console.log("PreviewSidebar onOpenChange:", open);
