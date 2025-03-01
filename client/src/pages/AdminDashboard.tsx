@@ -21,9 +21,9 @@ export default function AdminDashboard() {
 
   return (
     <AdminGuard>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-muted/10">
         {/* Fixed header */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-white">
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background">
           <PageContainer>
             <NavBar />
           </PageContainer>
@@ -32,7 +32,7 @@ export default function AdminDashboard() {
         <PageContainer>
           <div className="flex pt-16">
             {/* Fixed Sidebar */}
-            <div className="w-64 fixed top-16 bottom-0 bg-muted/10 border-r z-40 overflow-y-auto">
+            <div className="w-64 fixed top-16 bottom-0 bg-background border-r z-40 overflow-y-auto">
               <div className="p-4 space-y-4">
                 <h2 className="font-semibold">Admin Panel</h2>
                 <AdminTabs />
