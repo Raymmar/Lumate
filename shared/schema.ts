@@ -47,6 +47,18 @@ export const people = pgTable("people", {
   organizationName: varchar("organization_name", { length: 255 }),
   jobTitle: varchar("job_title", { length: 255 }),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
+  stats: json("stats").$type<{
+    totalEventsAttended: number;
+    lastEventDate: string | null;
+    firstEventDate: string | null;
+    averageEventsPerMonth?: number;
+    lastUpdated: string;
+  }>().default({
+    totalEventsAttended: 0,
+    lastEventDate: null,
+    firstEventDate: null,
+    lastUpdated: new Date().toISOString()
+  }),
 });
 
 export const users = pgTable("users", {

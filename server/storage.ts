@@ -17,30 +17,27 @@ export interface IStorage {
   getEvents(): Promise<Event[]>;
   getEventCount(): Promise<number>;
   getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; 
-  getEventCount(): Promise<number>;
   insertEvent(event: InsertEvent): Promise<Event>;
   getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
-  
+
   // People
   getPeople(): Promise<Person[]>;
   getPeopleCount(): Promise<number>;
   getPerson(id: number): Promise<Person | null>; 
-  getPersonById(id: number): Promise<Person | null>;
   getPersonByEmail(email: string): Promise<Person | null>; 
   getPersonByApiId(apiId: string): Promise<Person | null>;
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-  
+
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
   setLastCacheUpdate(date: Date): Promise<void>;
-  
+
   // User management
   createUser(userData: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
-  getUser(id: number): Promise<User | null>;  
   getUserCount(): Promise<number>; 
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
@@ -52,25 +49,25 @@ export interface IStorage {
   deleteVerificationToken(token: string): Promise<void>;
   deleteVerificationTokensByEmail(email: string): Promise<void>;
 
-  // Add new methods for RSVP status
+  // RSVP status
   getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null>;
   upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus>;
 
-  // Add new methods for attendance
+  // Attendance
   getAttendanceByEvent(eventApiId: string): Promise<Attendance[]>;
   upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
   getAttendanceByEmail(email: string): Promise<Attendance[]>;
   deleteAttendanceByEvent(eventApiId: string): Promise<void>; 
   updateEventAttendanceSync(eventApiId: string): Promise<Event>;
-
-  // Add new method for checking event attendance
   getEventAttendanceStatus(eventApiId: string): Promise<{ 
     hasAttendees: boolean;
     lastSyncTime: string | null;
   }>;
-
-  // Add new method for getting total attendees count
   getTotalAttendeesCount(): Promise<number>;
+
+  // Attendance stats
+  updatePersonStats(personId: number): Promise<Person>;
+  getTopAttendees(limit?: number): Promise<Person[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -165,10 +162,18 @@ export class PostgresStorage implements IStorage {
   async insertPerson(person: InsertPerson): Promise<Person> {
     try {
       console.log('Attempting to upsert person:', person.email);
-      
+
       const [newPerson] = await db
         .insert(people)
-        .values(person)
+        .values({
+          ...person,
+          stats: person.stats || {
+            totalEventsAttended: 0,
+            lastEventDate: null,
+            firstEventDate: null,
+            lastUpdated: new Date().toISOString()
+          }
+        })
         .onConflictDoUpdate({
           target: people.api_id,
           set: {
@@ -185,7 +190,7 @@ export class PostgresStorage implements IStorage {
           },
         })
         .returning();
-      
+
       console.log('Successfully upserted person:', newPerson.email);
       return newPerson;
     } catch (error) {
@@ -278,22 +283,21 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  // People methods
-  async getPersonById(id: number): Promise<Person | null> {
+
+  async getPerson(id: number): Promise<Person | null> {
     try {
       const result = await db
         .select()
         .from(people)
         .where(eq(people.id, id))
         .limit(1);
-      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
-      console.error('Failed to get person by ID:', error);
+      console.error('Failed to get person:', error);
       throw error;
     }
   }
-  
+
   async getPersonByEmail(email: string): Promise<Person | null> {
     try {
       const result = await db
@@ -301,15 +305,26 @@ export class PostgresStorage implements IStorage {
         .from(people)
         .where(eq(people.email, email))
         .limit(1);
-      
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get person by email:', error);
       throw error;
     }
   }
-  
-  // User management methods
+
+  async getPersonByApiId(apiId: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.api_id, apiId))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person by API ID:', error);
+      throw error;
+    }
+  }
   async createUser(userData: InsertUser): Promise<User> {
     try {
       console.log('Creating new user with email:', userData.email);
@@ -484,20 +499,6 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  async getPersonByApiId(apiId: string): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.api_id, apiId))
-        .limit(1);
-      
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person by API ID:', error);
-      throw error;
-    }
-  }
   async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
     try {
       const [updatedUser] = await db
@@ -666,6 +667,11 @@ export class PostgresStorage implements IStorage {
         personId: result.personId
       });
 
+      // After successfully upserting attendance, update the person's stats
+      if (result.personId) {
+        await this.updatePersonStats(result.personId);
+      }
+
       return result;
     } catch (error) {
       console.error('Failed to upsert attendance:', error);
@@ -765,63 +771,6 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  async getPersonById(id: number): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.id, id))
-        .limit(1);
-      
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person by ID:', error);
-      throw error;
-    }
-  }
-  
-  async getPersonByEmail(email: string): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.email, email))
-        .limit(1);
-      
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person by email:', error);
-      throw error;
-    }
-  }
-  
-  async getPerson(id: number): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.id, id))
-        .limit(1);
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person:', error);
-      throw error;
-    }
-  }
-  async getPersonByApiId(apiId: string): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.api_id, apiId))
-        .limit(1);
-      
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person by API ID:', error);
-      throw error;
-    }
-  }
   async getEventAttendanceStatus(eventApiId: string): Promise<{ hasAttendees: boolean; lastSyncTime: string | null; }> {
     try {
       // Check if there are any attendees for this event
@@ -854,6 +803,69 @@ export class PostgresStorage implements IStorage {
       return Number(result[0].count);
     } catch (error) {
       console.error('Failed to get total attendees count:', error);
+      throw error;
+    }
+  }
+
+  async updatePersonStats(personId: number): Promise<Person> {
+    try {
+      // Get all attendance records for this person
+      const attendanceRecords = await db
+        .select({
+          registeredAt: attendance.registeredAt
+        })
+        .from(attendance)
+        .where(eq(attendance.personId, personId))
+        .orderBy(attendance.registeredAt);
+
+      const stats: Record<string, any> = {
+        totalEventsAttended: attendanceRecords.length,
+        firstEventDate: attendanceRecords[0]?.registeredAt || null,
+        lastEventDate: attendanceRecords[attendanceRecords.length - 1]?.registeredAt || null,
+        lastUpdated: new Date().toISOString()
+      };
+
+      // Calculate average events per month if we have attendance
+      if (stats.firstEventDate && stats.lastEventDate) {
+        const firstDate = new Date(stats.firstEventDate);
+        const lastDate = new Date(stats.lastEventDate);
+        const monthsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44); // Average month length
+        if (monthsDiff > 0) {
+          stats.averageEventsPerMonth = stats.totalEventsAttended / monthsDiff;
+        } else {
+          stats.averageEventsPerMonth = stats.totalEventsAttended;
+        }
+      }
+
+      // Update the person's stats
+      const [updatedPerson] = await db
+        .update(people)
+        .set({ stats })
+        .where(eq(people.id, personId))
+        .returning();
+
+      if (!updatedPerson) {
+        throw new Error(`Person with ID ${personId} not found`);
+      }
+
+      return updatedPerson;
+    } catch (error) {
+      console.error('Failed to update person stats:', error);
+      throw error;
+    }
+  }
+
+  async getTopAttendees(limit: number = 10): Promise<Person[]> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .orderBy(sql`(stats->>'totalEventsAttended')::int DESC`)
+        .limit(limit);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to get top attendees:', error);
       throw error;
     }
   }
