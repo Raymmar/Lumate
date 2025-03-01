@@ -67,71 +67,73 @@ export default function AdminDashboard() {
         {/* Content area with sidebar and main content */}
         <PageContainer className="flex-1 pt-16">
           <div className="flex w-full">
-            {/* Sidebar with AdminTabs */}
-            <div className="w-64 min-h-[calc(100vh-4rem)] bg-muted/10 border-r">
+            {/* Fixed Sidebar with AdminTabs */}
+            <div className="fixed top-16 left-0 bottom-0 w-64 bg-muted/10 border-r z-40">
               <div className="p-4 space-y-4">
                 <h2 className="font-semibold">Admin Panel</h2>
                 <AdminTabs />
               </div>
             </div>
 
-            {/* Main content */}
-            <div className="flex-1 p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-                <Button
-                  variant="default"
-                  className="bg-black hover:bg-black/90"
-                  onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuB2gziq', '_blank')}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Manage Calendar
-                </Button>
-              </div>
+            {/* Main content with margin for fixed sidebar */}
+            <div className="flex-1 ml-64">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+                  <Button
+                    variant="default"
+                    className="bg-black hover:bg-black/90"
+                    onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuB2gziq', '_blank')}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage Calendar
+                  </Button>
+                </div>
 
-              <div className="grid gap-4 md:grid-cols-3">
-                <StatCard
-                  title="Total Events"
-                  value={statsData?.events || 0}
-                  icon={Calendar}
-                  isLoading={isLoading}
-                  description="Total number of events hosted"
-                />
-                <StatCard
-                  title="Total Attendees"
-                  value={statsData?.totalAttendees || 0}
-                  icon={Users}
-                  isLoading={isLoading}
-                  description="Total event attendance count"
-                />
-                <StatCard
-                  title="Unique Attendees"
-                  value={statsData?.uniqueAttendees || 0}
-                  icon={Users}
-                  isLoading={isLoading}
-                  description="Individual people who have attended events"
-                />
-                <StatCard
-                  title="Registered Members"
-                  value={statsData?.users || 0}
-                  icon={UserPlus}
-                  isLoading={isLoading}
-                  description="Total number of registered members"
-                />
-                <StatCard
-                  title="Paid Members"
-                  value={statsData?.paidUsers || 0}
-                  icon={CreditCard}
-                  isLoading={isLoading}
-                  description="Members with active paid subscriptions"
-                />
-                <StatCard
-                  title="Membership Revenue"
-                  value="$0.00"
-                  icon={DollarSign}
-                  isLoading={isLoading}
-                  description="Total revenue from memberships"
-                />
+                <div className="grid gap-4 md:grid-cols-3">
+                  <StatCard
+                    title="Total Events"
+                    value={statsData?.events || 0}
+                    icon={Calendar}
+                    isLoading={isLoading}
+                    description="Total number of events hosted"
+                  />
+                  <StatCard
+                    title="Total Attendees"
+                    value={statsData?.totalAttendees || 0}
+                    icon={Users}
+                    isLoading={isLoading}
+                    description="Total event attendance count"
+                  />
+                  <StatCard
+                    title="Unique Attendees"
+                    value={statsData?.uniqueAttendees || 0}
+                    icon={Users}
+                    isLoading={isLoading}
+                    description="Individual people who have attended events"
+                  />
+                  <StatCard
+                    title="Registered Members"
+                    value={statsData?.users || 0}
+                    icon={UserPlus}
+                    isLoading={isLoading}
+                    description="Total number of registered members"
+                  />
+                  <StatCard
+                    title="Paid Members"
+                    value={statsData?.paidUsers || 0}
+                    icon={CreditCard}
+                    isLoading={isLoading}
+                    description="Members with active paid subscriptions"
+                  />
+                  <StatCard
+                    title="Membership Revenue"
+                    value="$0.00"
+                    icon={DollarSign}
+                    isLoading={isLoading}
+                    description="Total revenue from memberships"
+                  />
+                </div>
               </div>
             </div>
           </div>
