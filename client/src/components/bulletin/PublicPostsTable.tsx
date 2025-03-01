@@ -30,7 +30,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
   return (
     <Card className="border">
       <CardHeader className="pb-3">
-        <CardTitle>Latest Updates</CardTitle>
+        <CardTitle>Community News</CardTitle>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -55,7 +55,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
             {data.posts.map((post) => (
               <div 
                 key={post.id}
-                className="pb-4 border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors p-2 rounded-lg"
+                className="p-4 border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg -mx-6"
                 onClick={() => {
                   console.log("PublicPostsTable: Post clicked", post);
                   onSelect(post);
