@@ -147,7 +147,7 @@ function JoinUsSection() {
                 disabled={isLoading || isEventLoading || !featuredEvent}
               />
               <Button 
-                className="hover:bg-black/90"
+                className="bg-primary hover:bg-primary/90"
                 type="submit"
                 disabled={isLoading || isEventLoading || !featuredEvent}
               >

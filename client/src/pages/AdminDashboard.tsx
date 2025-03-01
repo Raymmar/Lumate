@@ -22,7 +22,7 @@ export default function AdminDashboard() {
         <div className="flex justify-end mb-6">
           <Button
             variant="default"
-            className="bg-black hover:bg-black/90"
+            className="bg-primary hover:bg-primary/90"
             onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuB2gziq', '_blank')}
           >
             <ExternalLink className="mr-2 h-4 w-4" />
