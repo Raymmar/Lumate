@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function PostsPage() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -21,6 +21,8 @@ export default function PostsPage() {
         title: "Success",
         description: "Post created successfully"
       });
+      // Invalidate the posts query to refresh the table
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
     } catch (error) {
       toast({
         title: "Error",
