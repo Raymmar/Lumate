@@ -89,12 +89,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           name="body"
           render={({ field }) => (
             <FormItem className="space-y-2">
-              <FormLabel>Content</FormLabel>
               <FormControl>
                 <RichTextEditor
                   value={field.value}
                   onChange={field.onChange}
-                  className="min-h-[400px]"
+                  className="min-h-[400px] border-none [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:p-0"
                 />
               </FormControl>
               <FormMessage />

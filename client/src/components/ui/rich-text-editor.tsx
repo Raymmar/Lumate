@@ -61,7 +61,10 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
   }
 
   return (
-    <div className={cn("flex flex-col gap-2 border rounded-md", className)}>
+    <div 
+      className={cn("flex flex-col gap-0 border rounded-md", className)}
+      onClick={() => editor.chain().focus().run()}
+    >
       <div className="flex flex-wrap items-center gap-1 p-1 border-b bg-muted/50">
         <MenuButton
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -69,7 +72,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
         >
           <Bold className="h-4 w-4" />
         </MenuButton>
-        
+
         <MenuButton
           onClick={() => editor.chain().focus().toggleItalic().run()}
           isActive={editor.isActive('italic')}
@@ -126,7 +129,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
           >
             <Undo className="h-4 w-4" />
           </MenuButton>
-          
+
           <MenuButton
             onClick={() => editor.chain().focus().redo().run()}
             isActive={false}
@@ -138,7 +141,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
 
       <EditorContent 
         editor={editor} 
-        className="prose prose-sm max-w-none min-h-[200px] p-4 focus:outline-none" 
+        className="prose prose-sm max-w-none min-h-[200px] p-0 focus:outline-none cursor-text [&_*]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:p-4" 
       />
     </div>
   )
