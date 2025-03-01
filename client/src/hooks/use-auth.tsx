@@ -9,10 +9,42 @@ type AuthContextType = {
   isLoading: boolean;
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logoutMutation: ReturnType<typeof useLogoutMutation>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+function useLogoutMutation() {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+    },
+    onSuccess: () => {
+      // Clear the cache and invalidate queries
+      queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
+      toast({
+        title: "Success",
+        description: "Logged out successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
@@ -70,40 +102,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-      });
-      if (!response.ok) {
-        throw new Error("Logout failed");
-      }
-    },
-    onSuccess: () => {
-      // Clear the cache and invalidate queries
-      queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
-      toast({
-        title: "Success",
-        description: "Logged out successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const logoutMutation = useLogoutMutation();
 
   const login = async (email: string, password: string) => {
     await loginMutation.mutateAsync({ email, password });
-  };
-
-  const logout = async () => {
-    await logoutMutation.mutateAsync();
   };
 
   return (
@@ -113,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         login,
-        logout,
+        logoutMutation,
       }}
     >
       {children}
