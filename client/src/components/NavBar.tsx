@@ -54,7 +54,7 @@ export function NavBar() {
                     {user ? (
                       (user.displayName || user.email).charAt(0).toUpperCase()
                     ) : (
-                      <User className="h-4 w-4" />
+                      <User className="h-4 w-4 text-foreground" />
                     )}
                   </AvatarFallback>
                 </Avatar>
@@ -67,7 +67,7 @@ export function NavBar() {
                     <DropdownMenuItem asChild>
                       <Link href="/admin">
                         <span className="flex items-center">
-                          <Shield className="mr-2 h-4 w-4" />
+                          <Shield className="mr-2 h-4 w-4 text-foreground" />
                           Admin Dashboard
                         </span>
                       </Link>
@@ -77,7 +77,7 @@ export function NavBar() {
                     <DropdownMenuItem asChild>
                       <Link href={`/people/${user.api_id}`}>
                         <span className="flex items-center">
-                          <User className="mr-2 h-4 w-4" />
+                          <User className="mr-2 h-4 w-4 text-foreground" />
                           Profile
                         </span>
                       </Link>
@@ -86,7 +86,7 @@ export function NavBar() {
                   <DropdownMenuItem asChild>
                     <Link href="/settings">
                       <span className="flex items-center">
-                        <Settings className="mr-2 h-4 w-4" />
+                        <Settings className="mr-2 h-4 w-4 text-foreground" />
                         Settings
                       </span>
                     </Link>
@@ -98,9 +98,9 @@ export function NavBar() {
                   >
                     <span className="flex items-center">
                       {logoutMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-foreground" />
                       ) : (
-                        <LogOut className="mr-2 h-4 w-4" />
+                        <LogOut className="mr-2 h-4 w-4 text-foreground" />
                       )}
                       {logoutMutation.isPending ? "Logging out..." : "Log out"}
                     </span>
@@ -110,7 +110,7 @@ export function NavBar() {
                 <DropdownMenuItem asChild>
                   <Link href="/login">
                     <span className="flex items-center">
-                      <LogIn className="mr-2 h-4 w-4" />
+                      <LogIn className="mr-2 h-4 w-4 text-foreground" />
                       Log in
                     </span>
                   </Link>
