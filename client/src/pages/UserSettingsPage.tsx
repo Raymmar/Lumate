@@ -11,10 +11,14 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ADMIN_EMAILS } from "@/components/AdminGuard";
+import { useTheme } from "@/hooks/use-theme";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
 
   const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
@@ -57,7 +61,7 @@ export default function UserSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="py-6 max-w-2xl mx-auto">
+      <div className="py-6 max-w-2xl mx-auto space-y-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -102,6 +106,33 @@ export default function UserSettingsPage() {
                 )}
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Appearance</CardTitle>
+            <CardDescription>
+              Customize the appearance of the application
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="theme">Theme</Label>
+              <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">Light</SelectItem>
+                  <SelectItem value="dark">Dark</SelectItem>
+                  <SelectItem value="system">System</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Choose your preferred theme or sync with your system settings
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
