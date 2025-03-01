@@ -21,8 +21,8 @@ export function NavBar() {
   const isAdminPage = location.startsWith("/admin");
 
   return (
-    <div className="border-b bg-white relative z-50">
-      <div className="flex h-16 items-center pl-2 pr-4">
+    <header className="sticky top-0 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 shadow-sm">
+      <nav className="flex h-16 items-center pl-2 pr-4">
         <Link href="/">
           <div className="flex items-center">
             <img 
@@ -119,7 +119,7 @@ export function NavBar() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-    </div>
+      </nav>
+    </header>
   );
 }
