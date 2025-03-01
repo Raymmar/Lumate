@@ -133,44 +133,46 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
 
       <div className="space-y-6">
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-semibold">{event.title}</h2>
-            <Badge variant={syncStatus ? "outline" : "secondary"}>
-              {syncStatus ? (
-                <>
-                  Synced
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({formatLastSyncTime(lastSyncTime!)})
-                  </span>
-                </>
-              ) : (
-                "Not synced"
-              )}
-            </Badge>
-          </div>
+          <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
           {event.description && (
-            <p className="text-muted-foreground line-clamp-2">{event.description}</p>
+            <p className="text-muted-foreground line-clamp-2 mb-4">{event.description}</p>
           )}
-        </div>
 
-        <Button
-          variant="default"
-          className="w-full bg-black/75 text-white hover:bg-black/90"
-          onClick={handleSyncAttendees}
-          disabled={isSyncing}
-        >
-          <Users className="h-4 w-4 mr-2" />
-          {isSyncing ? (
-            <>
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              Syncing Attendees...
-            </>
-          ) : syncStatus ? (
-            "Re-sync Attendees"
-          ) : (
-            "Sync Attendees"
-          )}
-        </Button>
+          <div className="space-y-2">
+            <Button
+              variant="default"
+              className="w-full bg-black/75 text-white hover:bg-black/90"
+              onClick={handleSyncAttendees}
+              disabled={isSyncing}
+            >
+              {isSyncing ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Syncing Attendees...
+                </>
+              ) : syncStatus ? (
+                "Re-sync Attendees"
+              ) : (
+                "Sync Attendees"
+              )}
+            </Button>
+
+            <div className="flex items-center justify-center">
+              <Badge variant={syncStatus ? "outline" : "secondary"}>
+                {syncStatus ? (
+                  <>
+                    Synced
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      ({formatLastSyncTime(lastSyncTime!)})
+                    </span>
+                  </>
+                ) : (
+                  "Not synced"
+                )}
+              </Badge>
+            </div>
+          </div>
+        </div>
 
         <Card>
           <CardContent className="p-6 space-y-4">
