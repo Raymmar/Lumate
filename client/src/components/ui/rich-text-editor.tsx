@@ -11,8 +11,6 @@ import {
   Heading3,
   Minus,
   Link,
-  Undo,
-  Redo
 } from 'lucide-react'
 import { Toggle } from './toggle'
 
@@ -121,22 +119,6 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
         >
           <Minus className="h-4 w-4" />
         </MenuButton>
-
-        <div className="flex ml-auto">
-          <MenuButton
-            onClick={() => editor.chain().focus().undo().run()}
-            isActive={false}
-          >
-            <Undo className="h-4 w-4" />
-          </MenuButton>
-
-          <MenuButton
-            onClick={() => editor.chain().focus().redo().run()}
-            isActive={false}
-          >
-            <Redo className="h-4 w-4" />
-          </MenuButton>
-        </div>
       </div>
 
       <EditorContent 
