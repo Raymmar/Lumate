@@ -19,136 +19,43 @@ async function syncEventAttendees(event: Event) {
         ...(cursor ? { pagination_cursor: cursor } : {})
       });
 
-      // Log API request details
-      console.log('Making API request:', {
-        url: `https://api.lu.ma/public/v1/event/get-guests?${params}`,
-        headers: {
-          'x-luma-api-key': 'PRESENT', // Don't log actual key
-          'accept': 'application/json',
-          'content-type': 'application/json'
-        }
-      });
-
       const response = await fetch(
         `https://api.lu.ma/public/v1/event/get-guests?${params}`,
         {
           headers: {
-            'accept': 'application/json',
-            'content-type': 'application/json',
-            'x-luma-api-key': process.env.LUMA_API_KEY || ''
+            'Authorization': `Bearer ${process.env.LUMA_API_KEY}`
           }
         }
       );
 
-      // Log API response status and headers
-      console.log('API Response details:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
       if (!response.ok) {
-        throw new Error(`Failed to fetch guests: ${response.status} ${response.statusText}`);
+        throw new Error('Failed to fetch guests');
       }
 
       const data = await response.json();
-
-      // Log raw API response for debugging
-      console.log('Raw API Response:', {
-        totalGuests: data.guests?.length,
-        firstGuest: data.guests?.[0]?.guest ? {
-          guestId: data.guests[0].guest.api_id,
-          email: data.guests[0].guest.email,
-          checkedInAt: data.guests[0].guest.checked_in_at,
-          eventTicket: data.guests[0].guest.event_ticket,
-          hasTicketCheckIn: data.guests[0].guest.event_ticket?.checked_in_at !== null
-        } : null,
-        hasMore: data.has_more
-      });
-
-      // Process each guest wrapper in this batch
-      for (const guestWrapper of (data.guests || [])) {
-        const guest = guestWrapper.guest;
-
-        if (guest.approval_status === 'approved') {
-          // Enhanced logging for check-in data
-          console.log('Processing guest check-in data:', {
-            guestId: guest.api_id,
-            email: guest.email,
-            name: guest.name,
-            status: guest.approval_status,
-            registeredAt: guest.registered_at,
-            guestCheckedInAt: guest.checked_in_at, // Direct check-in time
-            ticketCheckedInAt: guest.event_ticket?.checked_in_at, // Ticket check-in time
-          });
-
-          // Determine the actual check-in time by checking both sources
-          let checkedInAt = null;
-          const guestCheckIn = guest.checked_in_at;
-          const ticketCheckIn = guest.event_ticket?.checked_in_at;
-
-          // Convert valid timestamps to ISO string format
-          if (guestCheckIn) {
-            checkedInAt = new Date(guestCheckIn).toISOString();
-          } else if (ticketCheckIn) {
-            checkedInAt = new Date(ticketCheckIn).toISOString();
-          }
-
-          if (checkedInAt) {
-            console.log(`Found and formatted check-in time for guest ${guest.email}:`, {
-              originalGuestCheckIn: guestCheckIn,
-              originalTicketCheckIn: ticketCheckIn,
-              formattedCheckInTime: checkedInAt
-            });
-          }
-
-          // Store attendance with check-in data
-          const storedAttendance = await storage.upsertAttendance({
-            guestApiId: guest.api_id,
-            eventApiId: event.api_id,
-            userEmail: guest.email.toLowerCase(),
-            registeredAt: new Date(guest.registered_at).toISOString(),
-            checkedInAt,
-            approvalStatus: guest.approval_status,
-          });
-
-          // Verify storage after upsert
-          console.log('Stored attendance record:', {
-            guestId: guest.api_id,
-            email: guest.email,
-            storedCheckedInAt: storedAttendance.checkedInAt,
-            originalCheckedInAt: checkedInAt,
-            storedSuccessfully: storedAttendance.checkedInAt === checkedInAt
-          });
-
-          allGuests.push(guest);
-        }
-      }
+      // Filter for approved guests only
+      const approvedGuests = (data.guests || []).filter((guest: any) => guest.approval_status === 'approved');
+      allGuests.push(...approvedGuests);
 
       hasMore = data.has_more;
-      cursor = data.next_cursor;
+      cursor = data.pagination_cursor;
       page++;
+    }
 
-      // Small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+    // Process and store approved guests
+    for (const guest of allGuests) {
+      await storage.upsertAttendance({
+        guestApiId: guest.api_id,
+        eventApiId: event.api_id,
+        userEmail: guest.email.toLowerCase(),
+        registeredAt: guest.registered_at,
+        approvalStatus: guest.approval_status,
+      });
     }
 
     // Update event sync timestamp
     await storage.updateEventAttendanceSync(event.api_id);
-
-    // Log final statistics
-    const checkedInCount = allGuests.filter(guest => 
-      guest.checked_in_at || (guest.event_ticket && guest.event_ticket.checked_in_at)
-    ).length;
-
-    console.log('Sync completed - Check-in statistics:', {
-      eventId: event.api_id,
-      eventTitle: event.title,
-      totalGuests: allGuests.length,
-      checkedInGuests: checkedInCount,
-      checkInPercentage: allGuests.length ? (checkedInCount / allGuests.length * 100).toFixed(1) + '%' : '0%'
-    });
-
+    console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
   }
@@ -161,6 +68,7 @@ export function startEventSyncService() {
   setInterval(async () => {
     try {
       const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
+
       console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
 
       for (const event of recentlyEndedEvents) {

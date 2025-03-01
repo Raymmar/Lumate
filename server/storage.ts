@@ -69,8 +69,6 @@ export interface IStorage {
   updatePersonStats(personId: number): Promise<Person>;
   getTopAttendees(limit?: number): Promise<Person[]>;
   getFeaturedEvent(): Promise<Event | null>;
-  // Add new method for getting attendance by guest ID
-  getAttendanceByGuestId(guestApiId: string): Promise<Attendance | null>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -623,9 +621,7 @@ export class PostgresStorage implements IStorage {
       console.log('Attempting to upsert attendance record:', {
         eventApiId: data.eventApiId,
         userEmail: data.userEmail,
-        guestApiId: data.guestApiId,
-        checkedInAt: data.checkedInAt, // Log check-in time
-        registeredAt: data.registeredAt
+        guestApiId: data.guestApiId
       });
 
       // First, try to find matching user and person by email
@@ -658,8 +654,6 @@ export class PostgresStorage implements IStorage {
           target: attendance.guestApiId,
           set: {
             approvalStatus: data.approvalStatus,
-            checkedInAt: data.checkedInAt,
-            registeredAt: data.registeredAt,
             userId: matchingUser?.id,
             personId: matchingPerson?.id,
             lastSyncedAt: new Date().toISOString()
@@ -671,9 +665,7 @@ export class PostgresStorage implements IStorage {
         id: result.id,
         guestApiId: result.guestApiId,
         userId: result.userId,
-        personId: result.personId,
-        checkedInAt: result.checkedInAt, // Log the stored check-in time
-        registeredAt: result.registeredAt
+        personId: result.personId
       });
 
       // After successfully upserting attendance, update the person's stats
@@ -821,8 +813,7 @@ export class PostgresStorage implements IStorage {
       // Get all attendance records for this person
       const attendanceRecords = await db
         .select({
-          registeredAt: attendance.registeredAt,
-          checkedInAt: attendance.checkedInAt
+          registeredAt: attendance.registeredAt
         })
         .from(attendance)
         .where(eq(attendance.personId, personId))
@@ -830,7 +821,6 @@ export class PostgresStorage implements IStorage {
 
       const stats: Record<string, any> = {
         totalEventsAttended: attendanceRecords.length,
-        totalCheckins: attendanceRecords.filter(record => record.checkedInAt !== null).length,
         firstEventDate: attendanceRecords[0]?.registeredAt || null,
         lastEventDate: attendanceRecords[attendanceRecords.length - 1]?.registeredAt || null,
         lastUpdated: new Date().toISOString()
@@ -840,10 +830,11 @@ export class PostgresStorage implements IStorage {
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
-        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); // Average year length
         if (yearsDiff > 0) {
           stats.averageEventsPerYear = stats.totalEventsAttended / yearsDiff;
         } else {
+          // If less than a year, project to annual rate
           stats.averageEventsPerYear = stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
         }
       }
@@ -899,20 +890,6 @@ export class PostgresStorage implements IStorage {
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get featured event:', error);
-      throw error;
-    }
-  }
-  async getAttendanceByGuestId(guestApiId: string): Promise<Attendance | null> {
-    try {
-      const result = await db
-        .select()
-        .from(attendance)
-        .where(eq(attendance.guestApiId, guestApiId))
-        .limit(1);
-
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get attendance by guest ID:', error);
       throw error;
     }
   }

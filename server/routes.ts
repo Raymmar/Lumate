@@ -297,18 +297,14 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      // Get all events attended and check-ins
-      const attendanceStats = await db
-        .select({
-          totalEvents: sql`COUNT(DISTINCT event_api_id)`,
-          totalCheckins: sql`COUNT(CASE WHEN checked_in_at IS NOT NULL THEN 1 END)`
-        })
+      // Count number of events attended
+      const attendanceCount = await db
+        .select({ count: sql`count(*)` })
         .from(attendance)
         .where(person.id ? eq(attendance.personId, person.id) : sql`1=0`); // Handle missing person.id
 
       res.json({
-        attendanceCount: Number(attendanceStats[0]?.totalEvents || 0),
-        checkinCount: Number(attendanceStats[0]?.totalCheckins || 0),
+        attendanceCount: Number(attendanceCount[0]?.count || 0),
         firstSeen: person.createdAt
       });
     } catch (error) {
@@ -1277,103 +1273,6 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         error: "Failed to send invite",
         message: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Add new test route after existing routes
-  app.post("/_internal/test-checkin", async (req, res) => {
-    try {
-      // Check if request is coming from localhost or development
-      const requestIP = req.ip || req.socket.remoteAddress;
-      const isLocalRequest = requestIP === '127.0.0.1' || requestIP === '::1' || requestIP === 'localhost';
-      const isDevelopment = process.env.NODE_ENV === 'development';
-
-      if (!isLocalRequest && !isDevelopment) {
-        console.warn(`Unauthorized test endpoint access attempt from ${requestIP}`);
-        return res.status(403).json({ error: "Forbidden. This endpoint is restricted to internal use only." });
-      }
-
-      // Create test data mimicking Luma API response structure
-      const testTime = new Date().toISOString();
-      const guestData = {
-        api_id: "test-guest-" + Date.now(),
-        email: "test@example.com",
-        checked_in_at: testTime,
-        event_ticket: {
-          checked_in_at: null // Test with guest check-in only
-        },
-        registered_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-        approval_status: "approved"
-      };
-
-      console.log('Test check-in data:', {
-        guestId: guestData.api_id,
-        email: guestData.email,
-        checkedInAt: guestData.checked_in_at,
-        ticketCheckedInAt: guestData.event_ticket.checked_in_at
-      });
-
-      // Process check-in time like in eventSyncService
-      let checkedInAt = null;
-      const guestCheckIn = guestData.checked_in_at;
-      const ticketCheckIn = guestData.event_ticket?.checked_in_at;
-
-      if (guestCheckIn) {
-        checkedInAt = new Date(guestCheckIn).toISOString();
-      } else if (ticketCheckIn) {
-        checkedInAt = new Date(ticketCheckIn).toISOString();
-      }
-
-      console.log('Processed check-in time:', {
-        original: guestCheckIn,
-        formatted: checkedInAt
-      });
-
-      // Store test attendance record
-      const storedAttendance = await storage.upsertAttendance({
-        guestApiId: guestData.api_id,
-        eventApiId: "test-event-" + Date.now(),
-        userEmail: guestData.email.toLowerCase(),
-        registeredAt: new Date(guestData.registered_at).toISOString(),
-        checkedInAt,
-        approvalStatus: guestData.approval_status,
-      });
-
-      console.log('Stored attendance record:', {
-        id: storedAttendance.id,
-        guestId: storedAttendance.guestApiId,
-        storedCheckedInAt: storedAttendance.checkedInAt,
-        originalCheckedInAt: checkedInAt,
-        storedSuccessfully: storedAttendance.checkedInAt === checkedInAt
-      });
-
-      // Verify storage by retrieving the record
-      const verifyAttendance = await storage.getAttendanceByGuestId(guestData.api_id);
-
-      res.json({
-        message: "Test check-in processed",
-        original: {
-          guestCheckIn,
-          ticketCheckIn
-        },
-        processed: {
-          checkedInAt
-        },
-        stored: {
-          id: storedAttendance.id,
-          checkedInAt: storedAttendance.checkedInAt
-        },
-        verified: {
-          found: !!verifyAttendance,
-          checkedInAt: verifyAttendance?.checkedInAt
-        }
-      });
-    } catch (error) {
-      console.error('Failed to process test check-in:', error);
-      res.status(500).json({ 
-        error: "Failed to process test check-in", 
-        details: error instanceof Error ? error.message : String(error) 
       });
     }
   });
