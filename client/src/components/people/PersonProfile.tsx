@@ -35,6 +35,17 @@ interface StatsCardProps {
   description?: string;
 }
 
+interface Event {
+  id: number;
+  api_id: string;
+  title: string;
+  description: string | null;
+  startTime: string;
+  endTime: string;
+  coverUrl: string | null;
+  url: string | null;
+}
+
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
   return (
     <div className="flex items-center gap-3">
@@ -49,67 +60,6 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
             <span className="text-xs text-muted-foreground">({description})</span>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-interface Event {
-  id: number;
-  api_id: string;
-  title: string;
-  description: string | null;
-  startTime: string;
-  endTime: string;
-  coverUrl: string | null;
-  url: string | null;
-}
-
-function EventsList({ personId }: { personId: string }) {
-  const { data: events, isLoading } = useQuery<Event[]>({
-    queryKey: ['/api/people', personId, 'events'],
-    queryFn: async () => {
-      const response = await fetch(`/api/people/${personId}/events`);
-      if (!response.ok) throw new Error('Failed to fetch events');
-      return response.json();
-    }
-  });
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-16 w-full" />
-        ))}
-      </div>
-    );
-  }
-
-  if (!events?.length) {
-    return (
-      <p className="text-sm text-muted-foreground">No events attended yet.</p>
-    );
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium">Recent Events</h3>
-        <Button variant="ghost" size="sm" className="h-8 text-xs">
-          All Events <ChevronDown className="ml-1 h-4 w-4" />
-        </Button>
-      </div>
-      <div className="space-y-1">
-        {events.map((event) => (
-          <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
-            <div>
-              <p className="text-sm font-medium">{event.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
-              </p>
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -136,6 +86,15 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     queryFn: async () => {
       const response = await fetch(`/api/people/${personId}/stats`);
       if (!response.ok) throw new Error('Failed to fetch person stats');
+      return response.json();
+    }
+  });
+
+  const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
+    queryKey: ['/api/people', personId, 'events'],
+    queryFn: async () => {
+      const response = await fetch(`/api/people/${personId}/events`);
+      if (!response.ok) throw new Error('Failed to fetch events');
       return response.json();
     }
   });
@@ -192,7 +151,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     claimProfileMutation.mutate(email);
   };
 
-  const isLoading = personLoading || statsLoading || statusLoading;
+  const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
 
   if (error) {
