@@ -21,31 +21,32 @@ export function PostsTable({ onSelect }: PostsTableProps) {
     }
   });
 
-  const columns: ColumnDef<Post>[] = [
+  const columns = [
     {
-      accessorKey: "title",
+      key: "title",
       header: "Title",
+      cell: (row: Post) => row.title
     },
     {
-      accessorKey: "isPinned",
+      key: "status",
       header: "Status",
-      cell: ({ row }) => (
+      cell: (row: Post) => (
         <div className="flex items-center gap-2">
-          {row.original.isPinned && (
+          {row.isPinned && (
             <Badge variant="secondary">Pinned</Badge>
           )}
         </div>
-      ),
+      )
     },
     {
-      accessorKey: "createdAt",
+      key: "createdAt",
       header: "Created",
-      cell: ({ row }) => format(new Date(row.original.createdAt), 'MMM d, yyyy'),
+      cell: (row: Post) => format(new Date(row.createdAt), 'MMM d, yyyy')
     },
     {
-      accessorKey: "updatedAt",
+      key: "updatedAt",
       header: "Last Updated",
-      cell: ({ row }) => format(new Date(row.original.updatedAt), 'MMM d, yyyy'),
+      cell: (row: Post) => format(new Date(row.updatedAt), 'MMM d, yyyy')
     },
   ];
 

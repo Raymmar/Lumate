@@ -49,7 +49,9 @@ export function DataTable<T>({ data, columns, actions, onRowClick }: DataTablePr
               className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
             >
               {columns.map((column) => (
-                <TableCell key={column.key}>{column.cell(row)}</TableCell>
+                <TableCell key={column.key}>
+                  {column.cell(row)}
+                </TableCell>
               ))}
               {actions && (
                 <TableCell>
