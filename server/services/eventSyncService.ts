@@ -19,6 +19,16 @@ async function syncEventAttendees(event: Event) {
         ...(cursor ? { pagination_cursor: cursor } : {})
       });
 
+      // Log API request details
+      console.log('Making API request:', {
+        url: `https://api.lu.ma/public/v1/event/get-guests?${params}`,
+        headers: {
+          'x-luma-api-key': 'PRESENT', // Don't log actual key
+          'accept': 'application/json',
+          'content-type': 'application/json'
+        }
+      });
+
       const response = await fetch(
         `https://api.lu.ma/public/v1/event/get-guests?${params}`,
         {
@@ -30,8 +40,15 @@ async function syncEventAttendees(event: Event) {
         }
       );
 
+      // Log API response status and headers
+      console.log('API Response details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
-        throw new Error('Failed to fetch guests');
+        throw new Error(`Failed to fetch guests: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
