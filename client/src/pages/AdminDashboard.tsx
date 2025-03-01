@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, UserPlus, CreditCard, RefreshCcw } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard, RefreshCcw, DollarSign } from "lucide-react";
 import { AdminGuard } from "@/components/AdminGuard";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -138,7 +138,14 @@ export default function AdminDashboard() {
                 </Button>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <StatCard
+                  title="Membership Revenue"
+                  value="$0.00"
+                  icon={DollarSign}
+                  isLoading={isLoading}
+                  description="Total revenue from memberships"
+                />
                 <StatCard
                   title="Total Events"
                   value={statsData?.events || 0}
