@@ -2,6 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Calendar } from "lucide-react";
+import { StatCard } from "@/components/StatCard";
 
 // Links Section
 function LinksSection() {
@@ -78,8 +81,8 @@ function SponsorsSection() {
       <CardContent>
         <div className="grid grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="aspect-square bg-muted/50 rounded-lg border border-dashed flex items-center justify-center text-muted-foreground"
             >
               Sponsor {i}
@@ -115,6 +118,17 @@ function CommunityNews() {
 }
 
 export function BulletinBoard() {
+  const { data: statsData, isLoading } = useQuery({
+    queryKey: ["/api/admin/stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/stats");
+      if (!response.ok) {
+        throw new Error("Failed to fetch stats");
+      }
+      return response.json();
+    }
+  });
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 grid-cols-2">
@@ -124,6 +138,31 @@ export function BulletinBoard() {
 
       <SponsorsSection />
       <CommunityNews />
+
+      {/* Stats Section */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard
+          title="Total Events"
+          value={statsData?.events || 0}
+          icon={Calendar}
+          isLoading={isLoading}
+          description="Total number of events hosted"
+        />
+        <StatCard
+          title="Total Attendees"
+          value={statsData?.totalAttendees || 0}
+          icon={Users}
+          isLoading={isLoading}
+          description="Total event attendance count"
+        />
+        <StatCard
+          title="Unique Attendees"
+          value={statsData?.uniqueAttendees || 0}
+          icon={Users}
+          isLoading={isLoading}
+          description="Individual people who have attended events"
+        />
+      </div>
     </div>
   );
 }
