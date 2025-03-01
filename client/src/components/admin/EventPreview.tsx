@@ -12,7 +12,11 @@ import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface EventPreviewProps {
-  event: Event & { isSynced?: boolean; lastSyncedAt?: string | null };
+  event: Event & { 
+    isSynced?: boolean; 
+    lastSyncedAt?: string | null;
+    lastAttendanceSync?: string | null;
+  };
   onSync?: (eventId: string) => void;
   onStartSync?: (eventId: string) => void;
 }
@@ -21,8 +25,8 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [localSyncStatus, setLocalSyncStatus] = useState({
-    isSynced: event.isSynced,
-    lastSyncedAt: event.lastSyncedAt
+    isSynced: !!event.lastAttendanceSync,
+    lastSyncedAt: event.lastAttendanceSync
   });
   const queryClient = useQueryClient();
 
@@ -34,17 +38,19 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     },
-    enabled: !!event.api_id // Only run query if we have an event ID
+    enabled: !!event.api_id
   });
 
-  const formatLastSyncTime = (dateStr: string) => {
+  const formatLastSyncTime = (dateStr: string | null | undefined) => {
+    if (!dateStr) return "Never synced";
+
     try {
       // First parse the date string, ensuring we interpret it as UTC
       const utcDate = new Date(dateStr + 'Z');
 
       return formatInTimeZone(
         utcDate,
-        event.timezone || 'America/New_York', // Use event timezone if available
+        event.timezone || 'America/New_York',
         'MMM d, h:mm aa zzz'
       );
     } catch (error) {
@@ -55,19 +61,16 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
 
   const handleSyncAttendees = async () => {
     setIsSyncing(true);
-    // Notify parent that sync is starting
     if (onStartSync) {
       onStartSync(event.api_id);
     }
 
-    // Start the sync in the background
     fetch(`/api/admin/events/${event.api_id}/guests`)
       .then(async (response) => {
         if (!response.ok) {
           throw new Error('Failed to fetch attendees');
         }
         const data = await response.json();
-        console.log('Attendees data:', data);
 
         // Optimistically update local state
         const now = new Date().toISOString();
@@ -76,7 +79,6 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
           lastSyncedAt: now
         });
 
-        // Notify parent component if callback exists
         if (onSync) {
           onSync(event.api_id);
         }
@@ -86,9 +88,8 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
           description: "Successfully synced attendees data",
         });
 
-        // Invalidate events query to refresh sync status
+        // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-        // Also invalidate attendees query to refresh the list
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
       })
       .catch((error) => {
@@ -104,9 +105,10 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
       });
   };
 
-  // Use local state for rendering
-  const syncStatus = localSyncStatus.isSynced;
-  const lastSyncTime = localSyncStatus.lastSyncedAt;
+  // Derive sync status from attendees count and last sync time
+  const hasSyncedAttendees = attendees.length > 0;
+  const syncStatus = localSyncStatus.isSynced || hasSyncedAttendees;
+  const lastSyncTime = localSyncStatus.lastSyncedAt || event.lastAttendanceSync;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -122,7 +124,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
               <Button 
                 variant="default" 
                 className="bg-black/75 text-white hover:bg-black/90"
-                onClick={() => window.open(event.url, '_blank')}
+                onClick={() => event.url && window.open(event.url, '_blank')}
               >
                 Manage event
               </Button>
@@ -163,7 +165,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                   <>
                     Synced
                     <span className="ml-1 text-xs text-muted-foreground">
-                      ({formatLastSyncTime(lastSyncTime!)})
+                      ({formatLastSyncTime(lastSyncTime)})
                     </span>
                   </>
                 ) : (
@@ -242,7 +244,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                   >
                     <Avatar className="h-8 w-8">
                       {person.avatarUrl ? (
-                        <AvatarImage src={person.avatarUrl} alt={person.userName} />
+                        <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
                       ) : (
                         <AvatarFallback>
                           {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}

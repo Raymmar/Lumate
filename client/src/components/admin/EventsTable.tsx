@@ -8,11 +8,17 @@ import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 
-export function EventsTable() {
-  const [selectedEvent, setSelectedEvent] = useState<(Event & { isSynced: boolean; lastSyncedAt: string | null; api_id: string }) | null>(null);
-  const [syncingEvents, setSyncingEvents] = useState<Set<string>>(new Set());
+interface EventWithSync extends Event {
+  isSynced: boolean;
+  lastSyncedAt: string | null;
+  lastAttendanceSync: string | null;
+}
 
-  const { data: events = [], isLoading } = useQuery<(Event & { isSynced: boolean; lastSyncedAt: string | null })[]>({
+export function EventsTable() {
+  const [selectedEvent, setSelectedEvent] = useState<EventWithSync | null>(null);
+  const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
+
+  const { data: events = [], isLoading } = useQuery<EventWithSync[]>({
     queryKey: ["/api/admin/events"],
     queryFn: async () => {
       const response = await fetch("/api/admin/events");
@@ -22,26 +28,23 @@ export function EventsTable() {
   });
 
   const handleStartSync = (eventId: string) => {
-    setSyncingEvents(prev => new Set([...prev, eventId]));
+    setSyncingEvents(prev => [...prev, eventId]);
   };
 
   const handleSync = (eventId: string) => {
-    // Remove from syncing set
-    setSyncingEvents(prev => {
-      const next = new Set(prev);
-      next.delete(eventId);
-      return next;
-    });
+    setSyncingEvents(prev => prev.filter(id => id !== eventId));
   };
 
-  const formatLastSyncTime = (dateStr: string, timezone: string | null) => {
+  const formatLastSyncTime = (dateStr: string | null, timezone: string | null) => {
+    if (!dateStr) return "Never synced";
+
     try {
       // First parse the date string, ensuring we interpret it as UTC
       const utcDate = new Date(dateStr + 'Z');
 
       return formatInTimeZone(
         utcDate,
-        timezone || 'America/New_York', // Use event timezone if available
+        timezone || 'America/New_York',
         'MMM d, h:mm aa zzz'
       );
     } catch (error) {
@@ -54,18 +57,19 @@ export function EventsTable() {
     {
       key: "title",
       header: "Event Name",
-      cell: (row: Event) => row.title,
+      cell: (row: EventWithSync) => row.title,
     },
     {
       key: "startTime",
       header: "Start Date",
-      cell: (row: Event) => formatLastSyncTime(row.startTime, row.timezone),
+      cell: (row: EventWithSync) => formatLastSyncTime(row.startTime, row.timezone),
     },
     {
       key: "sync",
       header: "Sync Status",
-      cell: (row: any) => {
-        const isSyncing = syncingEvents.has(row.api_id);
+      cell: (row: EventWithSync) => {
+        const isSyncing = syncingEvents.includes(row.api_id);
+        const isSynced = row.lastAttendanceSync !== null;
 
         if (isSyncing) {
           return (
@@ -77,12 +81,12 @@ export function EventsTable() {
         }
 
         return (
-          <Badge variant={row.isSynced ? "outline" : "secondary"}>
-            {row.isSynced ? (
+          <Badge variant={isSynced ? "outline" : "secondary"}>
+            {isSynced ? (
               <>
                 Synced
                 <span className="ml-1 text-xs text-muted-foreground">
-                  ({formatLastSyncTime(row.lastSyncedAt!, row.timezone)})
+                  ({formatLastSyncTime(row.lastAttendanceSync, row.timezone)})
                 </span>
               </>
             ) : (
@@ -97,13 +101,13 @@ export function EventsTable() {
   const actions = [
     {
       label: "View details",
-      onClick: (event: Event) => {
+      onClick: (event: EventWithSync) => {
         setSelectedEvent(event);
       },
     },
     {
       label: "Manage event",
-      onClick: (event: Event) => {
+      onClick: (event: EventWithSync) => {
         if (event.url) {
           window.open(event.url, '_blank');
         }
@@ -111,7 +115,7 @@ export function EventsTable() {
     },
   ];
 
-  const onRowClick = (event: Event) => {
+  const onRowClick = (event: EventWithSync) => {
     setSelectedEvent(event);
   };
 
