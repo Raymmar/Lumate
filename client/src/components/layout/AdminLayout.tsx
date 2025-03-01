@@ -13,11 +13,10 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
     <AdminGuard>
       <div className="min-h-screen bg-background">
         <NavBar />
-
         <PageContainer>
-          <div className="flex pt-16">
+          <div className="flex">
             {/* Fixed Sidebar */}
-            <div className="w-64 fixed top-16 bottom-0 bg-background border-r z-40 overflow-y-auto">
+            <div className="w-64 fixed left-0 top-14 bottom-0 bg-background border-r z-40 overflow-y-auto">
               <div className="p-4 space-y-4">
                 <h2 className="font-semibold">Admin Panel</h2>
                 <AdminTabs />
@@ -26,8 +25,8 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
             {/* Main content area with independent scroll */}
             <div className="flex-1 pl-64">
-              <div className="p-6">
-                <h1 className="text-2xl font-bold mb-6">{title}</h1>
+              <div className="p-4">
+                <h1 className="text-2xl font-bold mb-4">{title}</h1>
                 {children}
               </div>
             </div>
