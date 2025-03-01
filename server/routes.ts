@@ -185,6 +185,7 @@ export async function registerRoutes(app: Express) {
   });
 
 
+
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -926,8 +927,7 @@ export async function registerRoutes(app: Express) {
       let allGuests: any[] = [];
       let hasMore = true;
       let cursor = undefined;
-      let iterationCount = 0;
-      const MAX_ITERATIONS = 100; // Safety limit
+      let iterationCount = 0;      const MAX_ITERATIONS = 100; // Safety limit
 
       console.log('Starting guest sync for event:', eventId);
 
@@ -1124,6 +1124,50 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);
       res.status(500).json({ error: "Failed to fetch attendees" });
+    }
+  });
+
+  app.post("/api/events/send-invite", async (req, res) => {
+    try {
+      const { email, event_api_id } = req.body;
+
+      if (!email || !event_api_id) {
+        return res.status(400).json({ error: "Missing email or event_api_id" });
+      }
+
+      console.log('Sending invite for event:', {
+        eventId: event_api_id,
+        userEmail: email
+      });
+
+      const response = await lumaApiRequest(
+        'event/send-invites',
+        undefined, // no query params needed
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            guests: [{ email }],
+            event_api_id
+          })
+        }
+      );
+
+      console.log('Invite sent successfully:', {
+        eventId: event_api_id,
+        userEmail: email,
+        response
+      });
+
+      res.json({ 
+        message: "Invite sent successfully. Please check your email.",
+        details: response
+      });
+    } catch (error) {
+      console.error('Failed to send invite:', error);
+      res.status(500).json({ 
+        error: "Failed to send invite",
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
