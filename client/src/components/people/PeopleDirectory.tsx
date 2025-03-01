@@ -127,9 +127,9 @@ export default function PeopleDirectory() {
 
       {isLoading ? (
         <div className="space-y-1">
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
-          <Skeleton className="h-10" />
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
         </div>
       ) : data?.people && data.people.length > 0 ? (
         <>
@@ -138,18 +138,18 @@ export default function PeopleDirectory() {
               {data.people.map((person, index) => (
                 <div
                   key={person.api_id}
-                  className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
+                  className={`flex items-center gap-2 py-2 px-2 rounded-lg transition-colors cursor-pointer ${
                     (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   }`}
                   onClick={() => handlePersonClick(person.api_id)}
                 >
-                  <Avatar className="h-7 w-7">
+                  <Avatar className="h-8 w-8">
                     {person.avatarUrl ? (
                       <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
                     ) : (
-                      <AvatarFallback className="text-xs">
+                      <AvatarFallback className="text-sm">
                         {person.userName
                           ? person.userName
                               .split(" ")
@@ -160,7 +160,7 @@ export default function PeopleDirectory() {
                     )}
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{person.userName || "Anonymous"}</p>
+                    <p className="text-base font-medium truncate">{person.userName || "Anonymous"}</p>
                   </div>
                 </div>
               ))}
