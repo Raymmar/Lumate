@@ -136,9 +136,6 @@ export function BulletinBoard() {
         <JoinUsSection />
       </div>
 
-      <SponsorsSection />
-      <CommunityNews />
-
       {/* Stats Section */}
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
@@ -163,6 +160,9 @@ export function BulletinBoard() {
           description="Individual people who have attended events"
         />
       </div>
+
+      <CommunityNews />
+      <SponsorsSection />
     </div>
   );
 }
