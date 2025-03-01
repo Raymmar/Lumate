@@ -15,10 +15,7 @@ export default function PostsPage() {
 
   const handleCreatePost = async (data: InsertPost) => {
     try {
-      await apiRequest("/api/admin/posts", {
-        method: "POST",
-        body: JSON.stringify(data)
-      });
+      await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
       toast({
         title: "Success",
