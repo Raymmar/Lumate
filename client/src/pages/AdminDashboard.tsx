@@ -8,6 +8,8 @@ import { AdminTabs } from "@/components/admin/AdminTabs";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { SyncModal } from "@/components/admin/SyncModal";
 
 function StatCard({ 
   title, 
@@ -49,41 +51,17 @@ export default function AdminDashboard() {
     }
   });
 
-  const [isResetting, setIsResetting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast } = useToast();
 
-  const handleResetAndSync = async () => {
-    setIsResetting(true);
-    try {
-      const response = await fetch('/_internal/reset-database', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+  const handleStartSync = () => {
+    setIsSyncing(true);
+  };
 
-      if (!response.ok) {
-        throw new Error('Failed to reset and sync data');
-      }
-
-      toast({
-        title: "Success",
-        description: "Data has been reset and synced successfully.",
-      });
-
-      // Reload the page to show updated data
-      window.location.reload();
-    } catch (error) {
-      console.error('Error resetting data:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to reset and sync data",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResetting(false);
-    }
+  const handleSyncComplete = () => {
+    setIsSyncing(false);
+    // Reload the page to show updated data after sync completes
+    window.location.reload();
   };
 
   return (
@@ -114,10 +92,10 @@ export default function AdminDashboard() {
                 <Button
                   variant="default"
                   className="bg-black hover:bg-black/90"
-                  onClick={handleResetAndSync}
-                  disabled={isResetting}
+                  onClick={handleStartSync}
+                  disabled={isSyncing}
                 >
-                  {isResetting ? (
+                  {isSyncing ? (
                     <>
                       <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
                       Syncing...
@@ -161,6 +139,13 @@ export default function AdminDashboard() {
           </div>
         </PageContainer>
       </div>
+
+      {/* Sync Modal */}
+      <Sheet open={isSyncing} onOpenChange={(open) => !open && setIsSyncing(false)}>
+        <SheetContent>
+          <SyncModal isOpen={isSyncing} onComplete={handleSyncComplete} />
+        </SheetContent>
+      </Sheet>
     </AdminGuard>
   );
 }
