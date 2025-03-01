@@ -132,6 +132,7 @@ export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 export type User = typeof users.$inferSelect & {
+  role?: 'admin' | 'user';
   api_id?: string;
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
