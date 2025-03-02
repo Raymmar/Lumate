@@ -47,7 +47,10 @@ export function FileUpload({
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
       });
 
       if (!response.ok) {
@@ -65,6 +68,12 @@ export function FileUpload({
 
       // Clean up the temporary preview URL
       URL.revokeObjectURL(objectUrl);
+
+      // Verify the URL is accessible
+      const imgResponse = await fetch(data.url, { method: 'HEAD' });
+      if (!imgResponse.ok) {
+        throw new Error('Failed to verify uploaded image');
+      }
 
       // Set the actual uploaded URL
       setPreview(data.url);

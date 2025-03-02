@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
+import { Client } from '@replit/object-storage';
 
 interface UploadedFile {
   fieldname: string;
@@ -12,14 +13,21 @@ interface UploadedFile {
 export class FileUploadService {
   private static instance: FileUploadService;
   private readonly bucketId: string;
+  private readonly storage: Client;
+  private readonly maxRetries = 3;
+  private readonly retryDelay = 1000; // 1 second
 
   private constructor() {
     // Get bucket ID from environment
-    this.bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID;
-    if (!this.bucketId) {
+    const bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID;
+    if (!bucketId) {
       throw new Error('Object storage bucket ID not found in environment');
     }
+    this.bucketId = bucketId;
     console.log('FileUploadService initialized with bucket:', this.bucketId);
+
+    // Initialize Replit object storage client
+    this.storage = new Client();
   }
 
   static getInstance(): FileUploadService {
@@ -45,6 +53,10 @@ export class FileUploadService {
     return allowedTypes.includes(mimetype);
   }
 
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   async uploadFile(file: UploadedFile): Promise<string> {
     console.log('Starting file upload process:', {
       originalName: file.originalname,
@@ -60,36 +72,41 @@ export class FileUploadService {
     const filename = this.generateUniqueFilename(file.originalname);
     const key = `uploads/${filename}`;
 
-    try {
-      // Store file in Replit object storage
-      const response = await fetch(`https://object-storage.${process.env.REPLIT_DB_HOST}/${this.bucketId}/${key}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.mimetype,
-        },
-        body: file.buffer
-      });
+    let lastError: Error | null = null;
+    for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
+      try {
+        console.log(`Upload attempt ${attempt}/${this.maxRetries} for key:`, key);
 
-      if (!response.ok) {
-        console.error('Failed to upload to object storage:', response.status, response.statusText);
-        throw new Error('Failed to upload to object storage');
+        await this.storage.put(key, file.buffer, {
+          contentType: file.mimetype,
+        });
+
+        // Generate public URL for the uploaded file
+        const publicUrl = `https://${this.bucketId}.id.repl.co/${key}`;
+
+        console.log('File upload completed successfully:', { 
+          key,
+          publicUrl,
+          size: file.buffer.length,
+          type: file.mimetype,
+          attempt
+        });
+
+        return publicUrl;
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Upload attempt ${attempt} failed:`, error);
+
+        if (attempt < this.maxRetries) {
+          const delayMs = this.retryDelay * attempt;
+          console.log(`Retrying in ${delayMs}ms...`);
+          await this.delay(delayMs);
+        }
       }
-
-      // Generate public URL for the uploaded file
-      const url = `https://${this.bucketId}.id.repl.co/${key}`;
-
-      console.log('File upload completed successfully:', { 
-        key,
-        url,
-        size: file.buffer.length,
-        type: file.mimetype
-      });
-
-      return url;
-    } catch (error) {
-      console.error('Failed to upload file:', error);
-      throw new Error('Failed to upload file to storage');
     }
+
+    console.error('All upload attempts failed');
+    throw lastError || new Error('Failed to upload file after all retries');
   }
 
   async deleteFile(url: string): Promise<void> {
@@ -104,13 +121,7 @@ export class FileUploadService {
       const key = matches[1];
       console.log('Deleting file:', { url, key });
 
-      const response = await fetch(`https://object-storage.${process.env.REPLIT_DB_HOST}/${this.bucketId}/${key}`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to delete file: ${response.status} ${response.statusText}`);
-      }
+      await this.storage.delete(key);
 
       console.log('File deleted successfully');
     } catch (error) {

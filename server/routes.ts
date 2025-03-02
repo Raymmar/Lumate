@@ -1434,16 +1434,22 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update file upload route to use object storage
+  // Add file upload route
   app.post("/api/upload", async (req, res) => {
     try {
-      // Check authentication
+      // Debug authentication state
+      console.log('Upload request received:', {
+        hasSession: !!req.session,
+        userId: req.session?.userId,
+        headers: req.headers
+      });
+
       if (!req.session.userId) {
         console.log('Upload attempted without authentication');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      console.log('Processing file upload request');
+      console.log('Processing file upload request from user:', req.session.userId);
       const upload = multer({
         limits: {
           fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -1468,14 +1474,20 @@ export async function registerRoutes(app: Express) {
         }
 
         try {
-          console.log('File received, processing upload:', {
+          console.log('File received:', {
             filename: req.file.originalname,
             size: req.file.size,
             mimetype: req.file.mimetype
           });
 
           const url = await fileUploadService.uploadFile(req.file);
-          console.log('Upload successful, returning URL:', url);
+
+          console.log('Upload successful:', {
+            originalName: req.file.originalname,
+            size: req.file.size,
+            url
+          });
+
           res.json({ url });
         } catch (uploadError) {
           console.error('File upload processing failed:', uploadError);
