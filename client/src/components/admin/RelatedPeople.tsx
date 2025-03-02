@@ -13,38 +13,25 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
   console.log('RelatedPeople component props:', { userId, personId });
 
   const { data: person, isLoading, error } = useQuery<Person | null>({
-    queryKey: ['/api/users', userId, 'linked-person'],
+    queryKey: ['/api/people', personId],
     queryFn: async () => {
       if (!personId) {
         console.log('No personId provided, skipping fetch');
         return null;
       }
 
-      console.log('Fetching linked person record:', { userId, personId });
+      console.log('Fetching person record:', { personId });
       try {
-        // First get the person record to get the api_id
-        const response = await fetch(`/api/users/${userId}/linked-person`);
+        const response = await fetch(`/api/people/${personId}`);
         if (!response.ok) {
-          console.error('Failed to fetch linked person:', response.statusText);
-          throw new Error('Failed to fetch linked person');
+          console.error('Failed to fetch person:', response.statusText);
+          throw new Error('Failed to fetch person');
         }
         const data = await response.json();
-        console.log('Linked person data retrieved:', data);
-
-        // Now fetch the full profile using api_id
-        if (data && data.api_id) {
-          const profileResponse = await fetch(`/api/people/by-api-id/${data.api_id}`);
-          if (!profileResponse.ok) {
-            console.error('Failed to fetch profile data:', profileResponse.statusText);
-            throw new Error('Failed to fetch profile data');
-          }
-          const profileData = await profileResponse.json();
-          console.log('Profile data retrieved:', profileData);
-          return profileData;
-        }
+        console.log('Person data retrieved:', data);
         return data;
       } catch (error) {
-        console.error('Error fetching linked person:', error);
+        console.error('Error fetching person:', error);
         throw error;
       }
     },
@@ -55,7 +42,7 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
     console.error('Query error:', error);
     return (
       <p className="text-sm text-destructive">
-        Error loading linked person data. Please try again later.
+        Error loading person data. Please try again later.
       </p>
     );
   }
@@ -72,8 +59,8 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
     console.log('No person data found');
     return (
       <p className="text-sm text-muted-foreground">
-        No linked person record found. This user hasn't been matched to a synced record yet.
-        {personId ? ` (Attempted to load person ID: ${personId})` : ''}
+        No person record found. This user hasn't been matched to a synced record yet.
+        {personId ? ` (Attempted to load ID: ${personId})` : ''}
       </p>
     );
   }
