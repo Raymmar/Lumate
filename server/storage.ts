@@ -2,13 +2,19 @@ import {
   Event, InsertEvent, 
   Person, InsertPerson, 
   User, InsertUser,
+  Role, InsertRole,
+  Permission, InsertPermission,
+  UserRole, InsertUserRole,
+  RolePermission, InsertRolePermission,
+  Post, InsertPost,
+  Tag, InsertTag,
+  PostTag, InsertPostTag,
   VerificationToken, InsertVerificationToken,
-  events, people, cacheMetadata, eventRsvpStatus, attendance,
-  InsertCacheMetadata, users, verificationTokens,
   EventRsvpStatus, InsertEventRsvpStatus,
   Attendance, InsertAttendance,
-  Post, InsertPost,
-  posts,
+  CacheMetadata, InsertCacheMetadata,
+  events, people, users, roles, permissions, userRoles, rolePermissions,
+  posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -44,6 +50,7 @@ export interface IStorage {
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
+  updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -59,25 +66,46 @@ export interface IStorage {
   getAttendanceByEvent(eventApiId: string): Promise<Attendance[]>;
   upsertAttendance(attendance: InsertAttendance): Promise<Attendance>;
   getAttendanceByEmail(email: string): Promise<Attendance[]>;
-  deleteAttendanceByEvent(eventApiId: string): Promise<void>; 
+  deleteAttendanceByEvent(eventApiId: string): Promise<void>;
   updateEventAttendanceSync(eventApiId: string): Promise<Event>;
   getEventAttendanceStatus(eventApiId: string): Promise<{ 
     hasAttendees: boolean;
     lastSyncTime: string | null;
   }>;
-  getTotalAttendeesCount(): Promise<number>;
 
-  // Attendance stats
-  updatePersonStats(personId: number): Promise<Person>;
-  getTopAttendees(limit?: number): Promise<Person[]>;
-  getFeaturedEvent(): Promise<Event | null>;
-
-  // Posts
+  // Posts and Tags
   getPosts(): Promise<Post[]>;
   createPost(post: InsertPost): Promise<Post>;
+  getTags(): Promise<Tag[]>;
+  createTag(tag: InsertTag): Promise<Tag>;
+  getPostTags(postId: number): Promise<Tag[]>;
+  addTagToPost(postTag: InsertPostTag): Promise<PostTag>;
 
-  // Add the new method for updating admin status
-  updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
+  // Role management
+  createRole(role: InsertRole): Promise<Role>;
+  getRoleById(id: number): Promise<Role | null>;
+  getRoleByName(name: string): Promise<Role | null>;
+  getAllRoles(): Promise<Role[]>;
+
+  // Permission management
+  createPermission(permission: InsertPermission): Promise<Permission>;
+  getPermissionById(id: number): Promise<Permission | null>;
+  getPermissionsByResource(resource: string): Promise<Permission[]>;
+  getAllPermissions(): Promise<Permission[]>;
+
+  // User role management
+  assignRoleToUser(userId: number, roleId: number, grantedBy: number): Promise<UserRole>;
+  removeRoleFromUser(userId: number, roleId: number): Promise<void>;
+  getUserRoles(userId: number): Promise<Role[]>;
+
+  // Role permission management
+  assignPermissionToRole(roleId: number, permissionId: number, grantedBy: number): Promise<RolePermission>;
+  removePermissionFromRole(roleId: number, permissionId: number): Promise<void>;
+  getRolePermissions(roleId: number): Promise<Permission[]>;
+
+  // Enhanced user methods
+  getUserWithRoles(userId: number): Promise<(User & { roles: Role[], permissions: Permission[] }) | null>;
+  hasPermission(userId: number, resource: string, action: string): Promise<boolean>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -565,19 +593,6 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  async getPerson(id: number): Promise<Person | null> {
-    try {
-      const result = await db
-        .select()
-        .from(people)
-        .where(eq(people.id, id))
-        .limit(1);
-      return result.length > 0 ? result[0] : null;
-    } catch (error) {
-      console.error('Failed to get person:', error);
-      throw error;
-    }
-  }
   async getUserCount(): Promise<number> {
     const result = await db.select({ count: sql`COUNT(*)` }).from(users);
     const count = Number(result[0].count);
@@ -947,7 +962,7 @@ export class PostgresStorage implements IStorage {
     try {
       console.log('Updating user admin status:', { userId, isAdmin });
 
-      const [updatedUser] = await db
+            const [updatedUser] = await db
         .update(users)
         .set({ 
           isAdmin,
@@ -963,6 +978,311 @@ export class PostgresStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       console.error('Failed to update user admin status:', error);
+      throw error;
+    }
+  }
+  // Role management methods
+  async createRole(role: InsertRole): Promise<Role> {
+    try {
+      const [newRole] = await db
+        .insert(roles)
+        .values(role)
+        .returning();
+      return newRole;
+    } catch (error) {
+      console.error('Failed to create role:', error);
+      throw error;
+    }
+  }
+
+  async getRoleById(id: number): Promise<Role | null> {
+    try {
+      const result = await db
+        .select()
+        .from(roles)
+        .where(eq(roles.id, id))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get role by ID:', error);
+      throw error;
+    }
+  }
+
+  async getRoleByName(name: string): Promise<Role | null> {
+    try {
+      const result = await db
+        .select()
+        .from(roles)
+        .where(eq(roles.name, name))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get role by name:', error);
+      throw error;
+    }
+  }
+
+  async getAllRoles(): Promise<Role[]> {
+    try {
+      return await db.select().from(roles);
+    } catch (error) {
+      console.error('Failed to get all roles:', error);
+      throw error;
+    }
+  }
+
+  // Permission management methods
+  async createPermission(permission: InsertPermission): Promise<Permission> {
+    try {
+      const [newPermission] = await db
+        .insert(permissions)
+        .values(permission)
+        .returning();
+      return newPermission;
+    } catch (error) {
+      console.error('Failed to create permission:', error);
+      throw error;
+    }
+  }
+
+  async getPermissionById(id: number): Promise<Permission | null> {
+    try {
+      const result = await db
+        .select()
+        .from(permissions)
+        .where(eq(permissions.id, id))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get permission by ID:', error);
+      throw error;
+    }
+  }
+
+  async getPermissionsByResource(resource: string): Promise<Permission[]> {
+    try {
+      return await db
+        .select()
+        .from(permissions)
+        .where(eq(permissions.resource, resource));
+    } catch (error) {
+      console.error('Failed to get permissions by resource:', error);
+      throw error;
+    }
+  }
+
+  async getAllPermissions(): Promise<Permission[]> {
+    try {
+      return await db.select().from(permissions);
+    } catch (error) {
+      console.error('Failed to get all permissions:', error);
+      throw error;
+    }
+  }
+
+  // User role management methods
+  async assignRoleToUser(userId: number, roleId: number, grantedBy: number): Promise<UserRole> {
+    try {
+      const [userRole] = await db
+        .insert(userRoles)
+        .values({
+          userId,
+          roleId,
+          grantedBy,
+        })
+        .returning();
+      return userRole;
+    } catch (error) {
+      console.error('Failed to assign role to user:', error);
+      throw error;
+    }
+  }
+
+  async removeRoleFromUser(userId: number, roleId: number): Promise<void> {
+    try {
+      await db
+        .delete(userRoles)
+        .where(
+          and(
+            eq(userRoles.userId, userId),
+            eq(userRoles.roleId, roleId)
+          )
+        );
+    } catch (error) {
+      console.error('Failed to remove role from user:', error);
+      throw error;
+    }
+  }
+
+  async getUserRoles(userId: number): Promise<Role[]> {
+    try {
+      return await db
+        .select({
+          id: roles.id,
+          name: roles.name,
+          description: roles.description,
+          isSystem: roles.isSystem,
+          createdAt: roles.createdAt,
+          updatedAt: roles.updatedAt,
+        })
+        .from(userRoles)
+        .innerJoin(roles, eq(roles.id, userRoles.roleId))
+        .where(eq(userRoles.userId, userId));
+    } catch (error) {
+      console.error('Failed to get user roles:', error);
+      throw error;
+    }
+  }
+
+  // Role permission management methods
+  async assignPermissionToRole(roleId: number, permissionId: number, grantedBy: number): Promise<RolePermission> {
+    try {
+      const [rolePermission] = await db
+        .insert(rolePermissions)
+        .values({
+          roleId,
+          permissionId,
+          grantedBy,
+        })
+        .returning();
+      return rolePermission;
+    } catch (error) {
+      console.error('Failed to assign permission to role:', error);
+      throw error;
+    }
+  }
+
+  async removePermissionFromRole(roleId: number, permissionId: number): Promise<void> {
+    try {
+      await db
+        .delete(rolePermissions)
+        .where(
+          and(
+            eq(rolePermissions.roleId, roleId),
+            eq(rolePermissions.permissionId, permissionId)
+          )
+        );
+    } catch (error) {
+      console.error('Failed to remove permission from role:', error);
+      throw error;
+    }
+  }
+
+  async getRolePermissions(roleId: number): Promise<Permission[]> {
+    try {
+      return await db
+        .select({
+          id: permissions.id,
+          name: permissions.name,
+          description: permissions.description,
+          resource: permissions.resource,
+          action: permissions.action,
+          createdAt: permissions.createdAt,
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(rolePermissions.roleId, roleId));
+    } catch (error) {
+      console.error('Failed to get role permissions:', error);
+      throw error;
+    }
+  }
+
+  // Enhanced user methods
+  async getUserWithRoles(userId: number): Promise<(User & { roles: Role[], permissions: Permission[] }) | null> {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) return null;
+
+      const roles = await this.getUserRoles(userId);
+      const permissions = await Promise.all(
+        roles.map(role => this.getRolePermissions(role.id))
+      );
+
+      return {
+        ...user,
+        roles,
+        permissions: permissions.flat(),
+      };
+    } catch (error) {
+      console.error('Failed to get user with roles:', error);
+      throw error;
+    }
+  }
+
+  async hasPermission(userId: number, resource: string, action: string): Promise<boolean> {
+    try {
+      const roles = await this.getUserRoles(userId);
+
+      // Check if user is admin (maintaining backward compatibility)
+      const user = await this.getUserById(userId);
+      if (user?.isAdmin) return true;
+
+      // Check role-based permissions
+      for (const role of roles) {
+        const permissions = await this.getRolePermissions(role.id);
+        const hasPermission = permissions.some(
+          p => p.resource === resource && p.action === action
+        );
+        if (hasPermission) return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Failed to check user permission:', error);
+      throw error;
+    }
+  }
+
+  async getTags(): Promise<Tag[]> {
+    try {
+      return await db.select().from(tags);
+    } catch (error) {
+      console.error('Failed to get all tags:', error);
+      throw error;
+    }
+  }
+
+  async createTag(tag: InsertTag): Promise<Tag> {
+    try {
+      const [newTag] = await db
+        .insert(tags)
+        .values(tag)
+        .returning();
+      return newTag;
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+      throw error;
+    }
+  }
+
+  async getPostTags(postId: number): Promise<Tag[]> {
+    try {
+      return await db
+        .select({
+          id: tags.id,
+          name: tags.name,
+          createdAt: tags.createdAt
+        })
+        .from(postTags)
+        .innerJoin(tags, eq(tags.id, postTags.tagId))
+        .where(eq(postTags.postId, postId));
+    } catch (error) {
+      console.error('Failed to get post tags:', error);
+      throw error;
+    }
+  }
+
+  async addTagToPost(postTag: InsertPostTag): Promise<PostTag> {
+    try {
+      const [newPostTag] = await db
+        .insert(postTags)
+        .values(postTag)
+        .returning();
+      return newPostTag;
+    } catch (error) {
+      console.error('Failed to add tag to post:', error);
       throw error;
     }
   }

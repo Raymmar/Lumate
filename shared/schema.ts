@@ -101,7 +101,6 @@ export const attendance = pgTable("attendance", {
   personId: serial("person_id").references(() => people.id),
 });
 
-// Add new tables for posts and tags
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   text: varchar("text", { length: 255 }).notNull().unique(),
@@ -129,7 +128,40 @@ export const postTags = pgTable("post_tags", {
   tagId: serial("tag_id").references(() => tags.id).notNull(),
 });
 
-// Add insert schemas for new tables
+export const roles = pgTable("roles", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 50 }).notNull().unique(),
+  description: text("description"),
+  isSystem: boolean("is_system").notNull().default(false),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const permissions = pgTable("permissions", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  description: text("description"),
+  resource: varchar("resource", { length: 50 }).notNull(),
+  action: varchar("action", { length: 50 }).notNull(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const userRoles = pgTable("user_roles", {
+  id: serial("id").primaryKey(),
+  userId: serial("user_id").references(() => users.id).notNull(),
+  roleId: serial("role_id").references(() => roles.id).notNull(),
+  grantedBy: serial("granted_by").references(() => users.id),
+  grantedAt: timestamp("granted_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const rolePermissions = pgTable("role_permissions", {
+  id: serial("id").primaryKey(),
+  roleId: serial("role_id").references(() => roles.id).notNull(),
+  permissionId: serial("permission_id").references(() => permissions.id).notNull(),
+  grantedBy: serial("granted_by").references(() => users.id),
+  grantedAt: timestamp("granted_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertTagSchema = createInsertSchema(tags).omit({ 
   id: true, 
   createdAt: true 
@@ -149,7 +181,6 @@ export const insertPostTagSchema = createInsertSchema(postTags).omit({
   id: true 
 });
 
-// Add types for new tables
 export type Tag = typeof tags.$inferSelect;
 export type InsertTag = z.infer<typeof insertTagSchema>;
 
@@ -158,7 +189,6 @@ export type InsertPost = z.infer<typeof insertPostSchema>;
 
 export type PostTag = typeof postTags.$inferSelect;
 export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
-
 
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
@@ -178,7 +208,8 @@ export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 export type User = typeof users.$inferSelect & {
   api_id?: string;
-  isAdmin: boolean; 
+  roles?: Role[];
+  permissions?: Permission[];
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
@@ -198,3 +229,34 @@ export const updatePasswordSchema = z.object({
 });
 
 export type UpdatePassword = z.infer<typeof updatePasswordSchema>;
+
+export const insertRoleSchema = createInsertSchema(roles).omit({
+  id: true,
+  isSystem: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPermissionSchema = createInsertSchema(permissions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserRoleSchema = createInsertSchema(userRoles).omit({
+  id: true,
+  grantedAt: true,
+});
+
+export const insertRolePermissionSchema = createInsertSchema(rolePermissions).omit({
+  id: true,
+  grantedAt: true,
+});
+
+export type Role = typeof roles.$inferSelect;
+export type InsertRole = z.infer<typeof insertRoleSchema>;
+export type Permission = typeof permissions.$inferSelect;
+export type InsertPermission = z.infer<typeof insertPermissionSchema>;
+export type UserRole = typeof userRoles.$inferSelect;
+export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
+export type RolePermission = typeof rolePermissions.$inferSelect;
+export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;

@@ -1,5 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
-import type { User } from "@shared/schema";
+import type { User, Role } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -12,15 +12,18 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
+import { useState } from "react";
 
 interface MemberPreviewProps {
-  member: User;
+  member: User & { roles?: Role[] };
 }
 
 export function MemberPreview({ member }: MemberPreviewProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const initials = member.displayName?.split(' ').map(n => n[0]).join('') || member.email[0].toUpperCase();
+  const [roles, setRoles] = useState<Role[]>(member.roles || []);
 
   const handleAdminToggle = async (checked: boolean) => {
     try {
@@ -47,6 +50,32 @@ export function MemberPreview({ member }: MemberPreviewProps) {
     }
   };
 
+  const handleRoleChange = async (roleName: string) => {
+    try {
+      const result = await apiRequest<{ roles: Role[] }>(
+        `/api/admin/members/${member.id}/roles/${roleName}`,
+        'POST'
+      );
+
+      if (result.roles) {
+        setRoles(result.roles);
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/members'] });
+
+        toast({
+          title: "Success",
+          description: `Updated roles for ${member.displayName || member.email}`,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update user roles:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user roles",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -66,6 +95,9 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         {member.isAdmin && (
           <Badge variant="default">Admin</Badge>
         )}
+        {roles.map((role) => (
+          <Badge key={role.id} variant="outline">{role.name}</Badge>
+        ))}
       </div>
 
       <Card>
@@ -85,6 +117,20 @@ export function MemberPreview({ member }: MemberPreviewProps) {
               onCheckedChange={handleAdminToggle}
             />
             <Label htmlFor="admin-mode">Admin privileges</Label>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Role</Label>
+            <Select onValueChange={handleRoleChange} defaultValue={roles[0]?.name || "User"}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="User">User</SelectItem>
+                <SelectItem value="Moderator">Moderator</SelectItem>
+                <SelectItem value="Sponsor">Sponsor</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
