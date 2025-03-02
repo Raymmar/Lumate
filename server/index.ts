@@ -3,11 +3,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startEventSyncService } from "./services/eventSyncService";
 import { fileUploadService } from "./services/FileUploadService";
+import { createServer } from 'http'; // Import createServer
+
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add logging middleware first
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -56,31 +59,19 @@ app.use((req, res, next) => {
       process.exit(1); // Exit if we can't initialize file uploads
     }
 
-    const server = await registerRoutes(app);
+    // Create server first to allow route registration
+    const server = createServer(app);
 
-    // Initialize cache service to start syncing data in the background
-    console.log('Starting CacheService in background...');
-    setTimeout(async () => {
-      try {
-        const CacheService = (await import('./services/CacheService')).CacheService;
-        const cacheService = CacheService.getInstance();
-        console.log('CacheService started successfully in background');
-      } catch (error) {
-        console.error('Failed to initialize CacheService:', error);
-      }
-    }, 100); // Small delay to ensure server starts quickly
+    // Create a separate router for API routes
+    const apiRouter = express.Router();
 
-    // Start event sync service in background
-    console.log('Starting EventSyncService in background...');
-    setTimeout(() => {
-      try {
-        startEventSyncService();
-        console.log('EventSyncService started successfully in background');
-      } catch (error) {
-        console.error('Failed to initialize EventSyncService:', error);
-      }
-    }, 200); // Small delay after CacheService
+    // Register API routes BEFORE any static file handling
+    await registerRoutes(apiRouter);
 
+    // Mount API router at /api
+    app.use('/api', apiRouter);
+
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error('Express error handler caught:', err);
       const status = err.status || err.statusCode || 500;
@@ -89,6 +80,7 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // Setup Vite/static file serving AFTER API routes
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {

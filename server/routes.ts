@@ -1,15 +1,15 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, Router } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; // Added import for users table
+import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
-import { Client } from '@google-cloud/storage'; //Import the necessary library for Google Cloud Storage
+import { events, attendance } from '@shared/schema';
+import { Client } from '@replit/object-storage';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
@@ -43,62 +43,64 @@ function sendSSEUpdate(res: Response, data: any) {
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(
-  endpoint: string, 
+  endpoint: string,
   params?: Record<string, string>,
   options: { method?: string; body?: string } = {}
 ) {
-    const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
+  const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
 
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-    }
-
-    if (!process.env.LUMA_API_KEY) {
-      throw new Error('LUMA_API_KEY environment variable is not set');
-    }
-
-    console.log(`Making ${options.method || 'GET'} request to ${url.toString()}`);
-
-    const response = await fetch(url.toString(), {
-      method: options.method || 'GET',
-      headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'x-luma-api-key': process.env.LUMA_API_KEY
-      },
-      ...(options.body ? { body: options.body } : {})
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.append(key, value);
     });
+  }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`Luma API error: ${response.statusText}`);
-    }
+  if (!process.env.LUMA_API_KEY) {
+    throw new Error('LUMA_API_KEY environment variable is not set');
+  }
 
-    const data = await response.json();
+  console.log(`Making ${options.method || 'GET'} request to ${url.toString()}`);
 
-    if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
-      console.log('Response details:', {
-        endpoint,
-        currentBatch: data.entries?.length,
-        hasMore: data.has_more,
-        nextCursor: data.next_cursor
-      });
-    }
+  const response = await fetch(url.toString(), {
+    method: options.method || 'GET',
+    headers: {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+      'x-luma-api-key': process.env.LUMA_API_KEY
+    },
+    ...(options.body ? { body: options.body } : {})
+  });
 
-    return data;
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
+    throw new Error(`Luma API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+
+  if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
+    console.log('Response details:', {
+      endpoint,
+      currentBatch: data.entries?.length,
+      hasMore: data.has_more,
+      nextCursor: data.next_cursor
+    });
+  }
+
+  return data;
 }
 
-export async function registerRoutes(app: Express) {
+// Update function signature to accept Router instead of Express app
+export async function registerRoutes(router: Router) {
   // Set up session handling
   const PostgresStore = connectPg(session);
 
   // Get environment information
   const isProduction = process.env.NODE_ENV === 'production';
 
-  app.use(session({
+  // Add session middleware to router
+  router.use(session({
     store: new PostgresStore({
       conObject: {
         connectionString: process.env.DATABASE_URL,
@@ -118,52 +120,50 @@ export async function registerRoutes(app: Express) {
     proxy: isProduction
   }));
 
-  // Add test route before the file upload route
-  app.get("/api/_test/storage", async (req, res) => {
+  // Add test upload endpoint
+  router.post("/test/upload", async (req, res) => {
     try {
-      // Create a test buffer
-      const testBuffer = Buffer.from('test content');
-      const testKey = `test/test-${Date.now()}.txt`;
+      console.log('Test upload request received');
 
-      console.log('Testing storage client with:', {
-        bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID,
-        testKey
-      });
-
-      // Get a new instance to test
+      // Initialize a fresh client for testing
       const client = new Client({
         bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID
       });
 
-      // Log available methods
-      console.log('Storage client methods:', {
-        methods: Object.getOwnPropertyNames(Object.getPrototypeOf(client))
+      // Create a test buffer
+      const testBuffer = Buffer.from('Hello World');
+      const testKey = `test/test-${Date.now()}.txt`;
+
+      console.log('Attempting test upload:', {
+        bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID,
+        key: testKey,
+        clientMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(client))
       });
 
-      // Attempt to upload
+      // Try upload
       await client.put(testKey, testBuffer, {
         ContentType: 'text/plain'
       });
 
       const url = `https://${process.env.REPLIT_DEFAULT_BUCKET_ID}.id.repl.co/${testKey}`;
-
       console.log('Test upload successful:', { url });
 
-      res.json({ 
-        success: true,
-        url,
-        methods: Object.getOwnPropertyNames(Object.getPrototypeOf(client))
-      });
+      res.json({ success: true, url });
     } catch (error) {
-      console.error('Storage test failed:', error);
-      res.status(500).json({ 
-        error: "Storage test failed",
+      console.error('Test upload failed:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
+      res.status(500).json({
+        error: "Test upload failed",
         details: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
-  app.get("/api/events", async (_req, res) => {
+  // Keep the existing routes but remove the /api prefix since we're mounted at /api
+  router.get("/events", async (_req, res) => {
     try {
       console.log('Fetching events from storage...');
       const events = await storage.getEvents();
@@ -179,7 +179,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.post("/api/events/rsvp", async (req, res) => {
+  router.post("/events/rsvp", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express) {
       res.json({ message: 'Successfully RSVP\'d to event' });
     } catch (error) {
       console.error('Failed to RSVP to event:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to RSVP to event",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express) {
   });
 
 
-  app.get("/api/people", async (req, res) => {
+  router.get("/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
@@ -324,7 +324,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/people/:id", async (req, res) => {
+  router.get("/people/:id", async (req, res) => {
     try {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
@@ -341,7 +341,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add new endpoint for person attendance stats
-  app.get("/api/people/:id/stats", async (req, res) => {
+  router.get("/people/:id/stats", async (req, res) => {
     try {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
@@ -367,7 +367,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add new endpoint for fetching events attended by a person
-  app.get("/api/people/:id/events", async (req, res) => {
+  router.get("/people/:id/events", async (req, res) => {
     try {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
@@ -400,7 +400,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/auth/check-profile/:id", async (req, res) => {
+  router.get("/auth/check-profile/:id", async (req, res) => {
     try {
       const personId = req.params.id;
 
@@ -424,7 +424,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Profile claiming endpoint
-  app.post("/api/auth/claim-profile", async (req, res) => {
+  router.post("/auth/claim-profile", async (req, res) => {
     try {
       console.log('Received claim profile request:', req.body);
       const { email, personId } = req.body;
@@ -447,10 +447,10 @@ export async function registerRoutes(app: Express) {
 
       // Ensure the email matches the person's record
       const emailsMatch = person.email.toLowerCase() === normalizedEmail;
-      console.log('Email match check:', { 
-        provided: normalizedEmail, 
+      console.log('Email match check:', {
+        provided: normalizedEmail,
         stored: person.email.toLowerCase(),
-        matches: emailsMatch 
+        matches: emailsMatch
       });
 
       if (!emailsMatch) {
@@ -477,7 +477,7 @@ export async function registerRoutes(app: Express) {
         return res.status(500).json({ error: "Failed to send verification email" });
       }
 
-      return res.json({ 
+      return res.json({
         message: "Verification email sent",
         // Only include token in development for testing
         token: process.env.NODE_ENV === 'development' ? verificationToken.token : undefined
@@ -489,7 +489,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Verify token endpoint
-  app.post("/api/auth/verify", async (req, res) => {
+  router.post("/auth/verify", async (req, res) => {
     try {
       const { token } = req.body;
 
@@ -524,7 +524,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Don't delete token yet - we'll need it valid for password setting
-      return res.json({ 
+      return res.json({
         message: "Email verified. Please set your password.",
         requiresPassword: true,
         email: verificationToken.email
@@ -536,7 +536,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Route to handle password creation after verification
-  app.post("/api/auth/set-password", async (req, res) => {
+  router.post("/auth/set-password", async (req, res) => {
     try {
       const { email, password } = req.body;
 
@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express) {
       // Clean up any verification tokens for this email
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
 
-      return res.json({ 
+      return res.json({
         message: "Password set successfully",
         user: {
           id: verifiedUser.id,
@@ -575,9 +575,9 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid password",
-          details: error.errors 
+          details: error.errors
         });
       }
       console.error('Failed to set password:', error);
@@ -586,7 +586,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add user info endpoint
-  app.get("/api/auth/me", async (req, res) => {
+  router.get("/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -623,7 +623,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Update login route
-  app.post("/api/auth/login", async (req, res) => {
+  router.post("/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
 
@@ -659,7 +659,7 @@ export async function registerRoutes(app: Express) {
       });
 
       // Explicitly include isAdmin in the response
-      return res.json({ 
+      return res.json({
         message: "Logged in successfully",
         user: {
           id: user.id,
@@ -677,7 +677,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Update logout route
-  app.post("/api/auth/logout", (req, res) => {
+  router.post("/auth/logout", (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not logged in" });
     }
@@ -693,7 +693,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Internal-only route to reset database and fetch fresh data from Luma
-  app.post("/_internal/reset-database", async (req, res) => {
+  router.post("/_internal/reset-database", async (req, res) => {
     try {
       // Check if request is coming from localhost
       const requestIP = req.ip || req.socket.remoteAddress;
@@ -707,34 +707,34 @@ export async function registerRoutes(app: Express) {
 
       // Initialize SSE
       initSSE(res);
-      sendSSEUpdate(res, { 
-        type: 'status', 
+      sendSSEUpdate(res, {
+        type: 'status',
         message: 'Starting database reset process',
-        progress: 0 
+        progress: 0
       });
 
       try {
         // Clear events table
-        sendSSEUpdate(res, { 
-          type: 'status', 
+        sendSSEUpdate(res, {
+          type: 'status',
           message: 'Clearing events table...',
-          progress: 5 
+          progress: 5
         });
         await storage.clearEvents();
 
         // Clear people table
-        sendSSEUpdate(res, { 
-          type: 'status', 
+        sendSSEUpdate(res, {
+          type: 'status',
           message: 'Clearing people table (preserving user relationships)...',
-          progress: 10 
+          progress: 10
         });
         await storage.clearPeople();
 
         // Clear cache metadata
-        sendSSEUpdate(res, { 
-          type: 'status', 
+        sendSSEUpdate(res, {
+          type: 'status',
           message: 'Clearing cache metadata...',
-          progress: 15 
+          progress: 15
         });
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
@@ -743,10 +743,10 @@ export async function registerRoutes(app: Express) {
         const cacheService = CacheService.getInstance();
 
         // Initialize sync
-        sendSSEUpdate(res, { 
-          type: 'status', 
+        sendSSEUpdate(res, {
+          type: 'status',
           message: 'Initializing fresh data fetch from Luma API',
-          progress: 20 
+          progress: 20
         });
 
         // Set up event listeners for cache service
@@ -775,7 +775,7 @@ export async function registerRoutes(app: Express) {
         }
 
         // Send final success message
-        sendSSEUpdate(res, { 
+        sendSSEUpdate(res, {
           type: 'complete',
           message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
           data: {
@@ -808,16 +808,16 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to reset database:', error);
       if (!res.headersSent) {
-        return res.status(500).json({ 
-          error: "Failed to reset database", 
-          details: error instanceof Error ? error.message : String(error) 
+        return res.status(500).json({
+          error: "Failed to reset database",
+          details: error instanceof Error ? error.message : String(error)
         });
       }
     }
   });
 
   // Add the new admin stats endpoint after the existing routes
-  app.get("/api/admin/stats", async (req, res) => {
+  router.get("/admin/stats", async (req, res) => {
     try {
       // Get the authenticated user
       if (!req.session.userId) {
@@ -842,9 +842,9 @@ export async function registerRoutes(app: Express) {
         events: eventCount,
         people: peopleCount,
         users: userCount,
-        uniqueAttendees: peopleCount, 
-        totalAttendees: totalAttendeesCount, 
-        paidUsers: 0 
+        uniqueAttendees: peopleCount,
+        totalAttendees: totalAttendeesCount,
+        paidUsers: 0
       });
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
@@ -852,7 +852,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/events/check-rsvp", async (req, res) => {
+  router.get("/events/check-rsvp", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -887,9 +887,9 @@ export async function registerRoutes(app: Express) {
       // If no cached status, check with Luma API
       const response = await lumaApiRequest(
         'event/get-guest',
-        { 
+        {
           event_api_id: event_api_id as string,
-          email: user.email 
+          email: user.email
         }
       );
 
@@ -909,13 +909,13 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      res.json({ 
+      res.json({
         isGoing: response.guest?.approval_status === 'approved',
         status: response.guest?.approval_status
       });
     } catch (error) {
       console.error('Failed to check RSVP status:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to check RSVP status",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -923,7 +923,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add new featured event endpoint
-  app.get("/api/events/featured", async (_req, res) => {
+  router.get("/events/featured", async (_req, res) => {
     try {
       const featuredEvent = await storage.getFeaturedEvent();
 
@@ -934,12 +934,13 @@ export async function registerRoutes(app: Express) {
       res.json(featuredEvent);
     } catch (error) {
       console.error('Failed to fetch featured event:', error);
-res.status(500).json({ error: "Failed to fetch featured event" });
+      res.status(500).json({ error: "Failed to fetch featured event" });
     }
   });
 
+
   // Update the /api/admin/events endpoint
-  app.get("/api/admin/events", async (req, res) => {
+  router.get("/admin/events", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -991,7 +992,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add pagination to /api/admin/members endpoint
-  app.get("/api/admin/members", async (req, res) => {
+  router.get("/admin/members", async (req, res) => {
     try {
       // Authentication checks
       if (!req.session.userId) {
@@ -1033,7 +1034,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add pagination to /api/admin/people endpoint
-  app.get("/api/admin/people", async (req, res) => {
+  router.get("/admin/people", async (req, res) => {
     try {
       // Authentication checks
       if (!req.session.userId) {
@@ -1075,7 +1076,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Modify the existing /api/admin/events/:eventId/guests endpoint
-  app.get("/api/admin/events/:eventId/guests", async (req, res) => {
+  router.get("/admin/events/:eventId/guests", async (req, res) => {
     try {
       // Authentication checks remain unchanged...
       if (!req.session.userId) {
@@ -1109,8 +1110,8 @@ res.status(500).json({ error: "Failed to fetch featured event" });
       }
 
       while (hasMore && iterationCount < MAX_ITERATIONS) {
-        const params: Record<string, string> = { 
-          event_api_id: eventId 
+        const params: Record<string, string> = {
+          event_api_id: eventId
         };
 
         if (cursor) {
@@ -1197,7 +1198,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
           name: error.name
         });
       }
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to fetch event guests",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -1205,7 +1206,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Get attendees for a specific event
-  app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
+  router.get("/admin/events/:eventId/attendees", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1244,7 +1245,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
     }
   });
 
-  app.post("/api/events/send-invite", async (req, res) => {
+  router.post("/events/send-invite", async (req, res) => {
     try {
       const { email, event_api_id } = req.body;
 
@@ -1275,13 +1276,13 @@ res.status(500).json({ error: "Failed to fetch featured event" });
         response
       });
 
-      res.json({ 
+      res.json({
         message: "Invite sent successfully. Please check your email.",
         details: response
       });
     } catch (error) {
       console.error('Failed to send invite:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to send invite",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -1289,7 +1290,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add the new public posts endpoint
-  app.get("/api/public/posts", async (_req, res) => {
+  router.get("/public/posts", async (_req, res) => {
     try {
       console.log('Fetching public posts...');
       const posts = await storage.getPosts();
@@ -1310,7 +1311,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add the posts endpoints
-  app.post("/api/admin/posts", async (req, res) => {
+  router.post("/admin/posts", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1338,7 +1339,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
     }
   });
 
-  app.get("/api/admin/posts", async (req, res) => {
+  router.get("/admin/posts", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1360,7 +1361,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Update admin check in /api/admin/members endpoint
-  app.get("/api/admin/members", async (req, res) => {
+  router.get("/admin/members", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1401,7 +1402,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add new endpoint to toggle admin status
-  app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
+  router.post("/admin/users/:id/toggle-admin", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1447,7 +1448,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add file serving route after existing routes
-  app.get("/uploads/:filename", async (req, res) => {
+  router.get("/uploads/:filename", async (req, res) => {
     try {
       const filename = req.params.filename;
       const key = `uploads/${filename}`;
@@ -1481,7 +1482,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Update file upload route
-  app.post("/api/upload", async (req, res) => {
+  router.post("/upload", upload.single('file'), async (req, res) => {
     try {
       // Debug logging for auth state and request
       console.log('Upload request received:', {
@@ -1499,64 +1500,46 @@ res.status(500).json({ error: "Failed to fetch featured event" });
       }
 
       console.log('Processing file upload request from user:', req.session.userId);
-      const upload = multer({
-        limits: {
-          fileSize: 5 * 1024 * 1024 // 5MB limit
-        }
-      }).single('file');
 
-      upload(req, res, async (err) => {
-        if (err instanceof multer.MulterError) {
-          console.error('Multer error during upload:', err);
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: "File too large" });
-          }
-          return res.status(400).json({ error: err.message });
-        } else if (err) {
-          console.error('Unknown error during upload:', err);
-          return res.status(500).json({ error: "Upload failed" });
-        }
+      if (!req.file) {
+        console.error('No file provided in upload request');
+        return res.status(400).json({ error: "No file provided" });
+      }
 
-        if (!req.file) {
-          console.error('No file provided in upload request');
-          return res.status(400).json({ error: "No file provided" });
-        }
+      try {
+        console.log('File received:', {
+          filename: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype
+        });
 
-        try {
-          console.log('File received:', {
-            filename: req.file.originalname,
-            size: req.file.size,
-            mimetype: req.file.mimetype
-          });
+        const url = await fileUploadService.uploadFile(req.file);
 
-          const url = await fileUploadService.uploadFile(req.file);
+        console.log('Upload successful:', {
+          originalName: req.file.originalname,
+          size: req.file.size,
+          url
+        });
 
-          console.log('Upload successful:', {
-            originalName: req.file.originalname,
-            size: req.file.size,
-            url
-          });
+        res.json({ url });
+      } catch (uploadError) {
+        console.error('File upload processing failed:', {
+          error: uploadError instanceof Error ? uploadError.message : String(uploadError),
+          stack: uploadError instanceof Error ? uploadError.stack : undefined
+        });
 
-          res.json({ url });
-        } catch (uploadError) {
-          console.error('File upload processing failed:', {
-            error: uploadError instanceof Error ? uploadError.message : String(uploadError),
-            stack: uploadError instanceof Error ? uploadError.stack : undefined
-          });
-
-          res.status(500).json({ 
-            error: "Failed to process upload",
-            details: uploadError instanceof Error ? uploadError.message : String(uploadError)
-          });
-        }
-      });
+        res.status(500).json({
+          error: "Failed to process upload",
+          details: uploadError instanceof Error ? uploadError.message : String(uploadError)
+        });
+      }
     } catch (error) {
       console.error('Upload route error:', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined
       });
 
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Upload failed",
         details: error instanceof Error ? error.message : String(error)
       });
@@ -1564,7 +1547,7 @@ res.status(500).json({ error: "Failed to fetch featured event" });
   });
 
   // Add file deletion endpoint
-  app.delete("/api/upload", async (req, res) => {
+  router.delete("/upload", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1580,14 +1563,16 @@ res.status(500).json({ error: "Failed to fetch featured event" });
       res.json({ message: "File deleted successfully" });
     } catch (error) {
       console.error('Failed to delete file:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to delete file",
         message: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
-  return createServer(app);
+
+  // Return the server instance
+  return createServer(router);
 }
 
 declare module 'express-session' {
