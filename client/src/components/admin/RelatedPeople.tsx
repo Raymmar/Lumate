@@ -22,16 +22,31 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
 
       console.log('Fetching person record:', { personId });
       try {
-        const response = await fetch(`/api/people/${personId}`);
-        if (!response.ok) {
-          console.error('Failed to fetch person:', response.statusText);
+        // First get the person's api_id
+        const personResponse = await fetch(`/api/people/${personId}`);
+        if (!personResponse.ok) {
+          console.error('Failed to fetch person:', personResponse.statusText);
           throw new Error('Failed to fetch person');
         }
-        const data = await response.json();
-        console.log('Person data retrieved:', data);
-        return data;
+        const personData = await personResponse.json();
+        console.log('Person data with api_id:', personData);
+
+        if (!personData.api_id) {
+          console.error('No api_id found for person:', personData);
+          return null;
+        }
+
+        // Then fetch the full profile using api_id
+        const profileResponse = await fetch(`/api/people/profile/${personData.api_id}`);
+        if (!profileResponse.ok) {
+          console.error('Failed to fetch profile:', profileResponse.statusText);
+          throw new Error('Failed to fetch profile');
+        }
+        const profileData = await profileResponse.json();
+        console.log('Profile data retrieved:', profileData);
+        return profileData;
       } catch (error) {
-        console.error('Error fetching person:', error);
+        console.error('Error fetching person/profile:', error);
         throw error;
       }
     },
@@ -42,7 +57,7 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
     console.error('Query error:', error);
     return (
       <p className="text-sm text-destructive">
-        Error loading person data. Please try again later.
+        Error loading profile data. Please try again later.
       </p>
     );
   }
@@ -56,11 +71,11 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
   }
 
   if (!person) {
-    console.log('No person data found');
+    console.log('No person/profile data found');
     return (
       <p className="text-sm text-muted-foreground">
-        No person record found. This user hasn't been matched to a synced record yet.
-        {personId ? ` (Attempted to load ID: ${personId})` : ''}
+        No linked profile found. This user hasn't been matched to a synced record yet.
+        {personId ? ` (ID: ${personId})` : ''}
       </p>
     );
   }
