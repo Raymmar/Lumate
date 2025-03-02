@@ -13,7 +13,7 @@ interface UploadedFile {
 export class FileUploadService {
   private static instance: FileUploadService;
   private readonly bucketId: string;
-  private readonly replDb: ReturnType<typeof createClient>;
+  private readonly replDb;
 
   private constructor() {
     // Get bucket ID from .replit file's objectStorage configuration
@@ -21,7 +21,7 @@ export class FileUploadService {
     if (!this.bucketId) {
       throw new Error('Object storage bucket ID not found');
     }
-    this.replDb = createClient();
+    this.replDb = new (createClient as any)();
     console.log('FileUploadService initialized with bucket:', this.bucketId);
   }
 
