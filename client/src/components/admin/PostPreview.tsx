@@ -53,7 +53,6 @@ export function PostPreview({ post, isNew = false, onClose, onSave, readOnly = f
     console.log("Rendering new post form");
     return (
       <PreviewSidebar 
-        title="New Post"
         open={true}
         onOpenChange={(open) => {
           console.log("PreviewSidebar onOpenChange:", open);
@@ -69,7 +68,6 @@ export function PostPreview({ post, isNew = false, onClose, onSave, readOnly = f
 
   return (
     <PreviewSidebar 
-      title={readOnly ? "Post" : "Post Details"}
       open={true}
       onOpenChange={(open) => {
         console.log("PreviewSidebar onOpenChange:", open);
@@ -80,9 +78,9 @@ export function PostPreview({ post, isNew = false, onClose, onSave, readOnly = f
         {/* Title Section */}
         {post?.title && (
           <div>
-            <h3 className="text-lg font-semibold">{post.title}</h3>
+            <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
             {post.summary && (
-              <p className="text-sm text-muted-foreground mt-1">{post.summary}</p>
+              <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
             )}
           </div>
         )}
@@ -136,7 +134,7 @@ export function PostPreview({ post, isNew = false, onClose, onSave, readOnly = f
 
         {/* Rich Text Content Section */}
         {editor && (
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="prose prose-lg max-w-none dark:prose-invert">
             <EditorContent editor={editor} />
           </div>
         )}
