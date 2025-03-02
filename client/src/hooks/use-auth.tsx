@@ -61,7 +61,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (response.status === 401) return null;
         throw new Error("Failed to fetch user");
       }
-      return response.json();
+      const data = await response.json();
+      console.log('User data from API:', data); // Add logging to debug
+      return data;
     },
   });
 
@@ -79,8 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (data) => {
-      // Ensure we preserve all user fields including api_id
+      // Ensure we preserve all user fields including isAdmin
       const userData = data.user || data;
+      console.log('Login success, user data:', userData); // Add logging to debug
 
       // Invalidate all user-related queries to force a fresh fetch
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
