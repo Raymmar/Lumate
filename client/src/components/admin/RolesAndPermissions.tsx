@@ -41,19 +41,35 @@ export function RolesAndPermissions() {
   const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [updatingPermissions, setUpdatingPermissions] = useState<Set<string>>(new Set());
 
+  // Always fetch fresh data for roles
   const { data: roles, isLoading: rolesLoading } = useQuery<Role[]>({
-    queryKey: ['/api/admin/roles']
+    queryKey: ['/api/admin/roles'],
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000, // Refresh every second
+    staleTime: 0,
+    retry: 3
   });
 
+  // Always fetch fresh data for permissions
   const { data: permissions, isLoading: permissionsLoading } = useQuery<Permission[]>({
-    queryKey: ['/api/admin/permissions']
+    queryKey: ['/api/admin/permissions'],
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000, // Refresh every second
+    staleTime: 0,
+    retry: 3
   });
 
   const selectedRole = roles?.find(r => r.id.toString() === selectedRoleId);
 
+  // Fetch role permissions with proper cache invalidation
   const { data: rolePermissions, isLoading: rolePermissionsLoading } = useQuery<Permission[]>({
     queryKey: ['/api/admin/roles', selectedRole?.id, 'permissions'],
-    enabled: !!selectedRole
+    enabled: !!selectedRole,
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000, // Refresh every second
+    staleTime: 0,
+    retry: 3,
+    refetchOnMount: true
   });
 
   const isRequiredPermission = (roleName: string, permissionName: string) => {
@@ -86,23 +102,17 @@ export function RolesAndPermissions() {
       setUpdatingPermissions(prev => new Set(prev).add(permKey));
 
       const method = hasPermission ? 'DELETE' : 'POST';
-      const oldPermissions = queryClient.getQueryData<Permission[]>(['/api/admin/roles', roleId, 'permissions']) || [];
 
-      // Optimistically update the cache
-      queryClient.setQueryData(
-        ['/api/admin/roles', roleId, 'permissions'],
-        hasPermission
-          ? oldPermissions.filter(p => p.id !== permissionId)
-          : [...oldPermissions, permission]
-      );
-
-      const updatedPermissions = await apiRequest<Permission[]>(
+      // Make the API request
+      await apiRequest(
         `/api/admin/roles/${roleId}/permissions/${permissionId}`,
         method
       );
 
-      // Update cache with actual server response
-      queryClient.setQueryData(['/api/admin/roles', roleId, 'permissions'], updatedPermissions);
+      // Immediately refetch to ensure we have the latest data
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/admin/roles', roleId, 'permissions']
+      });
 
       toast({
         title: "Success",
@@ -110,18 +120,17 @@ export function RolesAndPermissions() {
       });
     } catch (error) {
       console.error('Failed to update role permission:', error);
-
-      // Revert the optimistic update
-      queryClient.invalidateQueries({ 
-        queryKey: ['/api/admin/roles', roleId, 'permissions'] 
-      });
-
       toast({
         title: "Error",
         description: error instanceof Error 
           ? error.message 
           : "Failed to update role permission. Please try again.",
         variant: "destructive",
+      });
+
+      // Force refresh on error
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/admin/roles', selectedRole?.id, 'permissions']
       });
     } finally {
       const permKey = getPermissionKey(roleId, permissionId);
@@ -178,54 +187,63 @@ export function RolesAndPermissions() {
 
           {/* Permissions Table */}
           {selectedRole ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Permission</TableHead>
-                  <TableHead>Resource</TableHead>
-                  <TableHead>Action</TableHead>
-                  <TableHead>Enabled</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {permissions.map((permission) => {
-                  const hasPermission = rolePermissions?.some(
-                    (p) => p.id === permission.id
-                  );
-                  const isRequired = isRequiredPermission(selectedRole.name, permission.name);
-                  const isUpdating = updatingPermissions.has(
-                    getPermissionKey(selectedRole.id, permission.id)
-                  );
+            <div className="relative">
+              {rolePermissionsLoading && (
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
+                  <div className="bg-background/90 p-4 rounded-lg shadow-lg">
+                    Loading permissions...
+                  </div>
+                </div>
+              )}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Permission</TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Enabled</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {permissions.map((permission) => {
+                    const hasPermission = rolePermissions?.some(
+                      (p) => p.id === permission.id
+                    );
+                    const isRequired = isRequiredPermission(selectedRole.name, permission.name);
+                    const isUpdating = updatingPermissions.has(
+                      getPermissionKey(selectedRole.id, permission.id)
+                    );
 
-                  return (
-                    <TableRow key={permission.id}>
-                      <TableCell className="font-medium">
-                        {permission.name}
-                        {isRequired && (
-                          <Badge variant="secondary" className="ml-2">Required</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>{permission.resource}</TableCell>
-                      <TableCell>{permission.action}</TableCell>
-                      <TableCell>
-                        <Switch
-                          checked={hasPermission || false}
-                          onCheckedChange={() =>
-                            handlePermissionToggle(
-                              selectedRole.id,
-                              permission.id,
-                              hasPermission || false
-                            )
-                          }
-                          disabled={isUpdating || isRequired || rolePermissionsLoading}
-                          className={isUpdating ? 'opacity-50' : ''}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                    return (
+                      <TableRow key={permission.id}>
+                        <TableCell className="font-medium">
+                          {permission.name}
+                          {isRequired && (
+                            <Badge variant="secondary" className="ml-2">Required</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>{permission.resource}</TableCell>
+                        <TableCell>{permission.action}</TableCell>
+                        <TableCell>
+                          <Switch
+                            checked={hasPermission || false}
+                            onCheckedChange={() =>
+                              handlePermissionToggle(
+                                selectedRole.id,
+                                permission.id,
+                                hasPermission || false
+                              )
+                            }
+                            disabled={isUpdating || isRequired || rolePermissionsLoading}
+                            className={`${isUpdating ? 'opacity-50' : ''} transition-opacity duration-200`}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           ) : (
             <p className="text-muted-foreground text-center py-4">
               Select a role to view and manage its permissions
