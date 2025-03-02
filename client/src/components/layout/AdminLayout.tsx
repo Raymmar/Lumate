@@ -13,7 +13,11 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
   return (
     <AdminGuard>
       <div className="min-h-screen bg-background">
-        <NavBar />
+        <div className="bg-background border-b">
+          <PageContainer>
+            <NavBar />
+          </PageContainer>
+        </div>
         <PageContainer>
           <div className="relative flex min-h-[calc(100vh-3.5rem)] mt-14">
             {/* Fixed width sidebar */}

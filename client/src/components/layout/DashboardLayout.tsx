@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-muted/10 flex flex-col">
       {/* Fixed header */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background border-b">
         <PageContainer>
           <NavBar />
         </PageContainer>
