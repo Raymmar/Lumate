@@ -25,7 +25,6 @@ export function MembersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
-
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching } = useQuery<MembersResponse>({
@@ -37,7 +36,7 @@ export function MembersTable() {
       if (!response.ok) throw new Error("Failed to fetch members");
       return response.json();
     },
-    keepPreviousData: true, // Keep showing previous data while fetching new data
+    keepPreviousData: true,
   });
 
   const users = data?.users || [];
@@ -106,7 +105,7 @@ export function MembersTable() {
         />
       </div>
 
-      <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+      <div className={`min-h-[400px] transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
         <DataTable
           data={users}
           columns={columns}

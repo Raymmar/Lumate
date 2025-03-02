@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 
 interface SearchInputProps {
   value: string;
@@ -11,15 +11,21 @@ interface SearchInputProps {
 
 export function SearchInput({ value, onChange, placeholder = "Search...", isLoading }: SearchInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   // Preserve focus state after re-render
   useEffect(() => {
-    if (document.activeElement === inputRef.current) {
-      const cursorPosition = inputRef.current.selectionStart;
-      inputRef.current.focus();
-      inputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+    if (isFocused && inputRef.current) {
+      const input = inputRef.current;
+      const cursorPosition = input.selectionStart || value.length;
+
+      // Use requestAnimationFrame to ensure focus is set after render
+      requestAnimationFrame(() => {
+        input.focus();
+        input.setSelectionRange(cursorPosition, cursorPosition);
+      });
     }
-  }, [value]);
+  }, [value, isFocused]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault(); // Prevent form submission
@@ -34,6 +40,8 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         className="pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
         disabled={isLoading}
       />
