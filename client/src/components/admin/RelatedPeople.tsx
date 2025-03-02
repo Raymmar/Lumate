@@ -18,7 +18,7 @@ export function RelatedPeople({ person }: RelatedPeopleProps) {
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
 
   return (
-    <Link href={`/admin/people/${person.api_id}`} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-accent">
+    <Link href={`/people/${person.api_id}`} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-accent">
       <Avatar>
         {person.avatarUrl ? (
           <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
