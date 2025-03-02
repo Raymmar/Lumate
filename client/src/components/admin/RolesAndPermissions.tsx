@@ -43,14 +43,31 @@ export function RolesAndPermissions() {
   const handlePermissionToggle = async (roleId: number, permissionId: number, hasPermission: boolean) => {
     try {
       setIsUpdating({ roleId, permissionId });
-      const method = hasPermission ? 'DELETE' : 'POST';
 
+      // Optimistically update the UI
+      const oldPermissions = queryClient.getQueryData<Permission[]>(['/api/admin/roles', roleId, 'permissions']) || [];
+      if (hasPermission) {
+        // Remove permission optimistically
+        queryClient.setQueryData(['/api/admin/roles', roleId, 'permissions'], 
+          oldPermissions.filter(p => p.id !== permissionId)
+        );
+      } else {
+        // Add permission optimistically
+        const permissionToAdd = permissions?.find(p => p.id === permissionId);
+        if (permissionToAdd) {
+          queryClient.setQueryData(['/api/admin/roles', roleId, 'permissions'], 
+            [...oldPermissions, permissionToAdd]
+          );
+        }
+      }
+
+      const method = hasPermission ? 'DELETE' : 'POST';
       await apiRequest(
         `/api/admin/roles/${roleId}/permissions/${permissionId}`,
         method
       );
 
-      // Invalidate role permissions cache to trigger a refresh
+      // Invalidate to ensure consistency with server
       await queryClient.invalidateQueries({ 
         queryKey: ['/api/admin/roles', roleId, 'permissions'] 
       });
@@ -61,6 +78,12 @@ export function RolesAndPermissions() {
       });
     } catch (error) {
       console.error('Failed to update role permission:', error);
+
+      // Revert optimistic update on error
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/admin/roles', roleId, 'permissions'] 
+      });
+
       toast({
         title: "Error",
         description: "Failed to update role permission",
