@@ -124,7 +124,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
 
       <EditorContent 
         editor={editor} 
-        className="prose prose-sm max-w-none min-h-[200px] p-0 focus:outline-none cursor-text [&_*]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit" 
+        className="prose prose-sm max-w-none min-h-[200px] p-0 focus:outline-none cursor-text [&_*]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit [&_.ProseMirror_ul]:space-y-1 [&_.ProseMirror_ol]:space-y-1 [&_.ProseMirror_li_p]:my-0" 
       />
     </div>
   )

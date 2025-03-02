@@ -134,7 +134,7 @@ export function PostPreview({ post, isNew = false, onClose, onSave, readOnly = f
 
         {/* Rich Text Content Section */}
         {editor && (
-          <div className="prose prose-lg max-w-none dark:prose-invert">
+          <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-1 [&_ol]:space-y-1 [&_li_p]:my-0">
             <EditorContent editor={editor} />
           </div>
         )}
