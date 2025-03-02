@@ -3,17 +3,15 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; 
+import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; // Added import for users table
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance } from '@shared/schema'; 
+import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
-import { MediaManagementService } from "./services/MediaManagementService";
-import multer from "multer";
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -927,7 +925,7 @@ export async function registerRoutes(app: Express) {
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
-        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+        eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
             ...event,
             isSynced: attendanceStatus.hasAttendees,
@@ -1426,49 +1424,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to toggle admin status:', error);
       res.status(500).json({ error: "Failed to toggle admin status" });
-    }
-  });
-
-  // Configure multer for memory storage
-  const upload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: {
-      fileSize: 5 * 1024 * 1024 // 5MB limit
-    }
-  });
-
-  // Add image upload endpoint
-  app.post("/api/media/upload", upload.single('image'), async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      if (!req.file.mimetype.startsWith('image/')) {
-        return res.status(400).json({ error: "Only image files are allowed" });
-      }
-
-      console.log('Processing image upload:', {
-        filename: req.file.originalname,
-        mimetype: req.file.mimetype,
-        size: req.file.size
-      });
-
-      const mediaService = MediaManagementService.getInstance();
-      const url = await mediaService.uploadImage(req.file.buffer, req.file.originalname);
-
-      console.log('Image upload successful:', { url });
-      res.json({ url });
-    } catch (error) {
-      console.error('Image upload failed:', error);
-      res.status(500).json({ 
-        error: "Failed to upload image",
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
     }
   });
 
