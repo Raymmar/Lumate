@@ -25,18 +25,19 @@ export function MembersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
+
   const itemsPerPage = 100;
 
-  const { data, isLoading } = useQuery<MembersResponse>({
+  const { data, isLoading, isFetching } = useQuery<MembersResponse>({
     queryKey: ["/api/admin/members", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
         `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch members");
-      const data = await response.json();
-      return data;
+      return response.json();
     },
+    keepPreviousData: true, // Keep showing previous data while fetching new data
   });
 
   const users = data?.users || [];
@@ -70,7 +71,6 @@ export function MembersTable() {
     {
       label: "View Profile",
       onClick: (member: User & { person?: Person | null }) => {
-        console.log("Selected member data:", member);
         setSelectedMember(member);
       },
     },
@@ -83,7 +83,6 @@ export function MembersTable() {
   ];
 
   const onRowClick = (member: User & { person?: Person | null }) => {
-    console.log("Row clicked, member data:", member);
     setSelectedMember(member);
   };
 
@@ -95,10 +94,6 @@ export function MembersTable() {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
@@ -107,15 +102,19 @@ export function MembersTable() {
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder="Search members..."
+          isLoading={isFetching}
         />
       </div>
 
-      <DataTable
-        data={users}
-        columns={columns}
-        actions={actions}
-        onRowClick={onRowClick}
-      />
+      <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+        <DataTable
+          data={users}
+          columns={columns}
+          actions={actions}
+          onRowClick={onRowClick}
+          isLoading={isLoading}
+        />
+      </div>
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
