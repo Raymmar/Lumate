@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startEventSyncService } from "./services/eventSyncService";
+import { fileUploadService } from "./services/FileUploadService";
 
 const app = express();
 app.use(express.json());
@@ -38,57 +39,74 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // First ensure database tables exist
-  const { ensureTablesExist } = await import('./db');
+  try {
+    // First ensure database tables exist
+    const { ensureTablesExist } = await import('./db');
 
-  console.log('Ensuring database tables exist...');
-  await ensureTablesExist();
+    console.log('Ensuring database tables exist...');
+    await ensureTablesExist();
 
-  const server = await registerRoutes(app);
-
-  // Initialize cache service to start syncing data in the background
-  console.log('Starting CacheService in background...');
-  setTimeout(async () => {
+    // Initialize FileUploadService first to catch any initialization errors
+    console.log('Initializing FileUploadService...');
     try {
-      const CacheService = (await import('./services/CacheService')).CacheService;
-      const cacheService = CacheService.getInstance();
-      console.log('CacheService started successfully in background');
+      await fileUploadService;
+      console.log('FileUploadService initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize CacheService:', error);
+      console.error('Failed to initialize FileUploadService:', error);
+      process.exit(1); // Exit if we can't initialize file uploads
     }
-  }, 100); // Small delay to ensure server starts quickly
 
-  // Start event sync service in background
-  console.log('Starting EventSyncService in background...');
-  setTimeout(() => {
-    try {
-      startEventSyncService();
-      console.log('EventSyncService started successfully in background');
-    } catch (error) {
-      console.error('Failed to initialize EventSyncService:', error);
+    const server = await registerRoutes(app);
+
+    // Initialize cache service to start syncing data in the background
+    console.log('Starting CacheService in background...');
+    setTimeout(async () => {
+      try {
+        const CacheService = (await import('./services/CacheService')).CacheService;
+        const cacheService = CacheService.getInstance();
+        console.log('CacheService started successfully in background');
+      } catch (error) {
+        console.error('Failed to initialize CacheService:', error);
+      }
+    }, 100); // Small delay to ensure server starts quickly
+
+    // Start event sync service in background
+    console.log('Starting EventSyncService in background...');
+    setTimeout(() => {
+      try {
+        startEventSyncService();
+        console.log('EventSyncService started successfully in background');
+      } catch (error) {
+        console.error('Failed to initialize EventSyncService:', error);
+      }
+    }, 200); // Small delay after CacheService
+
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Express error handler caught:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+
+      res.status(status).json({ message });
+    });
+
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
     }
-  }, 200); // Small delay after CacheService
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`Server running on port ${port}`);
+      log('Environment variables check:');
+      log(`- REPLIT_DEFAULT_BUCKET_ID: ${process.env.REPLIT_DEFAULT_BUCKET_ID ? 'Set' : 'Not set'}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
-
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

@@ -9,6 +9,7 @@ import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
 import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
+import { Client } from '@google-cloud/storage'; //Import the necessary library for Google Cloud Storage
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
@@ -116,6 +117,51 @@ export async function registerRoutes(app: Express) {
     name: 'sid',
     proxy: isProduction
   }));
+
+  // Add test route before the file upload route
+  app.get("/api/_test/storage", async (req, res) => {
+    try {
+      // Create a test buffer
+      const testBuffer = Buffer.from('test content');
+      const testKey = `test/test-${Date.now()}.txt`;
+
+      console.log('Testing storage client with:', {
+        bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID,
+        testKey
+      });
+
+      // Get a new instance to test
+      const client = new Client({
+        bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID
+      });
+
+      // Log available methods
+      console.log('Storage client methods:', {
+        methods: Object.getOwnPropertyNames(Object.getPrototypeOf(client))
+      });
+
+      // Attempt to upload
+      await client.put(testKey, testBuffer, {
+        ContentType: 'text/plain'
+      });
+
+      const url = `https://${process.env.REPLIT_DEFAULT_BUCKET_ID}.id.repl.co/${testKey}`;
+
+      console.log('Test upload successful:', { url });
+
+      res.json({ 
+        success: true,
+        url,
+        methods: Object.getOwnPropertyNames(Object.getPrototypeOf(client))
+      });
+    } catch (error) {
+      console.error('Storage test failed:', error);
+      res.status(500).json({ 
+        error: "Storage test failed",
+        details: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.get("/api/events", async (_req, res) => {
     try {
@@ -888,7 +934,7 @@ export async function registerRoutes(app: Express) {
       res.json(featuredEvent);
     } catch (error) {
       console.error('Failed to fetch featured event:', error);
-      res.status(500).json({ error: "Failed to fetch featured event" });
+res.status(500).json({ error: "Failed to fetch featured event" });
     }
   });
 
@@ -1434,14 +1480,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add file upload route
+  // Update file upload route
   app.post("/api/upload", async (req, res) => {
     try {
-      // Debug authentication state
+      // Debug logging for auth state and request
       console.log('Upload request received:', {
         hasSession: !!req.session,
         userId: req.session?.userId,
-        headers: req.headers
+        headers: {
+          ...req.headers,
+          cookie: undefined // Don't log cookies
+        }
       });
 
       if (!req.session.userId) {
@@ -1490,7 +1539,11 @@ export async function registerRoutes(app: Express) {
 
           res.json({ url });
         } catch (uploadError) {
-          console.error('File upload processing failed:', uploadError);
+          console.error('File upload processing failed:', {
+            error: uploadError instanceof Error ? uploadError.message : String(uploadError),
+            stack: uploadError instanceof Error ? uploadError.stack : undefined
+          });
+
           res.status(500).json({ 
             error: "Failed to process upload",
             details: uploadError instanceof Error ? uploadError.message : String(uploadError)
@@ -1498,7 +1551,11 @@ export async function registerRoutes(app: Express) {
         }
       });
     } catch (error) {
-      console.error('Upload route error:', error);
+      console.error('Upload route error:', {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+
       res.status(500).json({ 
         error: "Upload failed",
         details: error instanceof Error ? error.message : String(error)

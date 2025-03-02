@@ -18,16 +18,24 @@ export class FileUploadService {
   private readonly retryDelay = 1000; // 1 second
 
   private constructor() {
-    // Get bucket ID from environment
-    const bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID;
-    if (!bucketId) {
-      throw new Error('Object storage bucket ID not found in environment');
-    }
-    this.bucketId = bucketId;
-    console.log('FileUploadService initialized with bucket:', this.bucketId);
+    try {
+      // Get bucket ID from environment
+      const bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID;
+      if (!bucketId) {
+        throw new Error('Object storage bucket ID not found in environment');
+      }
+      this.bucketId = bucketId;
+      console.log('FileUploadService initialized with bucket:', this.bucketId);
 
-    // Initialize Replit object storage client
-    this.storage = new Client();
+      // Initialize Replit object storage client
+      this.storage = new Client({
+        bucketId: this.bucketId
+      });
+      console.log('Object storage client initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize FileUploadService:', error);
+      throw error;
+    }
   }
 
   static getInstance(): FileUploadService {
@@ -77,8 +85,21 @@ export class FileUploadService {
       try {
         console.log(`Upload attempt ${attempt}/${this.maxRetries} for key:`, key);
 
+        // Debug the storage client state
+        console.log('Storage client check:', {
+          bucketId: this.bucketId,
+          hasStorage: !!this.storage,
+          clientMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(this.storage))
+        });
+
+        // Verify storage client is properly initialized
+        if (!this.storage) {
+          throw new Error('Storage client not initialized');
+        }
+
+        // Upload to object storage with ContentType header
         await this.storage.put(key, file.buffer, {
-          contentType: file.mimetype,
+          ContentType: file.mimetype
         });
 
         // Generate public URL for the uploaded file
@@ -95,7 +116,11 @@ export class FileUploadService {
         return publicUrl;
       } catch (error) {
         lastError = error as Error;
-        console.error(`Upload attempt ${attempt} failed:`, error);
+        console.error(`Upload attempt ${attempt} failed:`, {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          attempt
+        });
 
         if (attempt < this.maxRetries) {
           const delayMs = this.retryDelay * attempt;
@@ -122,7 +147,6 @@ export class FileUploadService {
       console.log('Deleting file:', { url, key });
 
       await this.storage.delete(key);
-
       console.log('File deleted successfully');
     } catch (error) {
       console.error('Failed to delete file:', error);
