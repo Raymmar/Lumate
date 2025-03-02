@@ -178,6 +178,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isAdmin = Boolean(user?.isAdmin);
   const isOwnProfile = user?.api_id === person?.api_id;
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
+  const isProfileAdmin = Boolean(person.isAdmin);
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
@@ -206,7 +207,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {isAdmin && <AdminBadge />}
+                {isProfileAdmin && <AdminBadge />}
               </h1>
               <div className="flex items-center gap-2">
                 <AuthGuard>

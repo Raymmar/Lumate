@@ -67,7 +67,7 @@ export const users = pgTable("users", {
   displayName: varchar("display_name", { length: 255 }),
   password: varchar("password", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
-  isAdmin: boolean("is_admin").notNull().default(false), // Added isAdmin column
+  isAdmin: boolean("is_admin").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
@@ -135,7 +135,7 @@ export const insertTagSchema = createInsertSchema(tags).omit({
   createdAt: true 
 }).transform((data) => ({
   ...data,
-  text: data.text.toLowerCase() // Ensure tags are stored in lowercase
+  text: data.text.toLowerCase() 
 }));
 
 export const insertPostSchema = createInsertSchema(posts).omit({ 
@@ -170,13 +170,15 @@ export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: 
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
-export type Person = typeof people.$inferSelect;
+export type Person = typeof people.$inferSelect & {
+  isAdmin?: boolean; 
+};
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 export type User = typeof users.$inferSelect & {
   api_id?: string;
-  isAdmin: boolean; // Changed from optional to required boolean
+  isAdmin: boolean; 
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;

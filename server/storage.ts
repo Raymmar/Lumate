@@ -323,11 +323,25 @@ export class PostgresStorage implements IStorage {
   async getPersonByApiId(apiId: string): Promise<Person | null> {
     try {
       const result = await db
-        .select()
+        .select({
+          ...people,
+          isAdmin: users.isAdmin
+        })
         .from(people)
+        .leftJoin(users, eq(users.email, people.email))
         .where(eq(people.api_id, apiId))
         .limit(1);
-      return result.length > 0 ? result[0] : null;
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      // Extract the person data and admin status
+      const person = result[0];
+      return {
+        ...person,
+        isAdmin: Boolean(person.isAdmin)
+      };
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
       throw error;
