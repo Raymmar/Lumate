@@ -6,15 +6,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface RelatedPeopleProps {
   userId: number;
+  userEmail?: string; // Add email prop for better matching
 }
 
-export function RelatedPeople({ userId }: RelatedPeopleProps) {
+export function RelatedPeople({ userId, userEmail }: RelatedPeopleProps) {
   const { data: relatedPeople, isLoading } = useQuery<Person[]>({
     queryKey: ['/api/users', userId, 'related-people'],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${userId}/related-people`);
-      if (!response.ok) throw new Error('Failed to fetch related people');
-      return response.json();
+      console.log('Fetching related people for user:', { userId, userEmail });
+      const response = await fetch(`/api/users/${userId}/related-people${userEmail ? `?email=${encodeURIComponent(userEmail)}` : ''}`);
+      if (!response.ok) {
+        console.error('Failed to fetch related people:', response.statusText);
+        throw new Error('Failed to fetch related people');
+      }
+      const data = await response.json();
+      console.log('Related people data:', data);
+      return data;
     }
   });
 
@@ -29,7 +36,7 @@ export function RelatedPeople({ userId }: RelatedPeopleProps) {
 
   if (!relatedPeople?.length) {
     return (
-      <p className="text-sm text-muted-foreground">No related people found</p>
+      <p className="text-sm text-muted-foreground">No related people found. This could mean the user's email hasn't been matched to any synced records yet.</p>
     );
   }
 

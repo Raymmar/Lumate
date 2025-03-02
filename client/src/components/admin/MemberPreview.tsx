@@ -140,7 +140,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
           <h3 className="font-medium">Related People</h3>
         </CardHeader>
         <CardContent>
-          <RelatedPeople userId={member.id} />
+          <RelatedPeople userId={member.id} userEmail={member.email} />
         </CardContent>
       </Card>
     </div>
