@@ -15,7 +15,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
   }
 
   // If logged in but not an admin, redirect to home
-  if (!user.isAdmin) {
+  if (!Boolean(user.isAdmin)) {
     return <Redirect to="/" />;
   }
 

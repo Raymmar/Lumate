@@ -558,13 +558,15 @@ export async function registerRoutes(app: Express) {
         }
       }
 
+      // Explicitly include all necessary user fields including isAdmin
       return res.json({
         id: user.id,
         email: user.email,
         displayName: user.displayName,
         isVerified: user.isVerified,
+        isAdmin: user.isAdmin, // Explicitly include isAdmin
         personId: user.personId,
-        api_id 
+        api_id
       });
     } catch (error) {
       console.error('Failed to get user info:', error);
@@ -608,6 +610,7 @@ export async function registerRoutes(app: Express) {
         });
       });
 
+      // Explicitly include isAdmin in the response
       return res.json({ 
         message: "Logged in successfully",
         user: {
@@ -615,6 +618,7 @@ export async function registerRoutes(app: Express) {
           email: user.email,
           displayName: user.displayName,
           isVerified: user.isVerified,
+          isAdmin: user.isAdmin, // Explicitly include isAdmin
           personId: user.personId
         }
       });

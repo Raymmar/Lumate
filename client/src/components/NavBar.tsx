@@ -16,7 +16,7 @@ import { AdminBadge } from "@/components/AdminBadge";
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
-  const isAdmin = user?.isAdmin;
+  const isAdmin = Boolean(user?.isAdmin); // Explicitly convert to boolean
   const isAdminPage = location.startsWith("/admin");
 
   return (

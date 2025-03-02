@@ -176,7 +176,7 @@ export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 export type User = typeof users.$inferSelect & {
   api_id?: string;
-  isAdmin?: boolean;
+  isAdmin: boolean; // Changed from optional to required boolean
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;

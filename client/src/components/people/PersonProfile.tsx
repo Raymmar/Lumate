@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,8 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
-import { ADMIN_EMAILS } from "@/components/AdminGuard";
-import { CalendarDays, Users, ChevronDown } from 'lucide-react';
+import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PersonProfileProps {
@@ -70,7 +69,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient;
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people', personId],
@@ -176,7 +175,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isAdmin = person?.email && user?.isAdmin;
+  const isAdmin = Boolean(user?.isAdmin);
   const isOwnProfile = user?.api_id === person?.api_id;
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
 

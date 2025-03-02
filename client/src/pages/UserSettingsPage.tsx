@@ -10,7 +10,6 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
-//import { ADMIN_EMAILS } from "@/components/AdminGuard"; //Removed this line as it is no longer used.
 import { useTheme } from "@/hooks/use-theme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +20,7 @@ export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
 
-  const isAdmin = user?.isAdmin; // Updated isAdmin check
+  const isAdmin = Boolean(user?.isAdmin); // Explicitly convert to boolean
 
   const updateProfileMutation = useMutation({
     mutationFn: async (newDisplayName: string) => {
