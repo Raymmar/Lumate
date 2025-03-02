@@ -1426,6 +1426,179 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to toggle admin status" });
     }
   });
+  // Add new roles and permissions endpoints after existing admin routes
+  app.get("/api/admin/roles", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const roles = await storage.getAllRoles();
+      res.json(roles);
+    } catch (error) {
+      console.error('Failed to fetch roles:', error);
+      res.status(500).json({ error: "Failed to fetch roles" });
+    }
+  });
+
+  app.get("/api/admin/permissions", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const permissions = await storage.getAllPermissions();
+      res.json(permissions);
+    } catch (error) {
+      console.error('Failed to fetch permissions:', error);
+      res.status(500).json({ error: "Failed to fetch permissions" });
+    }
+  });
+
+  app.get("/api/admin/roles/:roleId/permissions", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const roleId = parseInt(req.params.roleId);
+      if (isNaN(roleId)) {
+        return res.status(400).json({ error: "Invalid role ID" });
+      }
+
+      const permissions = await storage.getRolePermissions(roleId);
+      res.json(permissions);
+    } catch (error) {
+      console.error('Failed to fetch role permissions:', error);
+      res.status(500).json({ error: "Failed to fetch role permissions" });
+    }
+  });
+
+  app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const roleId = parseInt(req.params.roleId);
+      const permissionId = parseInt(req.params.permissionId);
+      if (isNaN(roleId) || isNaN(permissionId)) {
+        return res.status(400).json({ error: "Invalid role or permission ID" });
+      }
+
+      await storage.assignPermissionToRole(roleId, permissionId, req.session.userId);
+
+      // Return updated permissions for the role
+      const updatedPermissions = await storage.getRolePermissions(roleId);
+      res.json(updatedPermissions);
+    } catch (error) {
+      console.error('Failed to assign permission to role:', error);
+      res.status(500).json({ error: "Failed to assign permission to role" });
+    }
+  });
+
+  app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const roleId = parseInt(req.params.roleId);
+      const permissionId = parseInt(req.params.permissionId);
+      if (isNaN(roleId) || isNaN(permissionId)) {
+        return res.status(400).json({ error: "Invalid role or permission ID" });
+      }
+
+      await storage.removePermissionFromRole(roleId, permissionId);
+
+      // Return updated permissions for the role
+      const updatedPermissions = await storage.getRolePermissions(roleId);
+      res.json(updatedPermissions);
+    } catch (error) {
+      console.error('Failed to remove permission from role:', error);
+      res.status(500).json({ error: "Failed to remove permission from role" });
+    }
+  });
+
+  // Add user role management endpoint
+  app.post("/api/admin/members/:userId/roles/:roleName", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const adminUser = await storage.getUser(req.session.userId);
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const userId = parseInt(req.params.userId);
+      const roleName = req.params.roleName;
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      // Get the role by name
+      const role = await storage.getRoleByName(roleName);
+      if (!role) {
+        return res.status(404).json({ error: "Role not found" });
+      }
+
+      // Remove all existing roles from the user
+      const currentRoles = await storage.getUserRoles(userId);
+      for (const currentRole of currentRoles) {
+        await storage.removeRoleFromUser(userId, currentRole.id);
+      }
+
+      // Assign the new role
+      await storage.assignRoleToUser(userId, role.id, req.session.userId);
+
+      // Get updated roles for the user
+      const updatedRoles = await storage.getUserRoles(userId);
+      res.json({ roles: updatedRoles });
+    } catch (error) {
+      console.error('Failed to update user roles:', error);
+      res.status(500).json({ error: "Failed to update user roles" });
+    }
+  });
+
   // Add new endpoint for updating user admin status after the existing /api/admin/members endpoint
   app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
     try {
