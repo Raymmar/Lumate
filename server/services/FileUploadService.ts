@@ -16,7 +16,6 @@ export class FileUploadService {
   private readonly replDb;
 
   private constructor() {
-    // Get bucket ID from .replit file's objectStorage configuration
     this.bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID || 'replit-objstore-fdb314e8-358e-4080-9f92-57e210181986';
     if (!this.bucketId) {
       throw new Error('Object storage bucket ID not found');
@@ -63,13 +62,40 @@ export class FileUploadService {
     const key = `uploads/${filename}`;
 
     try {
-      await this.replDb.set(key, file.buffer);
+      // Store file in Replit Database with base64 encoding
+      const base64Data = file.buffer.toString('base64');
+      await this.replDb.set(key, base64Data);
+
+      // Log successful storage
+      console.log('File data stored successfully:', { key });
+
+      // Generate public URL
       const url = `https://${this.bucketId}.id.repl.co/${key}`;
+
+      // Verify the file was stored
+      const storedData = await this.replDb.get(key);
+      if (!storedData) {
+        throw new Error('File was not stored properly');
+      }
+
       console.log('File uploaded successfully:', { key, url });
       return url;
     } catch (error) {
       console.error('Failed to upload file:', error);
       throw new Error('Failed to upload file to object storage');
+    }
+  }
+
+  async getFile(key: string): Promise<Buffer | null> {
+    try {
+      const base64Data = await this.replDb.get(key);
+      if (!base64Data) {
+        return null;
+      }
+      return Buffer.from(base64Data, 'base64');
+    } catch (error) {
+      console.error('Failed to retrieve file:', error);
+      return null;
     }
   }
 
