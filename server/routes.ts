@@ -37,12 +37,6 @@ function sendSSEUpdate(res: Response, data: any) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-// Define admin emails directly in routes since we can't import from client components
-const ADMIN_EMAILS = [
-  "admin@example.com",
-  "me@raymmar.com"
-];
-
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(
@@ -778,9 +772,9 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin
+      // Check if user is admin using the new flag
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -902,7 +896,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -956,7 +950,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -998,7 +992,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1040,7 +1034,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1170,7 +1164,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1213,7 +1207,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1318,7 +1312,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1346,7 +1340,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
-      if (!user || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+      if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
@@ -1355,6 +1349,77 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch posts:', error);
       res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
+  // Update admin check in /api/admin/members endpoint
+  app.get("/api/admin/members", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users)
+        .then(result => Number(result[0].count));
+
+      // Get paginated users
+      const usersList = await db
+        .select()
+        .from(users)
+        .orderBy(users.createdAt)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        users: usersList,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      res.status(500).json({ error: "Failed to fetch members" });
+    }
+  });
+
+  // Add new endpoint to toggle admin status
+  app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if the current user is an admin
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const targetUserId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(targetUserId);
+
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Toggle the admin status
+      const updatedUser = await storage.updateUserAdminStatus(targetUserId, !targetUser.isAdmin);
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Failed to toggle admin status:', error);
+      res.status(500).json({ error: "Failed to toggle admin status" });
     }
   });
 

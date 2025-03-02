@@ -1,12 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { queryClient } from "@/lib/queryClient";
 
 interface User {
   id: string;
   email: string;
   displayName: string | null;
   created_at: string;
+  isAdmin: boolean;
 }
 
 export function UsersTable() {
@@ -16,6 +19,19 @@ export function UsersTable() {
       const response = await fetch("/api/admin/users");
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
+    },
+  });
+
+  const toggleAdminMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/admin/users/${userId}/toggle-admin`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error("Failed to toggle admin status");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
     },
   });
 
@@ -34,6 +50,17 @@ export function UsersTable() {
       key: "created_at",
       header: "Created At",
       cell: (row: User) => format(new Date(row.created_at), "PPP"),
+    },
+    {
+      key: "isAdmin",
+      header: "Admin",
+      cell: (row: User) => (
+        <Switch
+          checked={row.isAdmin}
+          onCheckedChange={() => toggleAdminMutation.mutate(row.id)}
+          disabled={toggleAdminMutation.isPending}
+        />
+      ),
     },
   ];
 

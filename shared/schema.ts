@@ -67,6 +67,7 @@ export const users = pgTable("users", {
   displayName: varchar("display_name", { length: 255 }),
   password: varchar("password", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
+  isAdmin: boolean("is_admin").notNull().default(false), // Added isAdmin column
   personId: serial("person_id").references(() => people.id),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
@@ -162,7 +163,7 @@ export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true, isAdmin: true });
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });
@@ -175,6 +176,7 @@ export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 export type User = typeof users.$inferSelect & {
   api_id?: string;
+  isAdmin?: boolean;
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
