@@ -4,6 +4,7 @@ import type { Person } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { PersonPreview } from "./PersonPreview";
+import { SearchInput } from "./SearchInput";
 import {
   Pagination,
   PaginationContent,
@@ -20,22 +21,22 @@ interface PeopleResponse {
 export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<PeopleResponse>({
-    queryKey: ["/api/admin/people", currentPage, itemsPerPage],
+    queryKey: ["/api/admin/people", currentPage, itemsPerPage, searchQuery],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/people?page=${currentPage}&limit=${itemsPerPage}`);
+      const response = await fetch(
+        `/api/admin/people?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`
+      );
       if (!response.ok) throw new Error("Failed to fetch people");
       const data = await response.json();
-      console.log("Fetched people data:", data); // Debug log
       return data;
     },
   });
 
   const people = data?.people || [];
-  console.log("Processed people data:", people); // Debug log for processed data
-
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -63,7 +64,6 @@ export function PeopleTable() {
   ];
 
   const onRowClick = (person: Person) => {
-    console.log("Row clicked, person data:", person); // Debug log for row click
     setSelectedPerson(person);
   };
 
@@ -81,6 +81,15 @@ export function PeopleTable() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">People</h2>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search people..."
+        />
+      </div>
+
       <DataTable 
         data={people} 
         columns={columns} 

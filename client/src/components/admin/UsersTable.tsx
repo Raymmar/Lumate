@@ -3,6 +3,8 @@ import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { queryClient } from "@/lib/queryClient";
+import { SearchInput } from "./SearchInput";
+import { useState } from "react";
 
 interface User {
   id: string;
@@ -13,10 +15,12 @@ interface User {
 }
 
 export function UsersTable() {
+  const [searchQuery, setSearchQuery] = useState("");
+
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/users"],
+    queryKey: ["/api/admin/users", searchQuery],
     queryFn: async () => {
-      const response = await fetch("/api/admin/users");
+      const response = await fetch(`/api/admin/users${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`);
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
     },
@@ -68,14 +72,12 @@ export function UsersTable() {
     {
       label: "View Profile",
       onClick: (user: User) => {
-        // Placeholder for view action
         console.log("View user:", user);
       },
     },
     {
       label: "Edit",
       onClick: (user: User) => {
-        // Placeholder for edit action
         console.log("Edit user:", user);
       },
     },
@@ -85,5 +87,17 @@ export function UsersTable() {
     return <div>Loading...</div>;
   }
 
-  return <DataTable data={users} columns={columns} actions={actions} />;
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Users</h2>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search users..."
+        />
+      </div>
+      <DataTable data={users} columns={columns} actions={actions} />
+    </div>
+  );
 }

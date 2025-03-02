@@ -7,6 +7,7 @@ import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 import { PreviewSidebar } from "./PreviewSidebar";
+import { SearchInput } from "./SearchInput";
 import {
   Pagination,
   PaginationContent,
@@ -30,12 +31,15 @@ export function EventsTable() {
   const [selectedEvent, setSelectedEvent] = useState<EventWithSync | null>(null);
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<EventsResponse>({
-    queryKey: ["/api/admin/events", currentPage, itemsPerPage],
+    queryKey: ["/api/admin/events", currentPage, itemsPerPage, searchQuery],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/events?page=${currentPage}&limit=${itemsPerPage}`);
+      const response = await fetch(
+        `/api/admin/events?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`
+      );
       if (!response.ok) throw new Error("Failed to fetch events");
       return response.json();
     },
@@ -149,6 +153,14 @@ export function EventsTable() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Events</h2>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search events..."
+        />
+      </div>
       <DataTable 
         data={events} 
         columns={columns}
