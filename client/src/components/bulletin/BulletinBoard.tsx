@@ -241,6 +241,9 @@ export function BulletinBoard() {
   });
 
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const { data: postsData } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/public/posts"],
+  });
 
   return (
     <div className="space-y-6">
@@ -285,6 +288,8 @@ export function BulletinBoard() {
           post={selectedPost}
           onClose={() => setSelectedPost(null)}
           readOnly
+          posts={postsData?.posts || []}
+          onNavigate={setSelectedPost}
         />
       )}
 

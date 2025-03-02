@@ -7,11 +7,16 @@ import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 
 export default function PostsPage() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+
+  const { data: postsData } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/admin/posts"],
+  });
 
   const handleCreatePost = async (data: InsertPost) => {
     try {
@@ -64,6 +69,8 @@ export default function PostsPage() {
             setIsCreating(false);
           }}
           onSave={handleCreatePost}
+          posts={postsData?.posts || []}
+          onNavigate={setSelectedPost}
         />
       )}
     </AdminLayout>
