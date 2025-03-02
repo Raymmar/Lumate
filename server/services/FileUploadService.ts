@@ -66,9 +66,9 @@ export class FileUploadService {
       // Log successful storage
       console.log('File data stored successfully:', { key });
 
-      // Generate full URL using current host
-      // This will be replaced with the actual host in routes.ts
-      const url = `__HOST__/uploads/${filename}`;
+      // Generate full URL using Replit domain and HTTPS
+      const url = `https://${process.env.REPLIT_DB_HOST}/uploads/${filename}`;
+
 
       // Verify the file was stored
       const storedData = await this.replDb.get(key);

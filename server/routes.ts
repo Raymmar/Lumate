@@ -1427,6 +1427,7 @@ export async function registerRoutes(app: Express) {
 
       console.log('Serving file:', { key, contentType });
       res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
       res.send(fileData);
     } catch (error) {
       console.error('Failed to serve file:', error);
@@ -1434,7 +1435,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add file upload route
+  // Update file upload route
   app.post("/api/upload", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -1470,10 +1471,13 @@ export async function registerRoutes(app: Express) {
           console.log('File received, processing upload');
           let url = await fileUploadService.uploadFile(req.file);
 
-          // Replace placeholder with actual host
-          const protocol = req.protocol;
-          const host = req.get('host');
-          url = url.replace('__HOST__', `${protocol}://${host}`);
+          // Get the Replit domain from environment
+          const replitDomain = process.env.REPL_SLUG && process.env.REPL_OWNER 
+            ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+            : req.get('host');
+
+          // Replace placeholder with HTTPS URL using Replit domain
+          url = url.replace('__HOST__', `https://${replitDomain}`);
 
           console.log('Upload successful, returning URL:', url);
           res.json({ url });
