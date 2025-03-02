@@ -3,15 +3,17 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; // Added import for users table
+import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; 
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
+import { events, attendance } from '@shared/schema'; 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
+import { MediaManagementService } from "./services/MediaManagementService";
+import multer from "multer";
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -1424,6 +1426,45 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to toggle admin status:', error);
       res.status(500).json({ error: "Failed to toggle admin status" });
+    }
+  });
+
+  // Configure multer for memory storage
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (_req, file, cb) => {
+      // Accept only image files
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(null, false);
+      }
+    }
+  });
+
+  // Add image upload endpoint
+  app.post("/api/media/upload", upload.single('image'), async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if file exists
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const mediaService = MediaManagementService.getInstance();
+      const url = await mediaService.uploadImage(req.file.buffer, req.file.originalname);
+
+      res.json({ url });
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      res.status(500).json({ error: "Failed to upload image" });
     }
   });
 
