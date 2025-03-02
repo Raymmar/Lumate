@@ -927,7 +927,7 @@ export async function registerRoutes(app: Express) {
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
-        eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
             ...event,
             isSynced: attendanceStatus.hasAttendees,
@@ -1433,38 +1433,42 @@ export async function registerRoutes(app: Express) {
   const upload = multer({ 
     storage: multer.memoryStorage(),
     limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-    fileFilter: (_req, file, cb) => {
-      // Accept only image files
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(null, false);
-      }
+      fileSize: 5 * 1024 * 1024 // 5MB limit
     }
   });
 
   // Add image upload endpoint
   app.post("/api/media/upload", upload.single('image'), async (req, res) => {
     try {
-      // Check if user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if file exists
       if (!req.file) {
-        return res.status(400).json({ error: "No image file provided" });
+        return res.status(400).json({ error: "No file uploaded" });
       }
+
+      if (!req.file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: "Only image files are allowed" });
+      }
+
+      console.log('Processing image upload:', {
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
 
       const mediaService = MediaManagementService.getInstance();
       const url = await mediaService.uploadImage(req.file.buffer, req.file.originalname);
 
+      console.log('Image upload successful:', { url });
       res.json({ url });
     } catch (error) {
-      console.error('Failed to upload image:', error);
-      res.status(500).json({ error: "Failed to upload image" });
+      console.error('Image upload failed:', error);
+      res.status(500).json({ 
+        error: "Failed to upload image",
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
