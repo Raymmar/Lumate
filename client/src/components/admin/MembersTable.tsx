@@ -36,7 +36,8 @@ export function MembersTable() {
       if (!response.ok) throw new Error("Failed to fetch members");
       return response.json();
     },
-    keepPreviousData: true,
+    keepPreviousData: true, // Keep showing previous data while fetching
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   const users = data?.users || [];
@@ -106,15 +107,20 @@ export function MembersTable() {
       </div>
 
       <div className="min-h-[400px] relative">
-        <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
-          <DataTable
-            data={users}
-            columns={columns}
-            actions={actions}
-            onRowClick={onRowClick}
-            isLoading={isLoading}
-          />
-        </div>
+        {isLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            Loading...
+          </div>
+        ) : (
+          <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+            <DataTable
+              data={users}
+              columns={columns}
+              actions={actions}
+              onRowClick={onRowClick}
+            />
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
