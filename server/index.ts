@@ -2,10 +2,14 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startEventSyncService } from "./services/eventSyncService";
+import uploadRouter from "./routes/upload";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Register upload routes
+app.use("/api/upload", uploadRouter);
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -38,57 +42,62 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // First ensure database tables exist
-  const { ensureTablesExist } = await import('./db');
+  try {
+    // First ensure database tables exist
+    const { ensureTablesExist } = await import('./db');
 
-  console.log('Ensuring database tables exist...');
-  await ensureTablesExist();
+    console.log('Ensuring database tables exist...');
+    await ensureTablesExist();
 
-  const server = await registerRoutes(app);
+    const server = await registerRoutes(app);
 
-  // Initialize cache service to start syncing data in the background
-  console.log('Starting CacheService in background...');
-  setTimeout(async () => {
-    try {
-      const CacheService = (await import('./services/CacheService')).CacheService;
-      const cacheService = CacheService.getInstance();
-      console.log('CacheService started successfully in background');
-    } catch (error) {
-      console.error('Failed to initialize CacheService:', error);
+    // Initialize cache service to start syncing data in the background
+    console.log('Starting CacheService in background...');
+    setTimeout(async () => {
+      try {
+        const CacheService = (await import('./services/CacheService')).CacheService;
+        const cacheService = CacheService.getInstance();
+        console.log('CacheService started successfully in background');
+      } catch (error) {
+        console.error('Failed to initialize CacheService:', error);
+      }
+    }, 100); // Small delay to ensure server starts quickly
+
+    // Start event sync service in background
+    console.log('Starting EventSyncService in background...');
+    setTimeout(() => {
+      try {
+        startEventSyncService();
+        console.log('EventSyncService started successfully in background');
+      } catch (error) {
+        console.error('Failed to initialize EventSyncService:', error);
+      }
+    }, 200); // Small delay after CacheService
+
+    // Error handling middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Error:', err);
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
+    });
+
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
     }
-  }, 100); // Small delay to ensure server starts quickly
 
-  // Start event sync service in background
-  console.log('Starting EventSyncService in background...');
-  setTimeout(() => {
-    try {
-      startEventSyncService();
-      console.log('EventSyncService started successfully in background');
-    } catch (error) {
-      console.error('Failed to initialize EventSyncService:', error);
-    }
-  }, 200); // Small delay after CacheService
-
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
-
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    const port = 5000;
+    server.listen({
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+    }, () => {
+      log(`serving on port ${port}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
-
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();
