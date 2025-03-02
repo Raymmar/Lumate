@@ -18,6 +18,13 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 
@@ -31,7 +38,7 @@ const REQUIRED_PERMISSIONS: Record<string, string[]> = {
 export function RolesAndPermissions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [updatingPermissions, setUpdatingPermissions] = useState<Set<string>>(new Set());
 
   const { data: roles, isLoading: rolesLoading } = useQuery<Role[]>({
@@ -41,6 +48,8 @@ export function RolesAndPermissions() {
   const { data: permissions, isLoading: permissionsLoading } = useQuery<Permission[]>({
     queryKey: ['/api/admin/permissions']
   });
+
+  const selectedRole = roles?.find(r => r.id.toString() === selectedRoleId);
 
   const { data: rolePermissions, isLoading: rolePermissionsLoading } = useQuery<Permission[]>({
     queryKey: ['/api/admin/roles', selectedRole?.id, 'permissions'],
@@ -142,100 +151,86 @@ export function RolesAndPermissions() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Roles List */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Roles</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>System</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {roles.map((role) => (
-                    <TableRow 
-                      key={role.id}
-                      className={`cursor-pointer ${selectedRole?.id === role.id ? 'bg-muted' : ''}`}
-                      onClick={() => {
-                        console.log('Selected role:', role);
-                        setSelectedRole(role);
-                      }}
-                    >
-                      <TableCell className="font-medium">{role.name}</TableCell>
-                      <TableCell>{role.description}</TableCell>
+          {/* Role Selector */}
+          <div className="mb-8">
+            <label className="text-sm font-medium mb-2 block">Select Role</label>
+            <Select
+              value={selectedRoleId?.toString()}
+              onValueChange={(value) => setSelectedRoleId(value)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((role) => (
+                  <SelectItem key={role.id} value={role.id.toString()}>
+                    <div className="flex items-center">
+                      <span>{role.name}</span>
+                      {role.isSystem && (
+                        <Badge variant="secondary" className="ml-2">System</Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Permissions Table */}
+          {selectedRole ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Permission</TableHead>
+                  <TableHead>Resource</TableHead>
+                  <TableHead>Action</TableHead>
+                  <TableHead>Enabled</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {permissions.map((permission) => {
+                  const hasPermission = rolePermissions?.some(
+                    (p) => p.id === permission.id
+                  );
+                  const isRequired = isRequiredPermission(selectedRole.name, permission.name);
+                  const isUpdating = updatingPermissions.has(
+                    getPermissionKey(selectedRole.id, permission.id)
+                  );
+
+                  return (
+                    <TableRow key={permission.id}>
+                      <TableCell className="font-medium">
+                        {permission.name}
+                        {isRequired && (
+                          <Badge variant="secondary" className="ml-2">Required</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>{permission.resource}</TableCell>
+                      <TableCell>{permission.action}</TableCell>
                       <TableCell>
-                        {role.isSystem && <Badge variant="secondary">System</Badge>}
+                        <Switch
+                          checked={hasPermission || false}
+                          onCheckedChange={() =>
+                            handlePermissionToggle(
+                              selectedRole.id,
+                              permission.id,
+                              hasPermission || false
+                            )
+                          }
+                          disabled={isUpdating || isRequired || rolePermissionsLoading}
+                          className={isUpdating ? 'opacity-50' : ''}
+                        />
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Permissions List */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">
-                Permissions {selectedRole && `for ${selectedRole.name}`}
-              </h3>
-              {selectedRole ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Permission</TableHead>
-                      <TableHead>Resource</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Enabled</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {permissions.map((permission) => {
-                      const hasPermission = rolePermissions?.some(
-                        (p) => p.id === permission.id
-                      );
-                      const isRequired = isRequiredPermission(selectedRole.name, permission.name);
-                      const isUpdating = updatingPermissions.has(
-                        getPermissionKey(selectedRole.id, permission.id)
-                      );
-
-                      return (
-                        <TableRow key={permission.id}>
-                          <TableCell className="font-medium">
-                            {permission.name}
-                            {isRequired && (
-                              <Badge variant="secondary" className="ml-2">Required</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>{permission.resource}</TableCell>
-                          <TableCell>{permission.action}</TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={hasPermission || false}
-                              onCheckedChange={() =>
-                                handlePermissionToggle(
-                                  selectedRole.id,
-                                  permission.id,
-                                  hasPermission || false
-                                )
-                              }
-                              disabled={isUpdating || isRequired || rolePermissionsLoading}
-                              className={isUpdating ? 'opacity-50' : ''}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-muted-foreground">
-                  Select a role to view and manage its permissions
-                </p>
-              )}
-            </div>
-          </div>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-center py-4">
+              Select a role to view and manage its permissions
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
