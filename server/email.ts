@@ -31,12 +31,12 @@ export async function sendVerificationEmail(
     await mailService.send({
       to: email,
       from: process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com',
-      subject: 'Verify Your Profile Claim',
-      text: `Click the following link to verify your profile: ${verificationUrl}`,
+      subject: 'Verify your Sarasota Tech member profile',
+      text: `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`,
       html: `
         <div>
-          <h2>Verify Your Profile</h2>
-          <p>Click the button below to verify your profile claim:</p>
+          <h2>Verify Your Sarasots Tech member profile</h2>
+          <p>Click the button below to verify your Sarasota Tech member profile:</p>
           <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
             Verify Profile
           </a>
