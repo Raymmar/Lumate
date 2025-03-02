@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-muted/10">
       {/* Fixed header with full-width background */}
-      <div className="sticky top-0 w-full bg-background border-b z-50">
+      <div className="sticky top-0 w-full bg-background z-50">
         <PageContainer>
           <NavBar />
         </PageContainer>

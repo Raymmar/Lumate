@@ -14,7 +14,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
     <AdminGuard>
       <div className="min-h-screen bg-background">
         {/* Navbar with background extending full width */}
-        <div className="w-full bg-background border-b sticky top-0 z-50">
+        <div className="w-full bg-background sticky top-0 z-50">
           <PageContainer>
             <NavBar />
           </PageContainer>
