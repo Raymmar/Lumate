@@ -61,7 +61,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
             {data.posts.map((post) => (
               <div 
                 key={post.id}
-                className="p-4 border-b last:border-0 cursor-pointer hover:bg-muted/50 transition-colors rounded-lg -mx-6"
+                className="p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
                 onClick={() => {
                   console.log("PublicPostsTable: Post clicked", post);
                   onSelect(post);
@@ -69,7 +69,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
               >
                 <div className="flex gap-4">
                   {post.featuredImage ? (
-                    <div className="h-16 w-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <div className="w-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       <img 
                         src={post.featuredImage} 
                         alt=""
@@ -77,14 +77,14 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
                       />
                     </div>
                   ) : (
-                    <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <div className="w-16 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                       <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
                     </div>
                   )}
-                  <div className="flex-1">
-                    <h4 className="font-medium">{post.title}</h4>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate">{post.title}</h4>
                     {post.summary && (
-                      <p className="text-sm text-muted-foreground mt-1">
+                      <p className="text-sm text-muted-foreground mt-1 text-wrap-balance max-w-[80ch] line-clamp-2">
                         {post.summary}
                       </p>
                     )}
