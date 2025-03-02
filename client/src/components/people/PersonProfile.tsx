@@ -176,7 +176,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isAdmin = person?.email && ADMIN_EMAILS.includes(person.email.toLowerCase());
+  const isAdmin = person?.email && user?.isAdmin;
   const isOwnProfile = user?.api_id === person?.api_id;
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
 

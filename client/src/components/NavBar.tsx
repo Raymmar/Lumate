@@ -12,12 +12,11 @@ import {
 import { User, Settings, LogOut, LogIn, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
-import { ADMIN_EMAILS } from "@/components/AdminGuard";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
-  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+  const isAdmin = user?.isAdmin;
   const isAdminPage = location.startsWith("/admin");
 
   return (
