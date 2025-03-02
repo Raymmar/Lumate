@@ -12,7 +12,7 @@ interface UploadedFile {
 
 export class FileUploadService {
   private static instance: FileUploadService;
-  private readonly bucketId: string;
+  readonly bucketId: string;
   private readonly replDb;
 
   private constructor() {
@@ -63,9 +63,17 @@ export class FileUploadService {
     const key = `uploads/${filename}`;
 
     try {
-      // Upload buffer to object storage
+      // Upload buffer to object storage with proper CORS headers
       await this.replDb.uploadFromBuffer(key, file.buffer, {
-        contentType: file.mimetype
+        contentType: file.mimetype,
+        metadata: {
+          'Cache-Control': 'public, max-age=31536000'
+        },
+        // Add CORS headers to allow browser access
+        customHeaders: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD'
+        }
       });
       
       const url = `https://${this.bucketId}.id.repl.co/${key}`;

@@ -1508,6 +1508,36 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add test endpoint for object storage
+  app.get("/api/storage-test", async (_req, res) => {
+    try {
+      const testData = "Testing object storage at " + new Date().toISOString();
+      
+      // Test writing to object storage
+      await fileUploadService.replDb.uploadFromText("test-file.txt", testData);
+      
+      // Verify we can read from object storage
+      const data = await fileUploadService.replDb.downloadToText("test-file.txt");
+      
+      // Get the bucket ID to verify
+      const bucketId = fileUploadService.bucketId;
+      
+      res.json({
+        success: true,
+        bucketId,
+        data,
+        url: `https://${bucketId}.id.repl.co/test-file.txt`
+      });
+    } catch (error) {
+      console.error("Object storage test failed:", error);
+      res.status(500).json({
+        error: "Object storage test failed",
+        message: error instanceof Error ? error.message : String(error),
+        bucketId: fileUploadService.bucketId
+      });
+    }
+  });
+
   return createServer(app);
 }
 
