@@ -3,8 +3,6 @@ import { Link, useLocation } from "wouter";
 
 const ADMIN_TABS = [
   { id: "overview", label: "Dashboard", path: "/admin" },
-  { id: "posts", label: "Posts", path: "/admin/posts" },
-  { id: "media", label: "Media Library", path: "/admin/media" },
   { id: "members", label: "Members", path: "/admin/members" },
   { id: "events", label: "Events", path: "/admin/events" },
   { id: "people", label: "People", path: "/admin/people" },
