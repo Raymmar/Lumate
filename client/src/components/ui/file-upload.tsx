@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -23,16 +23,48 @@ export function FileUpload({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(defaultValue || null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  // Handle defaultValue initialization
+  useEffect(() => {
+    if (defaultValue) {
+      validateImageUrl(defaultValue)
+        .then(() => setPreview(defaultValue))
+        .catch(() => {
+          setError("Failed to load default image");
+          onError?.("Failed to load default image");
+        });
+    }
+  }, [defaultValue, onError]);
+
+  // Validate image URL
+  const validateImageUrl = async (url: string): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve();
+      img.onerror = () => reject();
+      img.src = url;
+    });
+  };
 
   const handleUpload = async (file: File) => {
     setUploading(true);
     setProgress(0);
     setError(null);
 
-    // First create a preview
+    // Create temporary preview
     const objectUrl = URL.createObjectURL(file);
-    setPreview(objectUrl);
+    try {
+      // Validate the image can be loaded before uploading
+      await validateImageUrl(objectUrl);
+      setPreview(objectUrl);
+    } catch (err) {
+      URL.revokeObjectURL(objectUrl);
+      setError("Invalid image file");
+      onError?.("Invalid image file");
+      setUploading(false);
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -41,14 +73,11 @@ export function FileUpload({
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include' // Include credentials for authentication
+        credentials: 'include'
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (response.status === 401) {
-          throw new Error('Please log in to upload files');
-        }
         throw new Error(errorData.error || errorData.message || 'Upload failed');
       }
 
@@ -57,9 +86,13 @@ export function FileUpload({
       // Clean up the temporary preview URL
       URL.revokeObjectURL(objectUrl);
 
+      // Validate the uploaded image URL
+      await validateImageUrl(data.url);
+
       // Set the actual uploaded URL
       setPreview(data.url);
       onUpload(data.url);
+      setProgress(100);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Upload failed';
       setError(message);
@@ -68,7 +101,6 @@ export function FileUpload({
       URL.revokeObjectURL(objectUrl);
     } finally {
       setUploading(false);
-      setProgress(100);
     }
   };
 
@@ -114,8 +146,9 @@ export function FileUpload({
             alt="Preview" 
             className="w-full h-auto object-cover"
             onError={() => {
-              setError('Failed to load preview image');
+              setError('Failed to load image preview');
               setPreview(null);
+              onError?.('Failed to load image preview');
             }}
           />
           <Button

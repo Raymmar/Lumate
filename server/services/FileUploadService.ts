@@ -13,15 +13,14 @@ interface UploadedFile {
 export class FileUploadService {
   private static instance: FileUploadService;
   readonly bucketId: string;
-  private readonly replDb;
+  private readonly objectStore;
 
   private constructor() {
-    // Get bucket ID from .replit file's objectStorage configuration
     this.bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID || 'replit-objstore-fdb314e8-358e-4080-9f92-57e210181986';
     if (!this.bucketId) {
       throw new Error('Object storage bucket ID not found');
     }
-    this.replDb = createClient();
+    this.objectStore = createClient();
     console.log('FileUploadService initialized with bucket:', this.bucketId);
   }
 
@@ -56,6 +55,7 @@ export class FileUploadService {
     });
 
     if (!this.validateFileType(file.mimetype)) {
+      console.error('Invalid file type rejected:', file.mimetype);
       throw new Error('Invalid file type. Only images are allowed.');
     }
 
@@ -63,21 +63,45 @@ export class FileUploadService {
     const key = `uploads/${filename}`;
 
     try {
-      // Upload buffer to object storage with proper CORS headers
-      await this.replDb.uploadFromBuffer(key, file.buffer, {
+      console.log('Attempting to upload file to object storage:', key);
+
+      // Upload buffer to object storage with proper CORS and caching headers
+      await this.objectStore.uploadFromBuffer(key, file.buffer, {
         contentType: file.mimetype,
         metadata: {
-          'Cache-Control': 'public, max-age=31536000'
-        },
-        // Add CORS headers to allow browser access
-        customHeaders: {
+          'Cache-Control': 'public, max-age=31536000',
           'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, HEAD'
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Expose-Headers': 'Content-Length, Content-Type'
         }
       });
-      
+
+      // Construct the URL with the proper domain
       const url = `https://${this.bucketId}.id.repl.co/${key}`;
-      console.log('File uploaded successfully:', { key, url });
+      console.log('File uploaded successfully to object storage:', { key, url });
+
+      // Verify the file is accessible
+      console.log('Verifying file accessibility:', url);
+      try {
+        console.time('fileAccessibilityCheck');
+        const response = await fetch(url, {
+          method: 'HEAD',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        console.timeEnd('fileAccessibilityCheck');
+
+        if (!response.ok) {
+          throw new Error(`File not accessible after upload: ${response.status}`);
+        }
+        console.log('File accessibility verified with status:', response.status);
+      } catch (error) {
+        console.error('File accessibility check failed:', error);
+        throw new Error('File not accessible after upload');
+      }
+
       return url;
     } catch (error) {
       console.error('Failed to upload file:', error);
@@ -92,7 +116,7 @@ export class FileUploadService {
         throw new Error('Invalid file URL');
       }
       console.log('Deleting file:', { url, key });
-      await this.replDb.delete(key);
+      await this.objectStore.deleteObject(key);
       console.log('File deleted successfully');
     } catch (error) {
       console.error('Failed to delete file:', error);
