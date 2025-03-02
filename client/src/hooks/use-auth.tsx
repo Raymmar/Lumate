@@ -21,13 +21,13 @@ function useLogoutMutation() {
     mutationFn: async () => {
       const response = await fetch("/api/auth/logout", {
         method: "POST",
+        credentials: 'include'
       });
       if (!response.ok) {
         throw new Error("Logout failed");
       }
     },
     onSuccess: () => {
-      // Clear the cache and invalidate queries
       queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
@@ -56,13 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
-      const response = await fetch("/api/auth/me");
+      const response = await fetch("/api/auth/me", {
+        credentials: 'include'
+      });
       if (!response.ok) {
         if (response.status === 401) return null;
         throw new Error("Failed to fetch user");
       }
       const data = await response.json();
-      console.log('User data from API:', data); // Add logging to debug
       return data;
     },
   });
@@ -72,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: 'include',
         body: JSON.stringify(credentials),
       });
       if (!response.ok) {
@@ -81,14 +83,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: (data) => {
-      // Ensure we preserve all user fields including isAdmin
       const userData = data.user || data;
-      console.log('Login success, user data:', userData); // Add logging to debug
-
-      // Invalidate all user-related queries to force a fresh fetch
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
-      // Update the cache with the complete user data
       queryClient.setQueryData(["/api/auth/me"], userData);
 
       toast({

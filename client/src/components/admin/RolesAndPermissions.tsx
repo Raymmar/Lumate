@@ -26,37 +26,25 @@ export function RolesAndPermissions() {
   const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
 
-  const { data: roles = [] } = useQuery({
-    queryKey: ['/api/admin/roles'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/admin/roles', 'GET');
-      return response as Role[];
-    }
+  const { data: roles, isLoading: rolesLoading, error: rolesError } = useQuery<Role[]>({
+    queryKey: ['/api/admin/roles']
   });
 
-  const { data: permissions = [] } = useQuery({
-    queryKey: ['/api/admin/permissions'],
-    queryFn: async () => {
-      const response = await apiRequest('/api/admin/permissions', 'GET');
-      return response as Permission[];
-    }
+  const { data: permissions, isLoading: permissionsLoading, error: permissionsError } = useQuery<Permission[]>({
+    queryKey: ['/api/admin/permissions']
   });
 
-  const { data: rolePermissions = [] } = useQuery({
+  const { data: rolePermissions, isLoading: rolePermissionsLoading } = useQuery<Permission[]>({
     queryKey: ['/api/admin/roles', selectedRole?.id, 'permissions'],
-    queryFn: async () => {
-      if (!selectedRole) return [];
-      const response = await apiRequest(`/api/admin/roles/${selectedRole.id}/permissions`, 'GET');
-      return response as Permission[];
-    },
     enabled: !!selectedRole
   });
 
   const handlePermissionToggle = async (roleId: number, permissionId: number, hasPermission: boolean) => {
     try {
+      const method = hasPermission ? 'DELETE' : 'POST';
       await apiRequest(
         `/api/admin/roles/${roleId}/permissions/${permissionId}`,
-        hasPermission ? 'DELETE' : 'POST'
+        method
       );
 
       queryClient.invalidateQueries({ queryKey: ['/api/admin/roles', roleId, 'permissions'] });
@@ -74,6 +62,18 @@ export function RolesAndPermissions() {
       });
     }
   };
+
+  if (rolesLoading || permissionsLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (rolesError || permissionsError) {
+    return <div>Error loading roles and permissions</div>;
+  }
+
+  if (!roles || !permissions) {
+    return <div>No roles or permissions found</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -132,7 +132,7 @@ export function RolesAndPermissions() {
                   </TableHeader>
                   <TableBody>
                     {permissions.map((permission) => {
-                      const hasPermission = rolePermissions.some(
+                      const hasPermission = rolePermissions?.some(
                         (p) => p.id === permission.id
                       );
                       return (
@@ -144,12 +144,12 @@ export function RolesAndPermissions() {
                           <TableCell>{permission.action}</TableCell>
                           <TableCell>
                             <Switch
-                              checked={hasPermission}
+                              checked={hasPermission || false}
                               onCheckedChange={(checked) =>
                                 handlePermissionToggle(
                                   selectedRole.id,
                                   permission.id,
-                                  hasPermission
+                                  hasPermission || false
                                 )
                               }
                             />
