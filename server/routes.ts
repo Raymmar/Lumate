@@ -1158,48 +1158,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/people", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Check if user is admin
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = (page - 1) * limit;
-
-
-      // Get total count
-      const totalCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(people)
-        .then(result => Number(result[0].count));
-
-      // Get paginated people
-      const peopleList = await db
-        .select()
-        .from(people)
-        .orderBy(people.id)
-        .limit(limit)
-        .offset(offset);
-
-      res.json({
-        people: peopleList,
-        total: totalCount
-      });
-    } catch (error) {
-      console.error('Failed to fetch people:', error);
-      res.status(500).json({ error: "Failed to fetch people" });
-    }
-  });
-
   // Get attendees for a specific event
   app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
     try {
@@ -1416,9 +1374,12 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "User not found" });
       }
 
+      console.log(`Toggling admin status for user ${targetUserId} from ${targetUser.isAdmin} to ${!targetUser.isAdmin}`);
+
       // Toggle the admin status
       const updatedUser = await storage.updateUserAdminStatus(targetUserId, !targetUser.isAdmin);
 
+      console.log(`Admin status for user ${targetUserId} updated successfully. New status: ${updatedUser.isAdmin}`);
       res.json(updatedUser);
     } catch (error) {
       console.error('Failed to toggle admin status:', error);
@@ -1480,23 +1441,27 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/roles/:roleId/permissions", async (req, res) => {
+  // Get permissions for a specific role
+  app.get("/api/admin/roles/:id/permissions", async (req, res) => {
     try {
-      // Check if user is authenticated
       if (!req.session.userId) {
+        console.log('Unauthorized access attempt - no session userId');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
+        console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const roleId = parseInt(req.params.roleId);
+      const roleId = parseInt(req.params.id);
       if (isNaN(roleId)) {
+        console.log('Invalid role ID:', req.params.id);
         return res.status(400).json({ error: "Invalid role ID" });
       }
+
+      console.log('Fetching permissions for role:', roleId);
 
       // Get permissions for the specified role
       const rolePermissions = await db
@@ -1514,7 +1479,12 @@ export async function registerRoutes(app: Express) {
         )
         .where(eq(rolePermissionsTable.roleId, roleId));
 
-      console.log('Fetched role permissions:', rolePermissions);
+      console.log('Role permissions found:', {
+        roleId,
+        permissionsCount: rolePermissions.length,
+        permissions: rolePermissions.map(p => ({ id: p.id, name: p.name }))
+      });
+
       res.json(rolePermissions);
     } catch (error) {
       console.error('Failed to fetch role permissions:', error);
@@ -1522,76 +1492,50 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add a permission to a role
   app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
     try {
-      // Check if user is authenticated
       if (!req.session.userId) {
+        console.log('Unauthorized access attempt - no session userId');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
+        console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
         return res.status(403).json({ error: "Not authorized" });
       }
 
       const roleId = parseInt(req.params.roleId);
       const permissionId = parseInt(req.params.permissionId);
+
       if (isNaN(roleId) || isNaN(permissionId)) {
+        console.log('Invalid role or permission ID:', { roleId: req.params.roleId, permissionId: req.params.permissionId });
         return res.status(400).json({ error: "Invalid role or permission ID" });
       }
 
-      // Add permission to role
-      await db.insert(rolePermissionsTable).values({
-        roleId,
+      // Get role and permission details for validation
+      const [role, permission] = await Promise.all([
+        db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
+        db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
+      ]);
+
+      if (!role[0] || !permission[0]) {
+        console.log('Role or permission not found:', { roleId, permissionId });
+        return res.status(404).json({ error: "Role or permission not found" });
+      }
+
+      console.log('Adding permission to role:', { 
+        roleId, 
+        roleName: role[0].name,
         permissionId,
-        grantedBy: req.session.userId,
-        grantedAt: new Date()
+        permissionName: permission[0].name
       });
 
-      // Get updated permissions for the role
-      const updatedPermissions = await db
-        .select({
-          id: permissionsTable.id,
-          name: permissionsTable.name,
-          description: permissionsTable.description,
-          resource: permissionsTable.resource,
-          action: permissionsTable.action
-        })
+      // Check if the role-permission combination already exists
+      const existing = await db
+        .select()
         .from(rolePermissionsTable)
-        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
-        .where(eq(rolePermissionsTable.roleId, roleId));
-
-      console.log('Added permission to role:', { roleId, permissionId });
-      res.json(updatedPermissions);
-    } catch (error) {
-      console.error('Failed to assign permission to role:', error);
-      res.status(500).json({ error: "Failed to assign permission to role" });
-    }
-  });
-
-  app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Check if user is admin
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const roleId = parseInt(req.params.roleId);
-      const permissionId = parseInt(req.params.permissionId);
-      if (isNaN(roleId) || isNaN(permissionId)) {
-        return res.status(400).json({ error: "Invalid role or permission ID" });
-      }
-
-      // Remove permission from role
-      await db
-        .delete(rolePermissionsTable)
         .where(
           and(
             eq(rolePermissionsTable.roleId, roleId),
@@ -1599,6 +1543,21 @@ export async function registerRoutes(app: Express) {
           )
         );
 
+      if (existing.length > 0) {
+        console.log('Permission already exists for role:', { roleId, permissionId });
+        return res.status(409).json({ error: "Permission already assigned to role" });
+      }
+
+      // Add permission to role
+      await db.insert(rolePermissionsTable).values({
+        roleId,
+        permissionId,
+        grantedBy: req.session.userId,
+        grantedAt: new Date().toISOString()
+      });
+
+      console.log('Successfully added permission to role');
+
       // Get updated permissions for the role
       const updatedPermissions = await db
         .select({
@@ -1612,7 +1571,93 @@ export async function registerRoutes(app: Express) {
         .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
         .where(eq(rolePermissionsTable.roleId, roleId));
 
-      console.log('Removed permission from role:', { roleId, permissionId });
+      console.log('Updated permissions:', {
+        roleId,
+        roleName: role[0].name,
+        permissionsCount: updatedPermissions.length,
+        permissions: updatedPermissions.map(p => ({ id: p.id, name: p.name }))
+      });
+
+      res.json(updatedPermissions);
+    } catch (error) {
+      console.error('Failed to assign permission to role:', error);
+      res.status(500).json({ error: "Failed to assign permission to role" });
+    }
+  });
+
+  // Remove a permission from a role
+  app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        console.log('Unauthorized access attempt - no session userId');
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const roleId = parseInt(req.params.roleId);
+      const permissionId = parseInt(req.params.permissionId);
+
+      if (isNaN(roleId) || isNaN(permissionId)) {
+        console.log('Invalid role or permission ID:', { roleId: req.params.roleId, permissionId: req.params.permissionId });
+        return res.status(400).json({ error: "Invalid role or permission ID" });
+      }
+
+      // Get role and permission details for validation
+      const [role, permission] = await Promise.all([
+        db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
+        db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
+      ]);
+
+      if (!role[0] || !permission[0]) {
+        console.log('Role or permission not found:', { roleId, permissionId });
+        return res.status(404).json({ error: "Role or permission not found" });
+      }
+
+      console.log('Removing permission from role:', { 
+        roleId, 
+        roleName: role[0].name,
+        permissionId,
+        permissionName: permission[0].name
+      });
+
+      // Remove permission from role
+      const result = await db
+        .delete(rolePermissionsTable)
+        .where(
+          and(
+            eq(rolePermissionsTable.roleId, roleId),
+            eq(rolePermissionsTable.permissionId, permissionId)
+          )
+        )
+        .returning();
+
+      console.log('Delete operation result:', result);
+
+      // Get updated permissions for the role
+      const updatedPermissions = await db
+        .select({
+          id: permissionsTable.id,
+          name: permissionsTable.name,
+          description: permissionsTable.description,
+          resource: permissionsTable.resource,
+          action: permissionsTable.action
+        })
+        .from(rolePermissionsTable)
+        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
+        .where(eq(rolePermissionsTable.roleId, roleId));
+
+      console.log('Updated permissions after removal:', {
+        roleId,
+        roleName: role[0].name,
+        permissionsCount: updatedPermissions.length,
+        permissions: updatedPermissions.map(p => ({ id: p.id, name: p.name }))
+      });
+
       res.json(updatedPermissions);
     } catch (error) {
       console.error('Failed to remove permission from role:', error);
@@ -1640,6 +1685,8 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
 
+      console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
+
       // Get the role by name
       const role = await storage.getRoleByName(roleName);
       if (!role) {
@@ -1649,11 +1696,13 @@ export async function registerRoutes(app: Express) {
       // Remove all existing roles from the user
       const currentRoles = await storage.getUserRoles(userId);
       for (const currentRole of currentRoles) {
+        console.log(`Removing role ${currentRole.name} from user ${userId}`);
         await storage.removeRoleFromUser(userId, currentRole.id);
       }
 
       // Assign the new role
       await storage.assignRoleToUser(userId, role.id, req.session.userId);
+      console.log(`Assigned role ${roleName} to user ${userId}`);
 
       // Get updated roles for the user
       const updatedRoles = await storage.getUserRoles(userId);
@@ -1685,8 +1734,11 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "isAdmin must be a boolean" });
       }
 
+      console.log(`Updating admin status for user ${userId} to ${isAdmin} by admin ${req.session.userId}`);
+
       // Update user's admin status
       const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
+      console.log(`Admin status for user ${userId} updated successfully. New status: ${updatedUser.isAdmin}`);
 
       res.json({
         user: {
