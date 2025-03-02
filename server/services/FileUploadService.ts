@@ -12,16 +12,11 @@ interface UploadedFile {
 
 export class FileUploadService {
   private static instance: FileUploadService;
-  private readonly bucketId: string;
   private readonly replDb;
 
   private constructor() {
-    this.bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID || 'replit-objstore-fdb314e8-358e-4080-9f92-57e210181986';
-    if (!this.bucketId) {
-      throw new Error('Object storage bucket ID not found');
-    }
     this.replDb = new (createClient as any)();
-    console.log('FileUploadService initialized with bucket:', this.bucketId);
+    console.log('FileUploadService initialized');
   }
 
   static getInstance(): FileUploadService {
@@ -69,8 +64,8 @@ export class FileUploadService {
       // Log successful storage
       console.log('File data stored successfully:', { key });
 
-      // Generate public URL
-      const url = `https://${this.bucketId}.id.repl.co/${key}`;
+      // Generate URL for our new route handler
+      const url = `/uploads/${filename}`;
 
       // Verify the file was stored
       const storedData = await this.replDb.get(key);
@@ -82,7 +77,7 @@ export class FileUploadService {
       return url;
     } catch (error) {
       console.error('Failed to upload file:', error);
-      throw new Error('Failed to upload file to object storage');
+      throw new Error('Failed to upload file to storage');
     }
   }
 
@@ -101,16 +96,19 @@ export class FileUploadService {
 
   async deleteFile(url: string): Promise<void> {
     try {
-      const key = url.split('.id.repl.co/')[1];
-      if (!key) {
+      // Extract filename from URL
+      const filename = url.split('/uploads/')[1];
+      if (!filename) {
         throw new Error('Invalid file URL');
       }
+      const key = `uploads/${filename}`;
+
       console.log('Deleting file:', { url, key });
       await this.replDb.delete(key);
       console.log('File deleted successfully');
     } catch (error) {
       console.error('Failed to delete file:', error);
-      throw new Error('Failed to delete file from object storage');
+      throw new Error('Failed to delete file from storage');
     }
   }
 }

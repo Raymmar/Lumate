@@ -192,7 +192,6 @@ export async function registerRoutes(app: Express) {
   });
 
 
-
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -1161,48 +1160,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/people", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Check if user is admin
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const offset = (page - 1) * limit;
-
-
-      // Get total count
-      const totalCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(people)
-        .then(result => Number(result[0].count));
-
-      // Get paginated people
-      const peopleList = await db
-        .select()
-        .from(people)
-        .orderBy(people.id)
-        .limit(limit)
-        .offset(offset);
-
-      res.json({
-        people: peopleList,
-        total: totalCount
-      });
-    } catch (error) {
-      console.error('Failed to fetch people:', error);
-      res.status(500).json({ error: "Failed to fetch people" });
-    }
-  });
-
   // Get attendees for a specific event
   app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
     try {
@@ -1442,6 +1399,76 @@ export async function registerRoutes(app: Express) {
         return;
       }
       callback(null, true);
+    }
+  });
+
+  // Add file serving route after existing routes
+  app.get("/uploads/:filename", async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      const key = `uploads/${filename}`;
+
+      const fileData = await fileUploadService.getFile(key);
+      if (!fileData) {
+        return res.status(404).json({ error: "File not found" });
+      }
+
+      // Determine content type based on file extension
+      const ext = filename.split('.').pop()?.toLowerCase();
+      const contentType = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp'
+      }[ext || ''] || 'application/octet-stream';
+
+      res.setHeader('Content-Type', contentType);
+      res.send(fileData);
+    } catch (error) {
+      console.error('Failed to serve file:', error);
+      res.status(500).json({ error: "Failed to serve file" });
+    }
+  });
+
+  // Add file upload route
+  app.post("/api/upload",  async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const upload = multer({
+        limits: {
+          fileSize: 5 * 1024 * 1024 // 5MB limit
+        }
+      }).single('file');
+
+      upload(req, res, async (err) => {
+        if (err instanceof multer.MulterError) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: "File too large" });
+          }
+          return res.status(400).json({ error: err.message });
+        } else if (err) {
+          return res.status(500).json({ error: "Upload failed" });
+        }
+
+        if (!req.file) {
+          return res.status(400).json({ error: "No file provided" });
+        }
+
+        try {
+          const url = await fileUploadService.uploadFile(req.file);
+          res.json({ url });
+        } catch (uploadError) {
+          console.error('File upload failed:', uploadError);
+          res.status(500).json({ error: "Failed to process upload" });
+        }
+      });
+    } catch (error) {
+      console.error('Upload route error:', error);
+      res.status(500).json({ error: "Upload failed" });
     }
   });
 

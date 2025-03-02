@@ -51,13 +51,11 @@ export function FileUpload({
 
       const data = await response.json();
 
-      // Only revoke the object URL after successful upload
+      // Clean up the temporary preview URL
       URL.revokeObjectURL(objectUrl);
 
-      // Verify the URL is valid
-      const imageResponse = await fetch(data.url, { method: 'HEAD' });
-      if (!imageResponse.ok) {
-        throw new Error('Uploaded image is not accessible');
+      if (!data.url) {
+        throw new Error('No URL returned from server');
       }
 
       // Set the actual uploaded URL
@@ -106,11 +104,8 @@ export function FileUpload({
   });
 
   const clearPreview = () => {
-    if (preview) {
-      // Don't revoke if it's the default value
-      if (preview !== defaultValue) {
-        URL.revokeObjectURL(preview);
-      }
+    if (preview && preview !== defaultValue) {
+      URL.revokeObjectURL(preview);
     }
     setPreview(null);
     setError(null);
