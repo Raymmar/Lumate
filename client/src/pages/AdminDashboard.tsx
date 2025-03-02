@@ -28,6 +28,11 @@ export default function AdminDashboard() {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
+  // Fetch all posts for navigation
+  const { data: postsData } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/admin/posts"]
+  });
+
   const handleCreatePost = async (data: InsertPost) => {
     try {
       await apiRequest('/api/admin/posts', 'POST', data);
@@ -127,6 +132,8 @@ export default function AdminDashboard() {
               setIsCreating(false);
             }}
             onSave={handleCreatePost}
+            posts={postsData?.posts || []}
+            onNavigate={setSelectedPost}
           />
         )}
       </div>
