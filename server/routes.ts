@@ -928,8 +928,7 @@ export async function registerRoutes(app: Express) {
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
         eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
-          return {
-            ...event,
+          return {            ...event,
             isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
@@ -1408,8 +1407,11 @@ export async function registerRoutes(app: Express) {
       const filename = req.params.filename;
       const key = `uploads/${filename}`;
 
+      console.log('Attempting to serve file:', key);
       const fileData = await fileUploadService.getFile(key);
+
       if (!fileData) {
+        console.log('File not found:', key);
         return res.status(404).json({ error: "File not found" });
       }
 
@@ -1423,6 +1425,7 @@ export async function registerRoutes(app: Express) {
         'webp': 'image/webp'
       }[ext || ''] || 'application/octet-stream';
 
+      console.log('Serving file:', { key, contentType });
       res.setHeader('Content-Type', contentType);
       res.send(fileData);
     } catch (error) {
@@ -1432,12 +1435,14 @@ export async function registerRoutes(app: Express) {
   });
 
   // Add file upload route
-  app.post("/api/upload",  async (req, res) => {
+  app.post("/api/upload", async (req, res) => {
     try {
       if (!req.session.userId) {
+        console.log('Upload attempted without authentication');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
+      console.log('Processing file upload request');
       const upload = multer({
         limits: {
           fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -1446,67 +1451,45 @@ export async function registerRoutes(app: Express) {
 
       upload(req, res, async (err) => {
         if (err instanceof multer.MulterError) {
+          console.error('Multer error during upload:', err);
           if (err.code === 'LIMIT_FILE_SIZE') {
             return res.status(400).json({ error: "File too large" });
           }
           return res.status(400).json({ error: err.message });
         } else if (err) {
+          console.error('Unknown error during upload:', err);
           return res.status(500).json({ error: "Upload failed" });
         }
 
         if (!req.file) {
+          console.error('No file provided in upload request');
           return res.status(400).json({ error: "No file provided" });
         }
 
         try {
-          const url = await fileUploadService.uploadFile(req.file);
+          console.log('File received, processing upload');
+          let url = await fileUploadService.uploadFile(req.file);
+
+          // Replace placeholder with actual host
+          const protocol = req.protocol;
+          const host = req.get('host');
+          url = url.replace('__HOST__', `${protocol}://${host}`);
+
+          console.log('Upload successful, returning URL:', url);
           res.json({ url });
         } catch (uploadError) {
-          console.error('File upload failed:', uploadError);
-          res.status(500).json({ error: "Failed to process upload" });
+          console.error('File upload processing failed:', uploadError);
+          res.status(500).json({ 
+            error: "Failed to process upload",
+            details: uploadError instanceof Error ? uploadError.message : String(uploadError)
+          });
         }
       });
     } catch (error) {
       console.error('Upload route error:', error);
-      res.status(500).json({ error: "Upload failed" });
-    }
-  });
-
-  // Add auth debug logging at the start of /api/upload endpoint
-  app.post("/api/upload", upload.single('file'), async (req, res) => {
-    try {
-      // Debug logging for auth state
-      console.log('Upload request received:', {
-        hasSession: !!req.session,
-        userId: req.session?.userId,
-        file: !!req.file
-      });
-
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const file = req.file as Express.Multer.File;
-      if (!file) {
-        return res.status(400).json({ error: "No file provided" });
-      }
-
-      const url = await fileUploadService.uploadFile(file);
-
-      console.log('File uploaded successfully:', {
-        originalName: file.originalname,
-        size: file.size,
-        mimeType: file.mimetype,
-        url
-      });
-
-      res.json({ url });
-    } catch (error) {
-      console.error('Failed to upload file:', error);
       res.status(500).json({ 
-        error: "Failed to upload file",
-        message: error instanceof Error ? error.message : String(error)
+        error: "Upload failed",
+        details: error instanceof Error ? error.message : String(error)
       });
     }
   });

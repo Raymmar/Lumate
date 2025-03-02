@@ -50,6 +50,7 @@ export class FileUploadService {
     });
 
     if (!this.validateFileType(file.mimetype)) {
+      console.error('Invalid file type:', file.mimetype);
       throw new Error('Invalid file type. Only images are allowed.');
     }
 
@@ -59,21 +60,24 @@ export class FileUploadService {
     try {
       // Store file in Replit Database with base64 encoding
       const base64Data = file.buffer.toString('base64');
+      console.log('Storing file data with key:', key);
       await this.replDb.set(key, base64Data);
 
       // Log successful storage
       console.log('File data stored successfully:', { key });
 
-      // Generate URL for our new route handler
-      const url = `/uploads/${filename}`;
+      // Generate full URL using current host
+      // This will be replaced with the actual host in routes.ts
+      const url = `__HOST__/uploads/${filename}`;
 
       // Verify the file was stored
       const storedData = await this.replDb.get(key);
       if (!storedData) {
+        console.error('File verification failed - no data found for key:', key);
         throw new Error('File was not stored properly');
       }
 
-      console.log('File uploaded successfully:', { key, url });
+      console.log('File upload completed successfully:', { key, url });
       return url;
     } catch (error) {
       console.error('Failed to upload file:', error);
@@ -82,11 +86,14 @@ export class FileUploadService {
   }
 
   async getFile(key: string): Promise<Buffer | null> {
+    console.log('Attempting to retrieve file:', key);
     try {
       const base64Data = await this.replDb.get(key);
       if (!base64Data) {
+        console.log('No file found for key:', key);
         return null;
       }
+      console.log('File retrieved successfully:', key);
       return Buffer.from(base64Data, 'base64');
     } catch (error) {
       console.error('Failed to retrieve file:', error);
@@ -97,10 +104,12 @@ export class FileUploadService {
   async deleteFile(url: string): Promise<void> {
     try {
       // Extract filename from URL
-      const filename = url.split('/uploads/')[1];
-      if (!filename) {
+      const matches = url.match(/\/uploads\/([^?#]+)/);
+      if (!matches) {
+        console.error('Invalid file URL format:', url);
         throw new Error('Invalid file URL');
       }
+      const filename = matches[1];
       const key = `uploads/${filename}`;
 
       console.log('Deleting file:', { url, key });
