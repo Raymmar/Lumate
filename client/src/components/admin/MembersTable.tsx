@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-import type { User } from "@shared/schema";
+import type { User, Person } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/pagination";
 
 interface MembersResponse {
-  users: User[];
+  users: (User & { person?: Person | null })[];
   total: number;
 }
 
 export function MembersTable() {
-  const [selectedMember, setSelectedMember] = useState<User | null>(null);
+  const [selectedMember, setSelectedMember] = useState<User & { person?: Person | null } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
 
@@ -75,7 +75,7 @@ export function MembersTable() {
     },
   ];
 
-  const onRowClick = (member: User) => {
+  const onRowClick = (member: User & { person?: Person | null }) => {
     setSelectedMember(member);
   };
 

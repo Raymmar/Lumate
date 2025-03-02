@@ -1,5 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
-import type { User, Role } from "@shared/schema";
+import type { User, Role, Person } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -14,9 +14,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
 import { useState } from "react";
+import { RelatedPeople } from "./RelatedPeople";
 
 interface MemberPreviewProps {
-  member: User & { roles?: Role[] };
+  member: User & { roles?: Role[]; person?: Person | null };
 }
 
 export function MemberPreview({ member }: MemberPreviewProps) {
@@ -132,6 +133,15 @@ export function MemberPreview({ member }: MemberPreviewProps) {
               </SelectContent>
             </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <h3 className="font-medium">Linked Profile</h3>
+        </CardHeader>
+        <CardContent>
+          <RelatedPeople person={member.person || null} />
         </CardContent>
       </Card>
     </div>
