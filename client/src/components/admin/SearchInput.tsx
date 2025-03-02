@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useRef, useLayoutEffect, useState } from "react";
+import { useRef, useLayoutEffect, useState, useEffect } from "react";
 
 interface SearchInputProps {
   value: string;
@@ -14,22 +14,18 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
   const [isFocused, setIsFocused] = useState(false);
   const cursorPositionRef = useRef<number | null>(null);
 
-  // Use requestAnimationFrame to handle focus and cursor position after state updates
-  useLayoutEffect(() => {
-    if (isFocused && inputRef.current) {
-      requestAnimationFrame(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          if (cursorPositionRef.current !== null) {
-            inputRef.current.setSelectionRange(
-              cursorPositionRef.current,
-              cursorPositionRef.current
-            );
-          }
-        }
-      });
+  // Force focus back to input when loading state changes
+  useEffect(() => {
+    if (!isLoading && inputRef.current && isFocused) {
+      inputRef.current.focus();
+      if (cursorPositionRef.current !== null) {
+        inputRef.current.setSelectionRange(
+          cursorPositionRef.current,
+          cursorPositionRef.current
+        );
+      }
     }
-  }, [value, isFocused]);
+  }, [isLoading, isFocused]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     cursorPositionRef.current = e.target.selectionStart;
@@ -61,7 +57,6 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
       />
       <Input
         ref={inputRef}
-        type="search"
         placeholder={placeholder}
         value={value}
         onChange={handleChange}
