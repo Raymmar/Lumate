@@ -8,15 +8,15 @@ import { Loader2, Upload, X } from "lucide-react";
 interface FileUploadProps {
   onUpload: (url: string) => void;
   onError?: (error: string) => void;
-  maxSize?: number;
+  maxSize?: number; // in bytes
   className?: string;
-  defaultValue?: string | null;
+  defaultValue?: string;
 }
 
 export function FileUpload({ 
   onUpload, 
   onError, 
-  maxSize = 5 * 1024 * 1024,
+  maxSize = 5 * 1024 * 1024, // 5MB default
   className,
   defaultValue
 }: FileUploadProps) {
@@ -30,7 +30,7 @@ export function FileUpload({
     setProgress(0);
     setError(null);
 
-    // Create a preview immediately
+    // First create a preview
     const objectUrl = URL.createObjectURL(file);
     setPreview(objectUrl);
 
@@ -38,60 +38,34 @@ export function FileUpload({
     formData.append('file', file);
 
     try {
-      console.log('Starting file upload:', {
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
-
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json'
-        }
+        credentials: 'include' // Include credentials for authentication
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (response.status === 401) {
+          throw new Error('Please log in to upload files');
+        }
         throw new Error(errorData.error || errorData.message || 'Upload failed');
       }
 
       const data = await response.json();
 
-      if (!data.url) {
-        throw new Error('No URL returned from server');
-      }
-
-      console.log('Upload successful:', data.url);
-
       // Clean up the temporary preview URL
       URL.revokeObjectURL(objectUrl);
-
-      // Verify the URL is accessible
-      const imgResponse = await fetch(data.url, { method: 'HEAD' });
-      if (!imgResponse.ok) {
-        throw new Error('Failed to verify uploaded image');
-      }
 
       // Set the actual uploaded URL
       setPreview(data.url);
       onUpload(data.url);
-
     } catch (err) {
-      console.error('Upload error:', err);
       const message = err instanceof Error ? err.message : 'Upload failed';
       setError(message);
       onError?.(message);
-
-      // Keep the preview if there's an error
-      if (defaultValue) {
-        setPreview(defaultValue);
-      } else {
-        URL.revokeObjectURL(objectUrl);
-        setPreview(null);
-      }
+      setPreview(null);
+      URL.revokeObjectURL(objectUrl);
     } finally {
       setUploading(false);
       setProgress(100);
@@ -120,9 +94,6 @@ export function FileUpload({
   });
 
   const clearPreview = () => {
-    if (preview && preview !== defaultValue) {
-      URL.revokeObjectURL(preview);
-    }
     setPreview(null);
     setError(null);
     onUpload('');
@@ -142,14 +113,9 @@ export function FileUpload({
             src={preview} 
             alt="Preview" 
             className="w-full h-auto object-cover"
-            onError={(e) => {
-              console.error('Image preview failed to load:', preview);
-              const message = 'Failed to load preview image';
-              setError(message);
-              onError?.(message);
-              if (!defaultValue) {
-                setPreview(null);
-              }
+            onError={() => {
+              setError('Failed to load preview image');
+              setPreview(null);
             }}
           />
           <Button

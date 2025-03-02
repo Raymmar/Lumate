@@ -36,22 +36,12 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
 
   const handleSubmit = async (data: InsertPost) => {
     try {
-      // Ensure featuredImage is a non-null string
-      const sanitizedData = {
-        ...data,
-        featuredImage: data.featuredImage || '',
-        videoUrl: data.videoUrl || '',
-        ctaLink: data.ctaLink || '',
-        ctaLabel: data.ctaLabel || ''
-      };
-
-      await onSubmit(sanitizedData);
+      await onSubmit(data);
       toast({
         title: "Success",
         description: "Post saved successfully"
       });
     } catch (error) {
-      console.error('Failed to save post:', error);
       toast({
         title: "Error",
         description: "Failed to save post",
@@ -129,31 +119,25 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
                   </TabsList>
                   <TabsContent value="upload">
                     <FileUpload
-                      onUpload={(url) => {
-                        console.log('Image uploaded:', url);
-                        field.onChange(url || '');
-                      }}
+                      onUpload={(url) => field.onChange(url)}
                       onError={(error) => {
-                        console.error('Upload error:', error);
                         toast({
                           title: "Error",
                           description: error,
                           variant: "destructive"
                         });
                       }}
-                      defaultValue={field.value || undefined}
+                      defaultValue={field.value}
                       className="w-full"
                     />
                   </TabsContent>
                   <TabsContent value="url">
                     <FormControl>
                       <Input 
+                        {...field}
                         type="url" 
                         placeholder="https://..." 
                         className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value || '')}
-                        onBlur={field.onBlur}
                       />
                     </FormControl>
                   </TabsContent>

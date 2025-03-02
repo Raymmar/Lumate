@@ -1,15 +1,14 @@
-import type { Express, Request, Response, Router } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema";
+import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; // Added import for users table
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance } from '@shared/schema';
-import { Client } from '@replit/object-storage';
+import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
@@ -43,64 +42,62 @@ function sendSSEUpdate(res: Response, data: any) {
 const LUMA_API_BASE = 'https://api.lu.ma/public/v1';
 
 export async function lumaApiRequest(
-  endpoint: string,
+  endpoint: string, 
   params?: Record<string, string>,
   options: { method?: string; body?: string } = {}
 ) {
-  const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
+    const url = new URL(`${LUMA_API_BASE}/${endpoint}`);
 
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      url.searchParams.append(key, value);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        url.searchParams.append(key, value);
+      });
+    }
+
+    if (!process.env.LUMA_API_KEY) {
+      throw new Error('LUMA_API_KEY environment variable is not set');
+    }
+
+    console.log(`Making ${options.method || 'GET'} request to ${url.toString()}`);
+
+    const response = await fetch(url.toString(), {
+      method: options.method || 'GET',
+      headers: {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'x-luma-api-key': process.env.LUMA_API_KEY
+      },
+      ...(options.body ? { body: options.body } : {})
     });
-  }
 
-  if (!process.env.LUMA_API_KEY) {
-    throw new Error('LUMA_API_KEY environment variable is not set');
-  }
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Luma API error: ${response.statusText}`);
+    }
 
-  console.log(`Making ${options.method || 'GET'} request to ${url.toString()}`);
+    const data = await response.json();
 
-  const response = await fetch(url.toString(), {
-    method: options.method || 'GET',
-    headers: {
-      'accept': 'application/json',
-      'content-type': 'application/json',
-      'x-luma-api-key': process.env.LUMA_API_KEY
-    },
-    ...(options.body ? { body: options.body } : {})
-  });
+    if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
+      console.log('Response details:', {
+        endpoint,
+        currentBatch: data.entries?.length,
+        hasMore: data.has_more,
+        nextCursor: data.next_cursor
+      });
+    }
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
-    throw new Error(`Luma API error: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
-    console.log('Response details:', {
-      endpoint,
-      currentBatch: data.entries?.length,
-      hasMore: data.has_more,
-      nextCursor: data.next_cursor
-    });
-  }
-
-  return data;
+    return data;
 }
 
-// Update function signature to accept Router instead of Express app
-export async function registerRoutes(router: Router) {
+export async function registerRoutes(app: Express) {
   // Set up session handling
   const PostgresStore = connectPg(session);
 
   // Get environment information
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // Add session middleware to router
-  router.use(session({
+  app.use(session({
     store: new PostgresStore({
       conObject: {
         connectionString: process.env.DATABASE_URL,
@@ -120,50 +117,7 @@ export async function registerRoutes(router: Router) {
     proxy: isProduction
   }));
 
-  // Add test upload endpoint
-  router.post("/test/upload", async (req, res) => {
-    try {
-      console.log('Test upload request received');
-
-      // Initialize a fresh client for testing
-      const client = new Client({
-        bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID
-      });
-
-      // Create a test buffer
-      const testBuffer = Buffer.from('Hello World');
-      const testKey = `test/test-${Date.now()}.txt`;
-
-      console.log('Attempting test upload:', {
-        bucketId: process.env.REPLIT_DEFAULT_BUCKET_ID,
-        key: testKey,
-        clientMethods: Object.getOwnPropertyNames(Object.getPrototypeOf(client))
-      });
-
-      // Try upload
-      await client.put(testKey, testBuffer, {
-        ContentType: 'text/plain'
-      });
-
-      const url = `https://${process.env.REPLIT_DEFAULT_BUCKET_ID}.id.repl.co/${testKey}`;
-      console.log('Test upload successful:', { url });
-
-      res.json({ success: true, url });
-    } catch (error) {
-      console.error('Test upload failed:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
-
-      res.status(500).json({
-        error: "Test upload failed",
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  // Keep the existing routes but remove the /api prefix since we're mounted at /api
-  router.get("/events", async (_req, res) => {
+  app.get("/api/events", async (_req, res) => {
     try {
       console.log('Fetching events from storage...');
       const events = await storage.getEvents();
@@ -179,7 +133,7 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  router.post("/events/rsvp", async (req, res) => {
+  app.post("/api/events/rsvp", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -230,7 +184,7 @@ export async function registerRoutes(router: Router) {
       res.json({ message: 'Successfully RSVP\'d to event' });
     } catch (error) {
       console.error('Failed to RSVP to event:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to RSVP to event",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -238,7 +192,8 @@ export async function registerRoutes(router: Router) {
   });
 
 
-  router.get("/people", async (req, res) => {
+
+  app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
@@ -324,7 +279,7 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  router.get("/people/:id", async (req, res) => {
+  app.get("/api/people/:id", async (req, res) => {
     try {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
@@ -341,7 +296,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add new endpoint for person attendance stats
-  router.get("/people/:id/stats", async (req, res) => {
+  app.get("/api/people/:id/stats", async (req, res) => {
     try {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
@@ -367,7 +322,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add new endpoint for fetching events attended by a person
-  router.get("/people/:id/events", async (req, res) => {
+  app.get("/api/people/:id/events", async (req, res) => {
     try {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
@@ -400,7 +355,7 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  router.get("/auth/check-profile/:id", async (req, res) => {
+  app.get("/api/auth/check-profile/:id", async (req, res) => {
     try {
       const personId = req.params.id;
 
@@ -424,7 +379,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Profile claiming endpoint
-  router.post("/auth/claim-profile", async (req, res) => {
+  app.post("/api/auth/claim-profile", async (req, res) => {
     try {
       console.log('Received claim profile request:', req.body);
       const { email, personId } = req.body;
@@ -447,10 +402,10 @@ export async function registerRoutes(router: Router) {
 
       // Ensure the email matches the person's record
       const emailsMatch = person.email.toLowerCase() === normalizedEmail;
-      console.log('Email match check:', {
-        provided: normalizedEmail,
+      console.log('Email match check:', { 
+        provided: normalizedEmail, 
         stored: person.email.toLowerCase(),
-        matches: emailsMatch
+        matches: emailsMatch 
       });
 
       if (!emailsMatch) {
@@ -477,7 +432,7 @@ export async function registerRoutes(router: Router) {
         return res.status(500).json({ error: "Failed to send verification email" });
       }
 
-      return res.json({
+      return res.json({ 
         message: "Verification email sent",
         // Only include token in development for testing
         token: process.env.NODE_ENV === 'development' ? verificationToken.token : undefined
@@ -489,7 +444,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Verify token endpoint
-  router.post("/auth/verify", async (req, res) => {
+  app.post("/api/auth/verify", async (req, res) => {
     try {
       const { token } = req.body;
 
@@ -524,7 +479,7 @@ export async function registerRoutes(router: Router) {
       }
 
       // Don't delete token yet - we'll need it valid for password setting
-      return res.json({
+      return res.json({ 
         message: "Email verified. Please set your password.",
         requiresPassword: true,
         email: verificationToken.email
@@ -536,7 +491,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Route to handle password creation after verification
-  router.post("/auth/set-password", async (req, res) => {
+  app.post("/api/auth/set-password", async (req, res) => {
     try {
       const { email, password } = req.body;
 
@@ -564,7 +519,7 @@ export async function registerRoutes(router: Router) {
       // Clean up any verification tokens for this email
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
 
-      return res.json({
+      return res.json({ 
         message: "Password set successfully",
         user: {
           id: verifiedUser.id,
@@ -575,9 +530,9 @@ export async function registerRoutes(router: Router) {
       });
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({
+        return res.status(400).json({ 
           error: "Invalid password",
-          details: error.errors
+          details: error.errors 
         });
       }
       console.error('Failed to set password:', error);
@@ -586,7 +541,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add user info endpoint
-  router.get("/auth/me", async (req, res) => {
+  app.get("/api/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -623,7 +578,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Update login route
-  router.post("/auth/login", async (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
 
@@ -659,7 +614,7 @@ export async function registerRoutes(router: Router) {
       });
 
       // Explicitly include isAdmin in the response
-      return res.json({
+      return res.json({ 
         message: "Logged in successfully",
         user: {
           id: user.id,
@@ -677,7 +632,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Update logout route
-  router.post("/auth/logout", (req, res) => {
+  app.post("/api/auth/logout", (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not logged in" });
     }
@@ -693,7 +648,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Internal-only route to reset database and fetch fresh data from Luma
-  router.post("/_internal/reset-database", async (req, res) => {
+  app.post("/_internal/reset-database", async (req, res) => {
     try {
       // Check if request is coming from localhost
       const requestIP = req.ip || req.socket.remoteAddress;
@@ -707,34 +662,34 @@ export async function registerRoutes(router: Router) {
 
       // Initialize SSE
       initSSE(res);
-      sendSSEUpdate(res, {
-        type: 'status',
+      sendSSEUpdate(res, { 
+        type: 'status', 
         message: 'Starting database reset process',
-        progress: 0
+        progress: 0 
       });
 
       try {
         // Clear events table
-        sendSSEUpdate(res, {
-          type: 'status',
+        sendSSEUpdate(res, { 
+          type: 'status', 
           message: 'Clearing events table...',
-          progress: 5
+          progress: 5 
         });
         await storage.clearEvents();
 
         // Clear people table
-        sendSSEUpdate(res, {
-          type: 'status',
+        sendSSEUpdate(res, { 
+          type: 'status', 
           message: 'Clearing people table (preserving user relationships)...',
-          progress: 10
+          progress: 10 
         });
         await storage.clearPeople();
 
         // Clear cache metadata
-        sendSSEUpdate(res, {
-          type: 'status',
+        sendSSEUpdate(res, { 
+          type: 'status', 
           message: 'Clearing cache metadata...',
-          progress: 15
+          progress: 15 
         });
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
@@ -743,10 +698,10 @@ export async function registerRoutes(router: Router) {
         const cacheService = CacheService.getInstance();
 
         // Initialize sync
-        sendSSEUpdate(res, {
-          type: 'status',
+        sendSSEUpdate(res, { 
+          type: 'status', 
           message: 'Initializing fresh data fetch from Luma API',
-          progress: 20
+          progress: 20 
         });
 
         // Set up event listeners for cache service
@@ -775,7 +730,7 @@ export async function registerRoutes(router: Router) {
         }
 
         // Send final success message
-        sendSSEUpdate(res, {
+        sendSSEUpdate(res, { 
           type: 'complete',
           message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
           data: {
@@ -808,16 +763,16 @@ export async function registerRoutes(router: Router) {
     } catch (error) {
       console.error('Failed to reset database:', error);
       if (!res.headersSent) {
-        return res.status(500).json({
-          error: "Failed to reset database",
-          details: error instanceof Error ? error.message : String(error)
+        return res.status(500).json({ 
+          error: "Failed to reset database", 
+          details: error instanceof Error ? error.message : String(error) 
         });
       }
     }
   });
 
   // Add the new admin stats endpoint after the existing routes
-  router.get("/admin/stats", async (req, res) => {
+  app.get("/api/admin/stats", async (req, res) => {
     try {
       // Get the authenticated user
       if (!req.session.userId) {
@@ -842,9 +797,9 @@ export async function registerRoutes(router: Router) {
         events: eventCount,
         people: peopleCount,
         users: userCount,
-        uniqueAttendees: peopleCount,
-        totalAttendees: totalAttendeesCount,
-        paidUsers: 0
+        uniqueAttendees: peopleCount, 
+        totalAttendees: totalAttendeesCount, 
+        paidUsers: 0 
       });
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
@@ -852,7 +807,7 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  router.get("/events/check-rsvp", async (req, res) => {
+  app.get("/api/events/check-rsvp", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -887,9 +842,9 @@ export async function registerRoutes(router: Router) {
       // If no cached status, check with Luma API
       const response = await lumaApiRequest(
         'event/get-guest',
-        {
+        { 
           event_api_id: event_api_id as string,
-          email: user.email
+          email: user.email 
         }
       );
 
@@ -909,13 +864,13 @@ export async function registerRoutes(router: Router) {
         });
       }
 
-      res.json({
+      res.json({ 
         isGoing: response.guest?.approval_status === 'approved',
         status: response.guest?.approval_status
       });
     } catch (error) {
       console.error('Failed to check RSVP status:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to check RSVP status",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -923,7 +878,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add new featured event endpoint
-  router.get("/events/featured", async (_req, res) => {
+  app.get("/api/events/featured", async (_req, res) => {
     try {
       const featuredEvent = await storage.getFeaturedEvent();
 
@@ -938,9 +893,8 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-
   // Update the /api/admin/events endpoint
-  router.get("/admin/events", async (req, res) => {
+  app.get("/api/admin/events", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -974,7 +928,9 @@ export async function registerRoutes(router: Router) {
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
-        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);          return {            ...event,
+        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+          return {
+            ...event,
             isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
@@ -992,7 +948,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add pagination to /api/admin/members endpoint
-  router.get("/admin/members", async (req, res) => {
+  app.get("/api/admin/members", async (req, res) => {
     try {
       // Authentication checks
       if (!req.session.userId) {
@@ -1034,7 +990,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add pagination to /api/admin/people endpoint
-  router.get("/admin/people", async (req, res) => {
+  app.get("/api/admin/people", async (req, res) => {
     try {
       // Authentication checks
       if (!req.session.userId) {
@@ -1076,7 +1032,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Modify the existing /api/admin/events/:eventId/guests endpoint
-  router.get("/admin/events/:eventId/guests", async (req, res) => {
+  app.get("/api/admin/events/:eventId/guests", async (req, res) => {
     try {
       // Authentication checks remain unchanged...
       if (!req.session.userId) {
@@ -1110,8 +1066,8 @@ export async function registerRoutes(router: Router) {
       }
 
       while (hasMore && iterationCount < MAX_ITERATIONS) {
-        const params: Record<string, string> = {
-          event_api_id: eventId
+        const params: Record<string, string> = { 
+          event_api_id: eventId 
         };
 
         if (cursor) {
@@ -1198,15 +1154,57 @@ export async function registerRoutes(router: Router) {
           name: error.name
         });
       }
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to fetch event guests",
         message: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
+  app.get("/api/admin/people", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
+
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(people)
+        .then(result => Number(result[0].count));
+
+      // Get paginated people
+      const peopleList = await db
+        .select()
+        .from(people)
+        .orderBy(people.id)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        people: peopleList,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch people:', error);
+      res.status(500).json({ error: "Failed to fetch people" });
+    }
+  });
+
   // Get attendees for a specific event
-  router.get("/admin/events/:eventId/attendees", async (req, res) => {
+  app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1245,7 +1243,7 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  router.post("/events/send-invite", async (req, res) => {
+  app.post("/api/events/send-invite", async (req, res) => {
     try {
       const { email, event_api_id } = req.body;
 
@@ -1276,13 +1274,13 @@ export async function registerRoutes(router: Router) {
         response
       });
 
-      res.json({
+      res.json({ 
         message: "Invite sent successfully. Please check your email.",
         details: response
       });
     } catch (error) {
       console.error('Failed to send invite:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to send invite",
         message: error instanceof Error ? error.message : String(error)
       });
@@ -1290,7 +1288,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add the new public posts endpoint
-  router.get("/public/posts", async (_req, res) => {
+  app.get("/api/public/posts", async (_req, res) => {
     try {
       console.log('Fetching public posts...');
       const posts = await storage.getPosts();
@@ -1311,7 +1309,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add the posts endpoints
-  router.post("/admin/posts", async (req, res) => {
+  app.post("/api/admin/posts", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1339,7 +1337,7 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  router.get("/admin/posts", async (req, res) => {
+  app.get("/api/admin/posts", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1361,7 +1359,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Update admin check in /api/admin/members endpoint
-  router.get("/admin/members", async (req, res) => {
+  app.get("/api/admin/members", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1402,7 +1400,7 @@ export async function registerRoutes(router: Router) {
   });
 
   // Add new endpoint to toggle admin status
-  router.post("/admin/users/:id/toggle-admin", async (req, res) => {
+  app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1447,107 +1445,47 @@ export async function registerRoutes(router: Router) {
     }
   });
 
-  // Add file serving route after existing routes
-  router.get("/uploads/:filename", async (req, res) => {
+  // Add auth debug logging at the start of /api/upload endpoint
+  app.post("/api/upload", upload.single('file'), async (req, res) => {
     try {
-      const filename = req.params.filename;
-      const key = `uploads/${filename}`;
-
-      console.log('Attempting to serve file:', key);
-      const fileData = await fileUploadService.getFile(key);
-
-      if (!fileData) {
-        console.log('File not found:', key);
-        return res.status(404).json({ error: "File not found" });
-      }
-
-      // Determine content type based on file extension
-      const ext = filename.split('.').pop()?.toLowerCase();
-      const contentType = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp'
-      }[ext || ''] || 'application/octet-stream';
-
-      console.log('Serving file:', { key, contentType });
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-      res.send(fileData);
-    } catch (error) {
-      console.error('Failed to serve file:', error);
-      res.status(500).json({ error: "Failed to serve file" });
-    }
-  });
-
-  // Update file upload route
-  router.post("/upload", upload.single('file'), async (req, res) => {
-    try {
-      // Debug logging for auth state and request
+      // Debug logging for auth state
       console.log('Upload request received:', {
         hasSession: !!req.session,
         userId: req.session?.userId,
-        headers: {
-          ...req.headers,
-          cookie: undefined // Don't log cookies
-        }
+        file: !!req.file
       });
 
+      // Check if user is authenticated
       if (!req.session.userId) {
-        console.log('Upload attempted without authentication');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      console.log('Processing file upload request from user:', req.session.userId);
-
-      if (!req.file) {
-        console.error('No file provided in upload request');
+      const file = req.file as Express.Multer.File;
+      if (!file) {
         return res.status(400).json({ error: "No file provided" });
       }
 
-      try {
-        console.log('File received:', {
-          filename: req.file.originalname,
-          size: req.file.size,
-          mimetype: req.file.mimetype
-        });
+      const url = await fileUploadService.uploadFile(file);
 
-        const url = await fileUploadService.uploadFile(req.file);
-
-        console.log('Upload successful:', {
-          originalName: req.file.originalname,
-          size: req.file.size,
-          url
-        });
-
-        res.json({ url });
-      } catch (uploadError) {
-        console.error('File upload processing failed:', {
-          error: uploadError instanceof Error ? uploadError.message : String(uploadError),
-          stack: uploadError instanceof Error ? uploadError.stack : undefined
-        });
-
-        res.status(500).json({
-          error: "Failed to process upload",
-          details: uploadError instanceof Error ? uploadError.message : String(uploadError)
-        });
-      }
-    } catch (error) {
-      console.error('Upload route error:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+      console.log('File uploaded successfully:', {
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+        url
       });
 
-      res.status(500).json({
-        error: "Upload failed",
-        details: error instanceof Error ? error.message : String(error)
+      res.json({ url });
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      res.status(500).json({ 
+        error: "Failed to upload file",
+        message: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
   // Add file deletion endpoint
-  router.delete("/upload", async (req, res) => {
+  app.delete("/api/upload", async (req, res) => {
     try {
       // Check if user is authenticated
       if (!req.session.userId) {
@@ -1563,16 +1501,14 @@ export async function registerRoutes(router: Router) {
       res.json({ message: "File deleted successfully" });
     } catch (error) {
       console.error('Failed to delete file:', error);
-      res.status(500).json({
+      res.status(500).json({ 
         error: "Failed to delete file",
         message: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
-
-  // Return the server instance
-  return createServer(router);
+  return createServer(app);
 }
 
 declare module 'express-session' {
