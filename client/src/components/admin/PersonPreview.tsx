@@ -8,6 +8,7 @@ import {
   CardContent
 } from "@/components/ui/card";
 import { format } from "date-fns";
+import { LinkedUser } from "./LinkedUser";
 
 interface PersonPreviewProps {
   person: Person;
@@ -77,20 +78,29 @@ export function PersonPreview({ person }: PersonPreviewProps) {
         <CardContent className="space-y-2">
           <div className="flex justify-between py-1">
             <span className="text-muted-foreground">Total Events Attended</span>
-            <span>{person.stats.totalEventsAttended}</span>
+            <span>{person.stats?.totalEventsAttended || 0}</span>
           </div>
-          {person.stats.firstEventDate && (
+          {person.stats?.firstEventDate && (
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">First Event</span>
               <span>{format(new Date(person.stats.firstEventDate), 'PPP')}</span>
             </div>
           )}
-          {person.stats.lastEventDate && (
+          {person.stats?.lastEventDate && (
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Last Event</span>
               <span>{format(new Date(person.stats.lastEventDate), 'PPP')}</span>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <h3 className="font-medium">Linked User Account</h3>
+        </CardHeader>
+        <CardContent>
+          <LinkedUser user={person.user} />
         </CardContent>
       </Card>
     </div>
