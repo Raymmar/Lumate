@@ -14,10 +14,9 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
 import { useState } from "react";
-import { RelatedPeople } from "./RelatedPeople";
 
 interface MemberPreviewProps {
-  member: User & { roles?: Role[]; person_id?: number };
+  member: User & { roles?: Role[] };
 }
 
 export function MemberPreview({ member }: MemberPreviewProps) {
@@ -34,6 +33,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         { isAdmin: checked }
       );
 
+      // Invalidate the members cache to trigger a refresh
       queryClient.invalidateQueries({ queryKey: ['/api/admin/members'] });
 
       toast({
@@ -132,15 +132,6 @@ export function MemberPreview({ member }: MemberPreviewProps) {
               </SelectContent>
             </Select>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="font-medium">Related People</h3>
-        </CardHeader>
-        <CardContent>
-          <RelatedPeople userId={member.id} personId={member.person_id} />
         </CardContent>
       </Card>
     </div>

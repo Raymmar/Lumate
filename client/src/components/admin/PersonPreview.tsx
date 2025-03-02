@@ -17,13 +17,6 @@ export function PersonPreview({ person }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
 
-  const stats = person.stats || {
-    totalEventsAttended: 0,
-    firstEventDate: null,
-    lastEventDate: null,
-    lastUpdated: new Date().toISOString()
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -84,18 +77,18 @@ export function PersonPreview({ person }: PersonPreviewProps) {
         <CardContent className="space-y-2">
           <div className="flex justify-between py-1">
             <span className="text-muted-foreground">Total Events Attended</span>
-            <span>{stats.totalEventsAttended}</span>
+            <span>{person.stats.totalEventsAttended}</span>
           </div>
-          {stats.firstEventDate && (
+          {person.stats.firstEventDate && (
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">First Event</span>
-              <span>{format(new Date(stats.firstEventDate), 'PPP')}</span>
+              <span>{format(new Date(person.stats.firstEventDate), 'PPP')}</span>
             </div>
           )}
-          {stats.lastEventDate && (
+          {person.stats.lastEventDate && (
             <div className="flex justify-between py-1">
               <span className="text-muted-foreground">Last Event</span>
-              <span>{format(new Date(stats.lastEventDate), 'PPP')}</span>
+              <span>{format(new Date(person.stats.lastEventDate), 'PPP')}</span>
             </div>
           )}
         </CardContent>

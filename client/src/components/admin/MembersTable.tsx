@@ -14,24 +14,21 @@ import {
 } from "@/components/ui/pagination";
 
 interface MembersResponse {
-  users: (User & { person_id?: number })[];
+  users: User[];
   total: number;
 }
 
 export function MembersTable() {
-  const [selectedMember, setSelectedMember] = useState<User & { person_id?: number } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<User | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<MembersResponse>({
     queryKey: ["/api/admin/members", currentPage, itemsPerPage],
     queryFn: async () => {
-      console.log('Fetching members data...');
       const response = await fetch(`/api/admin/members?page=${currentPage}&limit=${itemsPerPage}`);
       if (!response.ok) throw new Error("Failed to fetch members");
-      const data = await response.json();
-      console.log('Members data received:', data);
-      return data;
+      return response.json();
     },
   });
 
@@ -65,21 +62,20 @@ export function MembersTable() {
   const actions = [
     {
       label: "View Profile",
-      onClick: (member: User & { person_id?: number }) => {
-        console.log('Member selected:', member);
+      onClick: (member: User) => {
         setSelectedMember(member);
       },
     },
     {
       label: "Edit",
-      onClick: (member: User & { person_id?: number }) => {
+      onClick: (member: User) => {
+        // Placeholder for edit action
         console.log("Edit member:", member);
       },
     },
   ];
 
-  const onRowClick = (member: User & { person_id?: number }) => {
-    console.log('Row clicked, member data:', member);
+  const onRowClick = (member: User) => {
     setSelectedMember(member);
   };
 
