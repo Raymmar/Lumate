@@ -1,4 +1,4 @@
-import createClient from '@replit/database';
+import { createClient } from '@replit/object-storage';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
 
@@ -21,7 +21,7 @@ export class FileUploadService {
     if (!this.bucketId) {
       throw new Error('Object storage bucket ID not found');
     }
-    this.replDb = new (createClient as any)();
+    this.replDb = createClient();
     console.log('FileUploadService initialized with bucket:', this.bucketId);
   }
 
@@ -63,7 +63,11 @@ export class FileUploadService {
     const key = `uploads/${filename}`;
 
     try {
-      await this.replDb.set(key, file.buffer);
+      // Upload buffer to object storage
+      await this.replDb.uploadFromBuffer(key, file.buffer, {
+        contentType: file.mimetype
+      });
+      
       const url = `https://${this.bucketId}.id.repl.co/${key}`;
       console.log('File uploaded successfully:', { key, url });
       return url;
