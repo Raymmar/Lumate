@@ -12,6 +12,8 @@ import { events, attendance } from '@shared/schema'; //Import events schema and 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
+import multer from 'multer';
+import { fileUploadService } from './services/FileUploadService';
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -188,6 +190,7 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
+
 
 
   app.get("/api/people", async (req, res) => {
@@ -925,11 +928,10 @@ export async function registerRoutes(app: Express) {
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
-        eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
             ...event,
-            isSynced: attendanceStatus.hasAttendees,
-            lastSyncedAt: attendanceStatus.lastSyncTime,
+            isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
         })
@@ -1424,6 +1426,78 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to toggle admin status:', error);
       res.status(500).json({ error: "Failed to toggle admin status" });
+    }
+  });
+
+  // Configure multer for memory storage
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (_req, file, callback) => {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        callback(new Error('Invalid file type. Only images are allowed.'));
+        return;
+      }
+      callback(null, true);
+    }
+  });
+
+  // File upload endpoint
+  app.post("/api/upload", upload.single('file'), async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const file = req.file as Express.Multer.File;
+      if (!file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+
+      const url = await fileUploadService.uploadFile(file);
+
+      console.log('File uploaded successfully:', {
+        originalName: file.originalname,
+        size: file.size,
+        mimeType: file.mimetype,
+        url
+      });
+
+      res.json({ url });
+    } catch (error) {
+      console.error('Failed to upload file:', error);
+      res.status(500).json({ 
+        error: "Failed to upload file",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Add file deletion endpoint
+  app.delete("/api/upload", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const url = req.query.url as string;
+      if (!url) {
+        return res.status(400).json({ error: "No file URL provided" });
+      }
+
+      await fileUploadService.deleteFile(url);
+      res.json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      res.status(500).json({ 
+        error: "Failed to delete file",
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
