@@ -26,7 +26,7 @@ export class ObjectStorageService {
   async uploadFile(file: Buffer, fileName: string, contentType: string): Promise<string> {
     try {
       const key = `uploads/${Date.now()}-${fileName}`;
-      await this.client.putObject(key, file, {
+      await this.client.put(key, file, {
         contentType
       });
       return key;
@@ -38,7 +38,7 @@ export class ObjectStorageService {
 
   async deleteFile(key: string): Promise<void> {
     try {
-      await this.client.deleteObject(key);
+      await this.client.delete(key);
     } catch (error) {
       console.error('Failed to delete file:', error);
       throw new Error('Failed to delete file from object storage');
@@ -47,8 +47,8 @@ export class ObjectStorageService {
 
   async getFileUrl(key: string): Promise<string> {
     try {
-      const signedUrl = await this.client.getSignedDownloadUrl(key);
-      return signedUrl.toString();
+      const signedUrl = await this.client.signedUrl(key, { expires: 3600 }); // URL valid for 1 hour
+      return signedUrl;
     } catch (error) {
       console.error('Failed to get file URL:', error);
       throw new Error('Failed to generate signed URL');
@@ -57,11 +57,8 @@ export class ObjectStorageService {
 
   async listFiles(prefix: string = 'uploads/'): Promise<string[]> {
     try {
-      const result = await this.client.listObjects({ prefix });
-      if (result.data) {
-        return result.data.map(obj => obj.key);
-      }
-      return [];
+      const files = await this.client.list({ prefix });
+      return files.map(file => file.key);
     } catch (error) {
       console.error('Failed to list files:', error);
       throw new Error('Failed to list files from object storage');

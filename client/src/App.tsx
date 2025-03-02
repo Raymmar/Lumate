@@ -13,6 +13,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminMembersPage from "@/pages/admin/AdminMembersPage";
 import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
+import MediaLibraryPage from "@/pages/admin/MediaLibraryPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +30,7 @@ function Router() {
           <Route path="/admin/members" component={AdminMembersPage} />
           <Route path="/admin/events" component={AdminEventsPage} />
           <Route path="/admin/people" component={AdminPeoplePage} />
+          <Route path="/admin/media" component={MediaLibraryPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
