@@ -141,7 +141,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
           <h3 className="font-medium">Linked Profile</h3>
         </CardHeader>
         <CardContent>
-          <RelatedPeople person={member.person || null} />
+          <RelatedPeople person={member.person} />
         </CardContent>
       </Card>
     </div>

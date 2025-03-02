@@ -968,13 +968,24 @@ export async function registerRoutes(app: Express) {
         .from(users)
         .then(result => Number(result[0].count));
 
-      // Get paginated users
+      // Get paginated users with their linked person data
       const usersList = await db
-        .select()
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          isVerified: users.isVerified,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+          person: people
+        })
         .from(users)
+        .leftJoin(people, eq(users.personId, people.id))
         .orderBy(users.createdAt)
         .limit(limit)
         .offset(offset);
+
+      console.log('Fetched users with person data:', usersList);
 
       res.json({
         users: usersList,

@@ -28,11 +28,15 @@ export function MembersTable() {
     queryFn: async () => {
       const response = await fetch(`/api/admin/members?page=${currentPage}&limit=${itemsPerPage}`);
       if (!response.ok) throw new Error("Failed to fetch members");
-      return response.json();
+      const data = await response.json();
+      console.log("Fetched members data:", data); // Debug log
+      return data;
     },
   });
 
   const users = data?.users || [];
+  console.log("Processed users data:", users); // Debug log for processed data
+
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -62,7 +66,8 @@ export function MembersTable() {
   const actions = [
     {
       label: "View Profile",
-      onClick: (member: User) => {
+      onClick: (member: User & { person?: Person | null }) => {
+        console.log("Selected member data:", member); // Debug log for selected member
         setSelectedMember(member);
       },
     },
@@ -76,6 +81,7 @@ export function MembersTable() {
   ];
 
   const onRowClick = (member: User & { person?: Person | null }) => {
+    console.log("Row clicked, member data:", member); // Debug log for row click
     setSelectedMember(member);
   };
 
