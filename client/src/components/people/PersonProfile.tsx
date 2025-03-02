@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -69,7 +69,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-  const queryClient = useQueryClient;
+  const queryClient = useQueryClient();
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people', personId],
