@@ -5,6 +5,7 @@ import type { User, Person } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
+import { SearchInput } from "./SearchInput";
 import {
   Pagination,
   PaginationContent,
@@ -21,22 +22,23 @@ interface MembersResponse {
 export function MembersTable() {
   const [selectedMember, setSelectedMember] = useState<User & { person?: Person | null } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<MembersResponse>({
-    queryKey: ["/api/admin/members", currentPage, itemsPerPage],
+    queryKey: ["/api/admin/members", currentPage, itemsPerPage, searchQuery],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/members?page=${currentPage}&limit=${itemsPerPage}`);
+      const response = await fetch(
+        `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`
+      );
       if (!response.ok) throw new Error("Failed to fetch members");
       const data = await response.json();
-      console.log("Fetched members data:", data); // Debug log
+      console.log("Fetched members data:", data);
       return data;
     },
   });
 
   const users = data?.users || [];
-  console.log("Processed users data:", users); // Debug log for processed data
-
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -67,21 +69,20 @@ export function MembersTable() {
     {
       label: "View Profile",
       onClick: (member: User & { person?: Person | null }) => {
-        console.log("Selected member data:", member); // Debug log for selected member
+        console.log("Selected member data:", member);
         setSelectedMember(member);
       },
     },
     {
       label: "Edit",
       onClick: (member: User) => {
-        // Placeholder for edit action
         console.log("Edit member:", member);
       },
     },
   ];
 
   const onRowClick = (member: User & { person?: Person | null }) => {
-    console.log("Row clicked, member data:", member); // Debug log for row click
+    console.log("Row clicked, member data:", member);
     setSelectedMember(member);
   };
 
@@ -99,6 +100,15 @@ export function MembersTable() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Members</h2>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search members..."
+        />
+      </div>
+
       <DataTable 
         data={users} 
         columns={columns} 
