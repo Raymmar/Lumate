@@ -8,7 +8,6 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { ImageUpload } from "@/components/ui/image-upload";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost) => Promise<void>;
@@ -108,33 +107,17 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="featuredImage"
-            render={({ field: { value, onChange, ...field }}) => (
+            render={({ field: { value, ...field }}) => (
               <FormItem className="space-y-1">
-                <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
+                <FormLabel className="text-sm text-muted-foreground">Featured Image URL</FormLabel>
                 <FormControl>
-                  <div className="space-y-2">
-                    <ImageUpload 
-                      onUploadComplete={(url) => onChange(url)} 
-                      className="w-full"
-                    />
-                    {value && (
-                      <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                        <img 
-                          src={value} 
-                          alt="Featured" 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <Input 
-                      {...field}
-                      value={value || ""}
-                      onChange={onChange}
-                      type="url" 
-                      placeholder="Or enter image URL manually" 
-                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                  </div>
+                  <Input 
+                    {...field} 
+                    type="url" 
+                    value={value || ""} 
+                    placeholder="https://..." 
+                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
