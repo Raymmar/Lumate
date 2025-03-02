@@ -1426,6 +1426,44 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to toggle admin status" });
     }
   });
+  // Add new endpoint for updating user admin status after the existing /api/admin/members endpoint
+  app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if current user is admin
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const userId = parseInt(req.params.id);
+      const { isAdmin } = req.body;
+
+      if (typeof isAdmin !== 'boolean') {
+        return res.status(400).json({ error: "isAdmin must be a boolean" });
+      }
+
+      // Update user's admin status
+      const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
+
+      res.json({
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          displayName: updatedUser.displayName,
+          isVerified: updatedUser.isVerified,
+          isAdmin: updatedUser.isAdmin
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update user admin status:', error);
+      res.status(500).json({ error: "Failed to update user admin status" });
+    }
+  });
 
   return createServer(app);
 }

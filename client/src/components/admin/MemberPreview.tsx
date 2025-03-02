@@ -8,6 +8,10 @@ import {
   CardContent
 } from "@/components/ui/card";
 import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface MemberPreviewProps {
   member: User;
@@ -15,7 +19,33 @@ interface MemberPreviewProps {
 
 export function MemberPreview({ member }: MemberPreviewProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const initials = member.displayName?.split(' ').map(n => n[0]).join('') || member.email[0].toUpperCase();
+
+  const handleAdminToggle = async (checked: boolean) => {
+    try {
+      await apiRequest(
+        `/api/admin/members/${member.id}/admin-status`,
+        'PATCH',
+        { isAdmin: checked }
+      );
+
+      // Invalidate the members cache to trigger a refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/members'] });
+
+      toast({
+        title: "Success",
+        description: `Admin status ${checked ? 'granted to' : 'revoked from'} ${member.displayName || member.email}`,
+      });
+    } catch (error) {
+      console.error('Failed to update admin status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update admin status",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -33,18 +63,29 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         <Badge variant={member.isVerified ? "default" : "secondary"}>
           {member.isVerified ? "Verified" : "Pending"}
         </Badge>
+        {member.isAdmin && (
+          <Badge variant="default">Admin</Badge>
+        )}
       </div>
 
       <Card>
         <CardHeader className="pb-3">
           <h3 className="font-medium">Member Information</h3>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-4">
           <div className="flex justify-between py-1">
             <span className="text-muted-foreground">Member since</span>
             <span>{format(new Date(member.createdAt), 'PPP')}</span>
           </div>
-          {/* Add more member details as needed */}
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="admin-mode"
+              checked={member.isAdmin}
+              onCheckedChange={handleAdminToggle}
+            />
+            <Label htmlFor="admin-mode">Admin privileges</Label>
+          </div>
         </CardContent>
       </Card>
     </div>

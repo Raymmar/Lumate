@@ -75,6 +75,9 @@ export interface IStorage {
   // Posts
   getPosts(): Promise<Post[]>;
   createPost(post: InsertPost): Promise<Post>;
+
+  // Add the new method for updating admin status
+  updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -922,6 +925,30 @@ export class PostgresStorage implements IStorage {
       return newPost;
     } catch (error) {
       console.error('Failed to create post:', error);
+      throw error;
+    }
+  }
+  // Add the new implementation
+  async updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User> {
+    try {
+      console.log('Updating user admin status:', { userId, isAdmin });
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          isAdmin,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update user admin status:', error);
       throw error;
     }
   }
