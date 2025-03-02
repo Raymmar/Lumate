@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users, roles, permissions, rolePermissions } from "@shared/schema"; // Added import for users table and roles and permissions tables
+import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema"; // Added import for users table and roles and permissions tables
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
@@ -1439,11 +1439,11 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Get all roles with their permissions
+      // Get all roles
       const roles = await db
         .select()
-        .from(roles)
-        .orderBy(roles.id);
+        .from(rolesTable)
+        .orderBy(rolesTable.id);
 
       console.log('Fetched roles:', roles);
       res.json(roles);
@@ -1469,8 +1469,8 @@ export async function registerRoutes(app: Express) {
       // Get all permissions
       const permissions = await db
         .select()
-        .from(permissions)
-        .orderBy(permissions.id);
+        .from(permissionsTable)
+        .orderBy(permissionsTable.id);
 
       console.log('Fetched permissions:', permissions);
       res.json(permissions);
@@ -1501,15 +1501,18 @@ export async function registerRoutes(app: Express) {
       // Get permissions for the specified role
       const rolePermissions = await db
         .select({
-          id: permissions.id,
-          name: permissions.name,
-          description: permissions.description,
-          resource: permissions.resource,
-          action: permissions.action
+          id: permissionsTable.id,
+          name: permissionsTable.name,
+          description: permissionsTable.description,
+          resource: permissionsTable.resource,
+          action: permissionsTable.action
         })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-        .where(eq(rolePermissions.roleId, roleId));
+        .from(rolePermissionsTable)
+        .innerJoin(
+          permissionsTable, 
+          eq(permissionsTable.id, rolePermissionsTable.permissionId)
+        )
+        .where(eq(rolePermissionsTable.roleId, roleId));
 
       console.log('Fetched role permissions:', rolePermissions);
       res.json(rolePermissions);
@@ -1539,7 +1542,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Add permission to role
-      await db.insert(rolePermissions).values({
+      await db.insert(rolePermissionsTable).values({
         roleId,
         permissionId,
         grantedBy: req.session.userId,
@@ -1549,15 +1552,15 @@ export async function registerRoutes(app: Express) {
       // Get updated permissions for the role
       const updatedPermissions = await db
         .select({
-          id: permissions.id,
-          name: permissions.name,
-          description: permissions.description,
-          resource: permissions.resource,
-          action: permissions.action
+          id: permissionsTable.id,
+          name: permissionsTable.name,
+          description: permissionsTable.description,
+          resource: permissionsTable.resource,
+          action: permissionsTable.action
         })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-        .where(eq(rolePermissions.roleId, roleId));
+        .from(rolePermissionsTable)
+        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
+        .where(eq(rolePermissionsTable.roleId, roleId));
 
       console.log('Added permission to role:', { roleId, permissionId });
       res.json(updatedPermissions);
@@ -1588,26 +1591,26 @@ export async function registerRoutes(app: Express) {
 
       // Remove permission from role
       await db
-        .delete(rolePermissions)
+        .delete(rolePermissionsTable)
         .where(
           and(
-            eq(rolePermissions.roleId, roleId),
-            eq(rolePermissions.permissionId, permissionId)
+            eq(rolePermissionsTable.roleId, roleId),
+            eq(rolePermissionsTable.permissionId, permissionId)
           )
         );
 
       // Get updated permissions for the role
       const updatedPermissions = await db
         .select({
-          id: permissions.id,
-          name: permissions.name,
-          description: permissions.description,
-          resource: permissions.resource,
-          action: permissions.action
+          id: permissionsTable.id,
+          name: permissionsTable.name,
+          description: permissionsTable.description,
+          resource: permissionsTable.resource,
+          action: permissionsTable.action
         })
-        .from(rolePermissions)
-        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-        .where(eq(rolePermissions.roleId, roleId));
+        .from(rolePermissionsTable)
+        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
+        .where(eq(rolePermissionsTable.roleId, roleId));
 
       console.log('Removed permission from role:', { roleId, permissionId });
       res.json(updatedPermissions);
