@@ -5,6 +5,7 @@ import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { PersonPreview } from "./PersonPreview";
 import { SearchInput } from "./SearchInput";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Pagination,
   PaginationContent,
@@ -22,13 +23,14 @@ export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<PeopleResponse>({
-    queryKey: ["/api/admin/people", currentPage, itemsPerPage, searchQuery],
+    queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
-        `/api/admin/people?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`
+        `/api/admin/people?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch people");
       const data = await response.json();

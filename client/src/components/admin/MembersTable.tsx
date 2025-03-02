@@ -6,6 +6,7 @@ import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
 import { SearchInput } from "./SearchInput";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Pagination,
   PaginationContent,
@@ -23,17 +24,17 @@ export function MembersTable() {
   const [selectedMember, setSelectedMember] = useState<User & { person?: Person | null } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<MembersResponse>({
-    queryKey: ["/api/admin/members", currentPage, itemsPerPage, searchQuery],
+    queryKey: ["/api/admin/members", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
-        `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`
+        `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch members");
       const data = await response.json();
-      console.log("Fetched members data:", data);
       return data;
     },
   });
@@ -56,7 +57,7 @@ export function MembersTable() {
     {
       key: "isVerified",
       header: "Status",
-      cell: (row: User) => row.isVerified ? "Verified" : "Pending",
+      cell: (row: User) => (row.isVerified ? "Verified" : "Pending"),
     },
     {
       key: "createdAt",
@@ -109,9 +110,9 @@ export function MembersTable() {
         />
       </div>
 
-      <DataTable 
-        data={users} 
-        columns={columns} 
+      <DataTable
+        data={users}
+        columns={columns}
         actions={actions}
         onRowClick={onRowClick}
       />
@@ -125,7 +126,7 @@ export function MembersTable() {
             <PaginationItem>
               <PaginationPrevious
                 onClick={handlePreviousPage}
-                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
             <PaginationItem>
@@ -136,20 +137,15 @@ export function MembersTable() {
             <PaginationItem>
               <PaginationNext
                 onClick={handleNextPage}
-                className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
       </div>
 
-      <PreviewSidebar 
-        open={!!selectedMember} 
-        onOpenChange={() => setSelectedMember(null)}
-      >
-        {selectedMember && (
-          <MemberPreview member={selectedMember} />
-        )}
+      <PreviewSidebar open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
+        {selectedMember && <MemberPreview member={selectedMember} />}
       </PreviewSidebar>
     </div>
   );

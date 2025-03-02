@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { SearchInput } from "./SearchInput";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   Pagination,
   PaginationContent,
@@ -32,13 +33,14 @@ export function EventsTable() {
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
   const itemsPerPage = 100;
 
   const { data, isLoading } = useQuery<EventsResponse>({
-    queryKey: ["/api/admin/events", currentPage, itemsPerPage, searchQuery],
+    queryKey: ["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
-        `/api/admin/events?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(searchQuery)}`
+        `/api/admin/events?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch events");
       return response.json();

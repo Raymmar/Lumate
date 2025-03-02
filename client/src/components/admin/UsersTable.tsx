@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { queryClient } from "@/lib/queryClient";
 import { SearchInput } from "./SearchInput";
 import { useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface User {
   id: string;
@@ -16,11 +17,12 @@ interface User {
 
 export function UsersTable() {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
 
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ["/api/admin/users", searchQuery],
+    queryKey: ["/api/admin/users", debouncedSearch],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/users${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`);
+      const response = await fetch(`/api/admin/users${debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : ''}`);
       if (!response.ok) throw new Error("Failed to fetch users");
       return response.json();
     },
