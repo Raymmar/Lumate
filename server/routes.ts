@@ -930,7 +930,8 @@ export async function registerRoutes(app: Express) {
             ...event,
             isSynced: attendanceStatus.hasAttendees,
             lastSyncedAt: attendanceStatus.lastSyncTime,
-            lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime          };
+            lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
+          };
         })
       );
 
@@ -1158,6 +1159,48 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/people", async (req, res) => {
+    try {
+      // Check if user is authenticated
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      // Check if user is admin
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const offset = (page - 1) * limit;
+
+
+      // Get total count
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(people)
+        .then(result => Number(result[0].count));
+
+      // Get paginated people
+      const peopleList = await db
+        .select()
+        .from(people)
+        .orderBy(people.id)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        people: peopleList,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch people:', error);
+      res.status(500).json({ error: "Failed to fetch people" });
+    }
+  });
+
   // Get attendees for a specific event
   app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
     try {
@@ -1381,147 +1424,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to toggle admin status:', error);
       res.status(500).json({ error: "Failed to toggle admin status" });
-    }
-  });
-
-  // Media Library Routes
-  app.post("/api/admin/media/upload", async (req, res) => {
-    try {
-      console.log('Starting media upload request:', {
-        hasFiles: !!req.files,
-        userId: req.session.userId,
-        contentType: req.get('Content-Type')
-      });
-
-      // Check if user is authenticated and is admin
-      if (!req.session.userId) {
-        console.log('Upload rejected: User not authenticated');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      console.log('User verification:', {
-        userId: req.session.userId,
-        found: !!user,
-        isAdmin: user?.isAdmin
-      });
-
-      if (!user?.isAdmin) {
-        console.log('Upload rejected: User not admin');
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      if (!req.files || !req.files.file) {
-        console.log('Upload rejected: No file provided');
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const file = req.files.file;
-      console.log('File details:', {
-        name: file.name,
-        type: file.mimetype,
-        size: file.size
-      });
-
-      const { ObjectStorageService } = await import('./services/ObjectStorageService');
-      const objectStorage = ObjectStorageService.getInstance();
-
-      const key = await objectStorage.uploadFile(
-        file.data,
-        file.name,
-        file.mimetype
-      );
-
-      const url = await objectStorage.getFileUrl(key);
-      console.log('File upload successful:', { key, url });
-
-      res.json({
-        key,
-        url,
-        name: file.name,
-        type: file.mimetype,
-        size: file.size
-      });
-    } catch (error) {
-      console.error('Failed to upload file:', error);
-      res.status(500).json({ 
-        error: "Failed to upload file",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
-  app.get("/api/admin/media", async (req, res) => {
-    try {
-      console.log('Starting media list request');
-
-      // Check if user is authenticated and is admin
-      if (!req.session.userId) {
-        console.log('List request rejected: User not authenticated');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      console.log('User verification:', {
-        userId: req.session.userId,
-        found: !!user,
-        isAdmin: user?.isAdmin
-      });
-
-      if (!user?.isAdmin) {
-        console.log('List request rejected: User not admin');
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const { ObjectStorageService } = await import('./services/ObjectStorageService');
-      const objectStorage = ObjectStorageService.getInstance();
-
-      const files = await objectStorage.listFiles();
-      console.log('Files retrieved:', { count: files.length });
-
-      const filesWithUrls = await Promise.all(
-        files.map(async (key) => {
-          const url = await objectStorage.getFileUrl(key);
-          return {
-            key,
-            url,
-            name: key.split('/').pop() || key
-          };
-        })
-      );
-
-      console.log('Files processed with URLs:', { count: filesWithUrls.length });
-      res.json(filesWithUrls);
-    } catch (error) {
-      console.error('Failed to list files:', error);
-      res.status(500).json({ 
-        error: "Failed to list files",
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-
-  app.delete("/api/admin/media/:key", async (req, res) => {
-    try {
-      // Check if user is authenticated and is admin
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const { key } = req.params;
-      const { ObjectStorageService } = await import('./services/ObjectStorageService');
-      const objectStorage = ObjectStorageService.getInstance();
-
-      await objectStorage.deleteFile(key);
-      res.json({ message: "File deleted successfully" });
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      res.status(500).json({ error: "Failed to delete file" });
     }
   });
 
