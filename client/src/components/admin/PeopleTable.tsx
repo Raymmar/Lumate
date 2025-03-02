@@ -23,19 +23,21 @@ export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
+  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
   const itemsPerPage = 100;
 
-  const { data, isLoading } = useQuery<PeopleResponse>({
+  const { data, isLoading, isFetching } = useQuery<PeopleResponse>({
     queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
         `/api/admin/people?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch people");
-      const data = await response.json();
-      return data;
+      return response.json();
     },
+    keepPreviousData: true,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const people = data?.people || [];
@@ -77,10 +79,6 @@ export function PeopleTable() {
     setCurrentPage(prev => prev < totalPages ? prev + 1 : prev);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
@@ -89,14 +87,23 @@ export function PeopleTable() {
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder="Search people..."
+          isLoading={isFetching}
         />
       </div>
 
-      <DataTable 
-        data={people} 
-        columns={columns} 
-        onRowClick={onRowClick}
-      />
+      <div className="min-h-[400px] relative">
+        <div 
+          className={`transition-opacity duration-300 ${
+            isFetching ? 'opacity-50' : 'opacity-100'
+          }`}
+        >
+          <DataTable 
+            data={people} 
+            columns={columns} 
+            onRowClick={onRowClick}
+          />
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">

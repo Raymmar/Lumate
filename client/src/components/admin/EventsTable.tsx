@@ -33,10 +33,10 @@ export function EventsTable() {
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 500);
+  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
   const itemsPerPage = 100;
 
-  const { data, isLoading } = useQuery<EventsResponse>({
+  const { data, isLoading, isFetching } = useQuery<EventsResponse>({
     queryKey: ["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
@@ -45,6 +45,9 @@ export function EventsTable() {
       if (!response.ok) throw new Error("Failed to fetch events");
       return response.json();
     },
+    keepPreviousData: true,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const events = data?.events || [];
@@ -149,10 +152,6 @@ export function EventsTable() {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
@@ -161,14 +160,24 @@ export function EventsTable() {
           value={searchQuery}
           onChange={setSearchQuery}
           placeholder="Search events..."
+          isLoading={isFetching}
         />
       </div>
-      <DataTable 
-        data={events} 
-        columns={columns}
-        actions={actions}
-        onRowClick={onRowClick}
-      />
+
+      <div className="min-h-[400px] relative">
+        <div 
+          className={`transition-opacity duration-300 ${
+            isFetching ? 'opacity-50' : 'opacity-100'
+          }`}
+        >
+          <DataTable 
+            data={events} 
+            columns={columns}
+            actions={actions}
+            onRowClick={onRowClick}
+          />
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
