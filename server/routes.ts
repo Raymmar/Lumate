@@ -12,8 +12,6 @@ import { events, attendance } from '@shared/schema'; //Import events schema and 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
-import { objectStorage } from './services/ObjectStorageService';
-import multer from 'multer';
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -930,7 +928,8 @@ export async function registerRoutes(app: Express) {
         eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
             ...event,
-            isSynced: attendanceStatus.hasAttendees,                        lastSyncedAt: attendanceStatus.lastSyncTime,
+            isSynced: attendanceStatus.hasAttendees,
+            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
         })
@@ -1425,102 +1424,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to toggle admin status:', error);
       res.status(500).json({ error: "Failed to toggle admin status" });
-    }
-  });
-
-  // File handling routes
-  const upload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: {
-      fileSize: 5 * 1024 * 1024 // 5MB limit
-    }
-  });
-
-  app.get("/api/files/list", async (req, res) => {
-    try {
-      console.log('Received request to list files');
-
-      // Debug logging
-      console.log('Session info:', {
-        hasSession: !!req.session,
-        userId: req.session?.userId,
-      });
-
-      const prefix = req.query.prefix as string;
-      console.log('Attempting to list files with prefix:', prefix);
-
-      const files = await objectStorage.listFiles(prefix);
-      console.log('Successfully retrieved files:', files);
-
-      res.json({ files });
-    } catch (error) {
-      console.error('Failed to list files:', error);
-      res.status(500).json({ 
-        error: "Failed to list files",
-        details: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  app.get("/api/files/:key", async (req, res) => {
-    try {
-      const { key } = req.params;
-      if (!key) {
-        return res.status(400).json({ error: "Missing file key" });
-      }
-
-      const url = await objectStorage.getFileUrl(key);
-      res.json({ url });
-    } catch (error) {
-      console.error('Failed to get file URL:', error);
-      res.status(500).json({ error: "Failed to get file URL" });
-    }
-  });
-
-  app.post("/api/files/upload", upload.single('file'), async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded" });
-      }
-
-      const key = `${Date.now()}-${req.file.originalname}`;
-      const url = await objectStorage.uploadFile(key, req.file.buffer);
-
-      res.json({ 
-        key,
-        url,
-        originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype
-      });
-    } catch (error) {
-      console.error('Failed to upload file:', error);
-      res.status(500).json({ error: "Failed to upload file" });
-    }
-  });
-
-  app.delete("/api/files/:key", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { key } = req.params;
-      if (!key) {
-        return res.status(400).json({ error: "Missing file key" });
-      }
-
-      await objectStorage.deleteFile(key);
-      res.json({ message: "File deleted successfully" });
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      res.status(500).json({ error: "Failed to delete file" });
     }
   });
 
