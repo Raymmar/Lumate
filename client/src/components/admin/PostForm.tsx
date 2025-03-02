@@ -8,8 +8,6 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
-import { FileUpload } from "@/components/ui/file-upload";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost) => Promise<void>;
@@ -109,39 +107,18 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="featuredImage"
-            render={({ field }) => (
+            render={({ field: { value, ...field }}) => (
               <FormItem className="space-y-1">
-                <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
-                <Tabs defaultValue="upload" className="w-full">
-                  <TabsList className="mb-4">
-                    <TabsTrigger value="upload">Upload Image</TabsTrigger>
-                    <TabsTrigger value="url">Image URL</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="upload">
-                    <FileUpload
-                      onUpload={(url) => field.onChange(url)}
-                      onError={(error) => {
-                        toast({
-                          title: "Error",
-                          description: error,
-                          variant: "destructive"
-                        });
-                      }}
-                      defaultValue={field.value}
-                      className="w-full"
-                    />
-                  </TabsContent>
-                  <TabsContent value="url">
-                    <FormControl>
-                      <Input 
-                        {...field}
-                        type="url" 
-                        placeholder="https://..." 
-                        className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </FormControl>
-                  </TabsContent>
-                </Tabs>
+                <FormLabel className="text-sm text-muted-foreground">Featured Image URL</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    type="url" 
+                    value={value || ""} 
+                    placeholder="https://..." 
+                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

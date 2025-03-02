@@ -44,7 +44,6 @@ export interface IStorage {
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
-  updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -549,6 +548,19 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  async getPerson(id: number): Promise<Person | null> {
+    try {
+      const result = await db
+        .select()
+        .from(people)
+        .where(eq(people.id, id))
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get person:', error);
+      throw error;
+    }
+  }
   async getUserCount(): Promise<number> {
     const result = await db.select({ count: sql`COUNT(*)` }).from(users);
     const count = Number(result[0].count);
@@ -811,43 +823,27 @@ export class PostgresStorage implements IStorage {
         .where(eq(attendance.personId, personId))
         .orderBy(attendance.registeredAt);
 
-      // Create properly typed stats object
-      const stats = {
+      const stats: Record<string, any> = {
         totalEventsAttended: attendanceRecords.length,
         firstEventDate: attendanceRecords[0]?.registeredAt || null,
         lastEventDate: attendanceRecords[attendanceRecords.length - 1]?.registeredAt || null,
         lastUpdated: new Date().toISOString()
-      } as const;
+      };
 
       // Calculate average events per year if we have attendance
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
-        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-        const averageEventsPerYear = yearsDiff > 0 
-          ? stats.totalEventsAttended / yearsDiff
-          : stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
-
-        // Update the person's stats
-        const [updatedPerson] = await db
-          .update(people)
-          .set({ 
-            stats: {
-              ...stats,
-              averageEventsPerYear
-            }
-          })
-          .where(eq(people.id, personId))
-          .returning();
-
-        if (!updatedPerson) {
-          throw new Error(`Person with ID ${personId} not found`);
+        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); // Average year length
+        if (yearsDiff > 0) {
+          stats.averageEventsPerYear = stats.totalEventsAttended / yearsDiff;
+        } else {
+          // If less than a year, project to annual rate
+          stats.averageEventsPerYear = stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
         }
-
-        return updatedPerson;
       }
 
-      // If no date range, just update basic stats
+      // Update the person's stats
       const [updatedPerson] = await db
         .update(people)
         .set({ stats })
@@ -926,27 +922,6 @@ export class PostgresStorage implements IStorage {
       return newPost;
     } catch (error) {
       console.error('Failed to create post:', error);
-      throw error;
-    }
-  }
-  async updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User> {
-    try {
-      const [updatedUser] = await db
-        .update(users)
-        .set({ 
-          isAdmin,
-          updatedAt: new Date().toISOString()
-        })
-        .where(eq(users.id, userId))
-        .returning();
-
-      if (!updatedUser) {
-        throw new Error(`User with ID ${userId} not found`);
-      }
-
-      return updatedUser;
-    } catch (error) {
-      console.error('Failed to update user admin status:', error);
       throw error;
     }
   }
