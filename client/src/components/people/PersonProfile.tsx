@@ -213,11 +213,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 <AuthGuard>
                   <p className="text-muted-foreground">{person.email}</p>
                 </AuthGuard>
-                {isOwnProfile && (
-                  <Badge variant="outline" className="bg-white text-xs font-normal">
-                    your profile
-                  </Badge>
-                )}
               </div>
               <div className="mt-2">
                 <Button variant="outline" size="sm" className="text-xs">
