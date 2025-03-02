@@ -14,30 +14,30 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
   const [isFocused, setIsFocused] = useState(false);
   const cursorPositionRef = useRef<number | null>(null);
 
-  // Use useLayoutEffect to handle focus synchronously before browser paint
+  // Use requestAnimationFrame to handle focus and cursor position after state updates
   useLayoutEffect(() => {
     if (isFocused && inputRef.current) {
-      const input = inputRef.current;
-
-      // Restore focus
-      input.focus();
-
-      // Restore cursor position if we have one stored
-      if (cursorPositionRef.current !== null) {
-        input.setSelectionRange(cursorPositionRef.current, cursorPositionRef.current);
-      }
+      requestAnimationFrame(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          if (cursorPositionRef.current !== null) {
+            inputRef.current.setSelectionRange(
+              cursorPositionRef.current,
+              cursorPositionRef.current
+            );
+          }
+        }
+      });
     }
-  }, [value, isFocused]); // Only re-run if value or focus state changes
+  }, [value, isFocused]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Store current cursor position before the update
     cursorPositionRef.current = e.target.selectionStart;
     onChange(e.target.value);
   };
 
   const handleFocus = () => {
     setIsFocused(true);
-    // Store initial cursor position on focus
     if (inputRef.current) {
       cursorPositionRef.current = inputRef.current.selectionStart;
     }
@@ -55,8 +55,9 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
   return (
     <form onSubmit={handleSubmit} className="relative w-[250px]">
       <Search 
-        className={`absolute left-2.5 top-2.5 h-4 w-4 transition-opacity duration-150 
-          ${isLoading ? 'animate-pulse opacity-50' : 'opacity-100'} text-muted-foreground`} 
+        className={`absolute left-2.5 top-2.5 h-4 w-4 transition-colors ${
+          isLoading ? 'text-muted-foreground/50' : 'text-muted-foreground'
+        }`} 
       />
       <Input
         ref={inputRef}
@@ -66,8 +67,9 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className={`pl-9 transition-opacity duration-150 focus-visible:ring-0 focus-visible:ring-offset-0
-          ${isLoading ? 'opacity-80' : 'opacity-100'}`}
+        className={`pl-9 transition-opacity duration-150
+          ${isLoading ? 'opacity-50' : 'opacity-100'}
+          focus-visible:ring-0 focus-visible:ring-offset-0`}
         disabled={isLoading}
       />
     </form>

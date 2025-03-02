@@ -24,7 +24,8 @@ export function MembersTable() {
   const [selectedMember, setSelectedMember] = useState<User & { person?: Person | null } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 500); // Add 500ms debounce
+  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time for better responsiveness
+
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching } = useQuery<MembersResponse>({
@@ -36,8 +37,9 @@ export function MembersTable() {
       if (!response.ok) throw new Error("Failed to fetch members");
       return response.json();
     },
-    keepPreviousData: true, // Keep showing previous data while fetching
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    keepPreviousData: true,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const users = data?.users || [];
@@ -107,20 +109,18 @@ export function MembersTable() {
       </div>
 
       <div className="min-h-[400px] relative">
-        {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            Loading...
-          </div>
-        ) : (
-          <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
-            <DataTable
-              data={users}
-              columns={columns}
-              actions={actions}
-              onRowClick={onRowClick}
-            />
-          </div>
-        )}
+        <div 
+          className={`transition-opacity duration-300 ${
+            isFetching ? 'opacity-50' : 'opacity-100'
+          }`}
+        >
+          <DataTable
+            data={users}
+            columns={columns}
+            actions={actions}
+            onRowClick={onRowClick}
+          />
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
