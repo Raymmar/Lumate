@@ -25,6 +25,7 @@ export function RolesAndPermissions() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
+  const [isUpdating, setIsUpdating] = useState<{ roleId: number; permissionId: number } | null>(null);
 
   const { data: roles, isLoading: rolesLoading, error: rolesError } = useQuery<Role[]>({
     queryKey: ['/api/admin/roles']
@@ -41,13 +42,18 @@ export function RolesAndPermissions() {
 
   const handlePermissionToggle = async (roleId: number, permissionId: number, hasPermission: boolean) => {
     try {
+      setIsUpdating({ roleId, permissionId });
       const method = hasPermission ? 'DELETE' : 'POST';
+
       await apiRequest(
         `/api/admin/roles/${roleId}/permissions/${permissionId}`,
         method
       );
 
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/roles', roleId, 'permissions'] });
+      // Invalidate role permissions cache to trigger a refresh
+      await queryClient.invalidateQueries({ 
+        queryKey: ['/api/admin/roles', roleId, 'permissions'] 
+      });
 
       toast({
         title: "Success",
@@ -60,6 +66,8 @@ export function RolesAndPermissions() {
         description: "Failed to update role permission",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdating(null);
     }
   };
 
@@ -135,6 +143,8 @@ export function RolesAndPermissions() {
                       const hasPermission = rolePermissions?.some(
                         (p) => p.id === permission.id
                       );
+                      const isToggling = isUpdating?.roleId === selectedRole.id && 
+                                       isUpdating?.permissionId === permission.id;
                       return (
                         <TableRow key={permission.id}>
                           <TableCell className="font-medium">
@@ -152,6 +162,8 @@ export function RolesAndPermissions() {
                                   hasPermission || false
                                 )
                               }
+                              disabled={isToggling}
+                              className={isToggling ? 'opacity-50' : ''}
                             />
                           </TableCell>
                         </TableRow>

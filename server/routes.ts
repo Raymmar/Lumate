@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users } from "@shared/schema"; // Added import for users table
+import { insertUserSchema, people, updatePasswordSchema, users, roles, permissions, rolePermissions } from "@shared/schema"; // Added import for users table and roles and permissions tables
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
@@ -11,7 +11,7 @@ import { ZodError } from 'zod';
 import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -928,8 +928,7 @@ export async function registerRoutes(app: Express) {
         eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
             ...event,
-            isSynced: attendanceStatus.hasAttendees,
-            lastSyncedAt: attendanceStatus.lastSyncTime,
+            isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
         })
@@ -1440,7 +1439,13 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const roles = await storage.getAllRoles();
+      // Get all roles with their permissions
+      const roles = await db
+        .select()
+        .from(roles)
+        .orderBy(roles.id);
+
+      console.log('Fetched roles:', roles);
       res.json(roles);
     } catch (error) {
       console.error('Failed to fetch roles:', error);
@@ -1461,7 +1466,13 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const permissions = await storage.getAllPermissions();
+      // Get all permissions
+      const permissions = await db
+        .select()
+        .from(permissions)
+        .orderBy(permissions.id);
+
+      console.log('Fetched permissions:', permissions);
       res.json(permissions);
     } catch (error) {
       console.error('Failed to fetch permissions:', error);
@@ -1487,8 +1498,21 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid role ID" });
       }
 
-      const permissions = await storage.getRolePermissions(roleId);
-      res.json(permissions);
+      // Get permissions for the specified role
+      const rolePermissions = await db
+        .select({
+          id: permissions.id,
+          name: permissions.name,
+          description: permissions.description,
+          resource: permissions.resource,
+          action: permissions.action
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(rolePermissions.roleId, roleId));
+
+      console.log('Fetched role permissions:', rolePermissions);
+      res.json(rolePermissions);
     } catch (error) {
       console.error('Failed to fetch role permissions:', error);
       res.status(500).json({ error: "Failed to fetch role permissions" });
@@ -1514,10 +1538,28 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid role or permission ID" });
       }
 
-      await storage.assignPermissionToRole(roleId, permissionId, req.session.userId);
+      // Add permission to role
+      await db.insert(rolePermissions).values({
+        roleId,
+        permissionId,
+        grantedBy: req.session.userId,
+        grantedAt: new Date()
+      });
 
-      // Return updated permissions for the role
-      const updatedPermissions = await storage.getRolePermissions(roleId);
+      // Get updated permissions for the role
+      const updatedPermissions = await db
+        .select({
+          id: permissions.id,
+          name: permissions.name,
+          description: permissions.description,
+          resource: permissions.resource,
+          action: permissions.action
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(rolePermissions.roleId, roleId));
+
+      console.log('Added permission to role:', { roleId, permissionId });
       res.json(updatedPermissions);
     } catch (error) {
       console.error('Failed to assign permission to role:', error);
@@ -1544,10 +1586,30 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid role or permission ID" });
       }
 
-      await storage.removePermissionFromRole(roleId, permissionId);
+      // Remove permission from role
+      await db
+        .delete(rolePermissions)
+        .where(
+          and(
+            eq(rolePermissions.roleId, roleId),
+            eq(rolePermissions.permissionId, permissionId)
+          )
+        );
 
-      // Return updated permissions for the role
-      const updatedPermissions = await storage.getRolePermissions(roleId);
+      // Get updated permissions for the role
+      const updatedPermissions = await db
+        .select({
+          id: permissions.id,
+          name: permissions.name,
+          description: permissions.description,
+          resource: permissions.resource,
+          action: permissions.action
+        })
+        .from(rolePermissions)
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+        .where(eq(rolePermissions.roleId, roleId));
+
+      console.log('Removed permission from role:', { roleId, permissionId });
       res.json(updatedPermissions);
     } catch (error) {
       console.error('Failed to remove permission from role:', error);
