@@ -15,17 +15,17 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       <div className="min-h-screen bg-background">
         <NavBar />
         <PageContainer>
-          <div className="flex">
-            {/* Fixed Sidebar */}
-            <div className="w-64 fixed left-0 top-14 bottom-0 bg-background border-r z-40 overflow-y-auto">
+          <div className="relative flex min-h-[calc(100vh-3.5rem)] mt-14">
+            {/* Fixed width sidebar */}
+            <div className="w-64 shrink-0 bg-background border-r">
               <div className="p-4 space-y-4">
                 <AdminTabs />
               </div>
             </div>
 
-            {/* Main content area with independent scroll */}
-            <div className="flex-1 pl-64">
-              <div className="p-4">
+            {/* Main content area */}
+            <div className="flex-1 min-w-0">
+              <div className="p-6">
                 <div className="mb-4">{title}</div>
                 {children}
               </div>
