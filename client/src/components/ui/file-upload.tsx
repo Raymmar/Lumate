@@ -10,23 +10,29 @@ interface FileUploadProps {
   onError?: (error: string) => void;
   maxSize?: number; // in bytes
   className?: string;
+  defaultValue?: string;
 }
 
 export function FileUpload({ 
   onUpload, 
   onError, 
   maxSize = 5 * 1024 * 1024, // 5MB default
-  className 
+  className,
+  defaultValue
 }: FileUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(defaultValue || null);
 
   const handleUpload = async (file: File) => {
     setUploading(true);
     setProgress(0);
     setError(null);
+
+    // First create a preview
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -35,21 +41,34 @@ export function FileUpload({
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'include' // Include credentials for authentication
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorData = await response.json();
+        if (response.status === 401) {
+          throw new Error('Please log in to upload files');
+        }
+        throw new Error(errorData.error || errorData.message || 'Upload failed');
       }
 
       const data = await response.json();
-      onUpload(data.url);
+
+      // Clean up the temporary preview URL
+      URL.revokeObjectURL(objectUrl);
+
+      // Set the actual uploaded URL
       setPreview(data.url);
+      onUpload(data.url);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Upload failed';
       setError(message);
       onError?.(message);
+      setPreview(null);
+      URL.revokeObjectURL(objectUrl);
     } finally {
       setUploading(false);
+      setProgress(100);
     }
   };
 
@@ -57,8 +76,9 @@ export function FileUpload({
     const file = acceptedFiles[0];
     if (file) {
       if (file.size > maxSize) {
-        setError(`File too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
-        onError?.(`File too large. Maximum size is ${maxSize / 1024 / 1024}MB`);
+        const message = `File too large. Maximum size is ${maxSize / 1024 / 1024}MB`;
+        setError(message);
+        onError?.(message);
         return;
       }
       handleUpload(file);
@@ -75,6 +95,7 @@ export function FileUpload({
 
   const clearPreview = () => {
     setPreview(null);
+    setError(null);
     onUpload('');
   };
 
@@ -87,11 +108,15 @@ export function FileUpload({
       )}
 
       {preview ? (
-        <div className="relative rounded-lg overflow-hidden">
+        <div className="relative rounded-lg overflow-hidden bg-muted">
           <img 
             src={preview} 
             alt="Preview" 
-            className="w-full h-auto"
+            className="w-full h-auto object-cover"
+            onError={() => {
+              setError('Failed to load preview image');
+              setPreview(null);
+            }}
           />
           <Button
             variant="destructive"

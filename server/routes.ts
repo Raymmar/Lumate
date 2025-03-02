@@ -1445,9 +1445,16 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // File upload endpoint
+  // Add auth debug logging at the start of /api/upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
     try {
+      // Debug logging for auth state
+      console.log('Upload request received:', {
+        hasSession: !!req.session,
+        userId: req.session?.userId,
+        file: !!req.file
+      });
+
       // Check if user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });

@@ -127,6 +127,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
                           variant: "destructive"
                         });
                       }}
+                      defaultValue={field.value}
                       className="w-full"
                     />
                   </TabsContent>

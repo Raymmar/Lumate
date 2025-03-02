@@ -107,8 +107,12 @@ export function PostPreview({
               <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                 <img 
                   src={post.featuredImage} 
-                  alt={post.title}
+                  alt={post.title || 'Featured image'}
                   className="w-full h-full object-cover"
+                  onError={(e) => {
+                    console.error('Failed to load image:', post.featuredImage);
+                    e.currentTarget.src = '/placeholder-image.png'; // Fallback image
+                  }}
                 />
               </div>
             )}
