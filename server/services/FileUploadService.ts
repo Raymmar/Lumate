@@ -1,4 +1,3 @@
-import createClient from '@replit/database';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
 
@@ -12,11 +11,15 @@ interface UploadedFile {
 
 export class FileUploadService {
   private static instance: FileUploadService;
-  private readonly replDb;
+  private readonly bucketId: string;
 
   private constructor() {
-    this.replDb = new (createClient as any)();
-    console.log('FileUploadService initialized');
+    // Get bucket ID from environment
+    this.bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID;
+    if (!this.bucketId) {
+      throw new Error('Object storage bucket ID not found in environment');
+    }
+    console.log('FileUploadService initialized with bucket:', this.bucketId);
   }
 
   static getInstance(): FileUploadService {
@@ -58,26 +61,30 @@ export class FileUploadService {
     const key = `uploads/${filename}`;
 
     try {
-      // Store file in Replit Database with base64 encoding
-      const base64Data = file.buffer.toString('base64');
-      console.log('Storing file data with key:', key);
-      await this.replDb.set(key, base64Data);
+      // Store file in Replit object storage
+      const response = await fetch(`https://object-storage.${process.env.REPLIT_DB_HOST}/${this.bucketId}/${key}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.mimetype,
+        },
+        body: file.buffer
+      });
 
-      // Log successful storage
-      console.log('File data stored successfully:', { key });
-
-      // Generate full URL using Replit domain and HTTPS
-      const url = `https://${process.env.REPLIT_DB_HOST}/uploads/${filename}`;
-
-
-      // Verify the file was stored
-      const storedData = await this.replDb.get(key);
-      if (!storedData) {
-        console.error('File verification failed - no data found for key:', key);
-        throw new Error('File was not stored properly');
+      if (!response.ok) {
+        console.error('Failed to upload to object storage:', response.status, response.statusText);
+        throw new Error('Failed to upload to object storage');
       }
 
-      console.log('File upload completed successfully:', { key, url });
+      // Generate public URL for the uploaded file
+      const url = `https://${this.bucketId}.id.repl.co/${key}`;
+
+      console.log('File upload completed successfully:', { 
+        key,
+        url,
+        size: file.buffer.length,
+        type: file.mimetype
+      });
+
       return url;
     } catch (error) {
       console.error('Failed to upload file:', error);
@@ -85,35 +92,26 @@ export class FileUploadService {
     }
   }
 
-  async getFile(key: string): Promise<Buffer | null> {
-    console.log('Attempting to retrieve file:', key);
-    try {
-      const base64Data = await this.replDb.get(key);
-      if (!base64Data) {
-        console.log('No file found for key:', key);
-        return null;
-      }
-      console.log('File retrieved successfully:', key);
-      return Buffer.from(base64Data, 'base64');
-    } catch (error) {
-      console.error('Failed to retrieve file:', error);
-      return null;
-    }
-  }
-
   async deleteFile(url: string): Promise<void> {
     try {
-      // Extract filename from URL
-      const matches = url.match(/\/uploads\/([^?#]+)/);
+      // Extract key from URL
+      const matches = url.match(/\.id\.repl\.co\/(uploads\/[^?#]+)/);
       if (!matches) {
         console.error('Invalid file URL format:', url);
         throw new Error('Invalid file URL');
       }
-      const filename = matches[1];
-      const key = `uploads/${filename}`;
 
+      const key = matches[1];
       console.log('Deleting file:', { url, key });
-      await this.replDb.delete(key);
+
+      const response = await fetch(`https://object-storage.${process.env.REPLIT_DB_HOST}/${this.bucketId}/${key}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete file: ${response.status} ${response.statusText}`);
+      }
+
       console.log('File deleted successfully');
     } catch (error) {
       console.error('Failed to delete file:', error);

@@ -927,8 +927,7 @@ export async function registerRoutes(app: Express) {
 
       // Get attendance status for each event
       const eventsWithStatus = await Promise.all(
-        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
-          return {            ...event,
+        eventsList.map(async (event) =>{          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);          return {            ...event,
             isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
@@ -1435,9 +1434,10 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update file upload route
+  // Update file upload route to use object storage
   app.post("/api/upload", async (req, res) => {
     try {
+      // Check authentication
       if (!req.session.userId) {
         console.log('Upload attempted without authentication');
         return res.status(401).json({ error: "Not authenticated" });
@@ -1468,17 +1468,13 @@ export async function registerRoutes(app: Express) {
         }
 
         try {
-          console.log('File received, processing upload');
-          let url = await fileUploadService.uploadFile(req.file);
+          console.log('File received, processing upload:', {
+            filename: req.file.originalname,
+            size: req.file.size,
+            mimetype: req.file.mimetype
+          });
 
-          // Get the Replit domain from environment
-          const replitDomain = process.env.REPL_SLUG && process.env.REPL_OWNER 
-            ? `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-            : req.get('host');
-
-          // Replace placeholder with HTTPS URL using Replit domain
-          url = url.replace('__HOST__', `https://${replitDomain}`);
-
+          const url = await fileUploadService.uploadFile(req.file);
           console.log('Upload successful, returning URL:', url);
           res.json({ url });
         } catch (uploadError) {

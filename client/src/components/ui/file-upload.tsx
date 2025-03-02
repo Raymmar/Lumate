@@ -38,6 +38,12 @@ export function FileUpload({
     formData.append('file', file);
 
     try {
+      console.log('Starting file upload:', {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      });
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -51,18 +57,19 @@ export function FileUpload({
 
       const data = await response.json();
 
-      // Clean up the temporary preview URL
-      URL.revokeObjectURL(objectUrl);
-
       if (!data.url) {
         throw new Error('No URL returned from server');
       }
+
+      console.log('Upload successful:', data.url);
+
+      // Clean up the temporary preview URL
+      URL.revokeObjectURL(objectUrl);
 
       // Set the actual uploaded URL
       setPreview(data.url);
       onUpload(data.url);
 
-      console.log('File upload successful:', data.url);
     } catch (err) {
       console.error('Upload error:', err);
       const message = err instanceof Error ? err.message : 'Upload failed';
@@ -127,7 +134,7 @@ export function FileUpload({
             alt="Preview" 
             className="w-full h-auto object-cover"
             onError={(e) => {
-              console.error('Image preview failed to load');
+              console.error('Image preview failed to load:', preview);
               const message = 'Failed to load preview image';
               setError(message);
               onError?.(message);
