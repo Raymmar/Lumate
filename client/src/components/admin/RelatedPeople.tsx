@@ -6,26 +6,59 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface RelatedPeopleProps {
   userId: number;
-  personId?: number; // Changed to use personId instead of email
+  personId?: number;
 }
 
 export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
-  const { data: person, isLoading } = useQuery<Person | null>({
+  console.log('RelatedPeople component props:', { userId, personId });
+
+  const { data: person, isLoading, error } = useQuery<Person | null>({
     queryKey: ['/api/users', userId, 'linked-person'],
     queryFn: async () => {
-      if (!personId) return null;
-      console.log('Fetching linked person record:', { userId, personId });
-      const response = await fetch(`/api/people/${personId}`);
-      if (!response.ok) {
-        console.error('Failed to fetch linked person:', response.statusText);
-        throw new Error('Failed to fetch linked person');
+      if (!personId) {
+        console.log('No personId provided, skipping fetch');
+        return null;
       }
-      const data = await response.json();
-      console.log('Linked person data:', data);
-      return data;
+
+      console.log('Fetching linked person record:', { userId, personId });
+      try {
+        // First get the person record to get the api_id
+        const response = await fetch(`/api/users/${userId}/linked-person`);
+        if (!response.ok) {
+          console.error('Failed to fetch linked person:', response.statusText);
+          throw new Error('Failed to fetch linked person');
+        }
+        const data = await response.json();
+        console.log('Linked person data retrieved:', data);
+
+        // Now fetch the full profile using api_id
+        if (data && data.api_id) {
+          const profileResponse = await fetch(`/api/people/by-api-id/${data.api_id}`);
+          if (!profileResponse.ok) {
+            console.error('Failed to fetch profile data:', profileResponse.statusText);
+            throw new Error('Failed to fetch profile data');
+          }
+          const profileData = await profileResponse.json();
+          console.log('Profile data retrieved:', profileData);
+          return profileData;
+        }
+        return data;
+      } catch (error) {
+        console.error('Error fetching linked person:', error);
+        throw error;
+      }
     },
-    enabled: !!personId // Only run query if personId is provided
+    enabled: !!personId
   });
+
+  if (error) {
+    console.error('Query error:', error);
+    return (
+      <p className="text-sm text-destructive">
+        Error loading linked person data. Please try again later.
+      </p>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -36,9 +69,11 @@ export function RelatedPeople({ userId, personId }: RelatedPeopleProps) {
   }
 
   if (!person) {
+    console.log('No person data found');
     return (
       <p className="text-sm text-muted-foreground">
         No linked person record found. This user hasn't been matched to a synced record yet.
+        {personId ? ` (Attempted to load person ID: ${personId})` : ''}
       </p>
     );
   }

@@ -26,9 +26,12 @@ export function MembersTable() {
   const { data, isLoading } = useQuery<MembersResponse>({
     queryKey: ["/api/admin/members", currentPage, itemsPerPage],
     queryFn: async () => {
+      console.log('Fetching members data...');
       const response = await fetch(`/api/admin/members?page=${currentPage}&limit=${itemsPerPage}`);
       if (!response.ok) throw new Error("Failed to fetch members");
-      return response.json();
+      const data = await response.json();
+      console.log('Members data received:', data);
+      return data;
     },
   });
 
@@ -63,19 +66,20 @@ export function MembersTable() {
     {
       label: "View Profile",
       onClick: (member: User & { person_id?: number }) => {
+        console.log('Member selected:', member);
         setSelectedMember(member);
       },
     },
     {
       label: "Edit",
       onClick: (member: User & { person_id?: number }) => {
-        // Placeholder for edit action
         console.log("Edit member:", member);
       },
     },
   ];
 
   const onRowClick = (member: User & { person_id?: number }) => {
+    console.log('Row clicked, member data:', member);
     setSelectedMember(member);
   };
 
