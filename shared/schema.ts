@@ -201,7 +201,8 @@ export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Person = typeof people.$inferSelect & {
-  isAdmin?: boolean; 
+  isAdmin?: boolean;
+  user?: User | null;
 };
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;

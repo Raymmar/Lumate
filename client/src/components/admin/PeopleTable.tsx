@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
-import { format } from "date-fns";
 import type { Person } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
@@ -28,11 +27,15 @@ export function PeopleTable() {
     queryFn: async () => {
       const response = await fetch(`/api/admin/people?page=${currentPage}&limit=${itemsPerPage}`);
       if (!response.ok) throw new Error("Failed to fetch people");
-      return response.json();
+      const data = await response.json();
+      console.log("Fetched people data:", data); // Debug log
+      return data;
     },
   });
 
   const people = data?.people || [];
+  console.log("Processed people data:", people); // Debug log for processed data
+
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
@@ -48,43 +51,28 @@ export function PeopleTable() {
       cell: (row: Person) => row.email,
     },
     {
-      key: "role",
-      header: "Role",
-      cell: (row: Person) => row.role || "—",
-    },
-    {
       key: "organizationName",
       header: "Organization",
       cell: (row: Person) => row.organizationName || "—",
     },
-  ];
-
-  const actions = [
     {
-      label: "View Profile",
-      onClick: (person: Person) => {
-        setSelectedPerson(person);
-      },
-    },
-    {
-      label: "Edit",
-      onClick: (person: Person) => {
-        // Placeholder for edit action
-        console.log("Edit person:", person);
-      },
-    },
+      key: "jobTitle",
+      header: "Job Title",
+      cell: (row: Person) => row.jobTitle || "—",
+    }
   ];
 
   const onRowClick = (person: Person) => {
+    console.log("Row clicked, person data:", person); // Debug log for row click
     setSelectedPerson(person);
   };
 
   const handlePreviousPage = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
+    setCurrentPage(prev => Math.max(1, prev - 1));
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+    setCurrentPage(prev => prev < totalPages ? prev + 1 : prev);
   };
 
   if (isLoading) {
@@ -96,7 +84,6 @@ export function PeopleTable() {
       <DataTable 
         data={people} 
         columns={columns} 
-        actions={actions}
         onRowClick={onRowClick}
       />
 

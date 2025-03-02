@@ -2,7 +2,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Person } from "@shared/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Card,
   CardHeader,
   CardContent
@@ -17,6 +17,8 @@ interface PersonPreviewProps {
 export function PersonPreview({ person }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
+
+  console.log('PersonPreview - Received person data:', person); // Debug log
 
   return (
     <div className="space-y-6">

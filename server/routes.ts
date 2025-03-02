@@ -927,8 +927,7 @@ export async function registerRoutes(app: Express) {
       const eventsWithStatus = await Promise.all(
         eventsList.map(async (event) => {          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
           return {
-            ...event,
-            isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
+            ...event,            isSynced: attendanceStatus.hasAttendees,            lastSyncedAt: attendanceStatus.lastSyncTime,
             lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
           };
         })
@@ -1000,11 +999,12 @@ export async function registerRoutes(app: Express) {
   // Add pagination to /api/admin/people endpoint
   app.get("/api/admin/people", async (req, res) => {
     try {
-      // Authentication checks
+      // Check if user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
+      // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
@@ -1021,13 +1021,27 @@ export async function registerRoutes(app: Express) {
         .from(people)
         .then(result => Number(result[0].count));
 
-      // Get paginated people
+      // Get paginated people with their linked user data
       const peopleList = await db
-        .select()
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          email: people.email,
+          userName: people.userName,
+          fullName: people.fullName,
+          avatarUrl: people.avatarUrl,
+          organizationName: people.organizationName,
+          jobTitle: people.jobTitle,
+          createdAt: people.createdAt,
+          user: users
+        })
         .from(people)
+        .leftJoin(users, eq(people.id, users.personId))
         .orderBy(people.id)
         .limit(limit)
         .offset(offset);
+
+      console.log('Fetched people with user data:', peopleList);
 
       res.json({
         people: peopleList,
