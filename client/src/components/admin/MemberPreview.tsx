@@ -17,7 +17,7 @@ import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 
 interface MemberPreviewProps {
-  member: User & { roles?: Role[] };
+  member: User & { roles?: Role[]; person_id?: number };
 }
 
 export function MemberPreview({ member }: MemberPreviewProps) {
@@ -140,7 +140,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
           <h3 className="font-medium">Related People</h3>
         </CardHeader>
         <CardContent>
-          <RelatedPeople userId={member.id} userEmail={member.email} />
+          <RelatedPeople userId={member.id} personId={member.person_id} />
         </CardContent>
       </Card>
     </div>

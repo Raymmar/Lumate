@@ -14,12 +14,12 @@ import {
 } from "@/components/ui/pagination";
 
 interface MembersResponse {
-  users: User[];
+  users: (User & { person_id?: number })[];
   total: number;
 }
 
 export function MembersTable() {
-  const [selectedMember, setSelectedMember] = useState<User | null>(null);
+  const [selectedMember, setSelectedMember] = useState<User & { person_id?: number } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 100;
 
@@ -62,20 +62,20 @@ export function MembersTable() {
   const actions = [
     {
       label: "View Profile",
-      onClick: (member: User) => {
+      onClick: (member: User & { person_id?: number }) => {
         setSelectedMember(member);
       },
     },
     {
       label: "Edit",
-      onClick: (member: User) => {
+      onClick: (member: User & { person_id?: number }) => {
         // Placeholder for edit action
         console.log("Edit member:", member);
       },
     },
   ];
 
-  const onRowClick = (member: User) => {
+  const onRowClick = (member: User & { person_id?: number }) => {
     setSelectedMember(member);
   };
 
