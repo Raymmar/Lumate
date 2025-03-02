@@ -105,14 +105,16 @@ export function MembersTable() {
         />
       </div>
 
-      <div className={`min-h-[400px] transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
-        <DataTable
-          data={users}
-          columns={columns}
-          actions={actions}
-          onRowClick={onRowClick}
-          isLoading={isLoading}
-        />
+      <div className="min-h-[400px] relative">
+        <div className={`transition-opacity duration-200 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+          <DataTable
+            data={users}
+            columns={columns}
+            actions={actions}
+            onRowClick={onRowClick}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
       <div className="flex items-center justify-between">
