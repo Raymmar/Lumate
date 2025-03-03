@@ -9,16 +9,21 @@ const upload = multer();
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ message: "No file provided" });
+      return res.status(400).json({ 
+        message: "No file provided" 
+      });
     }
 
     const result = await mediaManagement.uploadImage(
       req.file.buffer,
-      req.file.originalname
+      req.file.originalname,
+      { "content-type": req.file.mimetype }
     );
 
     if (!result.ok) {
-      return res.status(400).json({ message: result.error });
+      return res.status(400).json({ 
+        message: result.error 
+      });
     }
 
     res.json({ url: result.url });
@@ -35,9 +40,11 @@ router.get('/:filename(*)', async (req, res) => {
   try {
     const filename = decodeURIComponent(req.params.filename);
     const imageData = await mediaManagement.getImage(filename);
-    
+
     if (!imageData) {
-      return res.status(404).json({ message: 'Image not found' });
+      return res.status(404).json({ 
+        message: 'Image not found' 
+      });
     }
 
     // Set content type based on file extension
@@ -51,6 +58,7 @@ router.get('/:filename(*)', async (req, res) => {
         ? 'image/gif'
         : 'application/octet-stream';
 
+    // Set caching headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     res.send(imageData);

@@ -44,8 +44,17 @@ export class MediaManagementService {
         };
       }
 
-      // Upload to object storage
-      const uploadResult = await this.client.uploadFromBytes(filename, buffer);
+      // Set content type based on extension
+      const contentType = ext === 'jpg' || ext === 'jpeg' 
+        ? 'image/jpeg' 
+        : `image/${ext}`;
+
+      // Upload to object storage with metadata
+      const uploadResult = await this.client.uploadFromBytes(filename, buffer, {
+        ...metadata,
+        'content-type': contentType
+      });
+
       if (!uploadResult.ok) {
         return {
           ok: false,

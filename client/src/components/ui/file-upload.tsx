@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImageIcon, Loader2, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
   onUpload: (url: string) => void;
@@ -14,6 +15,7 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
   const [preview, setPreview] = useState<string>(defaultValue || "");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -21,7 +23,11 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast({
+        title: "Invalid file type",
+        description: "Please select an image file",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -36,15 +42,30 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
       }
 
       const data = await response.json();
       setPreview(data.url);
       onUpload(data.url);
+
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully"
+      });
     } catch (error) {
       console.error('Upload error:', error);
-      alert('Failed to upload image. Please try again.');
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload image. Please try again.",
+        variant: "destructive"
+      });
+
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } finally {
       setIsUploading(false);
     }
