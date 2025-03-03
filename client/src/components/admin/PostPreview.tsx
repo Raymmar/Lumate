@@ -135,12 +135,16 @@ export function PostPreview({
 
             {/* Featured Image Section */}
             {post?.featuredImage && (
-              <div className="aspect-square bg-muted rounded-lg overflow-hidden h-[100px] w-[100px]">
-                <img 
-                  src={post.featuredImage} 
-                  alt={post.title}
-                  className="w-full h-full object-cover object-center"
-                />
+              <div className="relative">
+                <div className="absolute left-0 top-0 aspect-square bg-muted rounded-lg overflow-hidden h-[100px] w-[100px]">
+                  <img 
+                    src={post.featuredImage} 
+                    alt={post.title}
+                    className="w-full h-full object-cover object-center"
+                  />
+                </div>
+                {/* Add spacing to maintain layout */}
+                <div className="w-[100px] h-[100px]" />
               </div>
             )}
 
