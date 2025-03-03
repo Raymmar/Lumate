@@ -110,4 +110,3 @@ Handle paths consistently: Store images in organized paths like projects/image1.
 Include proper content type: When serving files, set the correct content type based on file extension.
 Error handling: Always check for ok status and handle errors appropriately.
 URL encoding/decoding: Remember to encode filenames in URLs and decode them when retrieving.
-Let me know if this helps, or if you need more details!
