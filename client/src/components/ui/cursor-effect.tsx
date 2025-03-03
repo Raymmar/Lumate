@@ -91,22 +91,26 @@ export function CursorEffect({ className }: CursorEffectProps) {
 
     // Create lines with different properties and colors
     const colors = [
-      '#FEA30E', // Primary orange
-      '#e09f7d', // Soft coral
-      '#ef5d60', // Bright red
-      '#ec4067', // Pink
-      '#a01a7d'  // Deep purple
+      '#FEA30E', // Primary orange (accent)
+      '#000000', // Black
+      '#ec4067'  // Pink
+    ];
+
+    const properties = [
+      { spring: 0.08, friction: 0.85, thickness: 40 }, // Accent color - prominent
+      { spring: 0.06, friction: 0.90, thickness: 30 }, // Black - subtle
+      { spring: 0.07, friction: 0.88, thickness: 35 }, // Pink - medium
     ];
 
     colors.forEach((color, i) => {
       const points: Vec3[] = Array.from({ length: 20 }, () => new Vec3());
 
       const line: LineObject = {
-        spring: random(0.02, 0.1),          // Varied spring constants
-        friction: random(0.7, 0.95),        // Varied friction
+        spring: properties[i].spring,
+        friction: properties[i].friction,
         mouseVelocity: new Vec3(),
         mouseOffset: new Vec3(
-          random(-1, 1) * 0.02,           // Varied offsets
+          random(-1, 1) * 0.02,
           random(-1, 1) * 0.02,
           0
         ),
@@ -116,7 +120,7 @@ export function CursorEffect({ className }: CursorEffectProps) {
           vertex,
           uniforms: {
             uColor: { value: new Color(color) },
-            uThickness: { value: random(20, 50) }, // Varied thickness
+            uThickness: { value: properties[i].thickness },
           },
         })
       };
@@ -219,13 +223,12 @@ export function CursorEffect({ className }: CursorEffectProps) {
     <div
       ref={containerRef}
       className={cn(
-        "absolute inset-0 pointer-events-none z-[100]",
-        "min-h-[100vh]",
+        "fixed inset-0 pointer-events-none z-[100]",
         className
       )}
       style={{
-        height: '100%',
-        minHeight: '100vh',
+        height: '100vh',
+        width: '100vw',
       }}
     />
   );
