@@ -96,6 +96,7 @@ export function MembersTable() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Members</h2>
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
