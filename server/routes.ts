@@ -56,36 +56,51 @@ export async function lumaApiRequest(
       throw new Error('LUMA_API_KEY environment variable is not set');
     }
 
-    console.log(`Making ${options.method || 'GET'} request to ${url.toString()}`);
-
-    const response = await fetch(url.toString(), {
+    console.log(`Making ${options.method || 'GET'} request to Luma API:`, {
+      endpoint,
+      params,
       method: options.method || 'GET',
-      headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'x-luma-api-key': process.env.LUMA_API_KEY
-      },
-      ...(options.body ? { body: options.body } : {})
+      hasBody: !!options.body
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Luma API error: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`Luma API error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-
-    if (endpoint === 'calendar/list-people' || endpoint === 'calendar/list-events') {
-      console.log('Response details:', {
-        endpoint,
-        currentBatch: data.entries?.length,
-        hasMore: data.has_more,
-        nextCursor: data.next_cursor
+    try {
+      const response = await fetch(url.toString(), {
+        method: options.method || 'GET',
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/json',
+          'x-luma-api-key': process.env.LUMA_API_KEY
+        },
+        ...(options.body ? { body: options.body } : {})
       });
-    }
 
-    return data;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Luma API error for ${endpoint}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          params
+        });
+        throw new Error(`Luma API error: ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      console.log(`Luma API response for ${endpoint}:`, {
+        status: response.status,
+        hasData: !!data,
+        hasEntries: data?.entries?.length > 0,
+        entriesCount: data?.entries?.length,
+        hasMore: data?.has_more,
+        nextCursor: data?.next_cursor
+      });
+
+      return data;
+    } catch (error) {
+      console.error(`Luma API request failed for ${endpoint}:`, error);
+      throw error;
+    }
 }
 
 export async function registerRoutes(app: Express) {
@@ -726,24 +741,21 @@ export async function registerRoutes(app: Express) {
           message: 'Clearing events table...',
           progress: 5 
         });
-        await storage.clearEvents();
+
+        // Clear events first
+        await db.execute(sql`TRUNCATE TABLE events RESTART IDENTITY CASCADE`);
 
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Clearing people table (preserving user relationships)...',
           progress: 10 
         });
-        await storage.clearPeople();
 
-        sendSSEUpdate(res, { 
-          type: 'status', 
-          message: 'Clearing cache metadata...',
-          progress: 15 
-        });
-        await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
-
-        const { CacheService } = await import('./services/CacheService');
-        const cacheService = CacheService.getInstance();
+        // Clear people table but preserve attendance relationships
+        await db.execute(sql`
+          DELETE FROM people;
+          ALTER SEQUENCE people_id_seq RESTART WITH 1;
+        `);
 
         sendSSEUpdate(res, { 
           type: 'status', 
@@ -751,36 +763,19 @@ export async function registerRoutes(app: Express) {
           progress: 20 
         });
 
+        const { CacheService } = await import('./services/CacheService');
+        const cacheService = CacheService.getInstance();
+
         cacheService.on('fetchProgress', (data) => {
           sendSSEUpdate(res, {
-            type: 'progress',
-            ...data
+            type: data.type,
+            message: data.message,
+            progress: data.progress,
+            data: data.data
           });
         });
 
-        const oldestPossibleDate = new Date(0);
-        await storage.setLastCacheUpdate(oldestPossibleDate);
-
-        await cacheService.updateCache();
-
-        const [eventCount, peopleCount] = await Promise.all([
-          storage.getEventCount(),
-          storage.getPeopleCount()
-        ]);
-
-        if (eventCount === 0 && peopleCount === 0) {
-          throw new Error('No data was fetched from Luma API');
-        }
-
-        sendSSEUpdate(res, { 
-          type: 'complete',
-          message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
-          data: {
-            eventCount,
-            peopleCount
-          },
-          progress: 100
-        });
+        await cacheService.forceSync();
 
         res.end();
 

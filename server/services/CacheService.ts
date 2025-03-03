@@ -182,7 +182,16 @@ export class CacheService extends EventEmitter {
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        return await lumaApiRequest(endpoint, params);
+        this.logSync(`API Request attempt ${attempt}/${this.MAX_RETRIES} for ${endpoint}`, params);
+        const response = await lumaApiRequest(endpoint, params);
+        this.logSync(`API Response for ${endpoint}`, {
+          success: true,
+          hasEntries: response?.entries?.length > 0,
+          entriesCount: response?.entries?.length,
+          hasMore: response?.has_more,
+          nextCursor: response?.next_cursor
+        });
+        return response;
       } catch (error) {
         this.logSync(`Attempt ${attempt} failed for ${endpoint}:`, error);
         lastError = error instanceof Error ? error : new Error(String(error));
