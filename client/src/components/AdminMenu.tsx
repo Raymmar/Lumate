@@ -8,7 +8,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AlertTriangle, CheckCircle2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -65,6 +64,7 @@ export default function AdminMenu() {
     setSyncStats(null);
 
     try {
+      // Reset all states before starting
       const response = await fetch('/_internal/reset-database', {
         method: 'POST',
         headers: {
@@ -98,6 +98,7 @@ export default function AdminMenu() {
           if (message.startsWith('data: ')) {
             try {
               const data = JSON.parse(message.slice(6)) as SyncProgressEvent;
+              addSyncLog(`Received event: ${data.type} - ${data.message}`);
 
               switch (data.type) {
                 case 'status':
@@ -106,13 +107,11 @@ export default function AdminMenu() {
                   if (data.progress !== undefined) {
                     setSyncProgress(data.progress);
                   }
-                  addSyncLog(data.message);
                   break;
 
                 case 'complete':
                   setSyncProgress(100);
                   setSyncStatus("Sync completed successfully!");
-                  addSyncLog("Sync completed successfully!");
                   setIsComplete(true);
                   if (data.data) {
                     setSyncStats({
@@ -124,7 +123,6 @@ export default function AdminMenu() {
 
                 case 'error':
                   setSyncStatus(`Error: ${data.message}`);
-                  addSyncLog(`Error: ${data.message}`);
                   throw new Error(data.message);
               }
             } catch (parseError) {
