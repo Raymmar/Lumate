@@ -12,11 +12,6 @@ import { events, attendance } from '@shared/schema'; //Import events schema and 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
-import { Client } from '@replit/object-storage';
-import { Stream } from 'stream';
-
-// Add this constant after other imports
-const storageClient = new Client();
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -922,7 +917,7 @@ export async function registerRoutes(app: Express) {
         .where(
           searchQuery
             ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} OR LOWER(description) LIKE ${`%${searchQuery}%`})`
-            :`1=1`
+            : sql`1=1`
         )
         .then(result => Number(result[0].count));
 
@@ -1770,80 +1765,6 @@ app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
   } catch (error) {
     console.error('Failed to update user admin status:', error);
     res.status(500).json({ error: "Failed to update user admin status" });
-  }
-});
-
-// File Storage Routes
-app.get("/api/storage/:filename", async (req, res) => {
-  try {
-    const filename = decodeURIComponent(req.params.filename);
-
-    // Get file metadata first to check if file exists and get content type
-    const { metadata, error: metaError } = await storageClient.getMetadata(filename);
-    if (metaError) {
-      console.error(`Failed to get metadata for file ${filename}:`, metaError);
-      return res.status(404).json({ error: "File not found" });
-    }
-
-    // Get the file content
-    const { data, error } = await storageClient.get(filename);
-    if (error || !data) {
-      console.error(`Failed to get file ${filename}:`, error);
-      return res.status(404).json({ error: "File not found" });
-    }
-
-    // Set content type from metadata
-    const contentType = metadata['content-type'] || 'application/octet-stream';
-    res.setHeader('Content-Type', contentType);
-
-    // Send the file
-    if (Buffer.isBuffer(data)) {
-      return res.send(data);
-    } else if (data instanceof Stream) {
-      return data.pipe(res);
-    }
-
-    res.send(data);
-  } catch (error) {
-    console.error('Error serving file:', error);
-    res.status(500).json({ error: "Failed to serve file" });
-  }
-});
-
-app.get("/api/storage/files", async (req, res) => {
-  try {
-    // Check if user is authenticated and admin
-    if (!req.session.userId) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    const user = await storage.getUser(req.session.userId);
-    if (!user?.isAdmin) {
-      return res.status(403).json({ error: "Not authorized" });
-    }
-
-    const { files, error } = await storageClient.list();
-    if (error || !files) {
-      throw new Error(`Failed to list files: ${error}`);
-    }
-
-    // Filter for uploads directory and get metadata for each file
-    const uploadFiles = files.filter(file => file.name.startsWith('uploads/'));
-    const filesWithMetadata = await Promise.all(uploadFiles.map(async (file) => {
-      const { metadata } = await storageClient.getMetadata(file.name);
-      return {
-        name: metadata?.['original-name'] || file.name,
-        url: `/api/storage/${encodeURIComponent(file.name)}`,
-        type: metadata?.['content-type'] || 'application/octet-stream',
-        size: metadata ? parseInt(metadata['size'] || '0', 10) : 0,
-        createdAt: metadata?.['created-at'] ? new Date(metadata['created-at']) : new Date()
-      };
-    }));
-
-    res.json(filesWithMetadata);
-  } catch (error) {
-    console.error('Failed to list files:', error);
-    res.status(500).json({ error: "Failed to list files" });
   }
 });
 
