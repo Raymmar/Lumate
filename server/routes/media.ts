@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { mediaManagement } from '../services/mediaManagement';
+import { storage } from '../storage';
 
 const router = Router();
 const upload = multer();
@@ -14,22 +14,38 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       });
     }
 
-    console.log(`Handling upload for file: ${req.file.originalname}`);
-    const result = await mediaManagement.uploadImage(
-      req.file.buffer,
-      req.file.originalname
-    );
+    console.log(`[MediaRoutes] Handling upload for file: ${req.file.originalname}`);
+    console.log(`[MediaRoutes] File size: ${req.file.size} bytes`);
+    console.log(`[MediaRoutes] File type: ${req.file.mimetype}`);
 
-    if (!result.ok) {
-      console.error('Upload failed:', result.error);
+    try {
+      await storage.uploadFile(
+        'default-bucket',
+        req.file.originalname,
+        req.file.buffer,
+        req.file.mimetype
+      );
+
+      const url = await storage.getFileUrl('default-bucket', req.file.originalname);
+
+      // Create an image record
+      const image = await storage.createImage({
+        filename: req.file.originalname,
+        url,
+        contentType: req.file.mimetype,
+        size: req.file.size
+      });
+
+      console.log('[MediaRoutes] Upload successful, returning URL:', url);
+      res.json({ url });
+    } catch (error) {
+      console.error('[MediaRoutes] Upload failed:', error);
       return res.status(400).json({ 
-        message: result.error 
+        message: error instanceof Error ? error.message : 'Upload failed' 
       });
     }
-
-    res.json({ url: result.url });
   } catch (error) {
-    console.error('Error in upload route:', error);
+    console.error('[MediaRoutes] Error in upload route:', error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : 'Internal server error' 
     });
@@ -40,9 +56,12 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 router.get('/:filename(*)', async (req, res) => {
   try {
     const filename = decodeURIComponent(req.params.filename);
-    const imageData = await mediaManagement.getImage(filename);
+    console.log(`[MediaRoutes] Fetching image: ${filename}`);
 
-    if (!imageData) {
+    const result = await storage.client.downloadAsBytes(filename);
+
+    if (!result.ok || !result.value || result.value.length === 0) {
+      console.log(`[MediaRoutes] Image not found: ${filename}`);
       return res.status(404).json({ 
         message: 'Image not found' 
       });
@@ -62,9 +81,9 @@ router.get('/:filename(*)', async (req, res) => {
     // Set caching headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-    res.send(imageData);
+    res.send(result.value[0]);
   } catch (error) {
-    console.error('Error serving image:', error);
+    console.error('[MediaRoutes] Error serving image:', error);
     res.status(500).json({ 
       message: error instanceof Error ? error.message : 'Internal server error' 
     });

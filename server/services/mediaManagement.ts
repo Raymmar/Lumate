@@ -1,18 +1,6 @@
 import { Client } from '@replit/object-storage';
 import { randomUUID } from 'crypto';
 
-// Types for media management
-interface UploadResult {
-  ok: boolean;
-  url?: string;
-  error?: string;
-}
-
-interface DeleteResult {
-  ok: boolean;
-  error?: string;
-}
-
 function sanitizeFilename(filename: string): string {
   // Remove special characters and spaces, replace with hyphens
   const sanitized = filename
@@ -27,41 +15,26 @@ function sanitizeFilename(filename: string): string {
 }
 
 export class MediaManagementService {
-  private client: Client;
-  private bucketId: string;
+  client: Client;
 
   constructor() {
-    this.bucketId = process.env.REPLIT_OBJECT_STORE_BUCKET_ID || '';
-    if (!this.bucketId) {
-      throw new Error('Object Storage bucket ID not configured');
-    }
-    this.client = new Client({ bucketId: this.bucketId });
+    this.client = new Client();
+    console.log('Storage initialized with Object Storage client');
   }
 
   async uploadImage(
     buffer: Buffer,
-    originalFilename: string,
-    metadata?: { [key: string]: string }
-  ): Promise<UploadResult> {
+    originalFilename: string
+  ): Promise<{ ok: boolean; url?: string; error?: string }> {
     try {
-      // Generate unique filename
-      const ext = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
       const sanitizedFilename = sanitizeFilename(originalFilename);
-      const filename = `uploads/${randomUUID()}-${sanitizedFilename}`;
-
-      // Validate file type
-      const allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
-      if (!allowedTypes.includes(ext)) {
-        return {
-          ok: false,
-          error: 'Invalid file type. Only jpg, jpeg, png, and gif are allowed.'
-        };
-      }
-
-      console.log(`[Storage] Starting upload for file: ${filename}`);
+      // Store files in an 'images' directory
+      const filepath = `images/${sanitizedFilename}`;
+      console.log(`[Storage] Starting upload for file: ${originalFilename}`);
+      console.log(`[Storage] Sanitized filepath: ${filepath}`);
       console.log(`[Storage] File size: ${buffer.length} bytes`);
 
-      const { ok, error } = await this.client.uploadFromBytes(filename, buffer);
+      const { ok, error } = await this.client.uploadFromBytes(filepath, buffer);
 
       if (!ok) {
         console.error('[Storage] Upload failed:', error);
@@ -71,12 +44,14 @@ export class MediaManagementService {
         };
       }
 
-      console.log(`[Storage] Upload successful for file: ${filename}`);
+      console.log(`[Storage] Upload successful for file: ${filepath}`);
 
-      // Return the URL for the uploaded file
+      // Return URL to our API endpoint
+      const url = `/api/storage/${encodeURIComponent(filepath)}`;
+      console.log(`[Storage] Generated URL: ${url}`);
       return {
         ok: true,
-        url: `/api/storage/${encodeURIComponent(filename)}`
+        url
       };
     } catch (error) {
       console.error('[Storage] Upload error:', error);
@@ -105,14 +80,12 @@ export class MediaManagementService {
     }
   }
 
-  async deleteImage(url: string): Promise<DeleteResult> {
+  async deleteImage(url: string): Promise<{ ok: boolean; error?: string }> {
     try {
-      // Extract filename from URL
-      const filename = url.includes(this.bucketId)
-        ? decodeURIComponent(url.split(`${this.bucketId}.id.repl.co/`)[1])
-        : url.startsWith('/api/storage/')
-          ? decodeURIComponent(url.split('/api/storage/')[1])
-          : url;
+      // Extract filename if it's a full URL
+      const filename = url.startsWith('/api/storage/')
+        ? decodeURIComponent(url.split('/api/storage/')[1])
+        : url;
 
       console.log(`[Storage] Deleting image: ${filename}`);
       const { ok, error } = await this.client.delete(filename);
