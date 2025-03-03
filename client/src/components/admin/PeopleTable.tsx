@@ -26,14 +26,15 @@ export function PeopleTable() {
   const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
   const itemsPerPage = 100;
 
-  const { data, isLoading, isFetching } = useQuery<PeopleResponse>({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
         `/api/admin/people?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch people");
-      return response.json();
+      const data = await response.json();
+      return data as PeopleResponse;
     },
     keepPreviousData: true,
     staleTime: 30000,
@@ -72,11 +73,11 @@ export function PeopleTable() {
   };
 
   const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(1, prev - 1));
+    if (currentPage > 1) setCurrentPage(prev => prev - 1);
   };
 
   const handleNextPage = () => {
-    setCurrentPage(prev => prev < totalPages ? prev + 1 : prev);
+    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
   return (
@@ -114,7 +115,7 @@ export function PeopleTable() {
             <PaginationItem>
               <PaginationPrevious
                 onClick={handlePreviousPage}
-                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
             <PaginationItem>
@@ -125,7 +126,7 @@ export function PeopleTable() {
             <PaginationItem>
               <PaginationNext
                 onClick={handleNextPage}
-                className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
           </PaginationContent>
