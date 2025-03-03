@@ -135,7 +135,7 @@ export function PostPreview({
 
             {/* Featured Image Section */}
             {post?.featuredImage && (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden max-h-[300px]">
+              <div className="aspect-square bg-muted rounded-lg overflow-hidden h-[100px] w-[100px]">
                 <img 
                   src={post.featuredImage} 
                   alt={post.title}
