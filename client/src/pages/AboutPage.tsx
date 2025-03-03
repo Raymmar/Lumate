@@ -55,7 +55,7 @@ function TimelineSection() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-[960px] mx-auto">
       <h2 className="text-3xl font-bold text-center">Our Journey</h2>
       <div className="space-y-12">
         {events.map((event, index) => (
