@@ -1,9 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus, ExternalLink as ExternalLinkIcon } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus, ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -13,6 +12,7 @@ import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
 import { Link } from "wouter";
+import { SocialLinks } from "@/components/SocialLinks";
 
 // PinnedPostsCarousel component updates
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
@@ -153,41 +153,30 @@ function LinksSection() {
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
-          <div className="flex gap-2">
-            <a href="https://instagram.com/sarasota.tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiInstagram className="h-4 w-4" />
-            </a>
-            <a href="https://twitter.com/sarasota_tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiX className="h-4 w-4" />
-            </a>
-            <a href="https://youtube.com/@sarasota.tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiYoutube className="h-4 w-4" />
-            </a>
-            <a href="https://linkedin.com/company/sarasota-tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiLinkedin className="h-4 w-4" />
-            </a>
-          </div>
+          <SocialLinks />
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          <Link href="/about">
-            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
-              About Sarasota Tech
-            </Button>
-          </Link>
-          <a href="https://lu.ma/sarasota.tech" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
-              Event Calendar
-              <ExternalLinkIcon className="h-4 w-4 ml-2" />
-            </Button>
-          </a>
-          <a href="https://github.com/sarasota-tech/resources" target="_blank" rel="noopener noreferrer">
-            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
-              Resources
-              <ExternalLinkIcon className="h-4 w-4 ml-2" />
-            </Button>
-          </a>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Link href="/about">
+              <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+                About Sarasota Tech
+              </Button>
+            </Link>
+            <a href="https://lu.ma/sarasota.tech" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+                Event Calendar
+                <ExternalLinkIcon className="h-4 w-4 ml-2" />
+              </Button>
+            </a>
+            <a href="https://github.com/sarasota-tech/resources" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+                Resources
+                <ExternalLinkIcon className="h-4 w-4 ml-2" />
+              </Button>
+            </a>
+          </div>
         </div>
       </CardContent>
     </Card>
