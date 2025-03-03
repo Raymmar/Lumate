@@ -71,10 +71,16 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           render={({ field }) => (
             <FormItem className="space-y-1">
               <FormControl>
-                <Input 
+                <Textarea 
                   {...field} 
-                  className="text-2xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0" 
-                  placeholder="Post title" 
+                  className="text-2xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-0 h-auto overflow-hidden" 
+                  placeholder="Post title"
+                  rows={1}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = 'auto';
+                    target.style.height = target.scrollHeight + 'px';
+                  }}
                 />
               </FormControl>
               <FormMessage />
