@@ -82,7 +82,7 @@ export function PeopleTable() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">People</h1>
         <SearchInput
           value={searchQuery}
@@ -92,7 +92,7 @@ export function PeopleTable() {
         />
       </div>
 
-      <div className="min-h-[400px] relative">
+      <div className="min-h-[400px] relative mt-4">
         <div 
           className={`transition-opacity duration-300 ${
             isFetching ? 'opacity-50' : 'opacity-100'
