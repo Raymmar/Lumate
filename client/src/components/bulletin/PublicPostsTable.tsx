@@ -47,7 +47,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
             {[1, 2, 3].map((i) => (
               <div key={i} className="pb-4 border-b last:border-0">
                 <div className="flex gap-4">
-                  <Skeleton className="h-24 w-24 flex-shrink-0" />
+                  <Skeleton className="h-20 w-20 flex-shrink-0" />
                   <div className="flex-1">
                     <Skeleton className="h-5 w-2/3 mb-2" />
                     <Skeleton className="h-4 w-full" />
@@ -77,7 +77,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
               >
                 <div className="flex gap-4">
                   {post.featuredImage ? (
-                    <div className="w-24 h-24 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       <img 
                         src={post.featuredImage} 
                         alt=""
@@ -86,8 +86,8 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-24 h-24 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
+                    <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                      <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
