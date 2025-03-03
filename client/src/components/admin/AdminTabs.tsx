@@ -1,5 +1,6 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link, useLocation } from "wouter";
+import AdminMenu from "@/components/AdminMenu";
 
 const ADMIN_TABS = [
   { id: "overview", label: "Dashboard", path: "/admin" },
@@ -14,21 +15,28 @@ export function AdminTabs() {
   const currentTab = ADMIN_TABS.find(tab => tab.path === location)?.id || "overview";
 
   return (
-    <Tabs value={currentTab} className="w-full" orientation="vertical">
-      <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-2">
-        {ADMIN_TABS.map((tab) => (
-          <TabsTrigger
-            key={tab.id}
-            value={tab.id}
-            className="w-full justify-start px-4 py-2"
-            asChild
-          >
-            <Link href={tab.path}>
-              {tab.label}
-            </Link>
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <div className="flex flex-col h-full">
+      <Tabs value={currentTab} className="w-full" orientation="vertical">
+        <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-2">
+          {ADMIN_TABS.map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="w-full justify-start px-4 py-2"
+              asChild
+            >
+              <Link href={tab.path}>
+                {tab.label}
+              </Link>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      {/* Admin Menu with Reset & Sync button at the bottom */}
+      <div className="mt-auto pt-4 border-t">
+        <AdminMenu />
+      </div>
+    </div>
   );
 }
