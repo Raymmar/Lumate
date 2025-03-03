@@ -13,12 +13,14 @@ interface PostsTableProps {
 
 export function PostsTable({ onSelect }: PostsTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time for better responsiveness
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/posts", debouncedSearch],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/posts${debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : ''}`);
+      const response = await fetch(
+        `/api/admin/posts${debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : ''}`
+      );
       if (!response.ok) {
         throw new Error("Failed to fetch posts");
       }
@@ -61,15 +63,6 @@ export function PostsTable({ onSelect }: PostsTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search posts..."
-          isLoading={isFetching}
-        />
-      </div>
-
       <div className="min-h-[400px] relative">
         <div 
           className={`transition-opacity duration-300 ${

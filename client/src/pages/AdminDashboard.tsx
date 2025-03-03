@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { SearchInput } from "@/components/admin/SearchInput";
 
 export default function AdminDashboard() {
   const { data: statsData, isLoading } = useQuery({
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch all posts for navigation
   const { data: postsData } = useQuery<{ posts: Post[] }>({
@@ -121,7 +123,14 @@ export default function AdminDashboard() {
 
       {/* Posts Section */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Posts</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Posts</h2>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search posts..."
+          />
+        </div>
         <PostsTable onSelect={setSelectedPost} />
         {(selectedPost || isCreating) && (
           <PostPreview
