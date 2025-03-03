@@ -72,7 +72,20 @@
   /* Consistent hover states for interactive elements */
   button:not([class*="bg-"]):hover,
   [role="button"]:not([class*="bg-"]):hover,
-  .hover-effect {
+  .hover-effect,
+  /* People directory and community items */
+  .directory-item:hover,
+  .community-item:hover,
+  /* Link blocks */
+  .link-block:hover,
+  /* Any interactive list items */
+  li[role="button"]:hover,
+  /* Card hover states */
+  .interactive-card:hover,
+  /* Nav items */
+  .nav-item:hover,
+  /* General interactive elements */
+  [data-interactive]:hover {
     @apply bg-secondary transition-colors duration-200;
   }
 }
