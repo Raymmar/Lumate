@@ -31,7 +31,7 @@
     --input: 0 0% 23%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
-    --secondary: 0 0% 25%; /* Around #404040 for more visible hover */
+    --secondary: 0 0% 20%; /* Increase contrast for hover - around #333333 */
     --secondary-foreground: 0 0% 98%;
     --accent: 240 1% 15%; /* Match background */
     --accent-foreground: 0 0% 98%;
@@ -72,20 +72,7 @@
   /* Consistent hover states for interactive elements */
   button:not([class*="bg-"]):hover,
   [role="button"]:not([class*="bg-"]):hover,
-  .hover-effect,
-  /* People directory and community items */
-  .directory-item:hover,
-  .community-item:hover,
-  /* Link blocks */
-  .link-block:hover,
-  /* Any interactive list items */
-  li[role="button"]:hover,
-  /* Card hover states */
-  .interactive-card:hover,
-  /* Nav items */
-  .nav-item:hover,
-  /* General interactive elements */
-  [data-interactive]:hover {
+  .hover-effect {
     @apply bg-secondary transition-colors duration-200;
   }
 }
