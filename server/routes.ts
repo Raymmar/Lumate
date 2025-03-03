@@ -386,35 +386,84 @@ export async function registerRoutes(app: Express) {
       console.log('Received claim profile request:', req.body);
       const { email, personId } = req.body;
 
-      if (!email || !personId) {
+      if (!email) {
         console.log('Missing required fields:', { email, personId });
-        return res.status(400).json({ error: "Missing email or personId" });
+        return res.status(400).json({ error: "Missing email" });
       }
 
       // Normalize email to lowercase for consistent comparison
       const normalizedEmail = email.toLowerCase();
 
-      // Get person by API ID first to validate the request
-      const person = await storage.getPersonByApiId(personId);
-      console.log('Found person:', person ? 'yes' : 'no', { personId });
+      // Get person by API ID first if provided
+      let person = null;
+      if (personId) {
+        person = await storage.getPersonByApiId(personId);
+        console.log('Found person:', person ? 'yes' : 'no', { personId });
+      } else {
+        // If no personId provided, try to find by email
+        person = await storage.getPersonByEmail(normalizedEmail);
+      }
 
       if (!person) {
-        return res.status(404).json({ error: "Person not found" });
+        // Person not found - let's invite them to the next event
+        try {
+          // Get the next upcoming event
+          const events = await storage.getEvents();
+          const nextEvent = events.find(e => new Date(e.startTime) > new Date());
+
+          if (nextEvent) {
+            // Send invite through Luma API
+            await lumaApiRequest(
+              'event/add-guests',
+              undefined,
+              {
+                method: 'POST',
+                body: JSON.stringify({
+                  guests: [{ 
+                    email: normalizedEmail,
+                    message: "Someone tried to claim your profile in our system. We couldn't find your record, but we've invited you to our next event. Once you attend, you'll be able to claim your profile!"
+                  }],
+                  event_api_id: nextEvent.api_id
+                })
+              }
+            );
+
+            return res.json({
+              status: 'invited',
+              message: "We couldn't find your profile, but we've invited you to our next event. Once you attend, you'll be able to claim your profile!",
+              nextEvent: {
+                title: nextEvent.title,
+                startTime: nextEvent.startTime,
+                url: nextEvent.url
+              }
+            });
+          }
+        } catch (error) {
+          console.error('Failed to send event invite:', error);
+        }
+
+        return res.status(404).json({ 
+          error: "Profile not found",
+          message: "We couldn't find your profile in our system. Please attend one of our events to create a profile."
+        });
       }
 
-      // Ensure the email matches the person's record
-      const emailsMatch = person.email.toLowerCase() === normalizedEmail;
-      console.log('Email match check:', { 
-        provided: normalizedEmail, 
-        stored: person.email.toLowerCase(),
-        matches: emailsMatch 
-      });
+      // If we have a person, continue with normal claim flow...
+      if (personId) {
+        // Ensure the email matches the person's record
+        const emailsMatch = person.email.toLowerCase() === normalizedEmail;
+        console.log('Email match check:', { 
+          provided: normalizedEmail, 
+          stored: person.email.toLowerCase(),
+          matches: emailsMatch 
+        });
 
-      if (!emailsMatch) {
-        return res.status(400).json({ error: "Email does not match the profile" });
+        if (!emailsMatch) {
+          return res.status(400).json({ error: "Email does not match the profile" });
+        }
       }
 
-      // Check if profile is already claimed by checking email
+      // Check if profile is already claimed
       const existingUser = await storage.getUserByEmail(normalizedEmail);
       console.log('Existing user check:', existingUser ? 'found' : 'not found');
 
@@ -927,7 +976,7 @@ export async function registerRoutes(app: Express) {
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
-        returnres.status(403).json({ error: "Not authorized" });
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       // Get pagination parameters and search query

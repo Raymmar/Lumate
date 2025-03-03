@@ -13,8 +13,19 @@ interface ClaimProfileDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+interface ClaimProfileResponse {
+  status?: 'invited';
+  message: string;
+  nextEvent?: {
+    title: string;
+    startTime: string;
+    url: string | null;
+  };
+}
+
 export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimProfileDialogProps) {
   const [email, setEmail] = useState('');
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
   const claimProfileMutation = useMutation({
@@ -26,17 +37,29 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       });
 
       const responseData = await response.json();
-      if (!response.ok) {
+      if (!response.ok && !responseData.status) {
         throw new Error(responseData.error || 'Failed to claim profile');
       }
-      return responseData;
+      return responseData as ClaimProfileResponse;
     },
-    onSuccess: () => {
-      toast({
-        title: "Verification Email Sent",
-        description: "Please check your email to verify your profile claim.",
-      });
+    onSuccess: (data) => {
+      // Handle successful profile claim
+      if (data.status === 'invited') {
+        toast({
+          title: "Invitation Sent",
+          description: data.message,
+        });
+        if (data.nextEvent?.url) {
+          window.open(data.nextEvent.url, '_blank');
+        }
+      } else {
+        toast({
+          title: "Verification Email Sent",
+          description: "Please check your email to verify your profile claim.",
+        });
+      }
       setEmail('');
+      setOpen(false);
       if (personId) {
         queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
         queryClient.invalidateQueries({ queryKey: ['/api/auth/check-profile', personId] });
@@ -56,8 +79,13 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
     claimProfileMutation.mutate({ email, personId });
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange?.(newOpen);
+  };
+
   return (
-    <Dialog onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger || <Button variant="outline">Claim Profile</Button>}
       </DialogTrigger>
