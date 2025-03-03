@@ -14,6 +14,7 @@ import AdminMembersPage from "@/pages/admin/AdminMembersPage";
 import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
 import RolesPage from "@/pages/admin/RolesPage";
+import AboutPage from "@/pages/AboutPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <main>
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/about" component={AboutPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/settings" component={UserSettingsPage} />
           <Route path="/people/:id" component={PersonProfilePage} />

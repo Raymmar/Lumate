@@ -261,3 +261,80 @@ export type UserRole = typeof userRoles.$inferSelect;
 export type InsertUserRole = z.infer<typeof insertUserRoleSchema>;
 export type RolePermission = typeof rolePermissions.$inferSelect;
 export type InsertRolePermission = z.infer<typeof insertRolePermissionSchema>;
+
+export const testimonials = pgTable("testimonials", {
+  id: serial("id").primaryKey(),
+  personId: serial("person_id").references(() => people.id).notNull(),
+  quote: text("quote").notNull(),
+  position: varchar("position", { length: 255 }),
+  company: varchar("company", { length: 255 }),
+  displayOrder: serial("display_order"),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const timelineEvents = pgTable("timeline_events", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date", { mode: 'string', withTimezone: true }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  imageUrl: varchar("image_url", { length: 255 }),
+  displayOrder: serial("display_order"),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const boardMembers = pgTable("board_members", {
+  id: serial("id").primaryKey(),
+  personId: serial("person_id").references(() => people.id).notNull(),
+  position: varchar("position", { length: 255 }).notNull(),
+  term: json("term").$type<{
+    start: string;
+    end?: string;
+  }>(),
+  isFounder: boolean("is_founder").notNull().default(false),
+  displayOrder: serial("display_order"),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const foundingMembers = pgTable("founding_members", {
+  id: serial("id").primaryKey(),
+  personId: serial("person_id").references(() => people.id).notNull(),
+  contributionArea: varchar("contribution_area", { length: 255 }),
+  displayOrder: serial("display_order"),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertTestimonialSchema = createInsertSchema(testimonials).omit({ 
+  id: true,
+  createdAt: true,
+  displayOrder: true,
+});
+
+export const insertTimelineEventSchema = createInsertSchema(timelineEvents).omit({ 
+  id: true,
+  createdAt: true,
+  displayOrder: true,
+});
+
+export const insertBoardMemberSchema = createInsertSchema(boardMembers).omit({ 
+  id: true,
+  createdAt: true,
+  displayOrder: true,
+});
+
+export const insertFoundingMemberSchema = createInsertSchema(foundingMembers).omit({ 
+  id: true,
+  createdAt: true,
+  displayOrder: true,
+});
+
+export type Testimonial = typeof testimonials.$inferSelect;
+export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+
+export type TimelineEvent = typeof timelineEvents.$inferSelect;
+export type InsertTimelineEvent = z.infer<typeof insertTimelineEventSchema>;
+
+export type BoardMember = typeof boardMembers.$inferSelect;
+export type InsertBoardMember = z.infer<typeof insertBoardMemberSchema>;
+
+export type FoundingMember = typeof foundingMembers.$inferSelect;
+export type InsertFoundingMember = z.infer<typeof insertFoundingMemberSchema>;
