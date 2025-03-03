@@ -7,6 +7,7 @@ import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { PostForm } from "./PostForm";
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import { useEffect } from 'react';
 
 interface PostPreviewProps {
   post?: Post;
@@ -55,9 +56,31 @@ export function PostPreview({
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: post?.body || '',
+    content: '',
     editable: false,
   });
+
+  // Update editor content when post changes
+  useEffect(() => {
+    if (editor && post?.body !== undefined) {
+      // First clear the content
+      editor.commands.clearContent();
+
+      // Then set the new content if it exists
+      if (post.body) {
+        editor.commands.setContent(post.body);
+      }
+    }
+  }, [editor, post?.body]);
+
+  // Cleanup editor on unmount
+  useEffect(() => {
+    return () => {
+      if (editor) {
+        editor.destroy();
+      }
+    };
+  }, [editor]);
 
   if ((isNew || !post) && !readOnly) {
     console.log("Rendering new post form");
@@ -80,6 +103,14 @@ export function PostPreview({
   const currentIndex = posts.findIndex(p => p.id === post?.id);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < posts.length - 1;
+
+  const handleNavigate = (nextPost: Post) => {
+    if (editor) {
+      // Clear content before navigation
+      editor.commands.clearContent();
+    }
+    onNavigate?.(nextPost);
+  };
 
   return (
     <PreviewSidebar 
@@ -130,7 +161,9 @@ export function PostPreview({
               <Button 
                 variant="outline" 
                 className="w-full"
-                onClick={() => window.open(post.ctaLink, '_blank')}
+                onClick={() => {
+                  if (post.ctaLink) window.open(post.ctaLink, '_blank');
+                }}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 {post.ctaLabel || 'Learn More'}
@@ -165,7 +198,7 @@ export function PostPreview({
               <Button
                 variant="ghost"
                 disabled={!hasPrevious}
-                onClick={() => onNavigate(posts[currentIndex - 1])}
+                onClick={() => handleNavigate(posts[currentIndex - 1])}
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous
@@ -173,7 +206,7 @@ export function PostPreview({
               <Button
                 variant="ghost"
                 disabled={!hasNext}
-                onClick={() => onNavigate(posts[currentIndex + 1])}
+                onClick={() => handleNavigate(posts[currentIndex + 1])}
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
