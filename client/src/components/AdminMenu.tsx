@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { 
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -229,7 +229,7 @@ export default function AdminMenu() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             {isComplete ? (
-              <AlertDialogAction 
+              <AlertDialogAction
                 onClick={handleCloseAndRefresh}
                 className="bg-green-600 hover:bg-green-700 focus:ring-green-600"
               >
@@ -244,7 +244,7 @@ export default function AdminMenu() {
 
       <Button
         variant="outline"
-        className="w-full mt-4"
+        className="w-full"
         onClick={() => setShowConfirmDialog(true)}
         disabled={isResetting}
       >
