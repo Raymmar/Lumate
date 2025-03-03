@@ -20,8 +20,8 @@ export function NavBar() {
   const isAdminPage = location.startsWith("/admin");
 
   return (
-    <header className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 shadow-sm">
-      <nav className="flex h-16 items-center pl-2 pr-4">
+    <header className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+      <nav className="flex h-16 items-center pl-2 pr-4 max-w-[1440px] mx-auto border-b">
         <Link href="/">
           <div className="flex items-center">
             <img 
