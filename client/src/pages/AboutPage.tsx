@@ -254,9 +254,6 @@ export default function AboutPage() {
 
       <div className="flex-1">
         <div className="relative py-12 overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-background" />
-          </div>
           <PageContainer className="relative z-10 space-y-4 text-center max-w-[1140px]">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
