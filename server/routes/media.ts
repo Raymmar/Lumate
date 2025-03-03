@@ -14,13 +14,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       });
     }
 
+    console.log(`Handling upload for file: ${req.file.originalname}`);
     const result = await mediaManagement.uploadImage(
       req.file.buffer,
-      req.file.originalname,
-      { "content-type": req.file.mimetype }
+      req.file.originalname
     );
 
     if (!result.ok) {
+      console.error('Upload failed:', result.error);
       return res.status(400).json({ 
         message: result.error 
       });

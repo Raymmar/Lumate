@@ -13,6 +13,19 @@ interface DeleteResult {
   error?: string;
 }
 
+function sanitizeFilename(filename: string): string {
+  // Remove special characters and spaces, replace with hyphens
+  const sanitized = filename
+    .toLowerCase()
+    .replace(/[^a-z0-9.]/g, '-')
+    .replace(/-+/g, '-'); // Replace multiple consecutive hyphens with a single one
+
+  const [name, ext] = sanitized.split('.');
+  // Ensure we don't exceed reasonable filename length
+  const truncatedName = name.slice(0, 50);
+  return `${truncatedName}.${ext}`;
+}
+
 export class MediaManagementService {
   private client: Client;
   private bucketId: string;
@@ -33,7 +46,8 @@ export class MediaManagementService {
     try {
       // Generate unique filename
       const ext = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
-      const filename = `uploads/${randomUUID()}.${ext}`;
+      const sanitizedFilename = sanitizeFilename(originalFilename);
+      const filename = `uploads/${randomUUID()}-${sanitizedFilename}`;
 
       // Validate file type
       const allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
@@ -44,23 +58,20 @@ export class MediaManagementService {
         };
       }
 
-      // Set content type based on extension
-      const contentType = ext === 'jpg' || ext === 'jpeg' 
-        ? 'image/jpeg' 
-        : `image/${ext}`;
+      console.log(`[Storage] Starting upload for file: ${filename}`);
+      console.log(`[Storage] File size: ${buffer.length} bytes`);
 
-      // Upload to object storage with metadata
-      const uploadResult = await this.client.uploadFromBytes(filename, buffer, {
-        ...metadata,
-        contentType
-      });
+      const { ok, error } = await this.client.uploadFromBytes(filename, buffer);
 
-      if (!uploadResult.ok) {
+      if (!ok) {
+        console.error('[Storage] Upload failed:', error);
         return {
           ok: false,
-          error: uploadResult.error?.message || 'Failed to upload image'
+          error: `Failed to upload file: ${error}`
         };
       }
+
+      console.log(`[Storage] Upload successful for file: ${filename}`);
 
       // Return the URL for the uploaded file
       return {
@@ -68,11 +79,29 @@ export class MediaManagementService {
         url: `/api/storage/${encodeURIComponent(filename)}`
       };
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('[Storage] Upload error:', error);
       return {
         ok: false,
         error: error instanceof Error ? error.message : 'Failed to upload image'
       };
+    }
+  }
+
+  async getImage(filename: string): Promise<Buffer | null> {
+    try {
+      console.log(`[Storage] Getting image: ${filename}`);
+      const result = await this.client.downloadAsBytes(filename);
+
+      if (!result.ok || !result.value || result.value.length === 0) {
+        console.error('[Storage] Error getting image:', result.error);
+        return null;
+      }
+
+      // IMPORTANT: Return the first element of the array as per documentation
+      return result.value[0];
+    } catch (error) {
+      console.error('[Storage] Error getting image:', error);
+      return null;
     }
   }
 
@@ -85,39 +114,24 @@ export class MediaManagementService {
           ? decodeURIComponent(url.split('/api/storage/')[1])
           : url;
 
-      const deleteResult = await this.client.delete(filename);
+      console.log(`[Storage] Deleting image: ${filename}`);
+      const { ok, error } = await this.client.delete(filename);
 
-      if (!deleteResult.ok) {
+      if (!ok) {
+        console.error('[Storage] Delete failed:', error);
         return {
           ok: false,
-          error: deleteResult.error?.message || 'Failed to delete image'
+          error: `Failed to delete file: ${error}`
         };
       }
 
       return { ok: true };
     } catch (error) {
-      console.error('Error deleting image:', error);
+      console.error('[Storage] Delete error:', error);
       return {
         ok: false,
         error: error instanceof Error ? error.message : 'Failed to delete image'
       };
-    }
-  }
-
-  async getImage(filename: string): Promise<Buffer | null> {
-    try {
-      const result = await this.client.downloadAsBytes(filename);
-
-      if (!result.ok || !result.value || result.value.length === 0) {
-        console.error('Error getting image:', result.error);
-        return null;
-      }
-
-      // IMPORTANT: Return the first element of the array as per documentation
-      return result.value[0];
-    } catch (error) {
-      console.error('Error getting image:', error);
-      return null;
     }
   }
 }
