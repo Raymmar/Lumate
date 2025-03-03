@@ -16,11 +16,11 @@ import { AdminBadge } from "@/components/AdminBadge";
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
-  const isAdmin = Boolean(user?.isAdmin); // Explicitly convert to boolean
+  const isAdmin = Boolean(user?.isAdmin);
   const isAdminPage = location.startsWith("/admin");
 
   return (
-    <header className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+    <header className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-0">
       <nav className="flex h-16 items-center pl-2 pr-4 max-w-[1440px] mx-auto border-b">
         <Link href="/">
           <div className="flex items-center">
