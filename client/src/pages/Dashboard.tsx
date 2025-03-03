@@ -4,7 +4,9 @@ import { BulletinBoard } from "@/components/bulletin/BulletinBoard";
 export default function Dashboard() {
   return (
     <DashboardLayout>
-      <BulletinBoard />
+      <div className="p-2">
+        <BulletinBoard />
+      </div>
     </DashboardLayout>
   );
 }
