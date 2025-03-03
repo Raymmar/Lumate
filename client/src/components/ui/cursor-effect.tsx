@@ -14,21 +14,25 @@ export function CursorEffect({ className }: CursorEffectProps) {
   useEffect(() => {
     const updatePosition = (e: MouseEvent) => {
       const now = Date.now();
-      setPosition({ x: e.clientX, y: e.clientY });
+      // Calculate position including scroll offset
+      const x = e.clientX + window.scrollX;
+      const y = e.clientY + window.scrollY;
 
-      // Update trail more frequently for better consistency
-      if (now - lastUpdate > 30) { // Reduced delay for more frequent updates
+      setPosition({ x, y });
+
+      // Update trail with scroll-adjusted coordinates
+      if (now - lastUpdate > 30) {
         setTrail(prev => [
           ...prev,
-          { x: e.clientX, y: e.clientY, id: now }
-        ].slice(-40)); // Increased trail length significantly
+          { x, y, id: now }
+        ].slice(-40));
         setLastUpdate(now);
       }
     };
 
     const handleClick = () => {
       setClicked(true);
-      setTimeout(() => setClicked(false), 800); // Longer animation duration
+      setTimeout(() => setClicked(false), 800);
     };
 
     window.addEventListener('mousemove', updatePosition);
@@ -43,21 +47,26 @@ export function CursorEffect({ className }: CursorEffectProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 pointer-events-none z-[100]", // Increased z-index to be above navbar
-        "overflow-hidden",
+        "absolute inset-0 pointer-events-none z-[100]",
+        "min-h-[100vh]", 
         className
       )}
+      style={{
+        height: '100%',
+        minHeight: '100vh',
+      }}
     >
       {/* Main cursor */}
       <div
         className={cn(
-          "absolute w-16 h-16 rounded-full", // Much larger cursor
-          "bg-[#FEA30E]/50 dark:bg-[#FEA30E]/60", // Significantly increased opacity
-          "blur-2xl transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]", // Enhanced blur effect with custom easing
-          clicked && "scale-[2]" // More dramatic scale effect
+          "absolute w-16 h-16 rounded-full",
+          "bg-[#FEA30E]/50 dark:bg-[#FEA30E]/60",
+          "blur-2xl transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]",
+          clicked && "scale-[2]"
         )}
         style={{
           transform: `translate(${position.x - 32}px, ${position.y - 32}px)`,
+          willChange: 'transform', 
         }}
       />
 
@@ -66,14 +75,15 @@ export function CursorEffect({ className }: CursorEffectProps) {
         <div
           key={point.id}
           className={cn(
-            "absolute w-10 h-10 rounded-full", // Larger trail points
-            "bg-[#FEA30E]/40 dark:bg-[#FEA30E]/50", // More visible trail
-            "blur-xl transition-all duration-500" // Enhanced blur and longer duration
+            "absolute w-10 h-10 rounded-full",
+            "bg-[#FEA30E]/40 dark:bg-[#FEA30E]/50",
+            "blur-xl transition-all duration-500"
           )}
           style={{
             transform: `translate(${point.x - 20}px, ${point.y - 20}px)`,
-            opacity: 1 - (i / trail.length) * 0.6, // More gradual fade for longer visible trail
-            transition: `all 500ms cubic-bezier(0.4,0,0.2,1) ${i * 8}ms`, // Added delay based on position in trail
+            opacity: 1 - (i / trail.length) * 0.6,
+            transition: `all 500ms cubic-bezier(0.4,0,0.2,1) ${i * 8}ms`,
+            willChange: 'transform, opacity', 
           }}
         />
       ))}
@@ -82,12 +92,13 @@ export function CursorEffect({ className }: CursorEffectProps) {
       {clicked && (
         <div
           className={cn(
-            "absolute w-48 h-48 rounded-full", // Much larger burst
-            "bg-[#FEA30E]/60 dark:bg-[#FEA30E]/70", // More intense burst
-            "blur-2xl animate-ping" // Enhanced blur effect
+            "absolute w-48 h-48 rounded-full",
+            "bg-[#FEA30E]/60 dark:bg-[#FEA30E]/70",
+            "blur-2xl animate-ping"
           )}
           style={{
             transform: `translate(${position.x - 96}px, ${position.y - 96}px)`,
+            willChange: 'transform', 
           }}
         />
       )}
