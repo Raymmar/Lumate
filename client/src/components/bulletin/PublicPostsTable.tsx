@@ -77,15 +77,16 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
               >
                 <div className="flex gap-4">
                   {post.featuredImage ? (
-                    <div className="w-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       <img 
                         src={post.featuredImage} 
                         alt=""
                         className="w-full h-full object-cover"
+                        style={{ aspectRatio: '1 / 1' }}
                       />
                     </div>
                   ) : (
-                    <div className="w-16 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                       <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
                     </div>
                   )}
