@@ -31,7 +31,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
     const interval = setInterval(() => {
       setCurrentIndex((current) => (current + 1) % pinnedPosts.length);
-    }, 7000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [pinnedPosts.length]);
