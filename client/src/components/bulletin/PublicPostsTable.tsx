@@ -4,6 +4,8 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 // Export query key for reuse
 export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
@@ -13,7 +15,7 @@ interface PublicPostsTableProps {
 }
 
 export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
-  console.log("PublicPostsTable: Rendering");
+  const [displayCount, setDisplayCount] = useState(5);
 
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
     queryKey: PUBLIC_POSTS_QUERY_KEY,
@@ -29,12 +31,13 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
     }
   });
 
-  console.log("PublicPostsTable state:", { isLoading, error, postsCount: data?.posts?.length });
-
   // Sort posts by creation date only (newest first)
   const sortedPosts = data?.posts?.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+
+  // Get the posts to display based on displayCount
+  const displayedPosts = sortedPosts?.slice(0, displayCount);
 
   return (
     <Card className="border">
@@ -66,7 +69,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {sortedPosts.map((post) => (
+            {displayedPosts.map((post) => (
               <div 
                 key={post.id}
                 className="p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
@@ -111,6 +114,21 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
                 </div>
               </div>
             ))}
+
+            {/* Load More button */}
+            {sortedPosts && displayCount < sortedPosts.length && (
+              <div className="pt-2 text-center">
+                <Button
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDisplayCount(prev => prev + 5);
+                  }}
+                >
+                  Load More
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
