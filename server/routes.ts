@@ -12,6 +12,9 @@ import { events, attendance } from '@shared/schema'; //Import events schema and 
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
+import multer from 'multer';
+import { fileStorage } from './services/FileStorageService';
+import path from 'path';
 
 // Add new interface for Post at the top of the file after imports
 interface Post {
@@ -1765,6 +1768,54 @@ app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
   } catch (error) {
     console.error('Failed to update user admin status:', error);
     res.status(500).json({ error: "Failed to update user admin status" });
+  }
+});
+
+const upload = multer();
+
+// Add these endpoints within the registerRoutes function
+app.post("/api/upload", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file provided" });
+    }
+
+    const filename = await fileStorage.uploadFile(req.file);
+    res.json({ url: filename });
+  } catch (error) {
+    console.error('Failed to upload file:', error);
+    res.status(500).json({ error: "Failed to upload file" });
+  }
+});
+
+app.get("/api/storage/:filename", async (req, res) => {
+  try {
+    const filename = decodeURIComponent(req.params.filename);
+    const file = await fileStorage.getFile(filename);
+
+    if (!file) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    // Set content-type based on file extension
+    const ext = path.extname(filename).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.pdf': 'application/pdf'
+    };
+
+    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+    res.send(file);
+  } catch (error) {
+    console.error('Failed to get file:', error);
+    res.status(500).json({ error: "Failed to get file" });
   }
 });
 
