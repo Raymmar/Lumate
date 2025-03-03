@@ -773,6 +773,27 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add the new public stats endpoint before the existing admin stats endpoint
+  app.get("/api/public/stats", async (_req, res) => {
+    try {
+      // Fetch stats that are safe to expose publicly
+      const [eventCount, totalAttendeesCount, uniqueAttendeesCount] = await Promise.all([
+        storage.getEventCount(),
+        storage.getTotalAttendeesCount(),
+        storage.getPeopleCount()
+      ]);
+
+      res.json({
+        events: eventCount,
+        totalAttendees: totalAttendeesCount,
+        uniqueAttendees: uniqueAttendeesCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch public stats:', error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
   // Add the new admin stats endpoint after the existing routes
   app.get("/api/admin/stats", async (req, res) => {
     try {
@@ -906,7 +927,7 @@ export async function registerRoutes(app: Express) {
       // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
+        returnres.status(403).json({ error: "Not authorized" });
       }
 
       // Get pagination parameters and search query

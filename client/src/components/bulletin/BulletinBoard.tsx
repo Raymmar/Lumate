@@ -338,9 +338,9 @@ function SponsorsSection() {
 export function BulletinBoard() {
   const queryClient = useQueryClient();
   const { data: statsData, isLoading } = useQuery({
-    queryKey: ["/api/admin/stats"],
+    queryKey: ["/api/public/stats"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/stats");
+      const response = await fetch("/api/public/stats");
       if (!response.ok) {
         throw new Error("Failed to fetch stats");
       }
