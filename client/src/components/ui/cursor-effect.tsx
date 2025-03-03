@@ -98,9 +98,9 @@ export function CursorEffect({ className }: CursorEffectProps) {
     ];
 
     const properties = [
-      { spring: 0.07, friction: 0.84, thickness: 35, offset: 0.12, lerp: 0.82 }, // Pink - medium, more spread
-      { spring: 0.05, friction: 0.92, thickness: 30, offset: 0.08, lerp: 0.89 }, // Black - subtle, stays closer
-      { spring: 0.09, friction: 0.80, thickness: 40, offset: 0.15, lerp: 0.78 }, // Accent - prominent, most spread
+      { spring: 0.07, friction: 0.88, thickness: 35, offset: 0.06, lerp: 0.85 }, // Pink - medium
+      { spring: 0.06, friction: 0.90, thickness: 30, offset: 0.04, lerp: 0.88 }, // Black - subtle
+      { spring: 0.08, friction: 0.85, thickness: 40, offset: 0.08, lerp: 0.82 }, // Accent - prominent
     ];
 
     colors.forEach((color, i) => {
