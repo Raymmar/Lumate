@@ -1,16 +1,18 @@
-import { createStorage } from '@replit/object-storage';
-import { randomUUID } from 'crypto';
-import path from 'path';
+import { Client } from '@replit/object-storage';
 
-// Initialize object storage with error handling
-let storage: any; // Temporarily use any until we have proper types
+// Initialize the client with proper error handling
+let client: Client;
 try {
-  console.log('Initializing object storage...');
-  storage = createStorage();
-  console.log('Object storage initialized successfully');
+  console.log('Initializing object storage client...');
+  const bucketId = process.env.REPLIT_DEFAULT_BUCKET_ID;
+  if (!bucketId) {
+    throw new Error('REPLIT_DEFAULT_BUCKET_ID environment variable is not set');
+  }
+  client = new Client({ bucket: bucketId });
+  console.log('Object storage client initialized successfully');
 } catch (error) {
-  console.error('Failed to initialize object storage:', error);
-  throw new Error('Failed to initialize object storage');
+  console.error('Failed to initialize object storage client:', error);
+  throw new Error('Failed to initialize object storage client');
 }
 
 export class FileStorageService {
@@ -36,34 +38,38 @@ export class FileStorageService {
       console.log('Starting file upload process for:', file.originalname);
 
       // Generate a unique filename
-      const fileExtension = path.extname(file.originalname);
-      const filename = `uploads/${Date.now()}-${randomUUID()}${fileExtension}`;
-
+      const filename = `files/${Date.now()}-${file.originalname}`;
       console.log('Generated filename:', filename);
 
-      // Upload to object storage
-      await storage.put(filename, file.buffer, {
-        'Content-Type': file.mimetype
+      const { ok, error } = await client.uploadFromBytes(filename, file.buffer, {
+        metadata: { 'content-type': file.mimetype }
       });
+
+      if (!ok) {
+        throw new Error(`Failed to upload file: ${error}`);
+      }
 
       console.log('File uploaded successfully:', filename);
       return filename;
     } catch (error) {
       console.error('Failed to upload file:', error);
-      throw new Error('Failed to upload file');
+      throw error;
     }
   }
 
   async getFile(filename: string): Promise<Buffer | null> {
     try {
       console.log('Fetching file:', filename);
-      const data = await storage.get(filename);
-      if (!data) {
-        console.log('File not found:', filename);
+      const { ok, value: data, error } = await client.downloadAsBytes(filename);
+
+      if (!ok || !data || data.length === 0) {
+        console.log('File not found or error:', error);
         return null;
       }
+
       console.log('File retrieved successfully:', filename);
-      return Buffer.from(data);
+      // IMPORTANT: Return the first element of the array as per documentation
+      return data[0];
     } catch (error) {
       console.error('Failed to get file:', error);
       return null;
@@ -73,7 +79,12 @@ export class FileStorageService {
   async deleteFile(filename: string): Promise<boolean> {
     try {
       console.log('Deleting file:', filename);
-      await storage.delete(filename);
+      const { ok, error } = await client.delete(filename);
+
+      if (!ok) {
+        throw new Error(`Failed to delete file: ${error}`);
+      }
+
       console.log('File deleted successfully:', filename);
       return true;
     } catch (error) {

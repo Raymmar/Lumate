@@ -1773,7 +1773,7 @@ app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
 
 const upload = multer();
 
-// Add these endpoints within the registerRoutes function
+// Add these endpoints within the registerRoutes function, near the end before return createServer(app)
 app.post("/api/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -1802,16 +1802,19 @@ app.get("/api/storage/:filename", async (req, res) => {
     }
 
     // Set content-type based on file extension
-    const ext = path.extname(filename).toLowerCase();
-    const mimeTypes: Record<string, string> = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-      '.pdf': 'application/pdf'
-    };
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const contentType =
+      ext === 'png'
+        ? 'image/png'
+        : ext === 'jpg' || ext === 'jpeg'
+        ? 'image/jpeg'
+        : ext === 'gif'
+        ? 'image/gif'
+        : 'application/octet-stream';
 
-    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+    // Set headers for caching and content type
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
     res.send(file);
   } catch (error) {
     console.error('Failed to get file:', error);
