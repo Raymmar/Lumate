@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable, posts } from "@shared/schema"; // Added import for users table and roles and permissions tables
+import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema"; // Added import for users table and roles and permissions tables
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
@@ -925,7 +925,8 @@ export async function registerRoutes(app: Express) {
       const eventsList = await db
         .select()
         .from(events)
-        .where(          searchQuery
+        .where(
+                    searchQuery
             ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} OR LOWER(description) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
         )
@@ -1284,54 +1285,7 @@ app.post("/api/admin/posts", async (req, res) => {
   }
 });
 
-// Update the /api/admin/posts route to handle search
-  app.get("/api/admin/posts", async (req, res) => {
-    try {
-      // Check if user is authenticated
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      // Check if user is admin
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const searchQuery = (req.query.search as string || '').toLowerCase();
-      console.log('Processing posts search query:', { searchQuery });
-
-      // Get all posts with search filter
-      const postsTable = posts; // Create an alias to avoid naming conflict
-      try {
-        const results = await db
-          .select()
-          .from(postsTable)
-          .where(
-            searchQuery
-              ? sql`(LOWER(${postsTable.title}) LIKE ${`%${searchQuery}%`} OR LOWER(COALESCE(${postsTable.summary}, '')) LIKE ${`%${searchQuery}%`})`
-              : sql`1=1`
-          )
-          .orderBy(postsTable.createdAt, "desc");
-
-        console.log('Posts search results:', { 
-          count: results.length,
-          searchApplied: !!searchQuery,
-          firstResult: results[0] ? { id: results[0].id, title: results[0].title } : null
-        });
-
-        res.json({ posts: results });
-      } catch (dbError) {
-        console.error('Database query error:', dbError);
-        throw dbError;
-      }
-    } catch (error) {
-      console.error('Failed to fetch posts:', error);
-      res.status(500).json({ error: "Failed to fetch posts" });
-    }
-  });
-
-app.get("/api/admin/posts/:id", async (req, res) => {
+app.get("/api/admin/posts", async (req, res) => {
   try {
     // Check if user is authenticated
     if (!req.session.userId) {
@@ -1344,20 +1298,11 @@ app.get("/api/admin/posts/:id", async (req, res) => {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    const postId = parseInt(req.params.id);
-    if (isNaN(postId)) {
-      return res.status(400).json({ error: "Invalid post ID" });
-    }
-
-    const post = await storage.getPost(postId);
-    if (!post) {
-      return res.status(404).json({ error: "Post not found" });
-    }
-
-    res.json(post);
+    const posts = await storage.getPosts();
+    res.json({ posts });
   } catch (error) {
-    console.error('Failed to fetch post:', error);
-    res.status(500).json({ error: "Failed to fetch post" });
+    console.error('Failed to fetch posts:', error);
+    res.status(500).json({ error: "Failed to fetch posts" });
   }
 });
 

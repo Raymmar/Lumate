@@ -1,30 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Post } from "@shared/schema";
 import { DataTable } from "./DataTable";
+import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 interface PostsTableProps {
   onSelect: (post: Post) => void;
-  searchQuery: string;
 }
 
-export function PostsTable({ onSelect, searchQuery }: PostsTableProps) {
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["/api/admin/posts", searchQuery],
+export function PostsTable({ onSelect }: PostsTableProps) {
+  const { data, isLoading } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/admin/posts"],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/admin/posts${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`
-      );
+      const response = await fetch("/api/admin/posts");
       if (!response.ok) {
         throw new Error("Failed to fetch posts");
       }
-      const data = await response.json();
-      return data as { posts: Post[] };
-    },
-    keepPreviousData: true,
-    staleTime: 30000,
-    refetchOnWindowFocus: false
+      return response.json();
+    }
   });
 
   const columns = [
@@ -57,18 +51,11 @@ export function PostsTable({ onSelect, searchQuery }: PostsTableProps) {
   ];
 
   return (
-    <div className="min-h-[400px] relative">
-      <div 
-        className={`transition-opacity duration-300 ${
-          isFetching ? 'opacity-50' : 'opacity-100'
-        }`}
-      >
-        <DataTable 
-          columns={columns}
-          data={data?.posts || []}
-          onRowClick={onSelect}
-        />
-      </div>
-    </div>
+    <DataTable 
+      columns={columns}
+      data={data?.posts || []}
+      loading={isLoading}
+      onRowClick={onSelect}
+    />
   );
 }
