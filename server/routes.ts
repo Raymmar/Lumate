@@ -476,6 +476,7 @@ export async function registerRoutes(app: Express) {
       console.log('Existing user check:', existingUser ? 'found' : 'not found');
 
       if (existingUser) {
+        console.log('Profile already claimed, no verification email will be sent');
         return res.status(400).json({ error: "Profile already claimed" });
       }
 
