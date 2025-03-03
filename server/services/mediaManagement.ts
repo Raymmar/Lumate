@@ -33,7 +33,7 @@ export class MediaManagementService {
     try {
       // Generate unique filename
       const ext = originalFilename.split('.').pop()?.toLowerCase() || 'jpg';
-      const filename = `images/${randomUUID()}.${ext}`;
+      const filename = `uploads/${randomUUID()}.${ext}`;
 
       // Validate file type
       const allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
@@ -52,7 +52,7 @@ export class MediaManagementService {
       // Upload to object storage with metadata
       const uploadResult = await this.client.uploadFromBytes(filename, buffer, {
         ...metadata,
-        'content-type': contentType
+        contentType
       });
 
       if (!uploadResult.ok) {
