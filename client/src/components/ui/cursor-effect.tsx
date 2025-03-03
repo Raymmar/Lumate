@@ -89,18 +89,25 @@ export function CursorEffect({ className }: CursorEffectProps) {
       }
     `;
 
-    // Create lines with different properties
-    const colors = ['#FEA30E'];
-    colors.forEach((color) => {
+    // Create lines with different properties and colors
+    const colors = [
+      '#FEA30E', // Primary orange
+      '#e09f7d', // Soft coral
+      '#ef5d60', // Bright red
+      '#ec4067', // Pink
+      '#a01a7d'  // Deep purple
+    ];
+
+    colors.forEach((color, i) => {
       const points: Vec3[] = Array.from({ length: 20 }, () => new Vec3());
 
       const line: LineObject = {
-        spring: Math.random() * 0.02 + 0.05,
-        friction: Math.random() * 0.1 + 0.8,
+        spring: random(0.02, 0.1),          // Varied spring constants
+        friction: random(0.7, 0.95),        // Varied friction
         mouseVelocity: new Vec3(),
         mouseOffset: new Vec3(
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02,
+          random(-1, 1) * 0.02,           // Varied offsets
+          random(-1, 1) * 0.02,
           0
         ),
         points,
@@ -109,7 +116,7 @@ export function CursorEffect({ className }: CursorEffectProps) {
           vertex,
           uniforms: {
             uColor: { value: new Color(color) },
-            uThickness: { value: Math.random() * 20 + 20 },
+            uThickness: { value: random(20, 50) }, // Varied thickness
           },
         })
       };
@@ -117,6 +124,12 @@ export function CursorEffect({ className }: CursorEffectProps) {
       line.polyline.mesh.setParent(scene);
       linesRef.current.push(line);
     });
+
+    // Helper function for random values
+    function random(a: number, b: number) {
+      const alpha = Math.random();
+      return a * (1.0 - alpha) + b * alpha;
+    }
 
     // Handle resize
     const resize = () => {

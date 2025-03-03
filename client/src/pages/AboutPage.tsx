@@ -266,28 +266,25 @@ export default function AboutPage() {
               Sarasota forward.
             </p>
             <SocialLinks />
+            <div className="max-w-md mx-auto">
+              <JoinUsCard showHeader={false} />
+            </div>
+
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Every month we bounce around to
+                different locations around town. Sometimes we meet at a bar/restaurant,
+                sometimes at a local business HQ. Either way, it's always a blast!
+              </p>
+            </div>
+
+            <TestimonialsSection />
+            <TimelineSection />
+            <BoardMembersSection />
+            <FoundingMembersSection />
           </PageContainer>
         </div>
-
-        <PageContainer className="py-4 space-y-12 max-w-[1140px]">
-          <div className="max-w-md mx-auto">
-            <JoinUsCard showHeader={false} />
-          </div>
-
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Every month we bounce around to
-              different locations around town. Sometimes we meet at a bar/restaurant,
-              sometimes at a local business HQ. Either way, it's always a blast!
-            </p>
-          </div>
-
-          <TestimonialsSection />
-          <TimelineSection />
-          <BoardMembersSection />
-          <FoundingMembersSection />
-        </PageContainer>
       </div>
     </div>
   );
