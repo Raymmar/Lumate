@@ -24,7 +24,7 @@ export function MembersTable() {
   const [selectedMember, setSelectedMember] = useState<User & { person?: Person | null } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time for better responsiveness
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   const itemsPerPage = 100;
 
@@ -37,9 +37,6 @@ export function MembersTable() {
       if (!response.ok) throw new Error("Failed to fetch members");
       return response.json();
     },
-    keepPreviousData: true,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
   });
 
   const users = data?.users || [];
@@ -99,7 +96,6 @@ export function MembersTable() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold tracking-tight">Members</h2>
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
