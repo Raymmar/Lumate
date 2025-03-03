@@ -116,7 +116,6 @@ function BoardMembersSection() {
 }
 
 function FoundingMembersSection() {
-  // Generate 22 placeholder founding members
   const members = Array.from({ length: 22 }, (_, i) => ({
     name: `Founding Member ${i + 1}`,
     contributionArea: ["Technical", "Community", "Events", "Marketing"][i % 4],
@@ -204,7 +203,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Global Navigation */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
-        <PageContainer>
+        <PageContainer className="max-w-[1140px]">
           <NavBar />
         </PageContainer>
       </div>
@@ -216,7 +215,7 @@ export default function AboutPage() {
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-background" />
           </div>
-          <PageContainer className="relative z-10 space-y-8 text-center">
+          <PageContainer className="relative z-10 space-y-8 text-center max-w-[1140px]">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
@@ -228,7 +227,7 @@ export default function AboutPage() {
         </div>
 
         {/* Content Sections */}
-        <PageContainer className="py-16 space-y-24">
+        <PageContainer className="py-16 space-y-24 max-w-[1140px]">
           {/* Monthly Meetup Section */}
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold">3rd Thursday Meetups</h2>
