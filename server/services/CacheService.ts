@@ -41,6 +41,41 @@ export class CacheService extends EventEmitter {
     console.log(`[CacheService] ${timestamp} - ${message}`, data ? data : '');
   }
 
+  async forceSync() {
+    this.logSync('Force sync requested - clearing last update timestamp');
+    try {
+      // Clear the last update timestamp to force a full sync
+      await db.execute(sql`
+        INSERT INTO settings (key, value) 
+        VALUES ('last_cache_update', '1970-01-01T00:00:00.000Z')
+        ON CONFLICT (key) DO UPDATE 
+        SET value = EXCLUDED.value, 
+            updated_at = CURRENT_TIMESTAMP
+      `);
+
+      // Stop existing cache interval
+      if (this.cacheInterval) {
+        clearInterval(this.cacheInterval);
+        this.cacheInterval = null;
+      }
+
+      // Reset caching state
+      this.isCaching = false;
+
+      // Start fresh sync
+      this.logSync('Starting forced sync process');
+      await this.updateCache();
+
+      // Restart regular caching interval
+      this.startCaching();
+
+      return true;
+    } catch (error) {
+      this.logSync('Force sync failed:', error);
+      throw error;
+    }
+  }
+
   async updateCache() {
     if (this.isCaching) {
       this.logSync('Cache update already in progress, skipping...');
