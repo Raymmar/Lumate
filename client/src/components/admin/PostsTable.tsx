@@ -50,11 +50,16 @@ export function PostsTable({ onSelect }: PostsTableProps) {
     },
   ];
 
+  // Sort posts by creation date (newest first)
+  const sortedPosts = data?.posts?.sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ) || [];
+
   return (
     <DataTable 
       columns={columns}
-      data={data?.posts || []}
-      loading={isLoading}
+      data={sortedPosts}
+      isLoading={isLoading}
       onRowClick={onSelect}
     />
   );
