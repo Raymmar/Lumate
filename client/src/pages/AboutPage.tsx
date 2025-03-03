@@ -231,29 +231,8 @@ export default function AboutPage() {
         {/* Content Sections */}
         <PageContainer className="py-16 space-y-24 max-w-[1140px]">
           {/* Join Us Section */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <JoinUsCard />
-            <Card className="border">
-              <CardHeader className="pb-3">
-                <CardTitle>Links</CardTitle>
-                <div className="flex gap-2">
-                  <SocialLinks />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
-                    Community Guidelines
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
-                    Event Calendar
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
-                    Resources
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="max-w-md mx-auto">
+            <JoinUsCard showHeader={false} />
           </div>
 
           {/* Monthly Meetup Section */}

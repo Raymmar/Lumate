@@ -5,7 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export function JoinUsCard() {
+interface JoinUsCardProps {
+  showHeader?: boolean;
+}
+
+export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -49,18 +53,20 @@ export function JoinUsCard() {
 
   return (
     <Card className="border">
-      <CardHeader className="pb-3">
-        {isSubmitted ? (
-          <CardTitle>Welcome to Sarasota Tech</CardTitle>
-        ) : (
-          <>
-            <CardTitle>Sarasota.Tech</CardTitle>
-            <p className="text-muted-foreground mt-1">
-              Connecting Sarasota's tech community and driving the city forward.
-            </p>
-          </>
-        )}
-      </CardHeader>
+      {showHeader && (
+        <CardHeader className="pb-3">
+          {isSubmitted ? (
+            <CardTitle>Welcome to Sarasota Tech</CardTitle>
+          ) : (
+            <>
+              <CardTitle>Sarasota.Tech</CardTitle>
+              <p className="text-muted-foreground mt-1">
+                Connecting Sarasota's tech community and driving the city forward.
+              </p>
+            </>
+          )}
+        </CardHeader>
+      )}
       <CardContent>
         {isSubmitted ? (
           <div className="space-y-4">
