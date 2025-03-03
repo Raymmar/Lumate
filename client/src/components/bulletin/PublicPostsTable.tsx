@@ -95,7 +95,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
                       {post.title}
                       {post.isPinned && (
                         <span className="ml-2 text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                          Pinned
+                          Featured
                         </span>
                       )}
                     </h4>

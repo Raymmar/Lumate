@@ -33,7 +33,7 @@ export function PostsTable({ onSelect }: PostsTableProps) {
       cell: (row: Post) => (
         <div className="flex items-center gap-2">
           {row.isPinned && (
-            <Badge variant="secondary">Pinned</Badge>
+            <Badge variant="secondary">Featured</Badge>
           )}
         </div>
       )

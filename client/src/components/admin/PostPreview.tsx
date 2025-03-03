@@ -147,7 +147,7 @@ export function PostPreview({
             {/* Metadata Section */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                {!readOnly && post?.isPinned && <Badge variant="secondary">Pinned</Badge>}
+                {!readOnly && post?.isPinned && <Badge variant="secondary">Featured</Badge>}
                 {post?.createdAt && (
                   <span className="text-sm text-muted-foreground">
                     {format(new Date(post.createdAt), 'PPP')}
