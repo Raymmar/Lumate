@@ -25,16 +25,25 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [previousIndex, setPreviousIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
     if (pinnedPosts.length <= 1) return;
 
     const interval = setInterval(() => {
+      setPreviousIndex(currentIndex);
+      setIsTransitioning(true);
       setCurrentIndex((current) => (current + 1) % pinnedPosts.length);
-    }, 10000); // Changed from 7000 to 10000ms
+
+      // Reset transition state after animation completes
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 500);
+    }, 10000); // 10 second interval
 
     return () => clearInterval(interval);
-  }, [pinnedPosts.length]);
+  }, [pinnedPosts.length, currentIndex]);
 
   if (isLoading) {
     return (
@@ -49,20 +58,49 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   }
 
   const currentPost = pinnedPosts[currentIndex];
+  const previousPost = pinnedPosts[previousIndex];
   const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
-  const backgroundImage = currentPost.featuredImage || fallbackImage;
+  const currentImage = currentPost?.featuredImage || fallbackImage;
+  const previousImage = previousPost?.featuredImage || fallbackImage;
+
+  const handleTransition = (newIndex: number) => {
+    setPreviousIndex(currentIndex);
+    setIsTransitioning(true);
+    setCurrentIndex(newIndex);
+    setTimeout(() => setIsTransitioning(false), 500);
+  };
 
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
-      {/* Background image */}
-      <div className="absolute inset-0 transition-opacity duration-500 ease-in-out">
+      {/* Previous image layer */}
+      <div 
+        className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
+          isTransitioning ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
         <img
-          src={backgroundImage}
+          src={previousImage}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ transform: 'scale(1.02)' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+      </div>
+
+      {/* Current image layer */}
+      <div 
+        className={`absolute inset-0 transition-opacity duration-500 ease-in-out ${
+          isTransitioning ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <img
+          src={currentImage}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
           style={{ transform: 'scale(1.02)' }}
           onLoad={() => setImageLoaded(true)}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
       </div>
 
       {/* Loading state */}
@@ -70,17 +108,13 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
-
       {pinnedPosts.length > 1 && (
         <>
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setCurrentIndex((current) =>
-                current === 0 ? pinnedPosts.length - 1 : current - 1
-              );
+              const newIndex = currentIndex === 0 ? pinnedPosts.length - 1 : currentIndex - 1;
+              handleTransition(newIndex);
             }}
             className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
           >
@@ -89,9 +123,8 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setCurrentIndex((current) =>
-                (current + 1) % pinnedPosts.length
-              );
+              const newIndex = (currentIndex + 1) % pinnedPosts.length;
+              handleTransition(newIndex);
             }}
             className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
           >
@@ -134,7 +167,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
                 key={idx}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setCurrentIndex(idx);
+                  handleTransition(idx);
                 }}
                 className={`w-2 h-2 rounded-full transition-colors ${
                   idx === currentIndex ? 'bg-white' : 'bg-white/50'
