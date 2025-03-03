@@ -16,4 +16,17 @@
   .text-link {
     @apply text-foreground hover:text-foreground/80 underline-offset-4 hover:underline transition-colors;
   }
+
+  /* Ensure navigation and sidebar links also use text color */
+  nav a,
+  .sidebar a {
+    @apply text-foreground hover:text-foreground/80 transition-colors;
+  }
+
+  /* Keep primary color for buttons and interactive elements only */
+  .btn-primary,
+  button[type="submit"],
+  [role="button"].primary {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
 }
