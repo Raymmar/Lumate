@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -393,16 +393,16 @@ export function BulletinBoard() {
         <StatCard
           title="Tickets"
           value={statsData?.totalAttendees || 0}
-          icon={Users}
+          icon={Ticket}
           isLoading={isLoading}
           description="Total event attendance"
         />
         <StatCard
           title="Subscribers"
           value={statsData?.uniqueAttendees || 0}
-          icon={Users}
+          icon={UserPlus}
           isLoading={isLoading}
-          description="Involved & active members"
+          description="63% open rate 21% click rate"
         />
       </div>
 

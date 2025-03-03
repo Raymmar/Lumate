@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink, Tickets, Coins } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -76,28 +76,28 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
         <StatCard
-          title="Total Events"
+          title="Events"
           value={statsData?.events || 0}
           icon={Calendar}
           isLoading={isLoading}
-          description="Total number of events hosted"
+          description="Since August 2023"
         />
         <StatCard
-          title="Total Attendees"
+          title="Tickets"
           value={statsData?.totalAttendees || 0}
-          icon={Users}
+          icon={Tickets}
           isLoading={isLoading}
-          description="Total event attendance count"
+          description="Total event attendance"
         />
         <StatCard
-          title="Unique Attendees"
+          title="Subscribers"
           value={statsData?.uniqueAttendees || 0}
           icon={Users}
           isLoading={isLoading}
-          description="Individual event attendees"
+          description="63% open rate 21% click rate"
         />
         <StatCard
-          title="Registered Members"
+          title="Claimed Accounts"
           value={statsData?.users || 0}
           icon={UserPlus}
           isLoading={isLoading}
@@ -106,13 +106,13 @@ export default function AdminDashboard() {
         <StatCard
           title="Paid Members"
           value={statsData?.paidUsers || 0}
-          icon={CreditCard}
+          icon={Coins}
           isLoading={isLoading}
           description="Members with active paid subscriptions"
         />
         <StatCard
           title="Membership Revenue"
-          value="$0.00"
+          value="--"
           icon={DollarSign}
           isLoading={isLoading}
           description="Total revenue from memberships"
