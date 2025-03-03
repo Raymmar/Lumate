@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
+import { useQueryClient } from "@tanstack/react-query";
+import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost) => Promise<void>;
@@ -17,6 +19,7 @@ interface PostFormProps {
 
 export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const form = useForm<InsertPost>({
     resolver: zodResolver(insertPostSchema),
@@ -36,6 +39,8 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const handleSubmit = async (data: InsertPost) => {
     try {
       await onSubmit(data);
+      // Invalidate the public posts query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
       toast({
         title: "Success",
         description: "Post published successfully"

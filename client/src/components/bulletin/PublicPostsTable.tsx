@@ -1,9 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, queryClient } from "@tanstack/react-query";
 import type { Post } from "@shared/schema";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageIcon } from "lucide-react";
+
+// Export query key for reuse
+export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
 
 interface PublicPostsTableProps {
   onSelect: (post: Post) => void;
@@ -13,7 +16,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
   console.log("PublicPostsTable: Rendering");
 
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
-    queryKey: ["/api/public/posts"],
+    queryKey: PUBLIC_POSTS_QUERY_KEY,
     queryFn: async () => {
       console.log("PublicPostsTable: Fetching posts");
       const response = await fetch("/api/public/posts");
