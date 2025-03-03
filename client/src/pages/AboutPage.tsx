@@ -1,7 +1,12 @@
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SiLinkedin, SiFacebook, SiInstagram, SiWhatsapp } from "react-icons/si";
+import {
+  SiLinkedin,
+  SiFacebook,
+  SiInstagram,
+  SiWhatsapp,
+} from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
@@ -39,27 +44,29 @@ function TimelineSection() {
     {
       date: "May 2023",
       title: "The First Drinky Thinky",
-      description: "Early in May of 2023 a few friends started talking about how to connect with folks from the broader tech community in Sarasota. A couple weeks later we organized 'Drinky Thinky'. A casual happy hour at State street. 6 people showed up.",
-      imageUrl: "https://placehold.co/600x400"
+      description:
+        "Early in May of 2023 a few friends started talking about how to connect with folks from the broader tech community in Sarasota. A couple weeks later we organized 'Drinky Thinky'. A casual happy hour at State street. 6 people showed up.",
+      imageUrl: "https://placehold.co/600x400",
     },
     {
       date: "August 2023",
       title: "Growth and Momentum",
-      description: "Our next event drew 12 attendees. Then 35. Then 65. Word was spreading across the region and people were driving from as far as Tampa, Orlando, Naples and even Miami to attend our events.",
-      imageUrl: "https://placehold.co/600x400"
+      description:
+        "Our next event drew 12 attendees. Then 35. Then 65. Word was spreading across the region and people were driving from as far as Tampa, Orlando, Naples and even Miami to attend our events.",
+      imageUrl: "https://placehold.co/600x400",
     },
     {
       date: "January 2024",
       title: "First Tech JAM",
-      description: "A few months later we hosted our first Tech JAM and 130 people showed up! Since then we have hosted 22 events with more than 2,000 attendees.",
-      imageUrl: "https://placehold.co/600x400"
-    }
+      description:
+        "A few months later we hosted our first Tech JAM and 130 people showed up! Since then we have hosted 22 events with more than 2,000 attendees.",
+      imageUrl: "https://placehold.co/600x400",
+    },
   ];
 
   return (
-    <div className="space-y-8 max-w-[960px] mx-auto">
-      <h2 className="text-3xl font-bold text-center">Our Journey</h2>
-      <div className="space-y-12">
+    <div className="space-y-24 max-w-[960px] py-24 mx-auto">
+      <div className="space-y-24">
         {events.map((event, index) => (
           <div
             key={index}
@@ -88,14 +95,30 @@ function TimelineSection() {
 
 function BoardMembersSection() {
   const members = [
-    { name: "Pete Petersen", position: "President", avatar: "https://placehold.co/150" },
-    { name: "Raymmar Tirado", position: "Vice President", avatar: "https://placehold.co/150" },
-    { name: "Vlad Ljesevic", position: "Secretary", avatar: "https://placehold.co/150" },
-    { name: "Toli Marchuk", position: "Treasurer", avatar: "https://placehold.co/150" }
+    {
+      name: "Raymmar Tirado",
+      position: "Vice Chair",
+      avatar: "https://placehold.co/150",
+    },
+    {
+      name: "Pete Petersen",
+      position: "Chair",
+      avatar: "https://placehold.co/150",
+    },
+    {
+      name: "Vlad Ljesevic",
+      position: "Treasurer",
+      avatar: "https://placehold.co/150",
+    },
+    {
+      name: "Toli Marchuk",
+      position: "Secretary",
+      avatar: "https://placehold.co/150",
+    },
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       <h2 className="text-3xl font-bold text-center">Board Members</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
@@ -104,7 +127,10 @@ function BoardMembersSection() {
               <Avatar className="w-24 h-24 mx-auto mb-4">
                 <AvatarImage src={member.avatar} alt={member.name} />
                 <AvatarFallback>
-                  {member.name.split(" ").map((n) => n[0]).join("")}
+                  {member.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")}
                 </AvatarFallback>
               </Avatar>
               <h3 className="font-semibold text-lg">{member.name}</h3>
@@ -121,23 +147,28 @@ function FoundingMembersSection() {
   const members = Array.from({ length: 22 }, (_, i) => ({
     name: `Founding Member ${i + 1}`,
     contributionArea: ["Technical", "Community", "Events", "Marketing"][i % 4],
-    avatar: "https://placehold.co/150"
+    avatar: "https://placehold.co/150",
   }));
 
   return (
-    <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-center">Founding Members</h2>
+    <div className="space-y-12">
+      <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {members.map((member) => (
           <div key={member.name} className="text-center">
             <Avatar className="w-16 h-16 mx-auto mb-2">
               <AvatarImage src={member.avatar} alt={member.name} />
               <AvatarFallback>
-                {member.name.split(" ").map((n) => n[0]).join("")}
+                {member.name
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")}
               </AvatarFallback>
             </Avatar>
             <p className="font-medium text-sm">{member.name}</p>
-            <p className="text-xs text-muted-foreground">{member.contributionArea}</p>
+            <p className="text-xs text-muted-foreground">
+              {member.contributionArea}
+            </p>
           </div>
         ))}
       </div>
@@ -151,37 +182,45 @@ function TestimonialsSection() {
       name: "John Doe",
       position: "Software Engineer",
       company: "Tech Corp",
-      quote: "Sarasota.Tech events have been instrumental in connecting me with the local tech community. The networking opportunities are invaluable!",
-      avatar: "https://placehold.co/150"
+      quote:
+        "Sarasota.Tech events have been instrumental in connecting me with the local tech community. The networking opportunities are invaluable!",
+      avatar: "https://placehold.co/150",
     },
     {
       name: "Jane Smith",
       position: "Product Manager",
       company: "StartupX",
-      quote: "The monthly meetups are a highlight! It's amazing to see how the tech scene in Sarasota has grown through these events.",
-      avatar: "https://placehold.co/150"
+      quote:
+        "The monthly meetups are a highlight! It's amazing to see how the tech scene in Sarasota has grown through these events.",
+      avatar: "https://placehold.co/150",
     },
     {
       name: "Mike Johnson",
       position: "CTO",
       company: "Innovation Labs",
-      quote: "As a company leader, these events have helped us find great local talent and build meaningful partnerships.",
-      avatar: "https://placehold.co/150"
-    }
+      quote:
+        "As a company leader, these events have helped us find great local talent and build meaningful partnerships.",
+      avatar: "https://placehold.co/150",
+    },
   ];
 
   return (
     <div className="space-y-8">
-      <h2 className="text-3xl font-bold text-center">What Our Members Say</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 max-w-[1140px] pt-12 md:grid-cols-2 lg:grid-cols-3 gap-6 mx-auto">
         {testimonials.map((testimonial) => (
           <Card key={testimonial.name}>
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                  <AvatarImage
+                    src={testimonial.avatar}
+                    alt={testimonial.name}
+                  />
                   <AvatarFallback>
-                    {testimonial.name.split(" ").map((n) => n[0]).join("")}
+                    {testimonial.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div>
@@ -191,7 +230,9 @@ function TestimonialsSection() {
                   </p>
                 </div>
               </div>
-              <blockquote className="mt-4 text-muted-foreground">"{testimonial.quote}"</blockquote>
+              <blockquote className="mt-4 text-muted-foreground">
+                "{testimonial.quote}"
+              </blockquote>
             </CardContent>
           </Card>
         ))}
@@ -221,8 +262,9 @@ export default function AboutPage() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              We're on a mission to connect the local tech community and push Sarasota forward.
+            <p className="text-xl text-muted-foreground text-wrap-pretty max-w-2xl mx-auto">
+              We're on a mission to connect the local tech community and drive
+              Sarasota forward.
             </p>
             <SocialLinks />
           </PageContainer>
@@ -237,11 +279,11 @@ export default function AboutPage() {
 
           {/* Monthly Meetup Section */}
           <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold">3rd Thursday Meetups</h2>
+            <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Join us every third Thursday of the month as we bounce around to different locations.
-              Sometimes we meet at a bar/restaurant, sometimes at a local business HQ. Either way,
-              it's always a blast!
+              Every month we bounce around to
+              different locations around town. Sometimes we meet at a bar/restaurant,
+              sometimes at a local business HQ. Either way, it's always a blast!
             </p>
           </div>
 
