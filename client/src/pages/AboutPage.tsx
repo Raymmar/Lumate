@@ -213,11 +213,11 @@ export default function AboutPage() {
       {/* Main Content */}
       <div className="flex-1">
         {/* Hero Section */}
-        <div className="relative py-24 overflow-hidden">
+        <div className="relative py-12 overflow-hidden">
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-background" />
           </div>
-          <PageContainer className="relative z-10 space-y-8 text-center max-w-[1140px]">
+          <PageContainer className="relative z-10 space-y-4 text-center max-w-[1140px]">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
@@ -229,7 +229,7 @@ export default function AboutPage() {
         </div>
 
         {/* Content Sections */}
-        <PageContainer className="py-8 space-y-16 max-w-[1140px]">
+        <PageContainer className="py-4 space-y-12 max-w-[1140px]">
           {/* Join Us Section */}
           <div className="max-w-md mx-auto">
             <JoinUsCard showHeader={false} />
