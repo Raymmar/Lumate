@@ -11,6 +11,14 @@ interface FileUploadProps {
   className?: string;
 }
 
+function getImageUrl(filename: string): string {
+  if (!filename) return '';
+  if (filename.startsWith('http')) {
+    return filename;
+  }
+  return `/api/storage/${encodeURIComponent(filename)}`;
+}
+
 export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploadProps) {
   const [preview, setPreview] = useState<string>(defaultValue || "");
   const [isUploading, setIsUploading] = useState(false);
@@ -37,35 +45,28 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
       const formData = new FormData();
       formData.append('file', file);
 
-      console.log('[FileUpload] Starting upload:', {
-        name: file.name,
-        type: file.type,
-        size: file.size
-      });
-
       const response = await fetch('/api/storage/upload', {
         method: 'POST',
         body: formData
       });
 
       const data = await response.json();
-      console.log('[FileUpload] Server response:', data);
 
-      if (!data.ok || !data.url) {
-        throw new Error(data.error || 'Upload failed');
+      if (!response.ok) {
+        throw new Error(data.message || 'Upload failed');
       }
 
-      setPreview(data.url);
-      onUpload(data.url);
+      const imageUrl = getImageUrl(data.url);
+      setPreview(imageUrl);
+      onUpload(imageUrl);
 
       toast({
         title: "Success",
         description: "Image uploaded successfully"
       });
     } catch (error) {
-      console.error('[FileUpload] Error:', error);
+      console.error('Upload error:', error);
 
-      // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
