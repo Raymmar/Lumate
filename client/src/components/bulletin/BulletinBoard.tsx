@@ -18,7 +18,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
     queryKey: ["/api/public/posts"],
   });
 
-  const pinnedPosts = postsData?.posts.filter(post => post.isPinned).sort((a, b) => 
+  const pinnedPosts = postsData?.posts.filter(post => post.isPinned).sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   ) || [];
 
@@ -56,7 +56,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
       {/* Background image */}
-      <img 
+      <img
         src={backgroundImage}
         alt=""
         className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
@@ -77,7 +77,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setCurrentIndex((current) => 
+              setCurrentIndex((current) =>
                 current === 0 ? pinnedPosts.length - 1 : current - 1
               );
             }}
@@ -88,7 +88,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setCurrentIndex((current) => 
+              setCurrentIndex((current) =>
                 (current + 1) % pinnedPosts.length
               );
             }}
@@ -99,7 +99,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         </>
       )}
 
-      <CardContent 
+      <CardContent
         className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer z-10"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
@@ -113,7 +113,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
             {currentPost.summary}
           </p>
         )}
-        <Button 
+        <Button
           className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
@@ -124,7 +124,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         </Button>
 
         {pinnedPosts.length > 1 && (
-          <div 
+          <div
             className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30"
             onClick={(e) => e.stopPropagation()}
           >
@@ -262,8 +262,8 @@ function JoinUsSection() {
         {isSubmitted ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Thanks for joining! We've sent an invite to your email for our next event. 
-              Once you receive it, you can claim your profile to track your attendance and 
+              Thanks for joining! We've sent an invite to your email for our next event.
+              Once you receive it, you can claim your profile to track your attendance and
               stay connected with the community.
             </p>
             <p className="text-sm text-muted-foreground">
@@ -273,16 +273,16 @@ function JoinUsSection() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="flex gap-2">
-              <Input 
-                placeholder="Email" 
-                type="email" 
+              <Input
+                placeholder="Email"
+                type="email"
                 className="flex-1"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading || isEventLoading || !featuredEvent}
               />
-              <Button 
+              <Button
                 className="bg-primary hover:bg-primary/90"
                 type="submit"
                 disabled={isLoading || isEventLoading || !featuredEvent}
@@ -354,14 +354,14 @@ export function BulletinBoard() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-4 grid-cols-2">
         <LinksSection />
         <JoinUsSection />
       </div>
 
       {/* Stats Section */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3">
         <StatCard
           title="Total Events"
           value={statsData?.events || 0}
