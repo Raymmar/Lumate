@@ -384,25 +384,25 @@ export function BulletinBoard() {
       {/* Stats Grid */}
       <div className="grid gap-3 md:grid-cols-3">
         <StatCard
-          title="Events Hosted"
+          title="Events"
           value={statsData?.events || 0}
           icon={Calendar}
           isLoading={isLoading}
           description="Since August 2023"
         />
         <StatCard
-          title="Total Attendees"
+          title="Tickets"
           value={statsData?.totalAttendees || 0}
           icon={Users}
           isLoading={isLoading}
-          description="Total event attendance count"
+          description="Total event attendance"
         />
         <StatCard
-          title="Unique Attendees"
+          title="Subscribers"
           value={statsData?.uniqueAttendees || 0}
           icon={Users}
           isLoading={isLoading}
-          description="Individual event attendees"
+          description="Involved & active members"
         />
       </div>
 
