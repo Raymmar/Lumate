@@ -81,9 +81,9 @@ export function PeopleTable() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold tracking-tight">People</h2>
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">People</h1>
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
@@ -106,7 +106,7 @@ export function PeopleTable() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-4">
         <p className="text-sm text-muted-foreground">
           Showing {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
         </p>
