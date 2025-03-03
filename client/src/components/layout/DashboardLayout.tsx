@@ -37,7 +37,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Main content area */}
           <main className="flex-1 overflow-y-auto bg-muted/10">
-            <div className="p-6 min-h-[calc(100vh-56px)]">
+            <div className="p-4 min-h-[calc(100vh-56px)]">
               {children}
             </div>
           </main>
