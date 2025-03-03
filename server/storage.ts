@@ -19,18 +19,6 @@ import {
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
 import crypto from "crypto";
-import { Client } from '@replit/object-storage';
-
-function sanitizeFilename(filename: string): string {
-  const sanitized = filename
-    .toLowerCase()
-    .replace(/[^a-z0-9.]/g, '-')
-    .replace(/-+/g, '-');
-
-  const [name, ext] = sanitized.split('.');
-  const truncatedName = name.slice(0, 50);
-  return `${truncatedName}.${ext}`;
-}
 
 export interface IStorage {
   // Events
@@ -84,7 +72,6 @@ export interface IStorage {
     hasAttendees: boolean;
     lastSyncTime: string | null;
   }>;
-  getTotalAttendeesCount(): Promise<number>;
 
   // Posts and Tags
   getPosts(): Promise<Post[]>;
@@ -119,42 +106,9 @@ export interface IStorage {
   // Enhanced user methods
   getUserWithRoles(userId: number): Promise<(User & { roles: Role[], permissions: Permission[] }) | null>;
   hasPermission(userId: number, resource: string, action: string): Promise<boolean>;
-
-  // File management methods
-  uploadFile(bucket: string, filename: string, buffer: Buffer, contentType: string): Promise<void>;
-  getFileUrl(bucket: string, filename: string): Promise<string>;
-  createImage(image: InsertImage): Promise<Image>;
-  getImage(id: number): Promise<Image | undefined>;
-  getImages(): Promise<Image[]>;
-}
-
-interface Image {
-  id: number;
-  filename: string;
-  url: string;
-  contentType: string;
-  size: number;
-}
-
-interface InsertImage {
-  filename: string;
-  url: string;
-  contentType: string;
-  size: number;
 }
 
 export class PostgresStorage implements IStorage {
-  client: Client;
-  private images: Map<number, Image>;
-  private currentId: number;
-
-  constructor() {
-    this.images = new Map();
-    this.currentId = 1;
-    this.client = new Client();
-    console.log('[Storage] Initialized with Object Storage client');
-  }
-
   async getEvents(): Promise<Event[]> {
     console.log('Fetching all events from database...');
     const result = await db.select().from(events);
@@ -171,6 +125,7 @@ export class PostgresStorage implements IStorage {
   async insertEvent(event: InsertEvent): Promise<Event> {
     console.log('Upserting event into database:', event.api_id);
     
+    // Create a raw SQL query for inserting with proper JSON handling
     const query = sql`
       INSERT INTO events (
         api_id, title, description, start_time, end_time, 
@@ -284,18 +239,22 @@ export class PostgresStorage implements IStorage {
     console.log('Clearing people table while preserving user relationships...');
     try {
       await db.transaction(async (tx) => {
+        // Get all users' emails to preserve relationships
         const userEmails = await tx
           .select({ email: users.email })
           .from(users);
         
         console.log(`Found ${userEmails.length} user emails to preserve`);
         
+        // First set person_id to NULL for all users to avoid constraint violations
         await tx.execute(sql`UPDATE users SET person_id = NULL`);
         console.log('Temporarily unlinked users from people records');
         
+        // Now safe to clear people table
         await tx.delete(people);
         console.log('Cleared people table');
         
+        // Reset the sequence
         await tx.execute(sql`ALTER SEQUENCE people_id_seq RESTART WITH 1`);
         console.log('Reset people table ID sequence');
         
@@ -405,6 +364,7 @@ export class PostgresStorage implements IStorage {
         return null;
       }
 
+      // Extract the person data and admin status
       const person = result[0];
       return {
         ...person,
@@ -419,6 +379,7 @@ export class PostgresStorage implements IStorage {
     try {
       console.log('Creating new user with email:', userData.email);
       
+      // First get the person by email to ensure we have the latest data
       const person = await this.getPersonByEmail(userData.email);
       
       if (!person) {
@@ -480,6 +441,7 @@ export class PostgresStorage implements IStorage {
       const user = await this.getUserById(userId);
       if (!user) return null;
       
+      // Get the person by email instead of ID
       const person = await this.getPersonByEmail(user.email);
       if (!person) return null;
       
@@ -519,8 +481,10 @@ export class PostgresStorage implements IStorage {
   async createVerificationToken(email: string): Promise<VerificationToken> {
     try {
       console.log('Creating verification token for email:', email);
+      // Generate a secure random token
       const token = crypto.randomBytes(32).toString('hex');
       
+      // Set expiration to 24 hours from now
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 24);
       
@@ -562,6 +526,7 @@ export class PostgresStorage implements IStorage {
       const now = new Date();
       const expiresAt = new Date(verificationToken.expiresAt);
       
+      // Check if token is expired
       if (now > expiresAt) {
         await this.deleteVerificationToken(token);
         return null;
@@ -633,7 +598,7 @@ export class PostgresStorage implements IStorage {
     const count = Number(result[0].count);
     return count;
   }
-  
+
   async getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null> {
     try {
       const result = await db
@@ -651,7 +616,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async upsertRsvpStatus(status: InsertEventRsvpStatus): Promise<EventRsvpStatus> {
     try {
       const [result] = await db
@@ -672,7 +637,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async getAttendanceByEvent(eventApiId: string): Promise<Attendance[]> {
     try {
       const result = await db
@@ -686,7 +651,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async upsertAttendance(data: InsertAttendance): Promise<Attendance> {
     try {
       console.log('Attempting to upsert attendance record:', {
@@ -695,6 +660,7 @@ export class PostgresStorage implements IStorage {
         guestApiId: data.guestApiId
       });
 
+      // First, try to find matching user and person by email
       const [matchingUser] = await db
         .select()
         .from(users)
@@ -738,6 +704,7 @@ export class PostgresStorage implements IStorage {
         personId: result.personId
       });
 
+      // After successfully upserting attendance, update the person's stats
       if (result.personId) {
         await this.updatePersonStats(result.personId);
       }
@@ -748,7 +715,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  
+
   async getAttendanceByEmail(email: string): Promise<Attendance[]> {
     try {
       const result = await db
@@ -764,6 +731,7 @@ export class PostgresStorage implements IStorage {
   }
   async deleteAttendanceByEvent(eventApiId: string): Promise<void> {
     try {
+      // Modified to only delete records for the specific event
       await db
         .delete(attendance)
         .where(eq(attendance.eventApiId, eventApiId));
@@ -795,6 +763,7 @@ export class PostgresStorage implements IStorage {
   }
   async getRecentlyEndedEvents(): Promise<Event[]> {
     try {
+      // Find events that ended in the last hour and haven't been synced
       const oneHourAgo = new Date();
       oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
@@ -841,6 +810,7 @@ export class PostgresStorage implements IStorage {
   }
   async getEventAttendanceStatus(eventApiId: string): Promise<{ hasAttendees: boolean; lastSyncTime: string | null; }> {
     try {
+      // Check if there are any attendees for this event
       const result = await db
         .select({
           count: sql<number>`COUNT(*)`,
@@ -876,6 +846,7 @@ export class PostgresStorage implements IStorage {
 
   async updatePersonStats(personId: number): Promise<Person> {
     try {
+      // Get all attendance records for this person
       const attendanceRecords = await db
         .select({
           registeredAt: attendance.registeredAt
@@ -891,17 +862,20 @@ export class PostgresStorage implements IStorage {
         lastUpdated: new Date().toISOString()
       };
 
+      // Calculate average events per year if we have attendance
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
-        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); 
+        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); // Average year length
         if (yearsDiff > 0) {
           stats.averageEventsPerYear = stats.totalEventsAttended / yearsDiff;
         } else {
+          // If less than a year, project to annual rate
           stats.averageEventsPerYear = stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
         }
       }
 
+      // Update the person's stats
       const [updatedPerson] = await db
         .update(people)
         .set({ stats })
@@ -921,6 +895,7 @@ export class PostgresStorage implements IStorage {
 
   async getTopAttendees(limit: number = 10): Promise<Person[]> {
     try {
+      // Order by total events attended first, then by most recent event
       const result = await db
         .select()
         .from(people)
@@ -940,6 +915,7 @@ export class PostgresStorage implements IStorage {
 
   async getFeaturedEvent(): Promise<Event | null> {
     try {
+      // Get the most recent upcoming event
       const result = await db
         .select()
         .from(events)
@@ -981,11 +957,12 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  // Add the new implementation
   async updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User> {
     try {
       console.log('Updating user admin status:', { userId, isAdmin });
 
-      const [updatedUser] = await db
+            const [updatedUser] = await db
         .update(users)
         .set({ 
           isAdmin,
@@ -1004,6 +981,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  // Role management methods
   async createRole(role: InsertRole): Promise<Role> {
     try {
       const [newRole] = await db
@@ -1054,6 +1032,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Permission management methods
   async createPermission(permission: InsertPermission): Promise<Permission> {
     try {
       const [newPermission] = await db
@@ -1102,6 +1081,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // User role management methods
   async assignRoleToUser(userId: number, roleId: number, grantedBy: number): Promise<UserRole> {
     try {
       const [userRole] = await db
@@ -1155,6 +1135,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Role permission management methods
   async assignPermissionToRole(roleId: number, permissionId: number, grantedBy: number): Promise<RolePermission> {
     try {
       const [rolePermission] = await db
@@ -1208,6 +1189,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Enhanced user methods
   async getUserWithRoles(userId: number): Promise<(User & { roles: Role[], permissions: Permission[] }) | null> {
     try {
       const user = await this.getUserById(userId);
@@ -1233,9 +1215,11 @@ export class PostgresStorage implements IStorage {
     try {
       const roles = await this.getUserRoles(userId);
 
+      // Check if user is admin (maintaining backward compatibility)
       const user = await this.getUserById(userId);
       if (user?.isAdmin) return true;
 
+      // Check role-based permissions
       for (const role of roles) {
         const permissions = await this.getRolePermissions(role.id);
         const hasPermission = permissions.some(
@@ -1300,111 +1284,6 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Failed to add tag to post:', error);
       throw error;
-    }
-  }
-  private images = new Map<number, Image>();
-  private currentId = 1;
-
-  async uploadFile(bucket: string, filename: string, buffer: Buffer, contentType: string): Promise<void> {
-    try {
-      const sanitizedFilename = sanitizeFilename(filename);
-      const filepath = `images/${sanitizedFilename}`;
-      console.log(`[Storage] Starting upload for file: ${filename}`);
-      console.log(`[Storage] Sanitized filepath: ${filepath}`);
-      console.log(`[Storage] File size: ${buffer.length} bytes`);
-      console.log(`[Storage] Content type: ${contentType}`);
-
-      const { ok, error } = await this.client.uploadFromBytes(filepath, buffer);
-
-      if (!ok) {
-        console.error('[Storage] Upload failed:', error);
-        throw new Error(`Failed to upload file: ${error}`);
-      }
-
-      console.log(`[Storage] Upload successful for file: ${filepath}`);
-    } catch (error) {
-      console.error('[Storage] Upload error:', error);
-      throw error;
-    }
-  }
-
-  async getFileUrl(bucket: string, filename: string): Promise<string> {
-    try {
-      console.log(`[Storage] Getting URL for file: ${filename}`);
-      const sanitizedFilename = sanitizeFilename(filename);
-      const filepath = `images/${sanitizedFilename}`;
-
-      const url = `/api/storage/${encodeURIComponent(filepath)}`;
-      console.log(`[Storage] Generated URL: ${url}`);
-      return url;
-    } catch (error) {
-      console.error('[Storage] Error getting URL:', error);
-      throw error;
-    }
-  }
-
-  async createImage(insertImage: InsertImage): Promise<Image> {
-    try {
-      console.log('[Storage] Creating image record:', insertImage);
-      const id = this.currentId++;
-      const image: Image = { 
-        id, 
-        filename: `images/${sanitizeFilename(insertImage.filename)}`,
-        url: insertImage.url,
-        contentType: insertImage.contentType,
-        size: insertImage.size
-      };
-      this.images.set(id, image);
-      console.log('[Storage] Image record created:', image);
-      return image;
-    } catch (error) {
-      console.error('[Storage] Error creating image record:', error);
-      throw error;
-    }
-  }
-
-  async getImage(id: number): Promise<Image | undefined> {
-    return this.images.get(id);
-  }
-
-  async getImages(): Promise<Image[]> {
-    try {
-      console.log('[Storage] Fetching all images');
-      const { ok, value: objects, error } = await this.client.list();
-
-      if (!ok) {
-        console.error('[Storage] Error listing objects:', error);
-        return [];
-      }
-
-      console.log('[Storage] Objects in storage:', objects);
-
-      const images = objects.map((obj, index) => {
-        const filename = obj.name;
-        const url = `/api/storage/${encodeURIComponent(filename)}`;
-        const contentType = filename.toLowerCase().endsWith('.png') 
-          ? 'image/png' 
-          : 'image/jpeg';
-
-        if (!this.images.has(index + 1)) {
-          const image: Image = {
-            id: index + 1,
-            filename,
-            url,
-            contentType,
-            size: 0
-          };
-          this.images.set(index + 1, image);
-        }
-
-        return this.images.get(index + 1)!;
-      });
-
-      console.log(`[Storage] Returning ${images.length} images`);
-      return images;
-    } catch (error) {
-      console.error('[Storage] Error fetching images:', error);
-      return [];
     }
   }
 }
