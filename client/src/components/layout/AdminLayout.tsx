@@ -6,9 +6,10 @@ import { ReactNode } from "react";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
+  title?: ReactNode;
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children, title }: AdminLayoutProps) {
   return (
     <AdminGuard>
       <div className="min-h-screen bg-background">
@@ -31,6 +32,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             {/* Main content area */}
             <div className="flex-1 min-h-[calc(100vh-57px)]">
               <div className="p-4">
+                {title && <div className="mb-4">{title}</div>}
                 {children}
               </div>
             </div>
