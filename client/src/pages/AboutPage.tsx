@@ -287,10 +287,10 @@ export default function AboutPage() {
             </p>
           </div>
 
+          <TestimonialsSection />
           <TimelineSection />
           <BoardMembersSection />
           <FoundingMembersSection />
-          <TestimonialsSection />
         </PageContainer>
       </div>
     </div>
