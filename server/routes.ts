@@ -742,17 +742,25 @@ export async function registerRoutes(app: Express) {
           progress: 5 
         });
 
-        // Clear events first
-        await db.execute(sql`TRUNCATE TABLE events RESTART IDENTITY CASCADE`);
-
-        sendSSEUpdate(res, { 
-          type: 'status', 
-          message: 'Clearing people table (preserving user relationships)...',
-          progress: 10 
-        });
-
-        // Clear people table but preserve attendance relationships
+        // Modify foreign key constraints and clear tables
         await db.execute(sql`
+          -- Temporarily modify foreign key constraints
+          ALTER TABLE users 
+          DROP CONSTRAINT users_person_id_fkey,
+          ADD CONSTRAINT users_person_id_fkey 
+          FOREIGN KEY (person_id) REFERENCES people(id) 
+          ON DELETE SET NULL;
+
+          ALTER TABLE attendance 
+          DROP CONSTRAINT attendance_person_id_fkey,
+          ADD CONSTRAINT attendance_person_id_fkey 
+          FOREIGN KEY (person_id) REFERENCES people(id) 
+          ON DELETE SET NULL;
+
+          -- Clear tables while preserving relationships
+          TRUNCATE TABLE events RESTART IDENTITY CASCADE;
+          UPDATE users SET person_id = NULL;
+          UPDATE attendance SET person_id = NULL;
           DELETE FROM people;
           ALTER SEQUENCE people_id_seq RESTART WITH 1;
         `);

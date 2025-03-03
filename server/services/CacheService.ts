@@ -182,18 +182,27 @@ export class CacheService extends EventEmitter {
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        this.logSync(`API Request attempt ${attempt}/${this.MAX_RETRIES} for ${endpoint}`, params);
+        this.logSync(`API Request attempt ${attempt}/${this.MAX_RETRIES} for ${endpoint}`, {
+          params,
+          attempt
+        });
+
         const response = await lumaApiRequest(endpoint, params);
-        this.logSync(`API Response for ${endpoint}`, {
-          success: true,
+
+        this.logSync(`API Response success for ${endpoint}`, {
           hasEntries: response?.entries?.length > 0,
           entriesCount: response?.entries?.length,
           hasMore: response?.has_more,
           nextCursor: response?.next_cursor
         });
+
         return response;
       } catch (error) {
-        this.logSync(`Attempt ${attempt} failed for ${endpoint}:`, error);
+        this.logSync(`API Request failed for ${endpoint} (attempt ${attempt}/${this.MAX_RETRIES})`, {
+          error: error instanceof Error ? error.message : String(error),
+          params
+        });
+
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (attempt < this.MAX_RETRIES) {
@@ -208,8 +217,9 @@ export class CacheService extends EventEmitter {
   }
 
   private async fetchAllEvents(lastUpdateTime: Date): Promise<any[]> {
-    this.logSync('Starting fetch of events from Luma API...');
-    this.logSync('Using created_after:', lastUpdateTime.toISOString());
+    this.logSync('Starting fetch of events from Luma API...', {
+      lastUpdateTime: lastUpdateTime.toISOString()
+    });
 
     const allEvents: any[] = [];
     const seenEventIds = new Set<string>();
@@ -229,11 +239,12 @@ export class CacheService extends EventEmitter {
 
       try {
         pageCount++;
-        this.logSync(`Fetching events page ${pageCount} with params:`, params);
+        this.logSync(`Fetching events page ${pageCount}`, params);
+
         const response = await this.fetchWithRetry('calendar/list-events', params);
 
         if (!response || !Array.isArray(response.entries)) {
-          this.logSync('Invalid response format:', response);
+          this.logSync('Invalid API response format for events', response);
           throw new Error('Invalid API response format');
         }
 
@@ -256,7 +267,10 @@ export class CacheService extends EventEmitter {
         });
 
         allEvents.push(...uniqueEvents);
-        this.logSync(`Added ${uniqueEvents.length} unique events (Total: ${allEvents.length}, Page: ${pageCount})`);
+        this.logSync(`Added ${uniqueEvents.length} unique events`, {
+          total: allEvents.length,
+          page: pageCount
+        });
 
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
@@ -274,13 +288,18 @@ export class CacheService extends EventEmitter {
       }
     }
 
-    this.logSync(`Completed events fetch. Total unique events: ${allEvents.length} from ${pageCount} pages`);
+    this.logSync(`Completed events fetch`, {
+      totalUniqueEvents: allEvents.length,
+      totalPages: pageCount
+    });
+
     return allEvents;
   }
 
   private async fetchAllPeople(lastUpdateTime: Date): Promise<any[]> {
-    this.logSync('Starting fetch of people from Luma API...');
-    this.logSync('Using created_after:', lastUpdateTime.toISOString());
+    this.logSync('Starting fetch of people from Luma API...', {
+      lastUpdateTime: lastUpdateTime.toISOString()
+    });
 
     const allPeople: any[] = [];
     const seenPeopleIds = new Set<string>();
@@ -288,7 +307,7 @@ export class CacheService extends EventEmitter {
     let nextCursor: string | null = null;
     let pageCount = 0;
 
-    while (hasMore || nextCursor) { //Fixed Pagination Logic
+    while (hasMore) {
       const params: Record<string, string> = {
         pagination_limit: String(this.BATCH_SIZE),
         created_after: lastUpdateTime.toISOString()
@@ -300,11 +319,12 @@ export class CacheService extends EventEmitter {
 
       try {
         pageCount++;
-        this.logSync(`Fetching people page ${pageCount} with params:`, params);
+        this.logSync(`Fetching people page ${pageCount}`, params);
+
         const response = await this.fetchWithRetry('calendar/list-people', params);
 
         if (!response || !Array.isArray(response.entries)) {
-          this.logSync('Invalid response format:', response);
+          this.logSync('Invalid API response format for people', response);
           throw new Error('Invalid API response format');
         }
 
@@ -326,19 +346,15 @@ export class CacheService extends EventEmitter {
         });
 
         allPeople.push(...uniquePeople);
-        this.logSync(`Added ${uniquePeople.length} unique people (Total: ${allPeople.length}, Page: ${pageCount})`);
-
-        // Check for more pages
-        this.logSync('Pagination metadata:', {
-          hasMore: response.has_more,
-          nextCursor: response.next_cursor,
-          currentTotal: allPeople.length
+        this.logSync(`Added ${uniquePeople.length} unique people`, {
+          total: allPeople.length,
+          page: pageCount
         });
 
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
 
-        if (!hasMore && !nextCursor) {
+        if (!hasMore || !nextCursor) {
           this.logSync(`No more people to fetch after ${pageCount} pages`);
           break;
         }
@@ -351,7 +367,11 @@ export class CacheService extends EventEmitter {
       }
     }
 
-    this.logSync(`Completed people fetch. Total unique people: ${allPeople.length} from ${pageCount} pages`);
+    this.logSync(`Completed people fetch`, {
+      totalUniquePeople: allPeople.length,
+      totalPages: pageCount
+    });
+
     return allPeople;
   }
 
