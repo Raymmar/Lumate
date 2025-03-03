@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { FileUpload } from "@/components/ui/file-upload";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost) => Promise<void>;
@@ -107,18 +108,30 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="featuredImage"
-            render={({ field: { value, ...field }}) => (
+            render={({ field: { value, onChange }}) => (
               <FormItem className="space-y-1">
-                <FormLabel className="text-sm text-muted-foreground">Featured Image URL</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    type="url" 
-                    value={value || ""} 
-                    placeholder="https://..." 
-                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </FormControl>
+                <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
+                <div className="space-y-2">
+                  <FileUpload onUploadComplete={onChange} />
+                  {value && (
+                    <div className="relative aspect-video w-full max-w-[300px] rounded-lg overflow-hidden">
+                      <img 
+                        src={value} 
+                        alt="Featured" 
+                        className="object-cover w-full h-full"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={() => onChange("")}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  )}
+                </div>
                 <FormMessage />
               </FormItem>
             )}
