@@ -1,11 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SiLinkedin, SiFacebook, SiInstagram, SiWhatsapp } from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
 import { NavBar } from "@/components/NavBar";
-import type { TimelineEvent, BoardMember, FoundingMember, Testimonial, Person } from "@shared/schema";
 
 function SocialLinks() {
   const socialLinks = [
@@ -34,31 +32,48 @@ function SocialLinks() {
   );
 }
 
-function TimelineSection({ events }: { events: Array<TimelineEvent & { imageUrl: string | null }> }) {
+function TimelineSection() {
+  const events = [
+    {
+      date: "May 2023",
+      title: "The First Drinky Thinky",
+      description: "Early in May of 2023 a few friends started talking about how to connect with folks from the broader tech community in Sarasota. A couple weeks later we organized 'Drinky Thinky'. A casual happy hour at State street. 6 people showed up.",
+      imageUrl: "https://placehold.co/600x400"
+    },
+    {
+      date: "August 2023",
+      title: "Growth and Momentum",
+      description: "Our next event drew 12 attendees. Then 35. Then 65. Word was spreading across the region and people were driving from as far as Tampa, Orlando, Naples and even Miami to attend our events.",
+      imageUrl: "https://placehold.co/600x400"
+    },
+    {
+      date: "January 2024",
+      title: "First Tech JAM",
+      description: "A few months later we hosted our first Tech JAM and 130 people showed up! Since then we have hosted 22 events with more than 2,000 attendees.",
+      imageUrl: "https://placehold.co/600x400"
+    }
+  ];
+
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-center">Our Journey</h2>
       <div className="space-y-12">
         {events.map((event, index) => (
           <div
-            key={event.id}
+            key={index}
             className={`flex gap-8 items-center ${
               index % 2 === 0 ? "flex-row" : "flex-row-reverse"
             }`}
           >
-            {event.imageUrl && (
-              <div className="flex-1">
-                <img
-                  src={event.imageUrl}
-                  alt={event.title}
-                  className="rounded-lg object-cover w-full aspect-video"
-                />
-              </div>
-            )}
+            <div className="flex-1">
+              <img
+                src={event.imageUrl}
+                alt={event.title}
+                className="rounded-lg object-cover w-full aspect-video"
+              />
+            </div>
             <div className="flex-1 space-y-4">
-              <time className="text-muted-foreground">
-                {new Date(event.date).toLocaleDateString()}
-              </time>
+              <time className="text-muted-foreground">{event.date}</time>
               <h3 className="text-2xl font-semibold">{event.title}</h3>
               <p className="text-muted-foreground">{event.description}</p>
             </div>
@@ -69,24 +84,28 @@ function TimelineSection({ events }: { events: Array<TimelineEvent & { imageUrl:
   );
 }
 
-function BoardMembersSection({ members }: { members: Array<BoardMember & { person: Person }> }) {
+function BoardMembersSection() {
+  const members = [
+    { name: "Pete Petersen", position: "President", avatar: "https://placehold.co/150" },
+    { name: "Raymmar Tirado", position: "Vice President", avatar: "https://placehold.co/150" },
+    { name: "Vlad Ljesevic", position: "Secretary", avatar: "https://placehold.co/150" },
+    { name: "Toli Marchuk", position: "Treasurer", avatar: "https://placehold.co/150" }
+  ];
+
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-center">Board Members</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
-          <Card key={member.id}>
+          <Card key={member.name}>
             <CardHeader className="text-center">
               <Avatar className="w-24 h-24 mx-auto mb-4">
-                {member.person.avatarUrl ? (
-                  <AvatarImage src={member.person.avatarUrl} alt={member.person.fullName || ""} />
-                ) : (
-                  <AvatarFallback>
-                    {member.person.fullName?.split(" ").map((n) => n[0]).join("") || "?"}
-                  </AvatarFallback>
-                )}
+                <AvatarImage src={member.avatar} alt={member.name} />
+                <AvatarFallback>
+                  {member.name.split(" ").map((n) => n[0]).join("")}
+                </AvatarFallback>
               </Avatar>
-              <h3 className="font-semibold text-lg">{member.person.fullName}</h3>
+              <h3 className="font-semibold text-lg">{member.name}</h3>
               <p className="text-muted-foreground">{member.position}</p>
             </CardHeader>
           </Card>
@@ -96,26 +115,28 @@ function BoardMembersSection({ members }: { members: Array<BoardMember & { perso
   );
 }
 
-function FoundingMembersSection({ members }: { members: Array<FoundingMember & { person: Person }> }) {
+function FoundingMembersSection() {
+  // Generate 22 placeholder founding members
+  const members = Array.from({ length: 22 }, (_, i) => ({
+    name: `Founding Member ${i + 1}`,
+    contributionArea: ["Technical", "Community", "Events", "Marketing"][i % 4],
+    avatar: "https://placehold.co/150"
+  }));
+
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-center">Founding Members</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {members.map((member) => (
-          <div key={member.id} className="text-center">
+          <div key={member.name} className="text-center">
             <Avatar className="w-16 h-16 mx-auto mb-2">
-              {member.person.avatarUrl ? (
-                <AvatarImage src={member.person.avatarUrl} alt={member.person.fullName || ""} />
-              ) : (
-                <AvatarFallback>
-                  {member.person.fullName?.split(" ").map((n) => n[0]).join("") || "?"}
-                </AvatarFallback>
-              )}
+              <AvatarImage src={member.avatar} alt={member.name} />
+              <AvatarFallback>
+                {member.name.split(" ").map((n) => n[0]).join("")}
+              </AvatarFallback>
             </Avatar>
-            <p className="font-medium text-sm">{member.person.fullName}</p>
-            {member.contributionArea && (
-              <p className="text-xs text-muted-foreground">{member.contributionArea}</p>
-            )}
+            <p className="font-medium text-sm">{member.name}</p>
+            <p className="text-xs text-muted-foreground">{member.contributionArea}</p>
           </div>
         ))}
       </div>
@@ -123,34 +144,50 @@ function FoundingMembersSection({ members }: { members: Array<FoundingMember & {
   );
 }
 
-function TestimonialsSection({ testimonials }: { testimonials: Array<Testimonial & { person: Person }> }) {
+function TestimonialsSection() {
+  const testimonials = [
+    {
+      name: "John Doe",
+      position: "Software Engineer",
+      company: "Tech Corp",
+      quote: "Sarasota.Tech events have been instrumental in connecting me with the local tech community. The networking opportunities are invaluable!",
+      avatar: "https://placehold.co/150"
+    },
+    {
+      name: "Jane Smith",
+      position: "Product Manager",
+      company: "StartupX",
+      quote: "The monthly meetups are a highlight! It's amazing to see how the tech scene in Sarasota has grown through these events.",
+      avatar: "https://placehold.co/150"
+    },
+    {
+      name: "Mike Johnson",
+      position: "CTO",
+      company: "Innovation Labs",
+      quote: "As a company leader, these events have helped us find great local talent and build meaningful partnerships.",
+      avatar: "https://placehold.co/150"
+    }
+  ];
+
   return (
     <div className="space-y-8">
       <h2 className="text-3xl font-bold text-center">What Our Members Say</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {testimonials.map((testimonial) => (
-          <Card key={testimonial.id}>
+          <Card key={testimonial.name}>
             <CardContent className="pt-6">
               <div className="flex items-start gap-4">
                 <Avatar className="w-10 h-10">
-                  {testimonial.person.avatarUrl ? (
-                    <AvatarImage
-                      src={testimonial.person.avatarUrl}
-                      alt={testimonial.person.fullName || ""}
-                    />
-                  ) : (
-                    <AvatarFallback>
-                      {testimonial.person.fullName?.split(" ").map((n) => n[0]).join("") || "?"}
-                    </AvatarFallback>
-                  )}
+                  <AvatarImage src={testimonial.avatar} alt={testimonial.name} />
+                  <AvatarFallback>
+                    {testimonial.name.split(" ").map((n) => n[0]).join("")}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{testimonial.person.fullName}</p>
-                  {(testimonial.position || testimonial.company) && (
-                    <p className="text-sm text-muted-foreground">
-                      {[testimonial.position, testimonial.company].filter(Boolean).join(" @ ")}
-                    </p>
-                  )}
+                  <p className="font-medium">{testimonial.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {testimonial.position} @ {testimonial.company}
+                  </p>
                 </div>
               </div>
               <blockquote className="mt-4 text-muted-foreground">"{testimonial.quote}"</blockquote>
@@ -163,24 +200,6 @@ function TestimonialsSection({ testimonials }: { testimonials: Array<Testimonial
 }
 
 export default function AboutPage() {
-  const { data: timelineData } = useQuery<{ events: TimelineEvent[] }>({
-    queryKey: ["/api/timeline-events"],
-  });
-
-  const { data: boardData } = useQuery<{ members: Array<BoardMember & { person: Person }> }>({
-    queryKey: ["/api/board-members"],
-  });
-
-  const { data: foundingData } = useQuery<{ members: Array<FoundingMember & { person: Person }> }>({
-    queryKey: ["/api/founding-members"],
-  });
-
-  const { data: testimonialsData } = useQuery<{
-    testimonials: Array<Testimonial & { person: Person }>;
-  }>({
-    queryKey: ["/api/testimonials"],
-  });
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Global Navigation */}
@@ -220,19 +239,10 @@ export default function AboutPage() {
             </p>
           </div>
 
-          {/* Timeline Section */}
-          {timelineData?.events && <TimelineSection events={timelineData.events} />}
-
-          {/* Board Members Section */}
-          {boardData?.members && <BoardMembersSection members={boardData.members} />}
-
-          {/* Founding Members Section */}
-          {foundingData?.members && <FoundingMembersSection members={foundingData.members} />}
-
-          {/* Testimonials Section */}
-          {testimonialsData?.testimonials && (
-            <TestimonialsSection testimonials={testimonialsData.testimonials} />
-          )}
+          <TimelineSection />
+          <BoardMembersSection />
+          <FoundingMembersSection />
+          <TestimonialsSection />
         </PageContainer>
       </div>
     </div>
