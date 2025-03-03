@@ -1774,78 +1774,80 @@ app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
 });
 
 // File Storage Routes
-  app.get("/api/storage/:filename", async (req, res) => {
-    try {
-      const filename = decodeURIComponent(req.params.filename);
+app.get("/api/storage/:filename", async (req, res) => {
+  try {
+    const filename = decodeURIComponent(req.params.filename);
 
-      // Get the file from storage
-      const { ok, value: file, error } = await storageClient.get(filename);
-      if (!ok || !file) {
-        console.error(`Failed to get file ${filename}:`, error);
-        return res.status(404).json({ error: "File not found" });
-      }
-
-      // Get metadata to set content type
-      const { ok: metaOk, value: metadata } = await storageClient.getMeta(filename);
-      const contentType = metaOk && metadata ? metadata['content-type'] : 'application/octet-stream';
-
-      // Set headers
-      res.setHeader('Content-Type', contentType);
-
-      // If file is a Buffer, send it directly
-      if (Buffer.isBuffer(file)) {
-        return res.send(file);
-      }
-
-      // If file is a stream, pipe it to response
-      if (file instanceof Stream) {
-        return file.pipe(res);
-      }
-
-      // For other cases, try to send the file directly
-      res.send(file);
-    } catch (error) {
-      console.error('Error serving file:', error);
-      res.status(500).json({ error: "Failed to serve file" });
+    // Get file metadata first to check if file exists and get content type
+    const { metadata, error: metaError } = await storageClient.getMetadata(filename);
+    if (metaError) {
+      console.error(`Failed to get metadata for file ${filename}:`, metaError);
+      return res.status(404).json({ error: "File not found" });
     }
-  });
 
-  app.get("/api/storage/files", async (req, res) => {
-    try {
-      // Check if user is authenticated and admin
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const { ok, value: files, error } = await storageClient.list({ prefix: 'uploads/' });
-      if (!ok || !files) {
-        throw new Error(`Failed to list files: ${error}`);
-      }
-
-      // Get metadata for each file
-      const filesWithMetadata = await Promise.all(files.map(async (file) => {
-        const { ok: metaOk, value: metadata } = await storageClient.getMeta(file.key);
-        return {
-          name: metaOk && metadata ? metadata['original-name'] || file.key : file.key,          url: `/api/storage/${encodeURIComponent(file.key)}`,
-          type: metaOk && metadata ? metadata['content-type'] || 'application/octet-stream' : 'application/octet-stream',
-          size: metaOk && metadata ? parseInt(metadata['size'] || '0', 10) : 0,
-          createdAt: metaOk && metadata ? new Date(metadata['created-at'] || Date.now()) : new Date(Date.now())
-        };
-      }));
-
-      res.json(filesWithMetadata);
-    } catch (error) {
-      console.error('Failed to list files:', error);
-      res.status(500).json({ error: "Failed to list files" });
+    // Get the file content
+    const { data, error } = await storageClient.get(filename);
+    if (error || !data) {
+      console.error(`Failed to get file ${filename}:`, error);
+      return res.status(404).json({ error: "File not found" });
     }
-  });
 
-  return createServer(app);
+    // Set content type from metadata
+    const contentType = metadata['content-type'] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+
+    // Send the file
+    if (Buffer.isBuffer(data)) {
+      return res.send(data);
+    } else if (data instanceof Stream) {
+      return data.pipe(res);
+    }
+
+    res.send(data);
+  } catch (error) {
+    console.error('Error serving file:', error);
+    res.status(500).json({ error: "Failed to serve file" });
+  }
+});
+
+app.get("/api/storage/files", async (req, res) => {
+  try {
+    // Check if user is authenticated and admin
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const { files, error } = await storageClient.list();
+    if (error || !files) {
+      throw new Error(`Failed to list files: ${error}`);
+    }
+
+    // Filter for uploads directory and get metadata for each file
+    const uploadFiles = files.filter(file => file.name.startsWith('uploads/'));
+    const filesWithMetadata = await Promise.all(uploadFiles.map(async (file) => {
+      const { metadata } = await storageClient.getMetadata(file.name);
+      return {
+        name: metadata?.['original-name'] || file.name,
+        url: `/api/storage/${encodeURIComponent(file.name)}`,
+        type: metadata?.['content-type'] || 'application/octet-stream',
+        size: metadata ? parseInt(metadata['size'] || '0', 10) : 0,
+        createdAt: metadata?.['created-at'] ? new Date(metadata['created-at']) : new Date()
+      };
+    }));
+
+    res.json(filesWithMetadata);
+  } catch (error) {
+    console.error('Failed to list files:', error);
+    res.status(500).json({ error: "Failed to list files" });
+  }
+});
+
+return createServer(app);
 }
 
 declare module 'express-session' {

@@ -18,14 +18,15 @@ export async function uploadFile(file: File): Promise<StorageFile> {
   const buffer = Buffer.from(await file.arrayBuffer());
   const filename = `uploads/${Date.now()}-${file.name}`;
 
-  const { ok, error } = await client.upload(filename, buffer, {
+  // Use writeFile instead of upload
+  const { error } = await client.writeFile(filename, buffer, {
     'content-type': file.type,
     'original-name': file.name,
     'size': file.size.toString(),
     'created-at': new Date().toISOString()
   });
 
-  if (!ok) {
+  if (error) {
     throw new Error(`Failed to upload file: ${error}`);
   }
 
@@ -47,8 +48,8 @@ export async function deleteFile(url: string): Promise<void> {
       ? decodeURIComponent(url.split('/api/storage/')[1])
       : url;
 
-    const { ok, error } = await client.delete(filename);
-    if (!ok) {
+    const { error } = await client.deleteFile(filename);
+    if (error) {
       throw new Error(`Failed to delete file: ${error}`);
     }
   } catch (error) {
@@ -61,8 +62,8 @@ export async function deleteFile(url: string): Promise<void> {
  * Gets a file's metadata from storage
  */
 export async function getFileMetadata(filename: string): Promise<Record<string, string>> {
-  const { ok, value: metadata, error } = await client.getMeta(filename);
-  if (!ok || !metadata) {
+  const { metadata, error } = await client.getMetadata(filename);
+  if (error || !metadata) {
     throw new Error(`Failed to get file metadata: ${error}`);
   }
   return metadata;
@@ -72,16 +73,16 @@ export async function getFileMetadata(filename: string): Promise<Record<string, 
  * Lists all files in storage
  */
 export async function listFiles(): Promise<StorageFile[]> {
-  const { ok, value: files, error } = await client.list({ prefix: 'uploads/' });
-  if (!ok || !files) {
+  const { files, error } = await client.listFiles({ prefix: 'uploads/' });
+  if (error || !files) {
     throw new Error(`Failed to list files: ${error}`);
   }
 
   return Promise.all(files.map(async (file) => {
-    const metadata = await getFileMetadata(file.key);
+    const metadata = await getFileMetadata(file.name);
     return {
-      name: metadata['original-name'] || file.key,
-      url: `/api/storage/${encodeURIComponent(file.key)}`,
+      name: metadata['original-name'] || file.name,
+      url: `/api/storage/${encodeURIComponent(file.name)}`,
       type: metadata['content-type'] || 'application/octet-stream',
       size: parseInt(metadata['size'] || '0', 10),
       createdAt: new Date(metadata['created-at'] || Date.now())
