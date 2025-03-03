@@ -170,19 +170,19 @@ function LinksSection() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          <Link href="/about">
+        <div className="flex flex-col gap-4">
+          <Link href="/about" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
               About Sarasota Tech
             </Button>
           </Link>
-          <a href="https://lu.ma/sarasota.tech" target="_blank" rel="noopener noreferrer">
+          <a href="https://lu.ma/sarasota.tech" target="_blank" rel="noopener noreferrer" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
               Event Calendar
               <ExternalLinkIcon className="h-4 w-4 ml-2" />
             </Button>
           </a>
-          <a href="https://github.com/sarasota-tech/resources" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/sarasota-tech/resources" target="_blank" rel="noopener noreferrer" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
               Resources
               <ExternalLinkIcon className="h-4 w-4 ml-2" />
