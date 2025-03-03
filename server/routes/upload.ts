@@ -29,15 +29,24 @@ router.post('/file', upload.single('file'), async (req, res) => {
       contentType: req.file.mimetype,
     });
 
+    // Log the request attempt
+    console.log('Attempting file upload to Replit service with content type:', req.file.mimetype);
+
     const response = await fetch('https://file-upload.replit.app/api/upload', {
       method: 'POST',
       headers: {
-        'X-API_KEY': process.env.REPLIT_FILE_UPLOAD_KEY || '',
+        'X-API-KEY': process.env.REPLIT_FILE_UPLOAD_KEY || '', // Fixed header name
       },
       body: formData,
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Upload service error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
       throw new Error(`Upload failed: ${response.statusText}`);
     }
 
@@ -49,6 +58,13 @@ router.post('/file', upload.single('file'), async (req, res) => {
 
     // Construct the full URL
     const fullUrl = `https://file-upload.replit.app${data.data.url}`;
+
+    // Log successful upload
+    console.log('File uploaded successfully:', {
+      originalName: req.file.originalname,
+      size: req.file.size,
+      url: fullUrl
+    });
 
     res.json({ url: fullUrl });
   } catch (error) {
