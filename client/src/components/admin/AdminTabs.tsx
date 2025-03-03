@@ -15,8 +15,9 @@ export function AdminTabs() {
   const currentTab = ADMIN_TABS.find(tab => tab.path === location)?.id || "overview";
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-grow">
+    <div className="flex flex-col min-h-screen">
+      {/* Navigation Section */}
+      <div className="flex-1">
         <Tabs value={currentTab} className="w-full" orientation="vertical">
           <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-2">
             {ADMIN_TABS.map((tab) => (
@@ -35,8 +36,8 @@ export function AdminTabs() {
         </Tabs>
       </div>
 
-      {/* Admin Menu with Reset & Sync button at the bottom */}
-      <div className="mt-auto">
+      {/* Reset & Sync Button fixed at the bottom */}
+      <div className="sticky bottom-0 w-full bg-background pb-4">
         <AdminMenu />
       </div>
     </div>
