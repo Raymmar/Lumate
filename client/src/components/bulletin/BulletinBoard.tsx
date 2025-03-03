@@ -12,7 +12,7 @@ import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post } from "@shared/schema";
 
-// Carousel Section
+// PinnedPostsCarousel component updates
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
@@ -75,17 +75,23 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
       {pinnedPosts.length > 1 && (
         <>
           <button
-            onClick={() => setCurrentIndex((current) => 
-              current === 0 ? pinnedPosts.length - 1 : current - 1
-            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex((current) => 
+                current === 0 ? pinnedPosts.length - 1 : current - 1
+              );
+            }}
             className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
           <button
-            onClick={() => setCurrentIndex((current) => 
-              (current + 1) % pinnedPosts.length
-            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex((current) => 
+                (current + 1) % pinnedPosts.length
+              );
+            }}
             className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
           >
             <ChevronRight className="h-6 w-6" />
@@ -105,6 +111,10 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         )}
         <Button 
           className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(currentPost);
+          }}
         >
           Read More
         </Button>
