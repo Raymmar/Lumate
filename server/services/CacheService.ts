@@ -13,6 +13,8 @@ export class CacheService extends EventEmitter {
   private readonly MAX_RETRIES = 3;  // Maximum number of retries for failed requests
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
   private lastSuccessfulSync: Date | null = null;
+  private readonly PEAK_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
+  private readonly OFF_PEAK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 
   private constructor() {
     super();
@@ -26,6 +28,41 @@ export class CacheService extends EventEmitter {
       this.instance = new CacheService();
     }
     return this.instance;
+  }
+
+  private isPeakHours(): boolean {
+    const now = new Date();
+    const estTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hour = estTime.getHours();
+    return hour >= 8 && hour < 12;
+  }
+
+  private getNextInterval(): number {
+    return this.isPeakHours() ? this.PEAK_INTERVAL : this.OFF_PEAK_INTERVAL;
+  }
+
+  private scheduleNextSync() {
+    const nextInterval = this.getNextInterval();
+    const isPeak = this.isPeakHours();
+
+    this.logSync(`Scheduling next sync - ${isPeak ? 'Peak hours' : 'Off-peak hours'}`, {
+      nextSyncIn: `${nextInterval / 1000 / 60} minutes`,
+      currentTime: new Date().toISOString(),
+      isPeakHours: isPeak
+    });
+
+    if (this.cacheInterval) {
+      clearInterval(this.cacheInterval);
+    }
+
+    this.cacheInterval = setInterval(() => {
+      this.logSync('Running scheduled cache update...');
+      this.updateCache().catch(error => {
+        this.logSync('Scheduled cache update failed:', error);
+      });
+      // Reschedule for next interval in case peak hours changed
+      this.scheduleNextSync();
+    }, nextInterval);
   }
 
   private emitProgress(message: string, progress: number) {
@@ -513,20 +550,13 @@ export class CacheService extends EventEmitter {
   }
 
   startCaching() {
-    const FOUR_HOURS = 4 * 60 * 60 * 1000;
-    this.cacheInterval = setInterval(() => {
-      this.logSync('Running scheduled cache update...');
-      this.updateCache().catch(error => {
-        this.logSync('Scheduled cache update failed:', error);
-      });
-    }, FOUR_HOURS);
-
     this.logSync('Running initial cache update...');
     this.updateCache().catch(error => {
       this.logSync('Initial cache update failed:', error);
     });
 
-    this.logSync(`Cache refresh scheduled to run every ${FOUR_HOURS / 1000 / 60 / 60} hours`);
+    // Schedule first sync
+    this.scheduleNextSync();
   }
 
   stopCaching() {
