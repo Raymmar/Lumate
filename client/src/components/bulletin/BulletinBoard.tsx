@@ -47,16 +47,21 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   }
 
   const currentPost = pinnedPosts[currentIndex];
+  const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
 
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
       <div 
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-500"
+        className="absolute inset-0 transition-transform duration-500"
         style={{ 
-          backgroundImage: `url('${currentPost.featuredImage || 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070'}')`,
+          backgroundImage: `url('${currentPost.featuredImage || fallbackImage}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          transform: 'scale(1.02)', // Slight scale to prevent white edges during transition
         }}
       />
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
 
       {pinnedPosts.length > 1 && (
         <>
@@ -64,7 +69,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
             onClick={() => setCurrentIndex((current) => 
               current === 0 ? pinnedPosts.length - 1 : current - 1
             )}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
@@ -72,7 +77,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
             onClick={() => setCurrentIndex((current) => 
               (current + 1) % pinnedPosts.length
             )}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
           >
             <ChevronRight className="h-6 w-6" />
           </button>
