@@ -15,11 +15,11 @@ export function AdminTabs() {
   const currentTab = ADMIN_TABS.find(tab => tab.path === location)?.id || "overview";
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Navigation Section */}
-      <div className="flex-1">
+    <div className="flex flex-col h-screen">
+      {/* Navigation Section - Scrollable if needed */}
+      <div className="flex-1 overflow-y-auto">
         <Tabs value={currentTab} className="w-full" orientation="vertical">
-          <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-2">
+          <TabsList className="flex flex-col h-auto w-full bg-transparent space-y-2 p-2">
             {ADMIN_TABS.map((tab) => (
               <TabsTrigger
                 key={tab.id}
@@ -37,7 +37,7 @@ export function AdminTabs() {
       </div>
 
       {/* Reset & Sync Button fixed at the bottom */}
-      <div className="sticky bottom-0 w-full bg-background pb-4">
+      <div className="w-full bg-background p-4">
         <AdminMenu />
       </div>
     </div>
