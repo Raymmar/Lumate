@@ -3,23 +3,18 @@ import type { Post } from "@shared/schema";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { SearchInput } from "./SearchInput";
-import { useDebounce } from "@/hooks/useDebounce";
 
 interface PostsTableProps {
   onSelect: (post: Post) => void;
+  searchQuery: string;
 }
 
-export function PostsTable({ onSelect }: PostsTableProps) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time for better responsiveness
-
+export function PostsTable({ onSelect, searchQuery }: PostsTableProps) {
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["/api/admin/posts", debouncedSearch],
+    queryKey: ["/api/admin/posts", searchQuery],
     queryFn: async () => {
       const response = await fetch(
-        `/api/admin/posts${debouncedSearch ? `?search=${encodeURIComponent(debouncedSearch)}` : ''}`
+        `/api/admin/posts${searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : ''}`
       );
       if (!response.ok) {
         throw new Error("Failed to fetch posts");
@@ -62,19 +57,17 @@ export function PostsTable({ onSelect }: PostsTableProps) {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="min-h-[400px] relative">
-        <div 
-          className={`transition-opacity duration-300 ${
-            isFetching ? 'opacity-50' : 'opacity-100'
-          }`}
-        >
-          <DataTable 
-            columns={columns}
-            data={data?.posts || []}
-            onRowClick={onSelect}
-          />
-        </div>
+    <div className="min-h-[400px] relative">
+      <div 
+        className={`transition-opacity duration-300 ${
+          isFetching ? 'opacity-50' : 'opacity-100'
+        }`}
+      >
+        <DataTable 
+          columns={columns}
+          data={data?.posts || []}
+          onRowClick={onSelect}
+        />
       </div>
     </div>
   );

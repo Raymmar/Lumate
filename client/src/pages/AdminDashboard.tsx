@@ -11,6 +11,7 @@ import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { SearchInput } from "@/components/admin/SearchInput";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function AdminDashboard() {
   const { data: statsData, isLoading } = useQuery({
@@ -29,10 +30,11 @@ export default function AdminDashboard() {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Fetch all posts for navigation
-  const { data: postsData } = useQuery<{ posts: Post[] }>({
-    queryKey: ["/api/admin/posts"]
+  const { data: postsData, isFetching } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/admin/posts", debouncedSearch]
   });
 
   const handleCreatePost = async (data: InsertPost) => {
@@ -129,9 +131,13 @@ export default function AdminDashboard() {
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="Search posts..."
+            isLoading={isFetching}
           />
         </div>
-        <PostsTable onSelect={setSelectedPost} />
+        <PostsTable 
+          onSelect={setSelectedPost}
+          searchQuery={debouncedSearch}
+        />
         {(selectedPost || isCreating) && (
           <PostPreview
             post={selectedPost || undefined}
