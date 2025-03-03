@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPostSchema, type InsertPost } from "@shared/schema";
+import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,8 +22,15 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Extend the schema to add required validations
+  const extendedPostSchema = insertPostSchema.extend({
+    title: z.string().min(1, "Title is required"),
+    summary: z.string().min(1, "Summary is required"),
+    body: z.string().min(1, "Content is required")
+  });
+
   const form = useForm<InsertPost>({
-    resolver: zodResolver(insertPostSchema),
+    resolver: zodResolver(extendedPostSchema),
     defaultValues: {
       title: "",
       summary: "",
