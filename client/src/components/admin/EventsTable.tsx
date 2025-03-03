@@ -36,14 +36,15 @@ export function EventsTable() {
   const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
   const itemsPerPage = 100;
 
-  const { data, isLoading, isFetching } = useQuery<EventsResponse>({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
         `/api/admin/events?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch events");
-      return response.json();
+      const data = await response.json();
+      return data as EventsResponse;
     },
     keepPreviousData: true,
     staleTime: 30000,
@@ -188,7 +189,7 @@ export function EventsTable() {
             <PaginationItem>
               <PaginationPrevious
                 onClick={handlePreviousPage}
-                className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
             <PaginationItem>
@@ -199,7 +200,7 @@ export function EventsTable() {
             <PaginationItem>
               <PaginationNext
                 onClick={handleNextPage}
-                className={currentPage >= totalPages ? 'pointer-events-none opacity-50' : ''}
+                className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
               />
             </PaginationItem>
           </PaginationContent>
