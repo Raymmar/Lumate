@@ -5,17 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Person } from '@/components/people/PeopleDirectory';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
@@ -66,7 +56,6 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 
 export default function PersonProfile({ personId }: PersonProfileProps) {
   const [email, setEmail] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -107,48 +96,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  const claimProfileMutation = useMutation({
-    mutationFn: async (email: string) => {
-      console.log('Submitting claim profile request:', { email, personId });
-      const response = await fetch('/api/auth/claim-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, personId }),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('Profile claim failed:', data);
-        throw new Error(data.error || 'Failed to claim profile');
-      }
-      return data;
-    },
-    onSuccess: (data) => {
-      console.log('Profile claim successful:', data);
-      toast({
-        title: "Verification Email Sent",
-        description: "Please check your email to verify your profile claim.",
-      });
-      setDialogOpen(false);
-      setEmail('');
-      queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/check-profile', personId] });
-    },
-    onError: (error: Error) => {
-      console.error('Profile claim failed:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleClaimProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Handling claim profile submission:', { email, personId });
-    claimProfileMutation.mutate(email);
-  };
 
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
@@ -223,8 +170,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </div>
 
           {!user && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
+            <ClaimProfileDialog
+              personId={personId}
+              trigger={
                 <Button
                   variant={isClaimed ? "outline" : "default"}
                   className={isClaimed ? "cursor-default" : ""}
@@ -232,36 +180,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 >
                   {isClaimed ? "Profile Claimed" : "Claim Profile"}
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Claim Your Profile</DialogTitle>
-                  <DialogDescription>
-                    Enter your email address to verify and claim this profile. We'll send you a verification link.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleClaimProfile} className="space-y-4">
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={claimProfileMutation.isPending}
-                    className="w-full"
-                  >
-                    {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
-                  </Button>
-                </form>
-              </DialogContent>
-            </Dialog>
+              }
+            />
           )}
         </div>
 

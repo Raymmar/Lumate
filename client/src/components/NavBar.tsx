@@ -12,6 +12,7 @@ import {
 import { User, Settings, LogOut, LogIn, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
+import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -43,6 +44,15 @@ export function NavBar() {
       <div className="ml-auto flex items-center space-x-4">
         {user && isAdmin && (
           <AdminBadge className="mr-2" asLink />
+        )}
+        {!user && (
+          <ClaimProfileDialog 
+            trigger={
+              <Button variant="outline" size="sm">
+                Claim Your Account
+              </Button>
+            }
+          />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
