@@ -101,7 +101,10 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
       <CardContent 
         className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer"
-        onClick={() => onSelect(currentPost)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(currentPost);
+        }}
       >
         <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
         {currentPost.summary && (
@@ -120,7 +123,10 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         </Button>
 
         {pinnedPosts.length > 1 && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div 
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
             {pinnedPosts.map((_, idx) => (
               <button
                 key={idx}
