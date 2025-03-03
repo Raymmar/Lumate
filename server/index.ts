@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
+import unsplashRoutes from './routes/unsplash';
 
 const app = express();
 app.use(express.json());
@@ -46,6 +47,9 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Mount Unsplash routes
+app.use('/api/unsplash', unsplashRoutes);
 
 // Request logging middleware with timing
 app.use((req, res, next) => {
