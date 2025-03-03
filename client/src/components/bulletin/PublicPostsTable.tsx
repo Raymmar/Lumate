@@ -31,6 +31,11 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
 
   console.log("PublicPostsTable state:", { isLoading, error, postsCount: data?.posts?.length });
 
+  // Sort posts by creation date (newest first)
+  const sortedPosts = data?.posts?.sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
   return (
     <Card className="border">
       <CardHeader className="pb-3">
@@ -55,13 +60,13 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
           <div className="text-sm text-muted-foreground">
             Failed to load posts. Please try again later.
           </div>
-        ) : !data?.posts?.length ? (
+        ) : !sortedPosts?.length ? (
           <div className="text-sm text-muted-foreground">
             No posts available at the moment.
           </div>
         ) : (
           <div className="space-y-4">
-            {data.posts.map((post) => (
+            {sortedPosts.map((post) => (
               <div 
                 key={post.id}
                 className="p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
