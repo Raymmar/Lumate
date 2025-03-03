@@ -32,9 +32,16 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
     }
 
     setIsUploading(true);
+
     try {
       const formData = new FormData();
       formData.append('file', file);
+
+      console.log('[FileUpload] Starting upload:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
 
       const response = await fetch('/api/storage/upload', {
         method: 'POST',
@@ -42,8 +49,9 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
       });
 
       const data = await response.json();
+      console.log('[FileUpload] Server response:', data);
 
-      if (!response.ok || !data.ok) {
+      if (!data.ok || !data.url) {
         throw new Error(data.error || 'Upload failed');
       }
 
@@ -55,17 +63,18 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
         description: "Image uploaded successfully"
       });
     } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error instanceof Error ? error.message : "Failed to upload image. Please try again.",
-        variant: "destructive"
-      });
+      console.error('[FileUpload] Error:', error);
 
-      // Reset the file input
+      // Clear the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive"
+      });
     } finally {
       setIsUploading(false);
     }

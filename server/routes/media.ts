@@ -5,21 +5,34 @@ import { storage } from '../storage';
 const router = Router();
 const upload = multer();
 
+// Health check endpoint
+router.get('/health', (req, res) => {
+  res.json({
+    ok: true,
+    service: 'media-service',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Upload endpoint
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ 
+      console.log('[MediaRoutes] No file provided in request');
+      return res.status(400).json({
         ok: false,
-        error: "No file provided" 
+        error: "No file provided"
       });
     }
 
-    console.log(`[MediaRoutes] Handling upload for file: ${req.file.originalname}`);
-    console.log(`[MediaRoutes] File size: ${req.file.size} bytes`);
-    console.log(`[MediaRoutes] File type: ${req.file.mimetype}`);
+    console.log('[MediaRoutes] Processing upload:', {
+      filename: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype
+    });
 
     try {
+      // Upload file to storage
       await storage.uploadFile(
         'default-bucket',
         req.file.originalname,
@@ -27,33 +40,33 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         req.file.mimetype
       );
 
+      // Get the file URL
       const url = await storage.getFileUrl('default-bucket', req.file.originalname);
 
-      // Create an image record
-      const image = await storage.createImage({
+      // Create image record
+      await storage.createImage({
         filename: req.file.originalname,
         url,
         contentType: req.file.mimetype,
         size: req.file.size
       });
 
-      console.log('[MediaRoutes] Upload successful, returning URL:', url);
-      res.json({ 
-        ok: true,
-        url 
-      });
+      const response = { ok: true, url };
+      console.log('[MediaRoutes] Upload successful:', response);
+      return res.json(response);
+
     } catch (error) {
-      console.error('[MediaRoutes] Upload failed:', error);
-      return res.status(400).json({ 
+      console.error('[MediaRoutes] Upload operation failed:', error);
+      return res.status(400).json({
         ok: false,
-        error: error instanceof Error ? error.message : 'Upload failed'
+        error: error instanceof Error ? error.message : 'Failed to upload file'
       });
     }
   } catch (error) {
-    console.error('[MediaRoutes] Error in upload route:', error);
-    res.status(500).json({ 
+    console.error('[MediaRoutes] Unexpected error:', error);
+    return res.status(500).json({
       ok: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
@@ -66,9 +79,9 @@ router.get('/:filename(*)', async (req, res) => {
 
     const result = await storage.client.downloadAsBytes(filename);
 
-    if (!result.ok || !result.value || result.value.length === 0) {
+    if (!result.ok || !result.value || !result.value.length) {
       console.log(`[MediaRoutes] Image not found: ${filename}`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         ok: false,
         error: 'Image not found'
       });
@@ -85,15 +98,14 @@ router.get('/:filename(*)', async (req, res) => {
         ? 'image/gif'
         : 'application/octet-stream';
 
-    // Set caching headers
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
-    res.send(result.value[0]);
+    return res.send(result.value[0]);
   } catch (error) {
     console.error('[MediaRoutes] Error serving image:', error);
-    res.status(500).json({ 
+    return res.status(500).json({
       ok: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error'
     });
   }
 });
