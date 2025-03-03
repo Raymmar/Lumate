@@ -182,7 +182,7 @@ export default function AboutPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Global Navigation */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
         <PageContainer>
@@ -190,48 +190,51 @@ export default function AboutPage() {
         </PageContainer>
       </div>
 
-      {/* Hero Section */}
-      <div className="relative py-24 overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-background" />
+      {/* Main Content */}
+      <div className="flex-1">
+        {/* Hero Section */}
+        <div className="relative py-24 overflow-hidden">
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-background" />
+          </div>
+          <PageContainer className="relative z-10 space-y-8 text-center">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
+              Welcome to Sarasota.Tech
+            </h1>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              We're on a mission to connect the local tech community and push Sarasota forward.
+            </p>
+            <SocialLinks />
+          </PageContainer>
         </div>
-        <PageContainer className="relative z-10 space-y-8 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
-            Welcome to Sarasota.Tech
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            We're on a mission to connect the local tech community and push Sarasota forward.
-          </p>
-          <SocialLinks />
+
+        {/* Content Sections */}
+        <PageContainer className="py-16 space-y-24">
+          {/* Monthly Meetup Section */}
+          <div className="text-center space-y-4">
+            <h2 className="text-3xl font-bold">3rd Thursday Meetups</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Join us every third Thursday of the month as we bounce around to different locations.
+              Sometimes we meet at a bar/restaurant, sometimes at a local business HQ. Either way,
+              it's always a blast!
+            </p>
+          </div>
+
+          {/* Timeline Section */}
+          {timelineData?.events && <TimelineSection events={timelineData.events} />}
+
+          {/* Board Members Section */}
+          {boardData?.members && <BoardMembersSection members={boardData.members} />}
+
+          {/* Founding Members Section */}
+          {foundingData?.members && <FoundingMembersSection members={foundingData.members} />}
+
+          {/* Testimonials Section */}
+          {testimonialsData?.testimonials && (
+            <TestimonialsSection testimonials={testimonialsData.testimonials} />
+          )}
         </PageContainer>
       </div>
-
-      {/* Content Sections */}
-      <PageContainer className="py-16 space-y-24">
-        {/* Monthly Meetup Section */}
-        <div className="text-center space-y-4">
-          <h2 className="text-3xl font-bold">3rd Thursday Meetups</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Join us every third Thursday of the month as we bounce around to different locations.
-            Sometimes we meet at a bar/restaurant, sometimes at a local business HQ. Either way,
-            it's always a blast!
-          </p>
-        </div>
-
-        {/* Timeline Section */}
-        {timelineData?.events && <TimelineSection events={timelineData.events} />}
-
-        {/* Board Members Section */}
-        {boardData?.members && <BoardMembersSection members={boardData.members} />}
-
-        {/* Founding Members Section */}
-        {foundingData?.members && <FoundingMembersSection members={foundingData.members} />}
-
-        {/* Testimonials Section */}
-        {testimonialsData?.testimonials && (
-          <TestimonialsSection testimonials={testimonialsData.testimonials} />
-        )}
-      </PageContainer>
     </div>
   );
 }
