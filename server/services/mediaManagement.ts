@@ -22,7 +22,7 @@ export class MediaManagementService {
     if (!this.bucketId) {
       throw new Error('Object Storage bucket ID not configured');
     }
-    this.client = new Client({ bucket: this.bucketId });
+    this.client = new Client({ bucketId: this.bucketId });
   }
 
   async uploadImage(
@@ -45,13 +45,12 @@ export class MediaManagementService {
       }
 
       // Upload to object storage
-      const { ok, error } = await this.client.uploadFromBytes(filename, buffer, {
-        ...metadata,
-        'content-type': `image/${ext === 'jpg' ? 'jpeg' : ext}`
-      });
-
-      if (!ok) {
-        throw new Error(error);
+      const uploadResult = await this.client.uploadFromBytes(filename, buffer);
+      if (!uploadResult.ok) {
+        return {
+          ok: false,
+          error: uploadResult.error?.message || 'Failed to upload image'
+        };
       }
 
       // Return the URL for the uploaded file
@@ -77,10 +76,13 @@ export class MediaManagementService {
           ? decodeURIComponent(url.split('/api/storage/')[1])
           : url;
 
-      const { ok, error } = await this.client.delete(filename);
-      
-      if (!ok) {
-        throw new Error(error);
+      const deleteResult = await this.client.delete(filename);
+
+      if (!deleteResult.ok) {
+        return {
+          ok: false,
+          error: deleteResult.error?.message || 'Failed to delete image'
+        };
       }
 
       return { ok: true };
@@ -95,13 +97,15 @@ export class MediaManagementService {
 
   async getImage(filename: string): Promise<Buffer | null> {
     try {
-      const { ok, value: data, error } = await this.client.downloadAsBytes(filename);
-      
-      if (!ok || !data || data.length === 0) {
-        throw new Error(error);
+      const result = await this.client.downloadAsBytes(filename);
+
+      if (!result.ok || !result.value || result.value.length === 0) {
+        console.error('Error getting image:', result.error);
+        return null;
       }
 
-      return data[0];
+      // IMPORTANT: Return the first element of the array as per documentation
+      return result.value[0];
     } catch (error) {
       console.error('Error getting image:', error);
       return null;

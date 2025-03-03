@@ -14,8 +14,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const result = await mediaManagement.uploadImage(
       req.file.buffer,
-      req.file.originalname,
-      { "content-type": req.file.mimetype }
+      req.file.originalname
     );
 
     if (!result.ok) {
