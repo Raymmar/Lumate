@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Calendar } from "lucide-react";
+import { Users, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -12,13 +12,6 @@ import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
-import { 
-  Carousel, 
-  CarouselContent, 
-  CarouselItem, 
-  CarouselNext, 
-  CarouselPrevious 
-} from "@/components/ui/carousel";
 
 // PinnedPostsCarousel component updates
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
@@ -30,28 +23,18 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   ) || [];
 
-  const [api, setApi] = useState<any>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
-    if (!api || pinnedPosts.length <= 1) return;
+    if (pinnedPosts.length <= 1) return;
 
     const interval = setInterval(() => {
-      api.scrollNext();
-    }, 10000);
+      setCurrentIndex((current) => (current + 1) % pinnedPosts.length);
+    }, 7000);
 
     return () => clearInterval(interval);
-  }, [api, pinnedPosts.length]);
-
-  // Update current index when slide changes
-  useEffect(() => {
-    if (!api) return;
-
-    api.on('select', () => {
-      setCurrentIndex(api.selectedScrollSnap());
-    });
-  }, [api]);
+  }, [pinnedPosts.length]);
 
   if (isLoading) {
     return (
@@ -65,64 +48,81 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
     return null;
   }
 
+  const currentPost = pinnedPosts[currentIndex];
   const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
+  const backgroundImage = currentPost.featuredImage || fallbackImage;
 
   return (
-    <Carousel
-      className="w-full relative"
-      opts={{
-        align: 'start',
-        loop: true,
-        skipSnaps: false,
-        duration: 500, // 500ms transition
-      }}
-      setApi={setApi}
-    >
-      <CarouselContent>
-        {pinnedPosts.map((post, index) => (
-          <CarouselItem key={post.id}>
-            <Card className="border relative overflow-hidden h-[300px] group cursor-pointer" onClick={() => onSelect(post)}>
-              <div className="absolute inset-0">
-                <img
-                  src={post.featuredImage || fallbackImage}
-                  alt=""
-                  className="absolute inset-0 w-full h-full object-cover"
-                  style={{ transform: 'scale(1.02)' }}
-                  onLoad={() => setImageLoaded(true)}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
-              </div>
+    <Card className="border relative overflow-hidden h-[300px] group">
+      {/* Background image */}
+      <img
+        src={backgroundImage}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
+        style={{ transform: 'scale(1.02)' }}
+        onLoad={() => setImageLoaded(true)}
+      />
 
-              {!imageLoaded && (
-                <div className="absolute inset-0 bg-muted animate-pulse" />
-              )}
+      {/* Loading state */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
 
-              <CardContent className="relative h-full flex flex-col justify-end p-6 text-white z-10">
-                <h3 className="text-2xl font-bold mb-2">{post.title}</h3>
-                {post.summary && (
-                  <p className="text-white/90 mb-4 line-clamp-2">
-                    {post.summary}
-                  </p>
-                )}
-                <Button
-                  className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelect(post);
-                  }}
-                >
-                  Read More
-                </Button>
-              </CardContent>
-            </Card>
-          </CarouselItem>
-        ))}
-      </CarouselContent>
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
 
       {pinnedPosts.length > 1 && (
         <>
-          <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2" />
-          <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2" />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex((current) =>
+                current === 0 ? pinnedPosts.length - 1 : current - 1
+              );
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex((current) =>
+                (current + 1) % pinnedPosts.length
+              );
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
+      )}
+
+      <CardContent
+        className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer z-10"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onSelect(currentPost);
+          }
+        }}
+      >
+        <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
+        {currentPost.summary && (
+          <p className="text-white/90 mb-4 line-clamp-2">
+            {currentPost.summary}
+          </p>
+        )}
+        <Button
+          className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(currentPost);
+          }}
+        >
+          Read More
+        </Button>
+
+        {pinnedPosts.length > 1 && (
           <div
             className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30"
             onClick={(e) => e.stopPropagation()}
@@ -132,7 +132,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
                 key={idx}
                 onClick={(e) => {
                   e.stopPropagation();
-                  api?.scrollTo(idx);
+                  setCurrentIndex(idx);
                 }}
                 className={`w-2 h-2 rounded-full transition-colors ${
                   idx === currentIndex ? 'bg-white' : 'bg-white/50'
@@ -140,9 +140,9 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
               />
             ))}
           </div>
-        </>
-      )}
-    </Carousel>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
