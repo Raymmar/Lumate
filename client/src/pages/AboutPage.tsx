@@ -153,7 +153,7 @@ function FoundingMembersSection() {
   return (
     <div className="space-y-12">
       <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
         {members.map((member) => (
           <div key={member.name} className="text-center">
             <Avatar className="w-16 h-16 mx-auto mb-2">
