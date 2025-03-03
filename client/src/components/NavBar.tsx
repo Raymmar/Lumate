@@ -20,105 +20,103 @@ export function NavBar() {
   const isAdminPage = location.startsWith("/admin");
 
   return (
-    <header className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-0">
-      <nav className="flex h-16 items-center pl-2 pr-4 max-w-[1440px] mx-auto border-b">
+    <nav className="flex h-16 items-center pl-2 pr-4 max-w-[1440px] mx-auto border-b">
+      <Link href="/">
+        <div className="flex items-center">
+          <img 
+            src="/256x256.png" 
+            alt="Luma Logo" 
+            className="h-14 w-14 object-contain"
+          />
+        </div>
+      </Link>
+      {isAdminPage && (
         <Link href="/">
-          <div className="flex items-center">
-            <img 
-              src="/256x256.png" 
-              alt="Luma Logo" 
-              className="h-14 w-14 object-contain"
-            />
-          </div>
+          <Button 
+            variant="secondary"
+            className="ml-4"
+          >
+            View Directory
+          </Button>
         </Link>
-        {isAdminPage && (
-          <Link href="/">
-            <Button 
-              variant="secondary"
-              className="ml-4"
-            >
-              View Directory
-            </Button>
-          </Link>
+      )}
+      <div className="ml-auto flex items-center space-x-4">
+        {user && isAdmin && (
+          <AdminBadge className="mr-2" asLink />
         )}
-        <div className="ml-auto flex items-center space-x-4">
-          {user && isAdmin && (
-            <AdminBadge className="mr-2" asLink />
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>
-                    {user ? (
-                      (user.displayName || user.email).charAt(0).toUpperCase()
-                    ) : (
-                      <User className="h-4 w-4 text-foreground" />
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
-              {user ? (
-                <>
-                  {isAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <span className="flex items-center">
-                          <Shield className="mr-2 h-4 w-4 text-foreground" />
-                          Admin Dashboard
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback>
+                  {user ? (
+                    (user.displayName || user.email).charAt(0).toUpperCase()
+                  ) : (
+                    <User className="h-4 w-4 text-foreground" />
                   )}
-                  {user.api_id && (
-                    <DropdownMenuItem asChild>
-                      <Link href={`/people/${user.api_id}`}>
-                        <span className="flex items-center">
-                          <User className="mr-2 h-4 w-4 text-foreground" />
-                          Profile
-                        </span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            {user ? (
+              <>
+                {isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">
+                    <Link href="/admin">
                       <span className="flex items-center">
-                        <Settings className="mr-2 h-4 w-4 text-foreground" />
-                        Settings
+                        <Shield className="mr-2 h-4 w-4 text-foreground" />
+                        Admin Dashboard
                       </span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onSelect={() => logoutMutation.mutate()}
-                    disabled={logoutMutation.isPending}
-                  >
-                    <span className="flex items-center">
-                      {logoutMutation.isPending ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin text-foreground" />
-                      ) : (
-                        <LogOut className="mr-2 h-4 w-4 text-foreground" />
-                      )}
-                      {logoutMutation.isPending ? "Logging out..." : "Log out"}
-                    </span>
+                )}
+                {user.api_id && (
+                  <DropdownMenuItem asChild>
+                    <Link href={`/people/${user.api_id}`}>
+                      <span className="flex items-center">
+                        <User className="mr-2 h-4 w-4 text-foreground" />
+                        Profile
+                      </span>
+                    </Link>
                   </DropdownMenuItem>
-                </>
-              ) : (
+                )}
                 <DropdownMenuItem asChild>
-                  <Link href="/login">
+                  <Link href="/settings">
                     <span className="flex items-center">
-                      <LogIn className="mr-2 h-4 w-4 text-foreground" />
-                      Log in
+                      <Settings className="mr-2 h-4 w-4 text-foreground" />
+                      Settings
                     </span>
                   </Link>
                 </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </nav>
-    </header>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onSelect={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  <span className="flex items-center">
+                    {logoutMutation.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin text-foreground" />
+                    ) : (
+                      <LogOut className="mr-2 h-4 w-4 text-foreground" />
+                    )}
+                    {logoutMutation.isPending ? "Logging out..." : "Log out"}
+                  </span>
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuItem asChild>
+                <Link href="/login">
+                  <span className="flex items-center">
+                    <LogIn className="mr-2 h-4 w-4 text-foreground" />
+                    Log in
+                  </span>
+                </Link>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </nav>
   );
 }

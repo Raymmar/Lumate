@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-muted/10">
       {/* Fixed header with full-width background */}
-      <div className="sticky top-0 w-full bg-background z-50 border-b">
+      <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <PageContainer>
           <NavBar />
         </PageContainer>
@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <PageContainer>
         <div className="flex">
           {/* Sidebar */}
-          <aside className="sticky top-[56px] h-[calc(100vh-56px)] w-[350px] border-r bg-background flex flex-col">
+          <aside className="sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background flex flex-col">
             <div className="flex-1 overflow-hidden flex flex-col">
               <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
                 <div className="flex-none">
@@ -37,7 +37,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Main content area */}
           <main className="flex-1 overflow-y-auto bg-muted/10">
-            <div className="p-4 min-h-[calc(100vh-56px)]">
+            <div className="p-4 min-h-[calc(100vh-57px)]">
               {children}
             </div>
           </main>
