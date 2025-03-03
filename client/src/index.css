@@ -19,7 +19,7 @@
   }
 
   .dark {
-    --background: 240 1% 15%; /* This is #262627 */
+    --background: 0 0% 13%; /* This is #222222 */
     --foreground: 0 0% 98%;
     --card: 0 0% 11%; /* This is #1D1D1D */
     --card-foreground: 0 0% 98%;
