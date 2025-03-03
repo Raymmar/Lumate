@@ -23,6 +23,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   ) || [];
 
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     if (pinnedPosts.length <= 1) return;
@@ -48,19 +49,27 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
   const currentPost = pinnedPosts[currentIndex];
   const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
+  const backgroundImage = currentPost.featuredImage || fallbackImage;
+
+  console.log("Current post image:", backgroundImage);
 
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
-      <div 
-        className="absolute inset-0 transition-transform duration-500"
-        style={{ 
-          backgroundImage: `url('${currentPost.featuredImage || fallbackImage}')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          transform: 'scale(1.02)', // Slight scale to prevent white edges during transition
-        }}
+      {/* Background image */}
+      <img 
+        src={backgroundImage}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
+        style={{ transform: 'scale(1.02)' }}
+        onLoad={() => setImageLoaded(true)}
       />
+
+      {/* Loading state */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
+
+      {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
 
       {pinnedPosts.length > 1 && (
