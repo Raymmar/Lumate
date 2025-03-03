@@ -1,130 +1,219 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { Renderer, Transform, Vec3, Color, Polyline } from 'ogl';
 
 interface CursorEffectProps {
   className?: string;
 }
 
+// Define interface for line object to fix TypeScript errors
+interface LineObject {
+  spring: number;
+  friction: number;
+  mouseVelocity: Vec3;
+  mouseOffset: Vec3;
+  points: Vec3[];
+  polyline: Polyline;
+}
+
 export function CursorEffect({ className }: CursorEffectProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [actualPosition, setActualPosition] = useState({ x: 0, y: 0 });
-  const [clicked, setClicked] = useState(false);
-  const [trail, setTrail] = useState<{ x: number; y: number; id: number }[]>([]);
-  const [lastUpdate, setLastUpdate] = useState(0);
-  const animationFrameRef = useRef<number>();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rendererRef = useRef<Renderer | null>(null);
+  const sceneRef = useRef<Transform | null>(null);
+  const linesRef = useRef<LineObject[]>([]);
+  const mouseRef = useRef(new Vec3());
 
   useEffect(() => {
-    const updatePosition = (e: MouseEvent) => {
-      const now = Date.now();
-      // Calculate position including scroll offset
-      const x = e.clientX + window.scrollX;
-      const y = e.clientY + window.scrollY;
+    if (!containerRef.current) return;
 
-      // Update the target position immediately
-      setActualPosition({ x, y });
+    // Initialize WebGL renderer
+    const renderer = new Renderer({
+      dpr: 2,
+      alpha: true,
+      stencil: false,
+      depth: false,
+      antialias: true,
+    });
+    rendererRef.current = renderer;
+    const gl = renderer.gl;
+    containerRef.current.appendChild(gl.canvas);
 
-      // Update trail with scroll-adjusted coordinates
-      if (now - lastUpdate > 40) { // Slightly increased delay for smoother trail
-        setTrail(prev => [
-          ...prev,
-          { x, y, id: now }
-        ].slice(-35)); // Reduced trail length slightly
-        setLastUpdate(now);
+    // Set clear color with transparency
+    gl.clearColor(0, 0, 0, 0);
+
+    // Create scene
+    const scene = new Transform();
+    sceneRef.current = scene;
+
+    // Custom vertex shader for smooth lines
+    const vertex = /* glsl */ `
+      precision highp float;
+      attribute vec3 position;
+      attribute vec3 next;
+      attribute vec3 prev;
+      attribute vec2 uv;
+      attribute float side;
+      uniform vec2 uResolution;
+      uniform float uDPR;
+      uniform float uThickness;
+
+      vec4 getPosition() {
+        vec4 current = vec4(position, 1);
+        vec2 aspect = vec2(uResolution.x / uResolution.y, 1);
+        vec2 nextScreen = next.xy * aspect;
+        vec2 prevScreen = prev.xy * aspect;
+
+        // Calculate the tangent direction
+        vec2 tangent = normalize(nextScreen - prevScreen);
+        // Rotate 90 degrees to get the normal
+        vec2 normal = vec2(-tangent.y, tangent.x);
+        normal /= aspect;
+
+        // Taper the line to be fatter in the middle
+        normal *= mix(1.0, 0.1, pow(abs(uv.y - 0.5) * 2.0, 2.0));
+
+        // When points are close, shrink the line
+        float dist = length(nextScreen - prevScreen);
+        normal *= smoothstep(0.0, 0.02, dist);
+
+        float pixelWidthRatio = 1.0 / (uResolution.y / uDPR);
+        float pixelWidth = current.w * pixelWidthRatio;
+        normal *= pixelWidth * uThickness;
+        current.xy -= normal * side;
+
+        return current;
       }
+
+      void main() {
+        gl_Position = getPosition();
+      }
+    `;
+
+    // Create lines with different properties
+    const colors = ['#FEA30E'];
+    colors.forEach((color) => {
+      const points: Vec3[] = Array.from({ length: 20 }, () => new Vec3());
+
+      const line: LineObject = {
+        spring: Math.random() * 0.02 + 0.05,
+        friction: Math.random() * 0.1 + 0.8,
+        mouseVelocity: new Vec3(),
+        mouseOffset: new Vec3(
+          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.02,
+          0
+        ),
+        points,
+        polyline: new Polyline(gl, {
+          points,
+          vertex,
+          uniforms: {
+            uColor: { value: new Color(color) },
+            uThickness: { value: Math.random() * 20 + 20 },
+          },
+        })
+      };
+
+      line.polyline.mesh.setParent(scene);
+      linesRef.current.push(line);
+    });
+
+    // Handle resize
+    const resize = () => {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      linesRef.current.forEach((line) => line.polyline.resize());
+    };
+    window.addEventListener('resize', resize, false);
+    resize();
+
+    // Handle mouse movement
+    const mouse = mouseRef.current;
+    const updateMouse = (e: MouseEvent | TouchEvent) => {
+      let x, y;
+      if ('touches' in e) {
+        if (!e.touches.length) return;
+        x = e.touches[0].pageX;
+        y = e.touches[0].pageY;
+      } else {
+        x = (e as MouseEvent).pageX;
+        y = (e as MouseEvent).pageY;
+      }
+
+      // Convert mouse position to clip space (-1 to 1)
+      mouse.set(
+        (x / gl.renderer.width) * 2 - 1,
+        (y / gl.renderer.height) * -2 + 1,
+        0
+      );
     };
 
-    const handleClick = () => {
-      setClicked(true);
-      setTimeout(() => setClicked(false), 800);
-    };
+    if ('ontouchstart' in window) {
+      window.addEventListener('touchstart', updateMouse, false);
+      window.addEventListener('touchmove', updateMouse, false);
+    } else {
+      window.addEventListener('mousemove', updateMouse, false);
+    }
 
-    // Smooth animation loop
-    const animate = () => {
-      setPosition(prev => {
-        const dx = actualPosition.x - prev.x;
-        const dy = actualPosition.y - prev.y;
+    // Animation loop
+    const tmp = new Vec3();
+    function update() {
+      const frame = requestAnimationFrame(update);
 
-        // Smooth follow with spring-like motion
-        return {
-          x: prev.x + dx * 0.08, // Reduced speed factor for smoother following
-          y: prev.y + dy * 0.08
-        };
+      linesRef.current.forEach((line) => {
+        // Update polyline input points
+        for (let i = line.points.length - 1; i >= 0; i--) {
+          if (!i) {
+            // First point follows mouse with spring motion
+            tmp
+              .copy(mouse)
+              .add(line.mouseOffset)
+              .sub(line.points[i])
+              .multiply(line.spring);
+            line.mouseVelocity.add(tmp).multiply(line.friction);
+            line.points[i].add(line.mouseVelocity);
+          } else {
+            // Rest of points ease to the point in front of them
+            line.points[i].lerp(line.points[i - 1], 0.9);
+          }
+        }
+        line.polyline.updateGeometry();
       });
 
-      animationFrameRef.current = requestAnimationFrame(animate);
-    };
+      renderer.render({ scene });
+      return frame;
+    }
 
-    window.addEventListener('mousemove', updatePosition);
-    window.addEventListener('click', handleClick);
-    animationFrameRef.current = requestAnimationFrame(animate);
+    const frame = requestAnimationFrame(update);
 
+    // Cleanup
     return () => {
-      window.removeEventListener('mousemove', updatePosition);
-      window.removeEventListener('click', handleClick);
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', updateMouse);
+      window.removeEventListener('touchstart', updateMouse);
+      window.removeEventListener('touchmove', updateMouse);
+      if (containerRef.current && gl.canvas) {
+        containerRef.current.removeChild(gl.canvas);
+      }
+      // Handle cleanup without dispose
+      if (rendererRef.current) {
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
       }
     };
-  }, [actualPosition, lastUpdate]);
+  }, []);
 
   return (
-    <div 
+    <div
+      ref={containerRef}
       className={cn(
         "absolute inset-0 pointer-events-none z-[100]",
-        "min-h-[100vh]", 
+        "min-h-[100vh]",
         className
       )}
       style={{
         height: '100%',
         minHeight: '100vh',
       }}
-    >
-      {/* Main cursor */}
-      <div
-        className={cn(
-          "absolute w-16 h-16 rounded-full",
-          "bg-[#FEA30E]/50 dark:bg-[#FEA30E]/60",
-          "blur-2xl transition-transform duration-300 ease-[cubic-bezier(0.34, 1.56, 0.64, 1)]", // Enhanced easing curve
-          clicked && "scale-[2]"
-        )}
-        style={{
-          transform: `translate(${position.x - 32}px, ${position.y - 32}px)`,
-          willChange: 'transform',
-        }}
-      />
-
-      {/* Trail effect */}
-      {trail.map((point, i) => (
-        <div
-          key={point.id}
-          className={cn(
-            "absolute w-10 h-10 rounded-full",
-            "bg-[#FEA30E]/40 dark:bg-[#FEA30E]/50",
-            "blur-xl"
-          )}
-          style={{
-            transform: `translate(${point.x - 20}px, ${point.y - 20}px)`,
-            opacity: 1 - (i / trail.length) * 0.6,
-            transition: `all 600ms cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 10}ms`, // Enhanced timing and easing
-            willChange: 'transform, opacity',
-          }}
-        />
-      ))}
-
-      {/* Click burst effect */}
-      {clicked && (
-        <div
-          className={cn(
-            "absolute w-48 h-48 rounded-full",
-            "bg-[#FEA30E]/60 dark:bg-[#FEA30E]/70",
-            "blur-2xl animate-ping"
-          )}
-          style={{
-            transform: `translate(${position.x - 96}px, ${position.y - 96}px)`,
-            willChange: 'transform',
-          }}
-        />
-      )}
-    </div>
+    />
   );
 }
