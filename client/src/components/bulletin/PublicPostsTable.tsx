@@ -3,32 +3,25 @@ import type { Post } from "@shared/schema";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageIcon } from "lucide-react";
+import { ImageIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 // Export query key for reuse
 export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
 
 interface PublicPostsTableProps {
   onSelect: (post: Post) => void;
+  onCreatePost?: () => void;
 }
 
-export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
+export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
+  const { user } = useAuth();
 
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
     queryKey: PUBLIC_POSTS_QUERY_KEY,
-    queryFn: async () => {
-      console.log("PublicPostsTable: Fetching posts");
-      const response = await fetch("/api/public/posts");
-      if (!response.ok) {
-        throw new Error("Failed to fetch posts");
-      }
-      const data = await response.json();
-      console.log("PublicPostsTable: Received posts", data);
-      return data;
-    }
   });
 
   // Sort posts by creation date only (newest first)
@@ -39,10 +32,24 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
   // Get the posts to display based on displayCount
   const displayedPosts = sortedPosts?.slice(0, displayCount);
 
+  // Check if user can create posts (admin or has publish_content permission)
+  const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
+
   return (
     <Card className="border">
       <CardHeader className="pb-3">
-        <CardTitle>Community News</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Community News</CardTitle>
+          {canCreatePosts && onCreatePost && (
+            <Button 
+              onClick={onCreatePost}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              New Post
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -69,14 +76,11 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
           </div>
         ) : (
           <div className="space-y-4">
-            {displayedPosts.map((post) => (
+            {displayedPosts?.map((post) => (
               <div 
                 key={post.id}
                 className="p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
-                onClick={() => {
-                  console.log("PublicPostsTable: Post clicked", post);
-                  onSelect(post);
-                }}
+                onClick={() => onSelect(post)}
               >
                 <div className="flex gap-4">
                   {post.featuredImage ? (

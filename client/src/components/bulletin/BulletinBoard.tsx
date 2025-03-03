@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,8 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
-import type { Post } from "@shared/schema";
+import type { Post, InsertPost } from "@shared/schema";
+import { apiRequest } from "@/lib/api";
 
 // PinnedPostsCarousel component updates
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
@@ -50,8 +51,6 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const currentPost = pinnedPosts[currentIndex];
   const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
   const backgroundImage = currentPost.featuredImage || fallbackImage;
-
-  console.log("Current post image:", backgroundImage);
 
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
@@ -337,6 +336,7 @@ function SponsorsSection() {
 
 
 export function BulletinBoard() {
+  const queryClient = useQueryClient();
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
     queryFn: async () => {
@@ -349,9 +349,30 @@ export function BulletinBoard() {
   });
 
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const { data: postsData } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
+
+  const { toast } = useToast();
+
+  const handleCreatePost = async (data: InsertPost) => {
+    try {
+      await apiRequest('/api/admin/posts', 'POST', data);
+      setIsCreating(false);
+      toast({
+        title: "Success",
+        description: "Post created successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -360,7 +381,7 @@ export function BulletinBoard() {
         <JoinUsSection />
       </div>
 
-      {/* Stats Section */}
+      {/* Stats Grid */}
       <div className="grid gap-3 md:grid-cols-3">
         <StatCard
           title="Total Events"
@@ -389,13 +410,21 @@ export function BulletinBoard() {
       <PinnedPostsCarousel onSelect={setSelectedPost} />
 
       {/* Latest Posts Section */}
-      <PublicPostsTable onSelect={setSelectedPost} />
+      <PublicPostsTable
+        onSelect={setSelectedPost}
+        onCreatePost={() => setIsCreating(true)}
+      />
 
-      {selectedPost && (
+      {/* Post Preview/Creation Modal */}
+      {(selectedPost || isCreating) && (
         <PostPreview
-          post={selectedPost}
-          onClose={() => setSelectedPost(null)}
-          readOnly
+          post={selectedPost || undefined}
+          isNew={isCreating}
+          onClose={() => {
+            setSelectedPost(null);
+            setIsCreating(false);
+          }}
+          onSave={handleCreatePost}
           posts={postsData?.posts || []}
           onNavigate={setSelectedPost}
         />
