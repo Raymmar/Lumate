@@ -18,22 +18,11 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
     queryKey: ["/api/public/posts"],
   });
 
-  const pinnedPosts = postsData?.posts.filter(post => post.isPinned).sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  ) || [];
+  const pinnedPost = postsData?.posts
+    .filter(post => post.isPinned)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
-
-  useEffect(() => {
-    if (pinnedPosts.length <= 1) return;
-
-    const interval = setInterval(() => {
-      setCurrentIndex((current) => (current + 1) % pinnedPosts.length);
-    }, 7000);
-
-    return () => clearInterval(interval);
-  }, [pinnedPosts.length]);
 
   if (isLoading) {
     return (
@@ -43,15 +32,12 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
     );
   }
 
-  if (!pinnedPosts.length) {
+  if (!pinnedPost) {
     return null;
   }
 
-  const currentPost = pinnedPosts[currentIndex];
   const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
-  const backgroundImage = currentPost.featuredImage || fallbackImage;
-
-  console.log("Current post image:", backgroundImage);
+  const backgroundImage = pinnedPost.featuredImage || fallbackImage;
 
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
@@ -72,76 +58,29 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
 
-      {pinnedPosts.length > 1 && (
-        <>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentIndex((current) =>
-                current === 0 ? pinnedPosts.length - 1 : current - 1
-              );
-            }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
-          >
-            <ChevronLeft className="h-6 w-6" />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentIndex((current) =>
-                (current + 1) % pinnedPosts.length
-              );
-            }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
-          >
-            <ChevronRight className="h-6 w-6" />
-          </button>
-        </>
-      )}
-
       <CardContent
         className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer z-10"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            onSelect(currentPost);
+            onSelect(pinnedPost);
           }
         }}
       >
-        <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
-        {currentPost.summary && (
+        <h3 className="text-2xl font-bold mb-2">{pinnedPost.title}</h3>
+        {pinnedPost.summary && (
           <p className="text-white/90 mb-4 line-clamp-2">
-            {currentPost.summary}
+            {pinnedPost.summary}
           </p>
         )}
         <Button
           className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
           onClick={(e) => {
             e.stopPropagation();
-            onSelect(currentPost);
+            onSelect(pinnedPost);
           }}
         >
           Read More
         </Button>
-
-        {pinnedPosts.length > 1 && (
-          <div
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {pinnedPosts.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentIndex(idx);
-                }}
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  idx === currentIndex ? 'bg-white' : 'bg-white/50'
-                }`}
-              />
-            ))}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
