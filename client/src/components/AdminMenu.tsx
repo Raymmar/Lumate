@@ -31,10 +31,10 @@ interface SyncProgressEvent {
 }
 
 export default function AdminMenu() {
-  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showProgressDialog, setShowProgressDialog] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-  const [syncStatus, setSyncStatus] = useState("");
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
@@ -58,10 +58,11 @@ export default function AdminMenu() {
   const handleResetDatabase = async () => {
     setIsResetting(true);
     setSyncProgress(0);
-    setSyncStatus("Starting sync process...");
     setSyncLogs([]);
     setIsComplete(false);
     setSyncStats(null);
+    setShowConfirmDialog(false);
+    setShowProgressDialog(true);
 
     try {
       const response = await fetch('/_internal/reset-database', {
@@ -102,7 +103,6 @@ export default function AdminMenu() {
               switch (data.type) {
                 case 'status':
                 case 'progress':
-                  setSyncStatus(data.message);
                   if (data.progress !== undefined) {
                     setSyncProgress(data.progress);
                   }
@@ -110,7 +110,6 @@ export default function AdminMenu() {
 
                 case 'complete':
                   setSyncProgress(100);
-                  setSyncStatus("Sync completed successfully!");
                   setIsComplete(true);
                   if (data.data) {
                     setSyncStats({
@@ -122,7 +121,6 @@ export default function AdminMenu() {
                   return;
 
                 case 'error':
-                  setSyncStatus(`Error: ${data.message}`);
                   throw new Error(data.message);
               }
             } catch (parseError) {
@@ -147,22 +145,52 @@ export default function AdminMenu() {
   };
 
   const handleCloseAndRefresh = () => {
-    setIsResetDialogOpen(false);
+    setShowProgressDialog(false);
     window.location.reload();
   };
 
   return (
     <>
-      <AlertDialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+      {/* Initial Warning Dialog */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
+              Reset & Sync Luma Data
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p className="font-medium">Warning: This action will:</p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Clear all existing events data</li>
+                <li>Clear all people data while preserving attendance records</li>
+                <li>Fetch fresh data from Luma API</li>
+              </ul>
+              <p className="mt-4 text-sm text-muted-foreground">
+                This process may take several minutes to complete. Do you want to continue?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleResetDatabase}>
+              Start Sync
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Progress Dialog */}
+      <AlertDialog open={showProgressDialog} onOpenChange={() => {}}>
+        <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center">
               {isComplete ? (
                 <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
               ) : (
-                <AlertTriangle className="mr-2 h-5 w-5 text-red-500" />
+                <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
               )}
-              {isComplete ? "Sync Completed Successfully" : "Reset & Sync Luma Data"}
+              {isComplete ? "Sync Completed Successfully" : "Syncing Luma Data"}
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
               {isComplete ? (
@@ -176,30 +204,26 @@ export default function AdminMenu() {
                       <li>{syncStats?.peopleCount} people synced</li>
                     </ul>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Click "Close & Refresh" to see the updated data.
-                  </div>
                 </div>
               ) : (
-                <>
-                  <p>{syncStatus}</p>
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Progress value={syncProgress} className="w-full" />
                     <p className="text-sm text-muted-foreground text-center">
                       {syncProgress}% Complete
                     </p>
                   </div>
-                  <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+                  <ScrollArea className="h-[300px] w-full rounded-md border p-4">
                     <div className="space-y-2">
                       {syncLogs.map((log, index) => (
-                        <p key={index} className="text-sm text-muted-foreground">
+                        <p key={index} className="text-sm text-muted-foreground font-mono">
                           {log}
                         </p>
                       ))}
                       <div ref={logsEndRef} />
                     </div>
                   </ScrollArea>
-                </>
+                </div>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -221,10 +245,7 @@ export default function AdminMenu() {
       <Button
         variant="outline"
         className="w-full mt-4"
-        onClick={() => {
-          setIsResetDialogOpen(true);
-          handleResetDatabase();
-        }}
+        onClick={() => setShowConfirmDialog(true)}
         disabled={isResetting}
       >
         <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
