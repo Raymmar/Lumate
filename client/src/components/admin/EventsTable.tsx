@@ -33,7 +33,7 @@ export function EventsTable() {
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching } = useQuery({
@@ -46,6 +46,7 @@ export function EventsTable() {
       const data = await response.json();
       return data as EventsResponse;
     },
+    keepPreviousData: true,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
@@ -154,6 +155,16 @@ export function EventsTable() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Events</h2>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search events..."
+          isLoading={isFetching}
+        />
+      </div>
+
       <div className="min-h-[400px] relative">
         <div 
           className={`transition-opacity duration-300 ${
