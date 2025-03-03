@@ -34,12 +34,22 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
     setIsLoading(true);
 
     try {
+      console.log('Join Us Form: Starting email verification process for:', email);
+
       // First check if there's an existing profile for this email
       const checkResponse = await fetch(`/api/people/check-email?email=${encodeURIComponent(email)}`);
       const checkData = await checkResponse.json();
       setCheckData(checkData); // Update state with checkData
 
+      console.log('Join Us Form: Email check result:', {
+        email,
+        exists: checkData.exists,
+        personId: checkData.personId,
+        isClaimed: checkData.isClaimed
+      });
+
       if (checkData.exists && checkData.personId) {
+        console.log('Join Us Form: Found existing profile, initiating claim process');
         // If profile exists, initiate claim process
         const claimResponse = await fetch('/api/auth/claim-profile', {
           method: 'POST',
@@ -53,6 +63,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
         });
 
         const claimData = await claimResponse.json();
+        console.log('Join Us Form: Claim profile response:', claimData);
 
         if (claimResponse.ok) {
           toast({
@@ -60,9 +71,12 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
             description: "We found your profile! Check your email for instructions to claim it.",
           });
         }
+      } else {
+        console.log('Join Us Form: No existing profile found for:', email);
       }
 
       // Always send event invite (existing behavior)
+      console.log('Join Us Form: Sending event invite');
       const response = await fetch('/api/events/send-invite', {
         method: 'POST',
         headers: {
@@ -75,6 +89,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
       });
 
       const data = await response.json();
+      console.log('Join Us Form: Event invite response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || data.message || 'Failed to send invite');
@@ -87,6 +102,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
 
       setIsSubmitted(true);
     } catch (error) {
+      console.error('Join Us Form: Error processing submission:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process request",

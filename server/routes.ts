@@ -285,16 +285,30 @@ export async function registerRoutes(app: Express) {
     try {
       const email = req.query.email as string;
       if (!email) {
+        console.log('Check Email: Missing email parameter');
         return res.status(400).json({ error: "Email is required" });
       }
 
+      console.log('Check Email: Starting verification process for:', email);
+
       const person = await storage.getPersonByEmail(email.toLowerCase());
+      console.log('Check Email: Person lookup result:', {
+        email,
+        found: !!person,
+        personId: person?.api_id
+      });
 
       if (!person) {
+        console.log('Check Email: No profile found for:', email);
         return res.json({ exists: false });
       }
 
       const existingUser = await storage.getUserByEmail(email.toLowerCase());
+      console.log('Check Email: User account status:', {
+        email,
+        personId: person.api_id,
+        isClaimed: !!existingUser
+      });
 
       return res.json({ 
         exists: true,
@@ -302,7 +316,7 @@ export async function registerRoutes(app: Express) {
         isClaimed: !!existingUser
       });
     } catch (error) {
-      console.error('Failed to check email:', error);
+      console.error('Check Email: Error during verification:', error);
       res.status(500).json({ error: "Failed to check email" });
     }
   });
@@ -945,7 +959,7 @@ export async function registerRoutes(app: Express) {
             ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} OR LOWER(description) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
         )
-.orderBy(sql`start_time DESC`)
+        .orderBy(sql`start_time DESC`)
         .limit(limit)
         .offset(offset);
 
