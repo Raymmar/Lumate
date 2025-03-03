@@ -565,4 +565,24 @@ export class CacheService extends EventEmitter {
       this.cacheInterval = null;
     }
   }
+
+  private getScheduleInfo() {
+    const nextInterval = this.getNextInterval();
+    const isPeak = this.isPeakHours();
+    return {
+      isPeakHours: isPeak,
+      nextSyncIn: nextInterval / 1000 / 60, // minutes
+      interval: isPeak ? 'hourly' : 'every 4 hours',
+      lastSuccessfulSync: this.lastSuccessfulSync,
+      peakHours: '8am-12pm EST',
+      offPeakHours: 'Rest of day'
+    };
+  }
+
+  getStatus() {
+    return {
+      isCaching: this.isCaching,
+      schedule: this.getScheduleInfo()
+    };
+  }
 }

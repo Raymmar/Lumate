@@ -14,10 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 interface SyncStats {
   eventCount: number;
   peopleCount: number;
+  lastSync?: string;
 }
 
 interface SyncProgressEvent {
@@ -114,7 +116,8 @@ export default function AdminMenu() {
                   if (data.data) {
                     setSyncStats({
                       eventCount: data.data.eventCount,
-                      peopleCount: data.data.peopleCount
+                      peopleCount: data.data.peopleCount,
+                      lastSync: new Date().toISOString()
                     });
                   }
                   addSyncLog(`Sync completed. Events: ${data.data?.eventCount}, People: ${data.data?.peopleCount}`);
@@ -151,7 +154,6 @@ export default function AdminMenu() {
 
   return (
     <>
-      {/* Initial Warning Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -180,7 +182,6 @@ export default function AdminMenu() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Progress Dialog */}
       <AlertDialog open={showProgressDialog} onOpenChange={() => {}}>
         <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
@@ -202,6 +203,7 @@ export default function AdminMenu() {
                     <ul className="mt-2 list-disc pl-5 text-green-800 dark:text-green-100">
                       <li>{syncStats?.eventCount} events synced</li>
                       <li>{syncStats?.peopleCount} people synced</li>
+                      <li>Last sync: {syncStats?.lastSync ? format(new Date(syncStats.lastSync), "MMM d, yyyy h:mm a") : "N/A"}</li>
                     </ul>
                   </div>
                 </div>
@@ -242,15 +244,22 @@ export default function AdminMenu() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => setShowConfirmDialog(true)}
-        disabled={isResetting}
-      >
-        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
-        {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
-      </Button>
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setShowConfirmDialog(true)}
+          disabled={isResetting}
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+          {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
+        </Button>
+        {syncStats?.lastSync && (
+          <p className="text-xs text-muted-foreground text-center">
+            Last synced: {format(new Date(syncStats.lastSync), "MMM d, yyyy h:mm a")}
+          </p>
+        )}
+      </div>
     </>
   );
 }
