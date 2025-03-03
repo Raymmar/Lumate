@@ -3,7 +3,7 @@ import { RolesAndPermissions } from "@/components/admin/RolesAndPermissions";
 
 export default function RolesPage() {
   return (
-    <AdminLayout title="Roles & Permissions">
+    <AdminLayout>
       <RolesAndPermissions />
     </AdminLayout>
   );

@@ -3,7 +3,7 @@ import { MembersTable } from "@/components/admin/MembersTable";
 
 export default function AdminMembersPage() {
   return (
-    <AdminLayout title="Members">
+    <AdminLayout>
       <MembersTable />
     </AdminLayout>
   );

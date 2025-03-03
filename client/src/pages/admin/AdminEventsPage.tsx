@@ -3,7 +3,7 @@ import { EventsTable } from "@/components/admin/EventsTable";
 
 export default function AdminEventsPage() {
   return (
-    <AdminLayout title="Events">
+    <AdminLayout>
       <EventsTable />
     </AdminLayout>
   );
