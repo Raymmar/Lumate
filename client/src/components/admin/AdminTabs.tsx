@@ -34,7 +34,7 @@ export function AdminTabs() {
       </Tabs>
 
       {/* Admin Menu with Reset & Sync button at the bottom */}
-      <div className="mt-auto pt-4 border-t">
+      <div className="mt-auto pt-4">
         <AdminMenu />
       </div>
     </div>
