@@ -384,7 +384,7 @@ export function BulletinBoard() {
   };
 
   return (
-    <div className="space-y-4 bg-card p-4 rounded-lg">
+    <div className="space-y-4">
       <div className="grid gap-4 grid-cols-2">
         <LinksSection />
         <JoinUsSection />
