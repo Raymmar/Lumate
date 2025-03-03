@@ -3,16 +3,120 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar } from "lucide-react";
+import { Users, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post } from "@shared/schema";
 
-// Links Section
+// Carousel Section
+function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
+  const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/public/posts"],
+  });
+
+  const pinnedPosts = postsData?.posts.filter(post => post.isPinned).sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ) || [];
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (pinnedPosts.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((current) => (current + 1) % pinnedPosts.length);
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [pinnedPosts.length]);
+
+  if (isLoading) {
+    return (
+      <Card className="border relative overflow-hidden h-[300px] group">
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      </Card>
+    );
+  }
+
+  if (!pinnedPosts.length) {
+    return null;
+  }
+
+  const currentPost = pinnedPosts[currentIndex];
+
+  return (
+    <Card className="border relative overflow-hidden h-[300px] group">
+      <div 
+        className="absolute inset-0 bg-cover bg-center transition-transform duration-500"
+        style={{ 
+          backgroundImage: `url('${currentPost.featuredImage || 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070'}')`,
+        }}
+      />
+      <div className="absolute inset-0 bg-black/50" />
+
+      {pinnedPosts.length > 1 && (
+        <>
+          <button
+            onClick={() => setCurrentIndex((current) => 
+              current === 0 ? pinnedPosts.length - 1 : current - 1
+            )}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={() => setCurrentIndex((current) => 
+              (current + 1) % pinnedPosts.length
+            )}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
+      )}
+
+      <CardContent 
+        className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer"
+        onClick={() => onSelect(currentPost)}
+      >
+        <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
+        {currentPost.summary && (
+          <p className="text-white/90 mb-4 line-clamp-2">
+            {currentPost.summary}
+          </p>
+        )}
+        <Button 
+          className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
+        >
+          Read More
+        </Button>
+
+        {pinnedPosts.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {pinnedPosts.map((_, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                }}
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  idx === currentIndex ? 'bg-white' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Rest of the components remain unchanged
 function LinksSection() {
   return (
     <Card className="border">
@@ -52,7 +156,6 @@ function LinksSection() {
   );
 }
 
-// Join Us Section
 function JoinUsSection() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -180,31 +283,6 @@ function JoinUsSection() {
   );
 }
 
-// Featured Section
-function FeaturedSection() {
-  return (
-    <Card className="border relative overflow-hidden h-[300px] group">
-      <div 
-        className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070')] 
-        bg-cover bg-center"
-      />
-      <div className="absolute inset-0 bg-black/50" />
-      <CardContent className="relative h-full flex flex-col justify-end p-6 text-white">
-        <h3 className="text-2xl font-bold mb-2">Join Our Next Tech Meetup</h3>
-        <p className="text-white/90 mb-4">
-          Connect with fellow tech enthusiasts and industry leaders in Sarasota's growing tech scene.
-        </p>
-        <Button 
-          className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
-        >
-          Learn More
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// Sponsors Section
 function SponsorsSection() {
   return (
     <Card className="border">
@@ -277,8 +355,8 @@ export function BulletinBoard() {
         />
       </div>
 
-      {/* Featured Section */}
-      <FeaturedSection />
+      {/* Pinned Posts Carousel */}
+      <PinnedPostsCarousel onSelect={setSelectedPost} />
 
       {/* Latest Posts Section */}
       <PublicPostsTable onSelect={setSelectedPost} />

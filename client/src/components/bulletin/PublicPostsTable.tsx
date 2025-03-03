@@ -1,4 +1,4 @@
-import { useQuery, queryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { Post } from "@shared/schema";
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,7 +31,7 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
 
   console.log("PublicPostsTable state:", { isLoading, error, postsCount: data?.posts?.length });
 
-  // Sort posts by creation date (newest first)
+  // Sort posts by creation date only (newest first)
   const sortedPosts = data?.posts?.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -90,7 +90,14 @@ export function PublicPostsTable({ onSelect }: PublicPostsTableProps) {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate">{post.title}</h4>
+                    <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate">
+                      {post.title}
+                      {post.isPinned && (
+                        <span className="ml-2 text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                          Pinned
+                        </span>
+                      )}
+                    </h4>
                     {post.summary && (
                       <p className="text-sm text-muted-foreground mt-1 text-wrap-balance max-w-[80ch] line-clamp-2">
                         {post.summary}
