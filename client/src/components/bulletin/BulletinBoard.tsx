@@ -81,7 +81,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
                 current === 0 ? pinnedPosts.length - 1 : current - 1
               );
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
@@ -92,7 +92,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
                 (current + 1) % pinnedPosts.length
               );
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
           >
             <ChevronRight className="h-6 w-6" />
           </button>
@@ -100,10 +100,11 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
       )}
 
       <CardContent 
-        className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer"
+        className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer z-10"
         onClick={(e) => {
-          e.stopPropagation();
-          onSelect(currentPost);
+          if (e.target === e.currentTarget) {
+            onSelect(currentPost);
+          }
         }}
       >
         <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
@@ -124,7 +125,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
         {pinnedPosts.length > 1 && (
           <div 
-            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2"
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30"
             onClick={(e) => e.stopPropagation()}
           >
             {pinnedPosts.map((_, idx) => (
@@ -146,7 +147,6 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   );
 }
 
-// Rest of the components remain unchanged
 function LinksSection() {
   return (
     <Card className="border">
