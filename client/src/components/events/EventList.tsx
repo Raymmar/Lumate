@@ -27,16 +27,12 @@ interface EventsResponse {
 
 function formatEventDate(utcDateStr: string, timezone: string | null): string {
   try {
-    // Use event timezone or fall back to America/New_York
     const eventTimezone = timezone || 'America/New_York';
-
-    // First parse the date string, ensuring we interpret it as UTC
     const utcDate = new Date(utcDateStr + 'Z');
-
     return formatInTimeZone(
       utcDate,
       eventTimezone,
-      'MMM d, h:mm aa zzz' // Added timezone indicator to debug
+      'MMM d, h:mm aa zzz'
     );
   } catch (error) {
     console.error("Invalid date format:", utcDateStr, error);
@@ -49,7 +45,6 @@ function EventCard({ event }: { event: Event }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query to check if user is going to the event
   const { data: rsvpStatus } = useQuery({
     queryKey: ['/api/events/check-rsvp', event.api_id],
     queryFn: async () => {
@@ -59,7 +54,7 @@ function EventCard({ event }: { event: Event }) {
       }
       return response.json();
     },
-    enabled: !!user // Only run query if user is logged in
+    enabled: !!user
   });
 
   const rsvpMutation = useMutation({
@@ -86,7 +81,6 @@ function EventCard({ event }: { event: Event }) {
         title: "Success!",
         description: "You've successfully RSVP'd to this event.",
       });
-      // Invalidate the RSVP status query to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
     },
     onError: (error: Error) => {
@@ -99,7 +93,7 @@ function EventCard({ event }: { event: Event }) {
   });
 
   const handleRSVP = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent the parent link from being clicked
+    e.preventDefault();
     e.stopPropagation();
     if (!rsvpStatus?.isGoing) {
       rsvpMutation.mutate();
@@ -114,7 +108,6 @@ function EventCard({ event }: { event: Event }) {
       className="block"
     >
       <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
-        {/* Event thumbnail with relative positioning */}
         <div className="w-full relative">
           <AspectRatio ratio={16 / 9}>
             {event.coverUrl ? (
@@ -130,7 +123,6 @@ function EventCard({ event }: { event: Event }) {
             )}
           </AspectRatio>
 
-          {/* RSVP Button - Only visible for logged in users */}
           <AuthGuard>
             <div className="absolute bottom-2 left-2">
               <Button 
@@ -146,7 +138,6 @@ function EventCard({ event }: { event: Event }) {
           </AuthGuard>
         </div>
 
-        {/* Event details */}
         <div className="p-4">
           <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
           <div className="mt-2 space-y-1.5">
@@ -182,7 +173,6 @@ export default function EventList() {
   const now = new Date();
   const eventsArray = data?.events || [];
 
-  // Sort events by start time and get the next upcoming event
   const upcomingEvent = eventsArray
     .filter(event => new Date(event.startTime) > now)
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
@@ -195,7 +185,7 @@ export default function EventList() {
           href="https://lu.ma/SarasotaTech"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors"
         >
           <span>View Full Calendar</span>
           <ExternalLink className="h-3.5 w-3.5" />
