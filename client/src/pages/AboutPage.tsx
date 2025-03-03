@@ -1,9 +1,11 @@
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiLinkedin, SiFacebook, SiInstagram, SiWhatsapp } from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
 import { NavBar } from "@/components/NavBar";
+import { JoinUsCard } from "@/components/JoinUsCard";
+import { Button } from "@/components/ui/button";
 
 function SocialLinks() {
   const socialLinks = [
@@ -228,6 +230,32 @@ export default function AboutPage() {
 
         {/* Content Sections */}
         <PageContainer className="py-16 space-y-24 max-w-[1140px]">
+          {/* Join Us Section */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <JoinUsCard />
+            <Card className="border">
+              <CardHeader className="pb-3">
+                <CardTitle>Links</CardTitle>
+                <div className="flex gap-2">
+                  <SocialLinks />
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
+                    Community Guidelines
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
+                    Event Calendar
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
+                    Resources
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Monthly Meetup Section */}
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold">3rd Thursday Meetups</h2>
