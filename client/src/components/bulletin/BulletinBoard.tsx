@@ -54,13 +54,12 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const backgroundImage = currentPost.featuredImage || fallbackImage;
 
   return (
-    <Card className="border relative overflow-hidden h-[300px] group">
+    <Card className="relative overflow-hidden h-[300px] group cursor-pointer" onClick={() => onSelect(currentPost)}>
       {/* Background image */}
       <img
         src={backgroundImage}
         alt=""
-        className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
-        style={{ transform: 'scale(1.02)' }}
+        className="absolute inset-0 w-full h-full object-cover"
         onLoad={() => setImageLoaded(true)}
       />
 
@@ -69,8 +68,8 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+      {/* Gradient overlay for text readability */}
+      <div className="absolute inset-0 bg-black/60" />
 
       {pinnedPosts.length > 1 && (
         <>
@@ -81,7 +80,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
                 current === 0 ? pinnedPosts.length - 1 : current - 1
               );
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/20 hover:bg-background/40 text-foreground p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
           >
             <ChevronLeft className="h-6 w-6" />
           </button>
@@ -92,21 +91,14 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
                 (current + 1) % pinnedPosts.length
               );
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/20 hover:bg-background/40 text-foreground p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
           >
             <ChevronRight className="h-6 w-6" />
           </button>
         </>
       )}
 
-      <CardContent
-        className="relative h-full flex flex-col justify-end p-6 text-white cursor-pointer z-10"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onSelect(currentPost);
-          }
-        }}
-      >
+      <CardContent className="relative h-full flex flex-col justify-end p-6 text-white z-10">
         <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
         {currentPost.summary && (
           <p className="text-white/90 mb-4 line-clamp-2">
@@ -114,7 +106,8 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
           </p>
         )}
         <Button
-          className="w-fit bg-white text-black hover:bg-white/90 transition-colors"
+          variant="secondary"
+          className="w-fit"
           onClick={(e) => {
             e.stopPropagation();
             onSelect(currentPost);
