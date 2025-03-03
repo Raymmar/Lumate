@@ -16,6 +16,21 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
+interface SyncStats {
+  eventCount: number;
+  peopleCount: number;
+}
+
+interface SyncProgressEvent {
+  type: 'status' | 'progress' | 'complete' | 'error';
+  message: string;
+  progress?: number;
+  data?: {
+    eventCount: number;
+    peopleCount: number;
+  };
+}
+
 export default function AdminMenu() {
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -23,7 +38,7 @@ export default function AdminMenu() {
   const [syncStatus, setSyncStatus] = useState("");
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
-  const [syncStats, setSyncStats] = useState<{ eventCount: number; peopleCount: number } | null>(null);
+  const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +78,8 @@ export default function AdminMenu() {
         throw new Error(errorData.error || errorData.message || 'Failed to reset and sync data');
       }
 
+      addSyncLog("Connected to sync stream...");
+
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
 
@@ -79,31 +96,40 @@ export default function AdminMenu() {
 
         for (const message of messages) {
           if (message.startsWith('data: ')) {
-            const data = JSON.parse(message.slice(6));
+            try {
+              const data = JSON.parse(message.slice(6)) as SyncProgressEvent;
 
-            switch (data.type) {
-              case 'status':
-              case 'progress':
-                setSyncStatus(data.message);
-                setSyncProgress(data.progress);
-                addSyncLog(data.message);
-                break;
+              switch (data.type) {
+                case 'status':
+                case 'progress':
+                  setSyncStatus(data.message);
+                  if (data.progress !== undefined) {
+                    setSyncProgress(data.progress);
+                  }
+                  addSyncLog(data.message);
+                  break;
 
-              case 'complete':
-                setSyncProgress(100);
-                setSyncStatus("Sync completed successfully!");
-                addSyncLog("Sync completed successfully!");
-                setIsComplete(true);
-                setSyncStats({
-                  eventCount: data.data.eventCount,
-                  peopleCount: data.data.peopleCount
-                });
-                return;
+                case 'complete':
+                  setSyncProgress(100);
+                  setSyncStatus("Sync completed successfully!");
+                  addSyncLog("Sync completed successfully!");
+                  setIsComplete(true);
+                  if (data.data) {
+                    setSyncStats({
+                      eventCount: data.data.eventCount,
+                      peopleCount: data.data.peopleCount
+                    });
+                  }
+                  return;
 
-              case 'error':
-                setSyncStatus(`Error: ${data.message}`);
-                addSyncLog(`Error: ${data.message}`);
-                throw new Error(data.message);
+                case 'error':
+                  setSyncStatus(`Error: ${data.message}`);
+                  addSyncLog(`Error: ${data.message}`);
+                  throw new Error(data.message);
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE message:', parseError);
+              addSyncLog(`Error parsing sync update: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
             }
           }
         }
@@ -111,11 +137,14 @@ export default function AdminMenu() {
 
     } catch (error) {
       console.error('Error resetting and syncing data:', error);
+      addSyncLog(`Sync failed: ${error instanceof Error ? error.message : String(error)}`);
       toast({
         title: "Reset & Sync Failed",
         description: error instanceof Error ? error.message : "An unknown error occurred. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -185,7 +214,7 @@ export default function AdminMenu() {
                 Close & Refresh
               </AlertDialogAction>
             ) : (
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
             )}
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -194,11 +223,14 @@ export default function AdminMenu() {
       <Button
         variant="outline"
         className="w-full mt-4"
-        onClick={() => setIsResetDialogOpen(true)}
+        onClick={() => {
+          setIsResetDialogOpen(true);
+          handleResetDatabase();
+        }}
         disabled={isResetting}
       >
-        <RefreshCw className="mr-2 h-4 w-4" />
-        Reset & Sync Luma Data
+        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+        {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
       </Button>
     </>
   );
