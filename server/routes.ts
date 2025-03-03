@@ -486,9 +486,12 @@ export async function registerRoutes(app: Express) {
       const emailSent = await sendVerificationEmail(normalizedEmail, verificationToken.token);
 
       if (!emailSent) {
+        console.log('Failed to send verification email to:', normalizedEmail);
         await storage.deleteVerificationToken(verificationToken.token);
         return res.status(500).json({ error: "Failed to send verification email" });
       }
+
+      console.log('Successfully sent verification email to:', normalizedEmail);
 
       return res.json({ 
         message: "Verification email sent",
@@ -505,16 +508,21 @@ export async function registerRoutes(app: Express) {
       const { token } = req.body;
 
       if (!token) {
+        console.log('Verification attempt failed: Missing token');
         return res.status(400).json({ error: "Missing verification token" });
       }
 
       const verificationToken = await storage.validateVerificationToken(token);
       if (!verificationToken) {
+        console.log('Verification attempt failed: Invalid or expired token');
         return res.status(400).json({ error: "Invalid or expired token" });
       }
 
+      console.log('Valid verification token found for email:', verificationToken.email);
+
       const person = await storage.getPersonByEmail(verificationToken.email);
       if (!person) {
+        console.log('Verification failed: Associated person not found for email:', verificationToken.email);
         return res.status(404).json({ error: "Associated person not found" });
       }
 
@@ -527,8 +535,11 @@ export async function registerRoutes(app: Express) {
 
       let user = await storage.getUserByEmail(userData.email);
       if (!user) {
+        console.log('Creating new user account for verified email:', userData.email);
         user = await storage.createUser(userData);
       }
+
+      console.log('Email verification successful for:', userData.email);
 
       return res.json({ 
         message: "Email verified. Please set your password.",
@@ -546,6 +557,7 @@ export async function registerRoutes(app: Express) {
       const { email, password } = req.body;
 
       if (!email || !password) {
+        console.log('Password set attempt failed: Missing email or password');
         return res.status(400).json({ error: "Missing email or password" });
       }
 
@@ -553,16 +565,20 @@ export async function registerRoutes(app: Express) {
 
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
+        console.log('Password set failed: User not found for email:', email);
         return res.status(404).json({ error: "User not found" });
       }
 
       const hashedPassword = await hashPassword(validatedPassword.password);
 
       const updatedUser = await storage.updateUserPassword(user.id, hashedPassword);
+      console.log('Password set successfully for user:', email);
 
       const verifiedUser = await storage.verifyUser(updatedUser.id);
+      console.log('User account verified:', email);
 
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
+      console.log('Cleaned up verification tokens for:', email);
 
       return res.json({ 
         message: "Password set successfully",
@@ -575,6 +591,7 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       if (error instanceof ZodError) {
+        console.log('Password validation failed:', error.errors);
         return res.status(400).json({ 
           error: "Invalid password",
           details: error.errors 
