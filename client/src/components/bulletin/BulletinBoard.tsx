@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus } from "lucide-react";
+import { Users, Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus, ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -12,6 +12,7 @@ import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
+import { Link } from "wouter";
 
 // PinnedPostsCarousel component updates
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
@@ -153,16 +154,16 @@ function LinksSection() {
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
           <div className="flex gap-2">
-            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
+            <a href="https://instagram.com/sarasota.tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiInstagram className="h-4 w-4" />
             </a>
-            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
+            <a href="https://twitter.com/sarasota_tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiX className="h-4 w-4" />
             </a>
-            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
+            <a href="https://youtube.com/@sarasota.tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiYoutube className="h-4 w-4" />
             </a>
-            <a href="#" className="text-foreground hover:text-foreground/80 transition-colors">
+            <a href="https://linkedin.com/company/sarasota-tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
               <SiLinkedin className="h-4 w-4" />
             </a>
           </div>
@@ -170,15 +171,23 @@ function LinksSection() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <Button variant="outline" href="/about" className="w-full justify-start font-normal hover:bg-muted">
-            About Sarasota Tech
-          </Button>
-          <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
-            Event Calendar
-          </Button>
-          <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
-            Resources
-          </Button>
+          <Link href="/about">
+            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+              About Sarasota Tech
+            </Button>
+          </Link>
+          <a href="https://lu.ma/sarasota.tech" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+              Event Calendar
+              <ExternalLinkIcon className="h-4 w-4 ml-2" />
+            </Button>
+          </a>
+          <a href="https://github.com/sarasota-tech/resources" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+              Resources
+              <ExternalLinkIcon className="h-4 w-4 ml-2" />
+            </Button>
+          </a>
         </div>
       </CardContent>
     </Card>
