@@ -3,19 +3,18 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import uploadRouter from './routes/upload';  // Add this import
-import unsplashRouter from './routes/unsplash';  // Add this import if not already present
-import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema"; // Added import for users table and roles and permissions tables
+import uploadRouter from './routes/upload';
+import unsplashRouter from './routes/unsplash';
+import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance } from '@shared/schema'; //Import events schema and attendance schema
+import { events, attendance } from '@shared/schema';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
 
-// Add new interface for Post at the top of the file after imports
 interface Post {
   id: number;
   title: string;
@@ -26,7 +25,6 @@ interface Post {
   updatedAt: string;
 }
 
-// Add SSE helper function at the top of the file
 function initSSE(res: Response) {
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -91,10 +89,7 @@ export async function lumaApiRequest(
 }
 
 export async function registerRoutes(app: Express) {
-  // Set up session handling
   const PostgresStore = connectPg(session);
-
-  // Get environment information
   const isProduction = process.env.NODE_ENV === 'production';
 
   app.use(session({
@@ -117,8 +112,8 @@ export async function registerRoutes(app: Express) {
     proxy: isProduction
   }));
 
-  app.use('/api/upload', uploadRouter); // Added line
-  app.use('/api/unsplash', unsplashRouter); // Added line
+  app.use('/api/upload', uploadRouter);
+  app.use('/api/unsplash', unsplashRouter);
 
   app.get("/api/events", async (_req, res) => {
     try {
@@ -138,7 +133,6 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/events/rsvp", async (req, res) => {
     try {
-      // Check if user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -148,7 +142,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Get user's email and person record
       const user = await storage.getUser(req.session.userId);
       if (!user || !user.personId) {
         return res.status(401).json({ error: "User not found" });
@@ -159,10 +152,9 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Associated person not found" });
       }
 
-      // Make request to Luma API with correct body structure
       const response = await lumaApiRequest(
         'event/add-guests',
-        undefined, // no query params needed
+        undefined, 
         {
           method: 'POST',
           body: JSON.stringify({
@@ -172,11 +164,10 @@ export async function registerRoutes(app: Express) {
         }
       );
 
-      // Update cached status
       await storage.upsertRsvpStatus({
         userApiId: person.api_id,
         eventApiId: event_api_id,
-        status: 'approved' // When RSVP is successful, status is always approved
+        status: 'approved' 
       });
 
       console.log('Successfully RSVP\'d to event:', {
@@ -204,7 +195,6 @@ export async function registerRoutes(app: Express) {
 
       console.log("Fetching people from storage with search:", searchQuery, "sort:", sort);
 
-      // First get attendance counts
       const attendanceCounts = await db.execute(sql`
         WITH attendance_counts AS (
           SELECT 
@@ -217,7 +207,6 @@ export async function registerRoutes(app: Express) {
         SELECT * FROM attendance_counts
       `);
 
-      // Create a lookup map for quick access
       const countMap = new Map(
         attendanceCounts.rows.map((row: any) => [row.email.toLowerCase(), row])
       );
@@ -231,26 +220,22 @@ export async function registerRoutes(app: Express) {
             : sql`1=1`
         );
 
-      // Add sorting based primarily on event attendance count
       if (sort === 'events') {
         const allPeople = await query;
 
-        // Sort people by their actual attendance count
         const sortedPeople = allPeople.sort((a, b) => {
           const aCount = countMap.get(a.email.toLowerCase())?.event_count || 0;
           const bCount = countMap.get(b.email.toLowerCase())?.event_count || 0;
 
           if (bCount !== aCount) {
-            return bCount - aCount; // Sort by count first
+            return bCount - aCount; 
           }
 
-          // If counts are equal, sort by most recent attendance
           const aDate = countMap.get(a.email.toLowerCase())?.last_attended || '1970-01-01';
           const bDate = countMap.get(b.email.toLowerCase())?.last_attended || '1970-01-01';
           return new Date(bDate).getTime() - new Date(aDate).getTime();
         });
 
-        // Apply pagination
         const start = (page - 1) * limit;
         const end = start + limit;
         const paginatedPeople = sortedPeople.slice(start, end);
@@ -264,7 +249,6 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // If not sorting by events, use default ordering
       const allPeople = await query.orderBy(people.id);
       const start = (page - 1) * limit;
       const end = start + limit;
@@ -297,7 +281,32 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add new endpoint for person attendance stats
+  app.get("/api/people/check-email", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const person = await storage.getPersonByEmail(email.toLowerCase());
+
+      if (!person) {
+        return res.json({ exists: false });
+      }
+
+      const existingUser = await storage.getUserByEmail(email.toLowerCase());
+
+      return res.json({ 
+        exists: true,
+        personId: person.api_id,
+        isClaimed: !!existingUser
+      });
+    } catch (error) {
+      console.error('Failed to check email:', error);
+      res.status(500).json({ error: "Failed to check email" });
+    }
+  });
+
   app.get("/api/people/:id/stats", async (req, res) => {
     try {
       const personId = req.params.id;
@@ -307,11 +316,10 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      // Count number of events attended
       const attendanceCount = await db
         .select({ count: sql`count(*)` })
         .from(attendance)
-        .where(person.id ? eq(attendance.personId, person.id) : sql`1=0`); // Handle missing person.id
+        .where(person.id ? eq(attendance.personId, person.id) : sql`1=0`); 
 
       res.json({
         attendanceCount: Number(attendanceCount[0]?.count || 0),
@@ -323,7 +331,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add new endpoint for fetching events attended by a person
   app.get("/api/people/:id/events", async (req, res) => {
     try {
       const personId = req.params.id;
@@ -333,7 +340,6 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      // Get all events attended by the person through attendance records
       const attendedEvents = await db
         .select({
           id: events.id,
@@ -347,8 +353,8 @@ export async function registerRoutes(app: Express) {
         })
         .from(attendance)
         .innerJoin(events, eq(attendance.eventApiId, events.api_id))
-        .where(eq(attendance.userEmail, person.email)) // Use email as it's the persistent identifier
-        .orderBy(sql`start_time DESC`); // Changed to DESC for most recent first
+        .where(eq(attendance.userEmail, person.email)) 
+        .orderBy(sql`start_time DESC`); 
 
       res.json(attendedEvents);
     } catch (error) {
@@ -361,13 +367,11 @@ export async function registerRoutes(app: Express) {
     try {
       const personId = req.params.id;
 
-      // Get person by API ID
       const person = await storage.getPersonByApiId(personId);
       if (!person) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      // Check if there's a user with matching email
       const user = await storage.getUserByEmail(person.email.toLowerCase());
 
       return res.json({
@@ -380,7 +384,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Profile claiming endpoint
   app.post("/api/auth/claim-profile", async (req, res) => {
     try {
       console.log('Received claim profile request:', req.body);
@@ -391,28 +394,22 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing email" });
       }
 
-      // Normalize email to lowercase for consistent comparison
       const normalizedEmail = email.toLowerCase();
 
-      // Get person by API ID first if provided
       let person = null;
       if (personId) {
         person = await storage.getPersonByApiId(personId);
         console.log('Found person:', person ? 'yes' : 'no', { personId });
       } else {
-        // If no personId provided, try to find by email
         person = await storage.getPersonByEmail(normalizedEmail);
       }
 
       if (!person) {
-        // Person not found - let's invite them to the next event
         try {
-          // Get the next upcoming event
           const events = await storage.getEvents();
           const nextEvent = events.find(e => new Date(e.startTime) > new Date());
 
           if (nextEvent) {
-            // Send invite through Luma API
             await lumaApiRequest(
               'event/add-guests',
               undefined,
@@ -448,9 +445,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // If we have a person, continue with normal claim flow...
       if (personId) {
-        // Ensure the email matches the person's record
         const emailsMatch = person.email.toLowerCase() === normalizedEmail;
         console.log('Email match check:', { 
           provided: normalizedEmail, 
@@ -463,7 +458,6 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      // Check if profile is already claimed
       const existingUser = await storage.getUserByEmail(normalizedEmail);
       console.log('Existing user check:', existingUser ? 'found' : 'not found');
 
@@ -471,11 +465,9 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Profile already claimed" });
       }
 
-      // Create verification token using normalized email
       const verificationToken = await storage.createVerificationToken(normalizedEmail);
       console.log('Created verification token:', verificationToken.token);
 
-      // Send verification email
       const emailSent = await sendVerificationEmail(normalizedEmail, verificationToken.token);
 
       if (!emailSent) {
@@ -485,7 +477,6 @@ export async function registerRoutes(app: Express) {
 
       return res.json({ 
         message: "Verification email sent",
-        // Only include token in development for testing
         token: process.env.NODE_ENV === 'development' ? verificationToken.token : undefined
       });
     } catch (error) {
@@ -494,7 +485,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Verify token endpoint
   app.post("/api/auth/verify", async (req, res) => {
     try {
       const { token } = req.body;
@@ -503,33 +493,28 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing verification token" });
       }
 
-      // First validate the token
       const verificationToken = await storage.validateVerificationToken(token);
       if (!verificationToken) {
         return res.status(400).json({ error: "Invalid or expired token" });
       }
 
-      // Get the person record by email
       const person = await storage.getPersonByEmail(verificationToken.email);
       if (!person) {
         return res.status(404).json({ error: "Associated person not found" });
       }
 
-      // Create initial user record with normalized email
       const userData = {
         email: verificationToken.email.toLowerCase(),
         personId: person.id,
         displayName: person.userName || person.fullName || undefined,
-        isVerified: false // Will be set to true after password is set
+        isVerified: false 
       };
 
-      // Create or get existing user
       let user = await storage.getUserByEmail(userData.email);
       if (!user) {
         user = await storage.createUser(userData);
       }
 
-      // Don't delete token yet - we'll need it valid for password setting
       return res.json({ 
         message: "Email verified. Please set your password.",
         requiresPassword: true,
@@ -541,7 +526,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Route to handle password creation after verification
   app.post("/api/auth/set-password", async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -550,10 +534,8 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing email or password" });
       }
 
-      // Validate password
       const validatedPassword = updatePasswordSchema.parse({ password });
 
-      // Get user by email
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
         return res.status(404).json({ error: "User not found" });
@@ -561,13 +543,10 @@ export async function registerRoutes(app: Express) {
 
       const hashedPassword = await hashPassword(validatedPassword.password);
 
-      // Update user's password and set verified to true
       const updatedUser = await storage.updateUserPassword(user.id, hashedPassword);
 
-      // Now verify the user since they've set their password
       const verifiedUser = await storage.verifyUser(updatedUser.id);
 
-      // Clean up any verification tokens for this email
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
 
       return res.json({ 
@@ -591,7 +570,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add user info endpoint
   app.get("/api/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -603,7 +581,6 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
-      // Get the linked person's api_id if it exists
       let api_id = null;
       if (user.personId) {
         const person = await storage.getPerson(user.personId);
@@ -612,13 +589,12 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      // Explicitly include all necessary user fields including isAdmin
       return res.json({
         id: user.id,
         email: user.email,
         displayName: user.displayName,
         isVerified: user.isVerified,
-        isAdmin: user.isAdmin, // Explicitly include isAdmin
+        isAdmin: user.isAdmin, 
         personId: user.personId,
         api_id
       });
@@ -628,7 +604,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update login route
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -655,7 +630,6 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Set up session
       req.session.userId = user.id;
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
@@ -664,7 +638,6 @@ export async function registerRoutes(app: Express) {
         });
       });
 
-      // Explicitly include isAdmin in the response
       return res.json({ 
         message: "Logged in successfully",
         user: {
@@ -672,7 +645,7 @@ export async function registerRoutes(app: Express) {
           email: user.email,
           displayName: user.displayName,
           isVerified: user.isVerified,
-          isAdmin: user.isAdmin, // Explicitly include isAdmin
+          isAdmin: user.isAdmin, 
           personId: user.personId
         }
       });
@@ -682,7 +655,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update logout route
   app.post("/api/auth/logout", (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not logged in" });
@@ -698,10 +670,8 @@ export async function registerRoutes(app: Express) {
     });
   });
 
-  // Internal-only route to reset database and fetch fresh data from Luma
   app.post("/_internal/reset-database", async (req, res) => {
     try {
-      // Check if request is coming from localhost
       const requestIP = req.ip || req.socket.remoteAddress;
       const isLocalRequest = requestIP === '127.0.0.1' || requestIP === '::1' || requestIP === 'localhost';
       const isDevelopment = process.env.NODE_ENV === 'development';
@@ -711,7 +681,6 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Forbidden. This endpoint is restricted to internal use only." });
       }
 
-      // Initialize SSE
       initSSE(res);
       sendSSEUpdate(res, { 
         type: 'status', 
@@ -720,7 +689,6 @@ export async function registerRoutes(app: Express) {
       });
 
       try {
-        // Clear events table
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Clearing events table...',
@@ -728,7 +696,6 @@ export async function registerRoutes(app: Express) {
         });
         await storage.clearEvents();
 
-        // Clear people table
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Clearing people table (preserving user relationships)...',
@@ -736,7 +703,6 @@ export async function registerRoutes(app: Express) {
         });
         await storage.clearPeople();
 
-        // Clear cache metadata
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Clearing cache metadata...',
@@ -744,18 +710,15 @@ export async function registerRoutes(app: Express) {
         });
         await db.execute(sql`TRUNCATE TABLE cache_metadata RESTART IDENTITY`);
 
-        // Import CacheService
         const { CacheService } = await import('./services/CacheService');
         const cacheService = CacheService.getInstance();
 
-        // Initialize sync
         sendSSEUpdate(res, { 
           type: 'status', 
           message: 'Initializing fresh data fetch from Luma API',
           progress: 20 
         });
 
-        // Set up event listeners for cache service
         cacheService.on('fetchProgress', (data) => {
           sendSSEUpdate(res, {
             type: 'progress',
@@ -763,14 +726,11 @@ export async function registerRoutes(app: Express) {
           });
         });
 
-        // Initialize a new sync
         const oldestPossibleDate = new Date(0);
         await storage.setLastCacheUpdate(oldestPossibleDate);
 
-        // Start the cache update
         await cacheService.updateCache();
 
-        // Verify data was fetched
         const [eventCount, peopleCount] = await Promise.all([
           storage.getEventCount(),
           storage.getPeopleCount()
@@ -780,7 +740,6 @@ export async function registerRoutes(app: Express) {
           throw new Error('No data was fetched from Luma API');
         }
 
-        // Send final success message
         sendSSEUpdate(res, { 
           type: 'complete',
           message: `Database reset completed. Successfully fetched ${eventCount} events and ${peopleCount} people from Luma API.`,
@@ -791,7 +750,6 @@ export async function registerRoutes(app: Express) {
           progress: 100
         });
 
-        // End the SSE stream
         res.end();
 
       } catch (error) {
@@ -822,10 +780,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add the new public stats endpoint before the existing admin stats endpoint
   app.get("/api/public/stats", async (_req, res) => {
     try {
-      // Fetch stats that are safe to expose publicly
       const [eventCount, totalAttendeesCount, uniqueAttendeesCount] = await Promise.all([
         storage.getEventCount(),
         storage.getTotalAttendeesCount(),
@@ -843,21 +799,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add the new admin stats endpoint after the existing routes
   app.get("/api/admin/stats", async (req, res) => {
     try {
-      // Get the authenticated user
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin using the new flag
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Fetch stats
       const [eventCount, peopleCount, userCount, totalAttendeesCount] = await Promise.all([
         storage.getEventCount(),
         storage.getPeopleCount(),
@@ -881,7 +833,6 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/events/check-rsvp", async (req, res) => {
     try {
-      // Check if user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
@@ -891,7 +842,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Get user's email and linked person record for api_id
       const user = await storage.getUser(req.session.userId);
       if (!user || !user.personId) {
         return res.status(401).json({ error: "User not found" });
@@ -902,7 +852,6 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Associated person not found" });
       }
 
-      // First check cached status
       const cachedStatus = await storage.getRsvpStatus(person.api_id, event_api_id as string);
       if (cachedStatus) {
         return res.json({
@@ -911,7 +860,6 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // If no cached status, check with Luma API
       const response = await lumaApiRequest(
         'event/get-guest',
         { 
@@ -927,7 +875,6 @@ export async function registerRoutes(app: Express) {
         fullResponse: response
       });
 
-      // Cache the response
       if (response.guest?.approval_status) {
         await storage.upsertRsvpStatus({
           userApiId: person.api_id,
@@ -949,7 +896,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add new featured event endpoint
   app.get("/api/events/featured", async (_req, res) => {
     try {
       const featuredEvent = await storage.getFeaturedEvent();
@@ -965,51 +911,44 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Update the /api/admin/events endpoint
   app.get("/api/admin/events", async (req, res) => {
     try {
-      // Check if user is authenticated
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      // Check if user is admin
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Get pagination parameters and search query
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 100;
       const searchQuery = (req.query.search as string || '').toLowerCase();
       const offset = (page - 1) * limit;
 
-      // Get total count with search filter
       const totalCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(events)
         .where(
           searchQuery
-            ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} ORLOWER(description) LIKE ${`%${searchQuery}%`})`
+            ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} OR LOWER(description) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
         )
         .then(result => Number(result[0].count));
 
-      // Get paginated events with search filter
       const eventsList = await db
         .select()
         .from(events)
         .where(
-                    searchQuery
+          searchQuery
             ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} OR LOWER(description) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
         )
-        .orderBy(sql`start_time DESC`)
+.orderBy(sql`start_time DESC`)
         .limit(limit)
         .offset(offset);
 
-    // Get attendance status for each event
     const eventsWithStatus = await Promise.all(
       eventsList.map(async (event) => {
         const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
@@ -1032,27 +971,22 @@ export async function registerRoutes(app: Express) {
   }
 });
 
-// Update the /api/admin/people endpoint with search
 app.get("/api/admin/people", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const user = await storage.getUser(req.session.userId);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    // Get pagination parameters and search query
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 100;
     const searchQuery = (req.query.search as string || '').toLowerCase();
     const offset = (page - 1) * limit;
 
-    // Get total count with search filter
     const totalCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(people)
@@ -1068,7 +1002,6 @@ app.get("/api/admin/people", async (req, res) => {
       )
       .then(result => Number(result[0].count));
 
-    // Get paginated people with search filter
     const peopleList = await db
       .select()
       .from(people)
@@ -1096,10 +1029,8 @@ app.get("/api/admin/people", async (req, res) => {
   }
 });
 
-// Modify the existing /api/admin/events/:eventId/guests endpoint
 app.get("/api/admin/events/:eventId/guests", async (req, res) => {
   try {
-    // Authentication checks remain unchanged...
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
@@ -1117,11 +1048,10 @@ app.get("/api/admin/events/:eventId/guests", async (req, res) => {
     let allGuests: any[] = [];
     let hasMore = true;
     let cursor = undefined;
-    let iterationCount = 0;      const MAX_ITERATIONS = 100; // Safety limit
+    let iterationCount = 0;      const MAX_ITERATIONS = 100; 
 
     console.log('Starting guest sync for event:', eventId);
 
-    // First, delete all existing attendance records for this event
     try {
       await storage.deleteAttendanceByEvent(eventId);
       console.log('Cleared existing attendance records for event:', eventId);
@@ -1149,7 +1079,6 @@ app.get("/api/admin/events/:eventId/guests", async (req, res) => {
       });
 
       if (response.entries) {
-        // Filter for approved guests only and store their attendance records
         const approvedEntries = response.entries.filter((entry: any) => entry.guest.approval_status === 'approved');
 
         for (const entry of approvedEntries) {
@@ -1197,7 +1126,6 @@ app.get("/api/admin/events/:eventId/guests", async (req, res) => {
       console.warn('Reached maximum iteration limit while syncing guests');
     }
 
-    // Update the event's last sync timestamp
     await storage.updateEventAttendanceSync(eventId);
 
     console.log('Completed guest sync:', {
@@ -1226,15 +1154,12 @@ app.get("/api/admin/events/:eventId/guests", async (req, res) => {
   }
 });
 
-// Get attendees for a specific event
 app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const user = await storage.getUser(req.session.userId);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
@@ -1245,7 +1170,6 @@ app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
       return res.status(400).json({ error: "Missing event ID" });
     }
 
-    // Query attendance records and join with people table
     const result = await db
       .select({
         id: people.id,
@@ -1281,7 +1205,7 @@ app.post("/api/events/send-invite", async (req, res) => {
 
     const response = await lumaApiRequest(
       'event/send-invites',
-      undefined, // no query params needed
+      undefined, 
       {
         method: 'POST',
         body: JSON.stringify({
@@ -1310,13 +1234,11 @@ app.post("/api/events/send-invite", async (req, res) => {
   }
 });
 
-// Add the new public posts endpoint
 app.get("/api/public/posts", async (_req, res) => {
   try {
     console.log('Fetching public posts...');
     const posts = await storage.getPosts();
 
-    // Sort posts with pinned posts first, then by creation date
     const sortedPosts = posts.sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
@@ -1331,15 +1253,12 @@ app.get("/api/public/posts", async (_req, res) => {
   }
 });
 
-// Add the posts endpoints
 app.post("/api/admin/posts", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const user = await storage.getUser(req.session.userId);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
@@ -1347,10 +1266,8 @@ app.post("/api/admin/posts", async (req, res) => {
 
     const postData = req.body;
 
-    // Add the creator ID to the post data
     postData.creatorId = user.id;
 
-    // Create the post
     const post = await storage.createPost(postData);
 
     res.json(post);
@@ -1362,12 +1279,10 @@ app.post("/api/admin/posts", async (req, res) => {
 
 app.get("/api/admin/posts", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const user = await storage.getUser(req.session.userId);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
@@ -1381,7 +1296,6 @@ app.get("/api/admin/posts", async (req, res) => {
   }
 });
 
-// Update admin check in /api/admin/members endpoint
 app.get("/api/admin/members", async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -1393,13 +1307,11 @@ app.get("/api/admin/members", async (req, res) => {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    // Get pagination parameters
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 100;
     const searchQuery = (req.query.search as string || '').toLowerCase();
     const offset = (page - 1) * limit;
 
-    // Get total count with search filter
     const totalCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(users)
@@ -1410,7 +1322,6 @@ app.get("/api/admin/members", async (req, res) => {
       )
       .then(result => Number(result[0].count));
 
-    // Get paginated users with their linked person data
     const usersList = await db
       .select({
         id: users.id,
@@ -1442,14 +1353,12 @@ app.get("/api/admin/members", async (req, res) => {
   }
 });
 
-// Add new endpoint to toggle admin status
 app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
   try {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if the current user is an admin
     const currentUser = await storage.getUser(req.session.userId);
     if (!currentUser?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
@@ -1464,7 +1373,6 @@ app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
 
     console.log(`Toggling admin status for user ${targetUserId} from ${targetUser.isAdmin} to ${!targetUser.isAdmin}`);
 
-    // Toggle the admin status
     const updatedUser = await storage.updateUserAdminStatus(targetUserId, !targetUser.isAdmin);
 
     console.log(`Admin status for user ${targetUserId} updated successfully. New status: ${updatedUser.isAdmin}`);
@@ -1474,21 +1382,17 @@ app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
     res.status(500).json({ error: "Failed to toggle admin status" });
   }
 });
-// Add new roles and permissions endpoints after existing admin routes
 app.get("/api/admin/roles", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const user = await storage.getUser(req.session.userId);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    // Get all roles
     const roles = await db
       .select()
       .from(rolesTable)
@@ -1504,18 +1408,15 @@ app.get("/api/admin/roles", async (req, res) => {
 
 app.get("/api/admin/permissions", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const user = await storage.getUser(req.session.userId);
     if (!user?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
     }
 
-    // Get all permissions
     const permissions = await db
       .select()
       .from(permissionsTable)
@@ -1529,7 +1430,6 @@ app.get("/api/admin/permissions", async (req, res) => {
   }
 });
 
-// Get permissions for a specific role
 app.get("/api/admin/roles/:id/permissions", async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -1551,7 +1451,6 @@ app.get("/api/admin/roles/:id/permissions", async (req, res) => {
 
     console.log('Fetching permissions for role:', roleId);
 
-    // Get permissions for the specified role
     const rolePermissions = await db
       .select({
         id: permissionsTable.id,
@@ -1580,7 +1479,6 @@ app.get("/api/admin/roles/:id/permissions", async (req, res) => {
   }
 });
 
-// Add a permission to a role
 app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -1602,7 +1500,6 @@ app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) 
       return res.status(400).json({ error: "Invalid role or permission ID" });
     }
 
-    // Get role and permission details for validation
     const [role, permission] = await Promise.all([
       db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
       db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
@@ -1620,7 +1517,6 @@ app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) 
       permissionName: permission[0].name
     });
 
-    // Check if the role-permission combination already exists
     const existing = await db
       .select()
       .from(rolePermissionsTable)
@@ -1636,7 +1532,6 @@ app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) 
       return res.status(409).json({ error: "Permission already assigned to role" });
     }
 
-    // Add permission to role
     await db.insert(rolePermissionsTable).values({
       roleId,
       permissionId,
@@ -1646,7 +1541,6 @@ app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) 
 
     console.log('Successfully added permission to role');
 
-    // Get updated permissions for the role
     const updatedPermissions = await db
       .select({
         id: permissionsTable.id,
@@ -1673,7 +1567,6 @@ app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) 
   }
 });
 
-// Remove a permission from a role
 app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
   try {
     if (!req.session.userId) {
@@ -1695,7 +1588,6 @@ app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res
       return res.status(400).json({ error: "Invalid role or permission ID" });
     }
 
-    // Get role and permission details for validation
     const [role, permission] = await Promise.all([
       db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
       db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
@@ -1713,7 +1605,6 @@ app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res
       permissionName: permission[0].name
     });
 
-    // Remove permission from role
     const result = await db
       .delete(rolePermissionsTable)
       .where(
@@ -1726,7 +1617,6 @@ app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res
 
     console.log('Delete operation result:', result);
 
-    // Get updated permissions for the role
     const updatedPermissions = await db
       .select({
         id: permissionsTable.id,
@@ -1753,15 +1643,12 @@ app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res
   }
 });
 
-// Add user role management endpoint
 app.post("/api/admin/members/:userId/roles/:roleName", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if user is admin
     const adminUser = await storage.getUser(req.session.userId);
     if (!adminUser?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
@@ -1775,24 +1662,20 @@ app.post("/api/admin/members/:userId/roles/:roleName", async (req, res) => {
 
     console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
-    // Get the role by name
     const role = await storage.getRoleByName(roleName);
     if (!role) {
       return res.status(404).json({ error: "Role not found" });
     }
 
-    // Remove all existing roles from the user
     const currentRoles = await storage.getUserRoles(userId);
     for (const currentRole of currentRoles) {
       console.log(`Removing role ${currentRole.name} from user ${userId}`);
       await storage.removeRoleFromUser(userId, currentRole.id);
     }
 
-    // Assign the new role
     await storage.assignRoleToUser(userId, role.id, req.session.userId);
     console.log(`Assigned role ${roleName} to user ${userId}`);
 
-    // Get updated roles for the user
     const updatedRoles = await storage.getUserRoles(userId);
     res.json({ roles: updatedRoles });
   } catch (error) {
@@ -1801,15 +1684,12 @@ app.post("/api/admin/members/:userId/roles/:roleName", async (req, res) => {
   }
 });
 
-// Add new endpoint for updating user admin status after the existing /api/admin/members endpoint
 app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
   try {
-    // Check if user is authenticated
     if (!req.session.userId) {
       return res.status(401).json({ error: "Not authenticated" });
     }
 
-    // Check if current user is admin
     const currentUser = await storage.getUser(req.session.userId);
     if (!currentUser?.isAdmin) {
       return res.status(403).json({ error: "Not authorized" });
@@ -1824,7 +1704,6 @@ app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
 
     console.log(`Updating admin status for user ${userId} to ${isAdmin} by admin ${req.session.userId}`);
 
-    // Update user's admin status
     const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
     console.log(`Admin status for user ${userId} updated successfully. New status: ${updatedUser.isAdmin}`);
 
