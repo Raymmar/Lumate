@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { SiLinkedin, SiFacebook, SiInstagram, SiWhatsapp } from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
+import { NavBar } from "@/components/NavBar";
 import type { TimelineEvent, BoardMember, FoundingMember, Testimonial, Person } from "@shared/schema";
 
 function SocialLinks() {
@@ -182,6 +183,13 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Global Navigation */}
+      <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
+        <PageContainer>
+          <NavBar />
+        </PageContainer>
+      </div>
+
       {/* Hero Section */}
       <div className="relative py-24 overflow-hidden">
         <div className="absolute inset-0 z-0">
