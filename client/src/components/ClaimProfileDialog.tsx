@@ -47,11 +47,24 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       if (data.status === 'invited') {
         toast({
           title: "Invitation Sent",
-          description: data.message,
+          description: (
+            <>
+              {data.message}
+              {data.nextEvent?.url && (
+                <div className="mt-2">
+                  <a 
+                    href={data.nextEvent.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Click here to view the event details
+                  </a>
+                </div>
+              )}
+            </>
+          ),
         });
-        if (data.nextEvent?.url) {
-          window.open(data.nextEvent.url, '_blank');
-        }
       } else {
         toast({
           title: "Verification Email Sent",
