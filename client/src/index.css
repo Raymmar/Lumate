@@ -12,7 +12,7 @@
     --input: 240 5.9% 90%;
     --primary: 240 5.9% 10%;
     --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
+    --secondary: 240 5.9% 92%; /* Slightly darker for better hover contrast */
     --secondary-foreground: 240 5.9% 10%;
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
@@ -27,7 +27,7 @@
     --input: 0 0% 23%;
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
-    --secondary: 0 0% 11%; /* This is #1D1D1D */
+    --secondary: 0 0% 16%; /* This is #2A2A2A - more contrast for hover */
     --secondary-foreground: 0 0% 98%;
     --accent: 0 0% 11%;
     --accent-foreground: 0 0% 98%;
@@ -51,7 +51,7 @@
   /* Ensure navigation and sidebar links also use text color */
   nav a,
   .sidebar a {
-    @apply text-foreground hover:bg-secondary transition-colors;
+    @apply text-foreground hover:bg-secondary transition-colors duration-200;
   }
 
   /* Keep primary color for buttons and interactive elements only */
@@ -65,6 +65,6 @@
   button:not([class*="bg-"]):hover,
   [role="button"]:not([class*="bg-"]):hover,
   .hover-effect {
-    @apply bg-secondary transition-colors;
+    @apply bg-secondary transition-colors duration-200;
   }
 }
