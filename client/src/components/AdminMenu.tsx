@@ -64,7 +64,6 @@ export default function AdminMenu() {
     setSyncStats(null);
 
     try {
-      // Reset all states before starting
       const response = await fetch('/_internal/reset-database', {
         method: 'POST',
         headers: {
@@ -119,6 +118,7 @@ export default function AdminMenu() {
                       peopleCount: data.data.peopleCount
                     });
                   }
+                  addSyncLog(`Sync completed. Events: ${data.data?.eventCount}, People: ${data.data?.peopleCount}`);
                   return;
 
                 case 'error':

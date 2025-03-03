@@ -31,6 +31,7 @@ export class CacheService extends EventEmitter {
   private emitProgress(message: string, progress: number) {
     console.log(`[CacheService] Progress: ${message} (${progress}%)`);
     this.emit('fetchProgress', {
+      type: 'progress',
       message,
       progress: Math.min(Math.round(progress), 100)
     });
@@ -39,6 +40,11 @@ export class CacheService extends EventEmitter {
   private logSync(message: string, data?: any) {
     const timestamp = new Date().toISOString();
     console.log(`[CacheService] ${timestamp} - ${message}`, data ? data : '');
+    this.emit('fetchProgress', {
+      type: 'status',
+      message: `${message}${data ? ': ' + JSON.stringify(data) : ''}`,
+      progress: undefined
+    });
   }
 
   async forceSync() {
@@ -53,21 +59,12 @@ export class CacheService extends EventEmitter {
             updated_at = CURRENT_TIMESTAMP
       `);
 
-      // Stop existing cache interval
-      if (this.cacheInterval) {
-        clearInterval(this.cacheInterval);
-        this.cacheInterval = null;
-      }
-
       // Reset caching state
       this.isCaching = false;
 
       // Start fresh sync
       this.logSync('Starting forced sync process');
       await this.updateCache();
-
-      // Restart regular caching interval
-      this.startCaching();
 
       return true;
     } catch (error) {
@@ -145,16 +142,6 @@ export class CacheService extends EventEmitter {
         }
       }
 
-      // Verify the sync was successful
-      const [eventCount, peopleCount] = await Promise.all([
-        storage.getEventCount(),
-        storage.getPeopleCount()
-      ]);
-
-      if (eventCount === 0 || peopleCount === 0) {
-        throw new Error(`Sync verification failed: Expected non-zero counts, got events=${eventCount}, people=${peopleCount}`);
-      }
-
       // Update the last cache time
       await storage.setLastCacheUpdate(now);
       this.lastSuccessfulSync = now;
@@ -162,18 +149,24 @@ export class CacheService extends EventEmitter {
       const totalDuration = (Date.now() - syncStartTime) / 1000;
       const finalMessage = `Cache update completed in ${totalDuration}s. Processed ${events.length} events and ${people.length} people.`;
       this.logSync(finalMessage);
-      this.emitProgress(finalMessage, 100);
+
+      // Emit completion event with stats
+      this.emit('fetchProgress', {
+        type: 'complete',
+        message: finalMessage,
+        progress: 100,
+        data: {
+          eventCount: events.length,
+          peopleCount: people.length
+        }
+      });
 
     } catch (error) {
       this.logSync('Cache update process failed:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-        this.emitProgress(`Error: ${error.message}`, 0);
-      }
+      this.emit('fetchProgress', {
+        type: 'error',
+        message: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     } finally {
       this.isCaching = false;
