@@ -41,16 +41,33 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete }) => {
       const formData = new FormData();
       formData.append('file', file);
 
+      const apiKey = import.meta.env.VITE_FILE_UPLOAD_API_KEY;
+      console.log('Debug - Upload Request:', {
+        apiKeyPresent: !!apiKey,
+        apiKeyLength: apiKey?.length,
+        fileType: file.type,
+        fileSize: file.size,
+        fileName: file.name
+      });
+
+      const headers = new Headers();
+      headers.append('X-API-KEY', apiKey);
+
       const response = await fetch('https://file-upload.replit.app/api/upload', {
         method: 'POST',
-        headers: {
-          'X-API-KEY': import.meta.env.VITE_FILE_UPLOAD_API_KEY,
-        },
+        headers,
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        const errorText = await response.text();
+        console.error('Upload failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers),
+          error: errorText
+        });
+        throw new Error(`Upload failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
       const data = await response.json();
@@ -65,6 +82,7 @@ export const FileUpload: React.FC<FileUploadProps> = ({ onUploadComplete }) => {
         throw new Error('Invalid response format');
       }
     } catch (error) {
+      console.error('Upload error details:', error);
       toast({
         title: "Upload failed",
         description: error instanceof Error ? error.message : "Failed to upload file",
