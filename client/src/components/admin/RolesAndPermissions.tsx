@@ -13,9 +13,6 @@ import {
 } from "@/components/ui/table";
 import {
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
 } from "@/components/ui/card";
 import {
@@ -72,7 +69,6 @@ export function RolesAndPermissions() {
         return;
       }
 
-      // Check if this is a required permission that can't be removed
       if (hasPermission && isRequiredPermission(role.name, permission.name)) {
         toast({
           title: "Cannot Remove Required Permission",
@@ -88,7 +84,6 @@ export function RolesAndPermissions() {
       const method = hasPermission ? 'DELETE' : 'POST';
       const oldPermissions = queryClient.getQueryData<Permission[]>(['/api/admin/roles', roleId, 'permissions']) || [];
 
-      // Optimistically update the cache
       queryClient.setQueryData(
         ['/api/admin/roles', roleId, 'permissions'],
         hasPermission
@@ -101,7 +96,6 @@ export function RolesAndPermissions() {
         method
       );
 
-      // Update cache with actual server response
       queryClient.setQueryData(['/api/admin/roles', roleId, 'permissions'], updatedPermissions);
 
       toast({
@@ -111,7 +105,6 @@ export function RolesAndPermissions() {
     } catch (error) {
       console.error('Failed to update role permission:', error);
 
-      // Revert the optimistic update
       queryClient.invalidateQueries({ 
         queryKey: ['/api/admin/roles', roleId, 'permissions'] 
       });
@@ -142,16 +135,13 @@ export function RolesAndPermissions() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Roles & Permissions</CardTitle>
-          <CardDescription>
-            Manage system roles and their associated permissions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {/* Role Selector */}
+    <div>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Roles & Permissions</h1>
+      </div>
+
+      <Card className="mt-4">
+        <CardContent className="pt-6">
           <div className="mb-8">
             <label className="text-sm font-medium mb-2 block">Select Role</label>
             <Select
@@ -176,7 +166,6 @@ export function RolesAndPermissions() {
             </Select>
           </div>
 
-          {/* Permissions Table */}
           {selectedRole ? (
             <Table>
               <TableHeader>
