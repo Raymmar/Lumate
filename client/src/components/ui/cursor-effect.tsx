@@ -31,7 +31,7 @@ export function CursorEffect({ className }: CursorEffectProps) {
       dpr: 2,
       alpha: true,
       stencil: false,
-      depth: false,
+      depth: true,
       antialias: true,
     });
     rendererRef.current = renderer;
@@ -91,8 +91,8 @@ export function CursorEffect({ className }: CursorEffectProps) {
 
     // Create lines with different properties and colors
     const colors = [
-      '#ec4067',  // Pink
-      '#000000', // Black
+      // '#ec4067',  // Pink
+      // '#000000', // Black
       '#FEA30E' // Primary orange (accent)
     ];
 
