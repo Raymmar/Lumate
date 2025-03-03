@@ -91,9 +91,9 @@ export function CursorEffect({ className }: CursorEffectProps) {
 
     // Create lines with different properties and colors
     const colors = [
-      '#FEA30E', // Primary orange (accent)
+      '#ec4067',  // Pink
       '#000000', // Black
-      '#ec4067'  // Pink
+      '#FEA30E' // Primary orange (accent)
     ];
 
     const properties = [
