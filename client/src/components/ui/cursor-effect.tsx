@@ -91,15 +91,15 @@ export function CursorEffect({ className }: CursorEffectProps) {
 
     // Create lines with different properties and colors
     const colors = [
-      '#ec4067',  // Pink (bottom)
-      '#131517',  // Dark theme background (middle)
-      '#FEA30E'   // Primary orange (accent) (top)
+      '#FEA30E', // Primary orange (accent)
+      '#000000', // Black
+      '#ec4067'  // Pink
     ];
 
     const properties = [
-      { spring: 0.07, friction: 0.88, thickness: 25 }, // Pink - medium
-      { spring: 0.06, friction: 0.90, thickness: 20 }, // Dark theme background - subtle
-      { spring: 0.08, friction: 0.85, thickness: 30 }, // Accent color - prominent
+      { spring: 0.08, friction: 0.85, thickness: 40 }, // Accent color - prominent
+      { spring: 0.06, friction: 0.90, thickness: 30 }, // Black - subtle
+      { spring: 0.07, friction: 0.88, thickness: 35 }, // Pink - medium
     ];
 
     colors.forEach((color, i) => {

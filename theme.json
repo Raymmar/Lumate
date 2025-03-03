@@ -2,6 +2,5 @@
   "variant": "professional",
   "primary": "#FEA30E",
   "appearance": "dark",
-  "radius": 1,
-  "darkBackground": "#131517"
+  "radius": 1
 }
