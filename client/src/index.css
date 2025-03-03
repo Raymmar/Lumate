@@ -10,4 +10,10 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* Override link colors to use text color instead of primary color */
+  a:not([class]),
+  .text-link {
+    @apply text-foreground hover:text-foreground/80 underline-offset-4 hover:underline transition-colors;
+  }
 }
