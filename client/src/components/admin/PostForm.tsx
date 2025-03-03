@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { FileUpload } from "@/components/ui/file-upload";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost) => Promise<void>;
@@ -107,18 +108,13 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="featuredImage"
-            render={({ field: { value, ...field }}) => (
+            render={({ field: { value, onChange }}) => (
               <FormItem className="space-y-1">
-                <FormLabel className="text-sm text-muted-foreground">Featured Image URL</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    type="url" 
-                    value={value || ""} 
-                    placeholder="https://..." 
-                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                </FormControl>
+                <FileUpload
+                  defaultValue={value}
+                  onUpload={onChange}
+                  className="space-y-2"
+                />
                 <FormMessage />
               </FormItem>
             )}
