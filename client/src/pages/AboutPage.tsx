@@ -246,7 +246,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <CursorEffect />
-      <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
+      <div className="sticky top-0 w-full bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/40 z-50 border-b border-border/50">
         <PageContainer className="max-w-[1140px]">
           <NavBar />
         </PageContainer>

@@ -43,7 +43,7 @@ export function CursorEffect({ className }: CursorEffectProps) {
   return (
     <div 
       className={cn(
-        "fixed inset-0 pointer-events-none z-0",
+        "fixed inset-0 pointer-events-none z-[100]", // Increased z-index to be above navbar
         "overflow-hidden",
         className
       )}
@@ -53,7 +53,7 @@ export function CursorEffect({ className }: CursorEffectProps) {
         className={cn(
           "absolute w-16 h-16 rounded-full", // Much larger cursor
           "bg-[#FEA30E]/50 dark:bg-[#FEA30E]/60", // Significantly increased opacity
-          "blur-2xl transition-all duration-200 ease-out", // Enhanced blur effect
+          "blur-2xl transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]", // Enhanced blur effect with custom easing
           clicked && "scale-[2]" // More dramatic scale effect
         )}
         style={{
@@ -73,6 +73,7 @@ export function CursorEffect({ className }: CursorEffectProps) {
           style={{
             transform: `translate(${point.x - 20}px, ${point.y - 20}px)`,
             opacity: 1 - (i / trail.length) * 0.6, // More gradual fade for longer visible trail
+            transition: `all 500ms cubic-bezier(0.4,0,0.2,1) ${i * 8}ms`, // Added delay based on position in trail
           }}
         />
       ))}
