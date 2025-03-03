@@ -1,6 +1,7 @@
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CursorEffect } from "@/components/ui/cursor-effect";
 import {
   SiLinkedin,
   SiFacebook,
@@ -244,16 +245,14 @@ function TestimonialsSection() {
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Global Navigation */}
+      <CursorEffect />
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
         <PageContainer className="max-w-[1140px]">
           <NavBar />
         </PageContainer>
       </div>
 
-      {/* Main Content */}
       <div className="flex-1">
-        {/* Hero Section */}
         <div className="relative py-12 overflow-hidden">
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-b from-primary/10 to-background" />
@@ -270,14 +269,11 @@ export default function AboutPage() {
           </PageContainer>
         </div>
 
-        {/* Content Sections */}
         <PageContainer className="py-4 space-y-12 max-w-[1140px]">
-          {/* Join Us Section */}
           <div className="max-w-md mx-auto">
             <JoinUsCard showHeader={false} />
           </div>
 
-          {/* Monthly Meetup Section */}
           <div className="text-center space-y-4">
             <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
