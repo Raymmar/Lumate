@@ -14,6 +14,7 @@ interface LineObject {
   mouseOffset: Vec3;
   points: Vec3[];
   polyline: Polyline;
+  lerpFactor: number;
 }
 
 export function CursorEffect({ className }: CursorEffectProps) {
@@ -97,9 +98,9 @@ export function CursorEffect({ className }: CursorEffectProps) {
     ];
 
     const properties = [
-      { spring: 0.07, friction: 0.88, thickness: 35 }, // Pink - medium
-      { spring: 0.06, friction: 0.90, thickness: 30 }, // Black - subtle
-      { spring: 0.08, friction: 0.85, thickness: 40 }, // Accent color - prominent
+      { spring: 0.07, friction: 0.84, thickness: 35, offset: 0.12, lerp: 0.82 }, // Pink - medium, more spread
+      { spring: 0.05, friction: 0.92, thickness: 30, offset: 0.08, lerp: 0.89 }, // Black - subtle, stays closer
+      { spring: 0.09, friction: 0.80, thickness: 40, offset: 0.15, lerp: 0.78 }, // Accent - prominent, most spread
     ];
 
     colors.forEach((color, i) => {
@@ -110,8 +111,8 @@ export function CursorEffect({ className }: CursorEffectProps) {
         friction: properties[i].friction,
         mouseVelocity: new Vec3(),
         mouseOffset: new Vec3(
-          random(-1, 1) * 0.02,
-          random(-1, 1) * 0.02,
+          random(-1, 1) * properties[i].offset,
+          random(-1, 1) * properties[i].offset,
           0
         ),
         points,
@@ -122,7 +123,8 @@ export function CursorEffect({ className }: CursorEffectProps) {
             uColor: { value: new Color(color) },
             uThickness: { value: properties[i].thickness },
           },
-        })
+        }),
+        lerpFactor: properties[i].lerp
       };
 
       line.polyline.mesh.setParent(scene);
@@ -189,8 +191,8 @@ export function CursorEffect({ className }: CursorEffectProps) {
             line.mouseVelocity.add(tmp).multiply(line.friction);
             line.points[i].add(line.mouseVelocity);
           } else {
-            // Rest of points ease to the point in front of them
-            line.points[i].lerp(line.points[i - 1], 0.9);
+            // Rest of points ease to the point in front of them with custom lerp factor
+            line.points[i].lerp(line.points[i - 1], line.lerpFactor);
           }
         }
         line.polyline.updateGeometry();
