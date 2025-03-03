@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import uploadRouter from './routes/upload';  // Add this import
+import unsplashRouter from './routes/unsplash';  // Add this import if not already present
 import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema"; // Added import for users table and roles and permissions tables
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
@@ -114,6 +116,9 @@ export async function registerRoutes(app: Express) {
     name: 'sid',
     proxy: isProduction
   }));
+
+  app.use('/api/upload', uploadRouter); // Added line
+  app.use('/api/unsplash', unsplashRouter); // Added line
 
   app.get("/api/events", async (_req, res) => {
     try {
@@ -916,7 +921,7 @@ export async function registerRoutes(app: Express) {
         .from(events)
         .where(
           searchQuery
-            ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} OR LOWER(description) LIKE ${`%${searchQuery}%`})`
+            ? sql`(LOWER(title) LIKE ${`%${searchQuery}%`} ORLOWER(description) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
         )
         .then(result => Number(result[0].count));

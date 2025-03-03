@@ -1,12 +1,13 @@
 import * as React from "react"
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, ImageIcon, ExternalLink } from "lucide-react"
+import { Search, ImageIcon, ExternalLink, Upload } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
 
 interface UnsplashImage {
   id: string
@@ -32,6 +33,8 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { toast } = useToast()
 
   React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 500)
@@ -54,6 +57,45 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
     setOpen(false)
   }
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await fetch('/api/upload/file', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+
+      const data = await response.json()
+      onChange?.(data.url)
+      setOpen(false)
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully"
+      })
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive"
+      })
+    }
+
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -70,22 +112,45 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
           ) : (
             <ImageIcon className="h-4 w-4 mr-2" />
           )}
-          {value ? "Change image" : "Choose from Unsplash"}
+          {value ? "Change image" : "Choose image"}
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Choose an image from Unsplash</DialogTitle>
+          <DialogTitle>Choose an image</DialogTitle>
         </DialogHeader>
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search images..."
-            className="pl-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+
+        <div className="space-y-4">
+          {/* File Upload Section */}
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => fileInputRef.current?.click()}
+              className="flex-1"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload from Computer
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Or search Unsplash images..."
+              className="pl-8"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
+
         <ScrollArea className="h-[500px] rounded-md border">
           {isLoading ? (
             <div className="grid grid-cols-3 gap-4 p-4">
@@ -96,7 +161,7 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
           ) : !data?.results.length ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-muted-foreground">
-                {debouncedSearch ? "No images found" : "Start typing to search images"}
+                {debouncedSearch ? "No images found" : "Search Unsplash or upload your own image"}
               </p>
             </div>
           ) : (
