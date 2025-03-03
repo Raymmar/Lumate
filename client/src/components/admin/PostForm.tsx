@@ -96,7 +96,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
                 <RichTextEditor
                   value={field.value}
                   onChange={field.onChange}
-                  className="min-h-[400px] border-none [&_.ProseMirror]:min-h-[400px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit"
+                  className="min-h-[320px] border-none [&_.ProseMirror]:min-h-[320px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit"
                 />
               </FormControl>
               <FormMessage />
