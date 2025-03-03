@@ -170,8 +170,8 @@ function LinksSection() {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
-            Community Guidelines
+          <Button variant="outline" href="/about" className="w-full justify-start font-normal hover:bg-muted">
+            About Sarasota Tech
           </Button>
           <Button variant="outline" className="w-full justify-start font-normal hover:bg-muted">
             Event Calendar
