@@ -31,7 +31,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
     const interval = setInterval(() => {
       setCurrentIndex((current) => (current + 1) % pinnedPosts.length);
-    }, 7000);
+    }, 10000); // Changed from 7000 to 10000ms
 
     return () => clearInterval(interval);
   }, [pinnedPosts.length]);
@@ -55,13 +55,15 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   return (
     <Card className="border relative overflow-hidden h-[300px] group">
       {/* Background image */}
-      <img
-        src={backgroundImage}
-        alt=""
-        className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
-        style={{ transform: 'scale(1.02)' }}
-        onLoad={() => setImageLoaded(true)}
-      />
+      <div className="absolute inset-0 transition-opacity duration-500 ease-in-out">
+        <img
+          src={backgroundImage}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover transition-all duration-500 ease-in-out"
+          style={{ transform: 'scale(1.02)' }}
+          onLoad={() => setImageLoaded(true)}
+        />
+      </div>
 
       {/* Loading state */}
       {!imageLoaded && (
