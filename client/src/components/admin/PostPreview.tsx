@@ -139,7 +139,7 @@ export function PostPreview({
                 <img 
                   src={post.featuredImage} 
                   alt={post.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-center"
                 />
               </div>
             )}
