@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface JoinUsCardProps {
   showHeader?: boolean;
@@ -15,6 +16,18 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const { toast } = useToast();
 
+  // Fetch featured event
+  const { data: featuredEvent, isLoading: isEventLoading } = useQuery({
+    queryKey: ["/api/events/featured"],
+    queryFn: async () => {
+      const response = await fetch("/api/events/featured");
+      if (!response.ok) {
+        throw new Error("Failed to fetch featured event");
+      }
+      return response.json();
+    }
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -25,7 +38,10 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({
+          email,
+          event_api_id: featuredEvent?.api_id
+        })
       });
 
       const data = await response.json();
@@ -67,7 +83,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
           )}
         </CardHeader>
       )}
-      <CardContent>
+      <CardContent className="pt-6">
         {isSubmitted ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -89,12 +105,12 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={isLoading || isEventLoading || !featuredEvent}
               />
               <Button
                 className="bg-primary hover:bg-primary/90"
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || isEventLoading || !featuredEvent}
               >
                 {isLoading ? (
                   <>
@@ -107,7 +123,13 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
               </Button>
             </div>
             <p className="text-sm text-muted-foreground">
-              Drop your email for an invite to our next event and start networking with the region's top tech professionals.
+              {isEventLoading ? (
+                "Loading event details..."
+              ) : !featuredEvent ? (
+                "No upcoming events available at the moment."
+              ) : (
+                "Drop your email for an invite to our next event and start networking with the region's top tech professionals."
+              )}
             </p>
           </form>
         )}

@@ -229,7 +229,7 @@ export default function AboutPage() {
         </div>
 
         {/* Content Sections */}
-        <PageContainer className="py-16 space-y-24 max-w-[1140px]">
+        <PageContainer className="py-8 space-y-16 max-w-[1140px]">
           {/* Join Us Section */}
           <div className="max-w-md mx-auto">
             <JoinUsCard showHeader={false} />
