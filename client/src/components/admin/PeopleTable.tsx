@@ -23,7 +23,7 @@ export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching } = useQuery({
@@ -36,7 +36,6 @@ export function PeopleTable() {
       const data = await response.json();
       return data as PeopleResponse;
     },
-    keepPreviousData: true,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
@@ -83,7 +82,6 @@ export function PeopleTable() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold tracking-tight">People</h2>
         <SearchInput
           value={searchQuery}
           onChange={setSearchQuery}
