@@ -38,12 +38,12 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
       await onSubmit(data);
       toast({
         title: "Success",
-        description: "Post saved successfully"
+        description: "Post published successfully"
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save post",
+        description: "Failed to publish post",
         variant: "destructive"
       });
     }
@@ -206,7 +206,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         </div>
 
         <Button type="submit" className="w-full mt-6">
-          Save Post
+          Publish Post
         </Button>
       </form>
     </Form>
