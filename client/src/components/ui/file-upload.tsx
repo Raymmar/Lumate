@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface FileUploadProps {
   onUpload: (url: string) => void;
-  defaultValue?: string;
+  defaultValue?: string | null;
   className?: string;
 }
 
@@ -41,12 +41,12 @@ export function FileUpload({ onUpload, defaultValue, className = "" }: FileUploa
         body: formData
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
+      const data = await response.json();
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error || 'Upload failed');
       }
 
-      const data = await response.json();
       setPreview(data.url);
       onUpload(data.url);
 

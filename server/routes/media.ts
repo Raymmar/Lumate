@@ -10,7 +10,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ 
-        message: "No file provided" 
+        ok: false,
+        error: "No file provided" 
       });
     }
 
@@ -37,17 +38,22 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       });
 
       console.log('[MediaRoutes] Upload successful, returning URL:', url);
-      res.json({ url });
+      res.json({ 
+        ok: true,
+        url 
+      });
     } catch (error) {
       console.error('[MediaRoutes] Upload failed:', error);
       return res.status(400).json({ 
-        message: error instanceof Error ? error.message : 'Upload failed' 
+        ok: false,
+        error: error instanceof Error ? error.message : 'Upload failed'
       });
     }
   } catch (error) {
     console.error('[MediaRoutes] Error in upload route:', error);
     res.status(500).json({ 
-      message: error instanceof Error ? error.message : 'Internal server error' 
+      ok: false,
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
@@ -63,7 +69,8 @@ router.get('/:filename(*)', async (req, res) => {
     if (!result.ok || !result.value || result.value.length === 0) {
       console.log(`[MediaRoutes] Image not found: ${filename}`);
       return res.status(404).json({ 
-        message: 'Image not found' 
+        ok: false,
+        error: 'Image not found'
       });
     }
 
@@ -85,7 +92,8 @@ router.get('/:filename(*)', async (req, res) => {
   } catch (error) {
     console.error('[MediaRoutes] Error serving image:', error);
     res.status(500).json({ 
-      message: error instanceof Error ? error.message : 'Internal server error' 
+      ok: false,
+      error: error instanceof Error ? error.message : 'Internal server error'
     });
   }
 });
