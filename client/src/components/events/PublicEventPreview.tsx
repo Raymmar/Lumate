@@ -28,7 +28,6 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
   const [email, setEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Find current event index and determine if we have prev/next
   const currentIndex = events.findIndex(e => e.id === event.id);
@@ -162,20 +161,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
             <div>
               <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
               {event.description && (
-                <div className="relative">
-                  <p className={`text-muted-foreground ${!isDescriptionExpanded ? 'line-clamp-4' : ''}`}>
-                    {event.description}
-                  </p>
-                  {event.description.split('\n').length > 4 && (
-                    <Button
-                      variant="link"
-                      className="p-0 h-auto font-normal mt-1"
-                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    >
-                      {isDescriptionExpanded ? 'Show less' : 'Read more'}
-                    </Button>
-                  )}
-                </div>
+                <p className="text-muted-foreground mb-4">{event.description}</p>
               )}
             </div>
 
