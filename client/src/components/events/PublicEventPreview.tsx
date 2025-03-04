@@ -34,6 +34,9 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  // Add check for past events
+  const isEventEnded = new Date(event.endTime + 'Z') < new Date();
+
   // Set up TipTap editor for rich text display
   const editor = useEditor({
     extensions: [StarterKit],
@@ -221,8 +224,8 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
               <Button 
                 variant={rsvpStatus?.isGoing ? "default" : "outline"}
                 className={`w-full h-12 text-lg ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
-                onClick={() => !rsvpStatus?.isGoing && rsvpMutation.mutate()}
-                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
+                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing || isEventEnded}
               >
                 {rsvpMutation.isPending ? (
                   <>
@@ -231,6 +234,8 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                   </>
                 ) : rsvpStatus?.isGoing ? (
                   "You're in"
+                ) : isEventEnded ? (
+                  "Event has ended"
                 ) : (
                   "RSVP Now"
                 )}
@@ -249,7 +254,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                   </p>
                 </CardContent>
               </Card>
-            ) : nextUpcomingEvent ? (
+            ) : nextUpcomingEvent && !isEventEnded ? (
               <Card>
                 <CardContent className="p-6">
                   <form onSubmit={handleInvite} className="space-y-4">
@@ -294,7 +299,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
               <Card>
                 <CardContent className="p-6">
                   <p className="text-sm text-muted-foreground">
-                    No upcoming events available at the moment.
+                    {isEventEnded ? "This event has already ended." : "No upcoming events available at the moment."}
                   </p>
                 </CardContent>
               </Card>
