@@ -66,11 +66,6 @@ export function EventsTable() {
         return data as EventsResponse;
       } catch (error) {
         console.error('Error fetching events:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch events. Please try again.",
-          variant: "destructive",
-        });
         throw error;
       }
     },
@@ -121,11 +116,12 @@ export function EventsTable() {
                 try {
                   data = JSON.parse(jsonStr);
                 } catch (jsonError) {
+                  // Silently log JSON parsing errors
                   console.warn('Invalid JSON received:', jsonStr);
                   continue;
                 }
 
-                // Validate the data structure silently
+                // Skip invalid data structures without showing errors
                 if (!data || typeof data.message !== 'string' || typeof data.progress !== 'number') {
                   console.warn('Invalid data structure received:', data);
                   continue;
@@ -141,37 +137,29 @@ export function EventsTable() {
 
                 setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
 
-                // Only show UI notifications for completion or critical errors
-                if (data.type === 'complete' || data.type === 'error') {
+                // Only show completion notification
+                if (data.type === 'complete') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
-                  if (data.type === 'complete') {
-                    await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-                    toast({
-                      title: "Success",
-                      description: "Attendance sync completed successfully.",
-                    });
-                  }
+                  await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+                  toast({
+                    title: "Success",
+                    description: "Attendance sync completed successfully.",
+                  });
                 }
               } catch (parseError) {
-                // Log parsing errors to console only
+                // Silently log any SSE processing errors
                 console.warn('Error processing SSE message:', parseError);
               }
             }
           }
         } catch (readError) {
-          // Only log stream errors to console unless it's a critical failure
+          // Only log stream errors to console
           console.error('Error reading SSE stream:', readError);
-          if (readError instanceof Error && readError.name !== 'AbortError') {
-            toast({
-              title: "Warning",
-              description: "Connection interrupted. The sync may be incomplete.",
-              variant: "destructive",
-            });
-          }
           break;
         }
       }
     } catch (error) {
+      // Only show error for complete sync failure
       console.error('Error during sync:', error);
       toast({
         title: "Error",
@@ -179,7 +167,6 @@ export function EventsTable() {
         variant: "destructive",
       });
     } finally {
-      // Always clean up the sync state
       if (syncingEvents.includes(eventId)) {
         setSyncingEvents(prev => prev.filter(id => id !== eventId));
       }
