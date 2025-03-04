@@ -8,7 +8,12 @@ import {
   Phone,
   Globe,
   Mail,
-  Calendar
+  Calendar,
+  Linkedin,
+  Github,
+  Facebook,
+  Instagram,
+  X
 } from "lucide-react";
 
 export interface BusinessProfileProps {
@@ -25,6 +30,11 @@ export interface BusinessProfileProps {
   phone?: string;
   email?: string;
   website?: string;
+  linkedin?: string;
+  github?: string;
+  twitter?: string;
+  facebook?: string;
+  instagram?: string;
   consultationEnabled?: boolean;
   consultationUrl?: string;
 }
@@ -38,6 +48,11 @@ export function BusinessProfile({
   phone,
   email,
   website,
+  linkedin,
+  github,
+  twitter,
+  facebook,
+  instagram,
   consultationEnabled = false,
   consultationUrl = "#"
 }: BusinessProfileProps) {
@@ -52,7 +67,7 @@ export function BusinessProfile({
           />
         </div>
       )}
-      
+
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
@@ -85,6 +100,71 @@ export function BusinessProfile({
                 {address.street}, {address.city}, {address.state} {address.zip}
               </span>
             </div>
+          )}
+
+          {linkedin && (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={linkedin} target="_blank" rel="noopener noreferrer">
+                <Linkedin className="h-4 w-4" />
+                LinkedIn
+              </a>
+            </Button>
+          )}
+
+          {github && (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={github} target="_blank" rel="noopener noreferrer">
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
+            </Button>
+          )}
+
+          {twitter && (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={twitter} target="_blank" rel="noopener noreferrer">
+                <X className="h-4 w-4" />
+                X
+              </a>
+            </Button>
+          )}
+
+          {facebook && (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={facebook} target="_blank" rel="noopener noreferrer">
+                <Facebook className="h-4 w-4" />
+                Facebook
+              </a>
+            </Button>
+          )}
+
+          {instagram && (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={instagram} target="_blank" rel="noopener noreferrer">
+                <Instagram className="h-4 w-4" />
+                Instagram
+              </a>
+            </Button>
           )}
 
           {phone && (
