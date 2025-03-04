@@ -1,13 +1,13 @@
-import { Event, Person } from "@shared/schema";
+import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PreviewSidebar } from "@/components/ui/preview-sidebar";
+import { PreviewSidebar } from "@/components/admin/PreviewSidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,23 +23,21 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
 
   // Query to fetch attendees for this event
   const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
-    queryKey: [`/api/events/${event.api_id}/attendees`],
+    queryKey: [`/api/admin/events/${event.api_id}/attendees`],
     queryFn: async () => {
-      const response = await fetch(`/api/events/${event.api_id}/attendees`);
+      const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
-    }
+    },
+    enabled: !!event.api_id
   });
 
-  // Query to check if user is RSVP'd (only when authenticated)
+  // Query to check if user is RSVP'd
   const { data: rsvpStatus } = useQuery({
     queryKey: ['/api/events/check-rsvp', event.api_id],
     queryFn: async () => {
       const response = await fetch(`/api/events/check-rsvp?event_api_id=${event.api_id}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to check RSVP status');
-      }
+      if (!response.ok) throw new Error('Failed to check RSVP status');
       return response.json();
     },
     enabled: !!user && !!event.api_id
@@ -71,7 +69,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
         description: "You've successfully RSVP'd to this event.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
-      queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
     },
     onError: (error: Error) => {
       toast({
@@ -144,14 +142,14 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                 <div>
                   <p className="font-medium">
                     {formatInTimeZone(
-                      new Date(event.startTime),
+                      new Date(event.startTime + 'Z'),
                       event.timezone || 'America/New_York',
                       'EEEE, MMMM d, yyyy'
                     )}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatInTimeZone(new Date(event.startTime), event.timezone || 'America/New_York', 'h:mm a')} - 
-                    {formatInTimeZone(new Date(event.endTime), event.timezone || 'America/New_York', 'h:mm a')}
+                    {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
+                    {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
                     {event.timezone && ` (${event.timezone})`}
                   </p>
                 </div>
@@ -181,6 +179,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
             </CardContent>
           </Card>
 
+          {/* Attendees List */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -197,9 +196,8 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
               ) : attendees.length > 0 ? (
                 <div className="space-y-2">
                   {attendees.map((person) => (
-                    <Link 
-                      key={person.id} 
-                      href={`/people/${person.api_id}`}
+                    <div 
+                      key={person.id}
                       className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                     >
                       <Avatar className="h-8 w-8">
@@ -214,7 +212,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                       <div>
                         <p className="font-medium">{person.userName || "Anonymous"}</p>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               ) : (
