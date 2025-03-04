@@ -27,6 +27,12 @@ export function PersonPreview({ person }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
 
+  console.log('PersonPreview - Rendering person:', {
+    email: person.email,
+    hasUser: !!person.user,
+    userData: person.user
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">

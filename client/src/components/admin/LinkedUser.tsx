@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@shared/schema";
 import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
 
 interface LinkedUserProps {
   user?: User | null;
@@ -23,9 +24,12 @@ export function LinkedUser({ user }: LinkedUserProps) {
         <AvatarFallback>{initials}</AvatarFallback>
       </Avatar>
       <div className="space-y-1">
-        <h4 className="text-sm font-medium leading-none">
-          {user.displayName || user.email}
-        </h4>
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-medium leading-none">
+            {user.displayName || user.email}
+          </h4>
+          {user.isAdmin && <Badge variant="secondary">Admin</Badge>}
+        </div>
         <p className="text-sm text-muted-foreground">
           {user.isVerified ? 'Verified Account' : 'Pending Verification'}
         </p>
