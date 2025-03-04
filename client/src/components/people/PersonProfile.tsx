@@ -203,12 +203,17 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   </div>
                 }
               >
-                <div className="flex gap-3 items-center">
-                  <div className="text-foreground">
-                    <Mail className="w-5 h-5" />
+                <div className="flex justify-between items-center group cursor-pointer hover:bg-muted/50 rounded-sm p-1 transition-colors">
+                  <div className="flex gap-3 items-center">
+                    <div className="text-foreground">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <dd>{person.email}</dd>
+                    </div>
                   </div>
-                  <div>
-                    <dd>{person.email}</dd>
+                  <div className="text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+                    <ExternalLink className="w-4 h-4" />
                   </div>
                 </div>
                 {person.phoneNumber && (
