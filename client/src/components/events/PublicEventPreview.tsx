@@ -342,7 +342,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
               </CardContent>
             </Card>
 
-            {/* Attendees List - Only show for logged in users */}
+            {/* Attendees List */}
             {user && (
               <Card>
                 <CardContent className="p-6">
@@ -360,8 +360,9 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                   ) : attendees.length > 0 ? (
                     <div className="space-y-2">
                       {attendees.map((person) => (
-                        <div 
-                          key={person.id}
+                        <Link 
+                          key={person.id} 
+                          href={`/people/${person.api_id}`}
                           className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                         >
                           <Avatar className="h-8 w-8">
@@ -374,15 +375,12 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                             )}
                           </Avatar>
                           <div>
-                            <p className="font-medium">
-                              {person.userName || (
-                                <Link href="/login" className="text-primary hover:underline">
-                                  Log in to view
-                                </Link>
-                              )}
-                            </p>
+                            <p className="font-medium">{person.userName || "Anonymous"}</p>
+                            <AuthGuard>
+                              <p className="text-xs text-muted-foreground">{person.email}</p>
+                            </AuthGuard>
                           </div>
-                        </div>
+                        </Link>
                       ))}
                     </div>
                   ) : (
