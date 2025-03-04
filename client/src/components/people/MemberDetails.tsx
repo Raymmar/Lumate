@@ -15,6 +15,7 @@ import {
   Heart
 } from "lucide-react";
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import { BusinessProfile } from "@/components/ui/business-profile";
 
 // Mock data for layout purposes
 const mockMemberDetails = {
@@ -27,12 +28,28 @@ const mockMemberDetails = {
   website: "https://johndoe.dev",
   phone: "+1 (555) 123-4567",
   email: "john@example.com",
-  callToAction: "Book a consultation",
   badges: [
     { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
     { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
-  ]
+  ],
+  business: {
+    name: "TechFlow Solutions",
+    description: "Providing innovative software solutions and consulting services to help businesses transform their digital presence.",
+    industry: "Technology Consulting",
+    imageUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c",
+    address: {
+      street: "123 Tech Avenue",
+      city: "San Francisco",
+      state: "CA",
+      zip: "94105"
+    },
+    phone: "+1 (555) 123-4567",
+    email: "contact@techflow.com",
+    website: "https://techflow.com",
+    consultationEnabled: true,
+    consultationUrl: "/book-consultation"
+  }
 };
 
 export const MemberDetails: React.FC = () => {
@@ -59,7 +76,10 @@ export const MemberDetails: React.FC = () => {
         </div>
       </Card>
 
-      {/* Contact Links */}
+      {/* Business Profile Section */}
+      <BusinessProfile {...mockMemberDetails.business} />
+
+      {/* Social Links */}
       <Card className="p-4">
         <div className="space-y-2">
           {mockMemberDetails.linkedin && (
@@ -163,45 +183,8 @@ export const MemberDetails: React.FC = () => {
               </a>
             </Button>
           )}
-
-          {mockMemberDetails.phone && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={`tel:${mockMemberDetails.phone}`}>
-                <Phone className="h-4 w-4" />
-                {mockMemberDetails.phone}
-              </a>
-            </Button>
-          )}
-
-          {mockMemberDetails.email && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={`mailto:${mockMemberDetails.email}`}>
-                <Mail className="h-4 w-4" />
-                {mockMemberDetails.email}
-              </a>
-            </Button>
-          )}
         </div>
       </Card>
-
-      {/* Call to Action */}
-      {mockMemberDetails.callToAction && (
-        <Card className="p-4">
-          <div>
-            <Button className="w-full">
-              {mockMemberDetails.callToAction}
-            </Button>
-          </div>
-        </Card>
-      )}
     </div>
   );
 };
