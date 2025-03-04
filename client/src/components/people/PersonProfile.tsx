@@ -186,7 +186,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        <Card className="cursor-pointer" onClick={() => window.open(`mailto:${person.email}`, '_blank')}>
+        <Card className="cursor-pointer" onClick={() => window.location.href = `mailto:${person.email}`}>
           <CardContent>
             <dl className="pt-4">
               {person.fullName && (
