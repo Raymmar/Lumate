@@ -186,9 +186,31 @@ export class PostgresStorage implements IStorage {
   
   async getPeople(): Promise<Person[]> {
     console.log('Fetching all people from database...');
-    const result = await db.select().from(people);
+    const result = await db
+      .select({
+        ...people,
+        user: {
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          isAdmin: users.isAdmin,
+          isVerified: users.isVerified,
+          createdAt: users.createdAt
+        }
+      })
+      .from(people)
+      .leftJoin(users, eq(users.email, people.email));
+
     console.log(`Found ${result.length} people in database`);
-    return result;
+
+    // Transform results to include proper user objects
+    return result.map(record => {
+      const { user, ...person } = record;
+      return {
+        ...person,
+        user: user.id ? user : null // Only include user if we found a matching record
+      };
+    });
   }
   
   async getPeopleCount(): Promise<number> {
@@ -375,10 +397,12 @@ export class PostgresStorage implements IStorage {
       const personData = result[0];
       const { user, ...person } = personData;
 
-      // Only include the user if we found a matching record
+      // Only include the user if we found a matching record (check for id since it's required)
+      const userRecord = user.id ? user : null;
+
       return {
         ...person,
-        user: user.id ? user : null // Only include user if we found a matching record
+        user: userRecord
       };
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
@@ -953,7 +977,7 @@ export class PostgresStorage implements IStorage {
 
       const [newPost] = await db
         .insert(posts)
-        .values({
+                .values({
           ...post,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
