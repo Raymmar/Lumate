@@ -16,13 +16,20 @@ interface PublicEventPreviewProps {
   onClose: () => void;
 }
 
+interface Attendee {
+  id: number;
+  api_id: string;
+  userName: string | null;
+  avatarUrl: string | null;
+}
+
 export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Query to fetch attendees - enabled for all users
-  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery({
+  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Attendee[]>({
     queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
       const response = await fetch(`/api/events/${event.api_id}/attendees`);
