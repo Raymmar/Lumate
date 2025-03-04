@@ -204,8 +204,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 }
               >
                 <div className="flex gap-3">
-                  <div className="text-foreground pt-1">
-                    <Mail className="w-4 h-4" />
+                  <div className="text-foreground flex items-center">
+                    <Mail className="w-5 h-5" />
                   </div>
                   <div>
                     <dt className="text-sm text-muted-foreground">Email</dt>
