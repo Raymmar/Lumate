@@ -11,8 +11,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -28,6 +30,33 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
   const [email, setEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Set up TipTap editor for rich text display
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content: '',
+    editable: false,
+  });
+
+  // Update editor content when event changes
+  useEffect(() => {
+    if (editor && event?.description !== undefined) {
+      editor.commands.clearContent();
+      if (event.description) {
+        editor.commands.setContent(event.description);
+      }
+    }
+  }, [editor, event?.description]);
+
+  // Cleanup editor on unmount
+  useEffect(() => {
+    return () => {
+      if (editor) {
+        editor.destroy();
+      }
+    };
+  }, [editor]);
 
   // Find current event index and determine if we have prev/next
   const currentIndex = events.findIndex(e => e.id === event.id);
@@ -167,7 +196,20 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
             <div>
               <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
               {event.description && (
-                <p className="text-muted-foreground mb-4">{event.description}</p>
+                <div className="relative">
+                  <div className={`prose prose-sm max-w-none dark:prose-invert ${!isExpanded ? 'line-clamp-4' : ''}`}>
+                    <EditorContent editor={editor} />
+                  </div>
+                  {event.description.length > 200 && (
+                    <Button
+                      variant="link"
+                      className="px-0 font-medium"
+                      onClick={() => setIsExpanded(!isExpanded)}
+                    >
+                      {isExpanded ? 'Show less' : 'Read more'}
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
 
