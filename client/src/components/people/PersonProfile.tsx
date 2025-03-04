@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Person } from '@/components/people/PeopleDirectory';
 import { Badge } from '@/components/ui/badge';
@@ -203,14 +203,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
         {/* Bio/About Section - Always visible */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>About</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {person.bio ? (
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{person.bio}</p>
             ) : (
-              <p className="text-sm text-muted-foreground italic">No bio available</p>
+              <p className="text-sm text-muted-foreground">No bio available</p>
             )}
           </CardContent>
         </Card>
