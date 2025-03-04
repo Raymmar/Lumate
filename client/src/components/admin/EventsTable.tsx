@@ -112,17 +112,20 @@ export function EventsTable() {
             if (message.startsWith('data: ')) {
               try {
                 const jsonStr = message.slice(6).trim();
-                if (!jsonStr) continue; // Skip empty messages
+                if (!jsonStr) {
+                  console.warn('Empty SSE message received');
+                  continue;
+                }
 
                 let data;
                 try {
                   data = JSON.parse(jsonStr);
                 } catch (jsonError) {
                   console.warn('Invalid JSON received:', jsonStr);
-                  continue; // Skip invalid JSON and continue processing
+                  continue;
                 }
 
-                // Validate the data structure
+                // Validate the data structure silently
                 if (!data || typeof data.message !== 'string' || typeof data.progress !== 'number') {
                   console.warn('Invalid data structure received:', data);
                   continue;
@@ -138,7 +141,7 @@ export function EventsTable() {
 
                 setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
 
-                // Handle completion or error
+                // Only show UI notifications for completion or critical errors
                 if (data.type === 'complete' || data.type === 'error') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
                   if (data.type === 'complete') {
@@ -147,41 +150,36 @@ export function EventsTable() {
                       title: "Success",
                       description: "Attendance sync completed successfully.",
                     });
-                  } else {
-                    toast({
-                      title: "Warning",
-                      description: data.message,
-                      variant: "destructive",
-                    });
                   }
                 }
               } catch (parseError) {
+                // Log parsing errors to console only
                 console.warn('Error processing SSE message:', parseError);
-                // Don't throw here, just log and continue
               }
             }
           }
         } catch (readError) {
+          // Only log stream errors to console unless it's a critical failure
           console.error('Error reading SSE stream:', readError);
-          toast({
-            title: "Warning",
-            description: "Connection interrupted. Some data may be incomplete.",
-            variant: "destructive",
-          });
+          if (readError instanceof Error && readError.name !== 'AbortError') {
+            toast({
+              title: "Warning",
+              description: "Connection interrupted. The sync may be incomplete.",
+              variant: "destructive",
+            });
+          }
           break;
         }
       }
     } catch (error) {
       console.error('Error during sync:', error);
-      setSyncingEvents(prev => prev.filter(id => id !== eventId));
-      setSyncProgress(null);
       toast({
         title: "Error",
-        description: "Failed to sync attendance data. Please try again.",
+        description: "Failed to start sync process. Please try again.",
         variant: "destructive",
       });
     } finally {
-      // Ensure we always clean up properly
+      // Always clean up the sync state
       if (syncingEvents.includes(eventId)) {
         setSyncingEvents(prev => prev.filter(id => id !== eventId));
       }
