@@ -3,14 +3,13 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PreviewSidebar } from "@/components/admin/PreviewSidebar";
+import { PreviewSidebar } from "@/components/ui/preview-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Person } from "@/components/people/PeopleDirectory";
+import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Link } from "wouter";
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -23,11 +22,10 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
   const queryClient = useQueryClient();
 
   // Query to fetch attendees - enabled for all users
-  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
-    queryKey: [`/api/public/events/${event.api_id}/attendees`],
+  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery({
+    queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
-      // Use public endpoint for attendees
-      const response = await fetch(`/api/public/events/${event.api_id}/attendees`);
+      const response = await fetch(`/api/events/${event.api_id}/attendees`);
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     }
@@ -70,7 +68,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
         description: "You've successfully RSVP'd to this event.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
-      queryClient.invalidateQueries({ queryKey: [`/api/public/events/${event.api_id}/attendees`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
     },
     onError: (error: Error) => {
       toast({
