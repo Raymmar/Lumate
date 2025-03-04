@@ -206,12 +206,7 @@ export function EventsTable() {
                 <>
                   <Progress value={syncProgress.progress} className="h-2" />
                   <div className="space-y-1">
-                    {/* Fixed height message area with text truncation */}
-                    <div className="min-h-[20px]">
-                      <p className="text-xs text-muted-foreground truncate">
-                        {syncProgress.message}
-                      </p>
-                    </div>
+                    {/* Show count first */}
                     {syncProgress.data && (
                       <div className="min-h-[20px]">
                         <p className="text-xs text-muted-foreground">
@@ -219,6 +214,12 @@ export function EventsTable() {
                         </p>
                       </div>
                     )}
+                    {/* Show processing message second */}
+                    <div className="min-h-[20px]">
+                      <p className="text-xs text-muted-foreground truncate">
+                        {syncProgress.message}
+                      </p>
+                    </div>
                   </div>
                 </>
               )}
