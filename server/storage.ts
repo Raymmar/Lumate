@@ -353,7 +353,14 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .select({
           ...people,
-          isAdmin: users.isAdmin
+          user: {
+            id: users.id,
+            email: users.email,
+            displayName: users.displayName,
+            isAdmin: users.isAdmin,
+            isVerified: users.isVerified,
+            createdAt: users.createdAt
+          }
         })
         .from(people)
         .leftJoin(users, eq(users.email, people.email))
@@ -364,11 +371,14 @@ export class PostgresStorage implements IStorage {
         return null;
       }
 
-      // Extract the person data and admin status
-      const person = result[0];
+      // Transform the result to match the Person type with optional user field
+      const personData = result[0];
+      const { user, ...person } = personData;
+
+      // Only include the user if we found a matching record
       return {
         ...person,
-        isAdmin: Boolean(person.isAdmin)
+        user: user.id ? user : null // Only include user if we found a matching record
       };
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
