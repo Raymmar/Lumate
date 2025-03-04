@@ -2,13 +2,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Event } from "@shared/schema";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useToast } from "@/hooks/use-toast";
 import {
   Pagination,
   PaginationContent,
@@ -43,6 +44,7 @@ interface SyncProgress {
 
 export function EventsTable() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<EventWithSync | null>(null);
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,12 +57,22 @@ export function EventsTable() {
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/admin/events?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch events");
-      const data = await response.json();
-      return data as EventsResponse;
+      try {
+        const response = await fetch(
+          `/api/admin/events?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
+        );
+        if (!response.ok) throw new Error("Failed to fetch events");
+        const data = await response.json();
+        return data as EventsResponse;
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch events. Please try again.",
+          variant: "destructive",
+        });
+        throw error;
+      }
     },
     staleTime: 30000,
     refetchOnWindowFocus: false,
@@ -89,43 +101,72 @@ export function EventsTable() {
       }
 
       while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        try {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        const chunk = decoder.decode(value);
-        const messages = chunk.split('\n\n').filter(Boolean);
+          const chunk = decoder.decode(value);
+          const messages = chunk.split('\n\n').filter(Boolean);
 
-        for (const message of messages) {
-          if (message.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(message.slice(6));
+          for (const message of messages) {
+            if (message.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(message.slice(6));
 
-              setSyncProgress({
-                message: data.message,
-                progress: data.progress,
-                data: data.data,
-                type: data.type
-              });
+                setSyncProgress({
+                  message: data.message,
+                  progress: data.progress,
+                  data: data.data,
+                  type: data.type
+                });
 
-              setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
+                setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
 
-              if (data.type === 'complete' || data.type === 'error') {
-                setSyncingEvents(prev => prev.filter(id => id !== eventId));
-                if (data.type === 'complete') {
-                  // Refetch events to get updated sync status
-                  queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+                if (data.type === 'complete' || data.type === 'error') {
+                  setSyncingEvents(prev => prev.filter(id => id !== eventId));
+                  if (data.type === 'complete') {
+                    await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+                    toast({
+                      title: "Success",
+                      description: "Attendance sync completed successfully.",
+                    });
+                  } else {
+                    toast({
+                      title: "Error",
+                      description: data.message,
+                      variant: "destructive",
+                    });
+                  }
                 }
+              } catch (parseError) {
+                console.error('Error parsing SSE message:', parseError);
+                toast({
+                  title: "Error",
+                  description: "Failed to parse sync update.",
+                  variant: "destructive",
+                });
               }
-            } catch (parseError) {
-              console.error('Error parsing SSE message:', parseError);
             }
           }
+        } catch (readError) {
+          console.error('Error reading SSE stream:', readError);
+          toast({
+            title: "Error",
+            description: "Connection lost during sync. Please try again.",
+            variant: "destructive",
+          });
+          break;
         }
       }
     } catch (error) {
       console.error('Error during sync:', error);
       setSyncingEvents(prev => prev.filter(id => id !== eventId));
       setSyncProgress(null);
+      toast({
+        title: "Error",
+        description: "Failed to sync attendance data. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
