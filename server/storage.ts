@@ -321,7 +321,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-  
+
 
   async getPerson(id: number): Promise<Person | null> {
     try {
@@ -875,8 +875,8 @@ export class PostgresStorage implements IStorage {
         WITH event_stats AS (
           SELECT 
             COUNT(*) as event_count,
-            MIN(registered_at) as first_event,
-            MAX(registered_at) as last_event
+            MIN(registered_at::text) as first_event,
+            MAX(registered_at::text) as last_event
           FROM attendance 
           WHERE person_id = ${personId}
             AND approval_status = 'approved'
@@ -886,7 +886,7 @@ export class PostgresStorage implements IStorage {
           'totalEventsAttended', (SELECT event_count FROM event_stats),
           'firstEventDate', (SELECT first_event FROM event_stats),
           'lastEventDate', (SELECT last_event FROM event_stats),
-          'lastUpdated', ${new Date().toISOString()}
+          'lastUpdated', ${new Date().toISOString()}::text
         )
         WHERE id = ${personId}
         RETURNING *
