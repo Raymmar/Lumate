@@ -15,6 +15,17 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+
+interface AdminStats {
+  events: number;
+  people: number;
+  users: number;
+  uniqueAttendees: number;
+  totalAttendees: number;
+  paidUsers: number;
+  lastSync: string;
+}
 
 interface SyncStats {
   eventCount: number;
@@ -42,6 +53,23 @@ export default function AdminMenu() {
   const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
+
+  // Query to fetch admin stats which includes last sync time
+  const { data: adminStats } = useQuery<AdminStats>({
+    queryKey: ['/api/admin/stats'],
+    refetchInterval: false,
+  });
+
+  useEffect(() => {
+    if (adminStats?.lastSync) {
+      setSyncStats(prev => ({
+        ...prev,
+        eventCount: prev?.eventCount || 0,
+        peopleCount: prev?.peopleCount || 0,
+        lastSync: adminStats.lastSync
+      }));
+    }
+  }, [adminStats]);
 
   const scrollToBottom = () => {
     if (logsEndRef.current) {
@@ -254,9 +282,9 @@ export default function AdminMenu() {
           <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
           {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
         </Button>
-        {syncStats?.lastSync && (
+        {(syncStats?.lastSync || adminStats?.lastSync) && (
           <p className="text-xs text-muted-foreground text-center">
-            Last synced: {format(new Date(syncStats.lastSync), "MMM d, yyyy h:mm a")}
+            Last synced: {format(new Date(syncStats?.lastSync || adminStats?.lastSync), "MMM d, yyyy h:mm a")}
           </p>
         )}
       </div>
