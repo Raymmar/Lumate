@@ -111,8 +111,24 @@ export function EventsTable() {
           for (const message of messages) {
             if (message.startsWith('data: ')) {
               try {
-                const data = JSON.parse(message.slice(6));
+                const jsonStr = message.slice(6).trim();
+                if (!jsonStr) continue; // Skip empty messages
 
+                let data;
+                try {
+                  data = JSON.parse(jsonStr);
+                } catch (jsonError) {
+                  console.warn('Invalid JSON received:', jsonStr);
+                  continue; // Skip invalid JSON and continue processing
+                }
+
+                // Validate the data structure
+                if (!data || typeof data.message !== 'string' || typeof data.progress !== 'number') {
+                  console.warn('Invalid data structure received:', data);
+                  continue;
+                }
+
+                // Update UI state
                 setSyncProgress({
                   message: data.message,
                   progress: data.progress,
@@ -122,6 +138,7 @@ export function EventsTable() {
 
                 setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
 
+                // Handle completion or error
                 if (data.type === 'complete' || data.type === 'error') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
                   if (data.type === 'complete') {
@@ -132,27 +149,23 @@ export function EventsTable() {
                     });
                   } else {
                     toast({
-                      title: "Error",
+                      title: "Warning",
                       description: data.message,
                       variant: "destructive",
                     });
                   }
                 }
               } catch (parseError) {
-                console.error('Error parsing SSE message:', parseError);
-                toast({
-                  title: "Error",
-                  description: "Failed to parse sync update.",
-                  variant: "destructive",
-                });
+                console.warn('Error processing SSE message:', parseError);
+                // Don't throw here, just log and continue
               }
             }
           }
         } catch (readError) {
           console.error('Error reading SSE stream:', readError);
           toast({
-            title: "Error",
-            description: "Connection lost during sync. Please try again.",
+            title: "Warning",
+            description: "Connection interrupted. Some data may be incomplete.",
             variant: "destructive",
           });
           break;
@@ -167,6 +180,11 @@ export function EventsTable() {
         description: "Failed to sync attendance data. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      // Ensure we always clean up properly
+      if (syncingEvents.includes(eventId)) {
+        setSyncingEvents(prev => prev.filter(id => id !== eventId));
+      }
     }
   };
 
