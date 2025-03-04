@@ -26,8 +26,7 @@ export interface IStorage {
   getEventCount(): Promise<number>;
   getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; 
   insertEvent(event: InsertEvent): Promise<Event>;
-  getRecentlyEndedEvents(): Promise<Event[]>;
-  getOldUnsyncedEvents(): Promise<Event[]>; // New function
+  getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
 
   // People
@@ -786,35 +785,6 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get recently ended events:', error);
-      throw error;
-    }
-  }
-
-  async getOldUnsyncedEvents(): Promise<Event[]> {
-    try {
-      // Get events that ended more than 24 hours ago
-      const twentyFourHoursAgo = new Date();
-      twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-      const result = await db
-        .select()
-        .from(events)
-        .where(
-          and(
-            // Event ended more than 24 hours ago
-            sql`end_time <= ${twentyFourHoursAgo.toISOString()}`,
-            // Either never synced or last sync was before event ended
-            or(
-              sql`last_attendance_sync IS NULL`,
-              sql`last_attendance_sync < end_time`
-            )
-          )
-        )
-        .orderBy(events.endTime);
-
-      return result;
-    } catch (error) {
-      console.error('Failed to get old unsynced events:', error);
       throw error;
     }
   }
