@@ -208,7 +208,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               />
               <StatsCard
                 title="Events Attended"
-                value={stats?.attendanceCount || 0}
+                value={events?.length || 0}
                 icon={<Users className="h-4 w-4 text-foreground" />}
               />
             </div>
