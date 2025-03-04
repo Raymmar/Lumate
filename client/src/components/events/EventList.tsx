@@ -128,7 +128,7 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
               <Button 
                 size="sm" 
                 className="text-xs"
-                variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                variant={rsvpStatus?.isGoing ? "default" : "outline"}
                 onClick={handleRSVP}
                 disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
               >
@@ -174,9 +174,6 @@ export default function EventList() {
   const now = new Date();
   const eventsArray = data?.events || [];
 
-  const upcomingEvent = eventsArray
-    .filter(event => new Date(event.startTime) > now)
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
 
   return (
     <div className="space-y-3">
@@ -197,20 +194,19 @@ export default function EventList() {
         <div className="space-y-2">
           <Skeleton className="h-[88px]" />
         </div>
-      ) : upcomingEvent ? (
-        <EventCard 
-          event={upcomingEvent} 
-          onSelect={(event) => setSelectedEvent(event)}
-        />
+      ) : eventsArray.length > 0 ? (
+        eventsArray.map((event) => (
+          <EventCard key={event.id} event={event} onSelect={(event) => setSelectedEvent(event)} />
+        ))
       ) : (
-        <p className="text-xs text-muted-foreground">No upcoming events</p>
+        <p className="text-xs text-muted-foreground">No events found</p>
       )}
 
       {selectedEvent && (
         <PublicEventPreview
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
-          events={eventsArray}
+          events={eventsArray.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())}
           onNavigate={setSelectedEvent}
         />
       )}
