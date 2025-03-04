@@ -793,18 +793,27 @@ export async function registerRoutes(app: Express) {
 
         const cacheService = CacheService.getInstance();
 
-        cacheService.on('fetchProgress', (data) => {
+        // Set up SSE event handlers
+        const progressHandler = (data: any) => {
           sendSSEUpdate(res, {
             type: data.type,
             message: data.message,
             progress: data.progress,
             data: data.data
           });
-        });
 
+          // If we receive a complete event, clean up and end the connection
+          if (data.type === 'complete' || data.type === 'error') {
+            cacheService.removeListener('fetchProgress', progressHandler);
+            res.end();
+          }
+        };
+
+        // Register event handler
+        cacheService.on('fetchProgress', progressHandler);
+
+        // Start the sync process
         await cacheService.forceSync();
-
-        res.end();
 
       } catch (error) {
         console.error('Failed during database reset:', error);
@@ -815,13 +824,14 @@ export async function registerRoutes(app: Express) {
             name: error.name
           });
         }
+
         sendSSEUpdate(res, {
           type: 'error',
           message: error instanceof Error ? error.message : String(error),
           progress: 0
         });
+
         res.end();
-        throw error;
       }
     } catch (error) {
       console.error('Failed to reset database:', error);

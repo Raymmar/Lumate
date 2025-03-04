@@ -127,7 +127,7 @@ export class CacheService extends EventEmitter {
     }
   }
 
-  async updateCache() {
+  private async updateCache() {
     if (this.isCaching) {
       this.logSync('Cache update already in progress, skipping...');
       return;
@@ -173,7 +173,7 @@ export class CacheService extends EventEmitter {
           const progress = 60 + (i / events.length) * 20;
           this.logSync(`Processed events batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`);
           this.emitProgress(
-            `Processed events batch ${i / this.BATCH_SIZE + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`,
+            `Processed events batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`,
             progress
           );
         }
@@ -190,7 +190,7 @@ export class CacheService extends EventEmitter {
           const progress = 80 + (i / people.length) * 15;
           this.logSync(`Processed people batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`);
           this.emitProgress(
-            `Processed people batch ${i / this.BATCH_SIZE + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`,
+            `Processed people batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`,
             progress
           );
         }
@@ -211,7 +211,8 @@ export class CacheService extends EventEmitter {
         progress: 100,
         data: {
           eventCount: events.length,
-          peopleCount: people.length
+          peopleCount: people.length,
+          duration: totalDuration
         }
       });
 
@@ -219,7 +220,8 @@ export class CacheService extends EventEmitter {
       this.logSync('Cache update process failed:', error);
       this.emit('fetchProgress', {
         type: 'error',
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
+        progress: 0
       });
       throw error;
     } finally {
