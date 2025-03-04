@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { PublicEventPreview } from "./PublicEventPreview";
+import { useState } from "react";
 
 interface Event {
   id: number;
@@ -40,7 +42,7 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
   }
 }
 
-function EventCard({ event }: { event: Event }) {
+function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event) => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -101,11 +103,9 @@ function EventCard({ event }: { event: Event }) {
   };
 
   return (
-    <a 
-      href={event.url || "#"} 
-      target="_blank" 
-      rel="noopener noreferrer"
-      className="block"
+    <div 
+      onClick={() => onSelect(event)}
+      className="cursor-pointer"
     >
       <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
         <div className="w-full relative">
@@ -153,7 +153,7 @@ function EventCard({ event }: { event: Event }) {
           </div>
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -161,6 +161,7 @@ export default function EventList() {
   const { data, isLoading, error } = useQuery<EventsResponse>({
     queryKey: ["/api/events"]
   });
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   if (error) {
     return (
@@ -197,9 +198,19 @@ export default function EventList() {
           <Skeleton className="h-[88px]" />
         </div>
       ) : upcomingEvent ? (
-        <EventCard event={upcomingEvent} />
+        <EventCard 
+          event={upcomingEvent} 
+          onSelect={(event) => setSelectedEvent(event)}
+        />
       ) : (
         <p className="text-xs text-muted-foreground">No upcoming events</p>
+      )}
+
+      {selectedEvent && (
+        <PublicEventPreview
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
     </div>
   );
