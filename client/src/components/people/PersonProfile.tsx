@@ -203,12 +203,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   </div>
                 }
               >
-                <div className="flex gap-3">
-                  <div className="text-foreground flex items-center">
+                <div className="flex gap-3 items-center">
+                  <div className="text-foreground">
                     <Mail className="w-5 h-5" />
                   </div>
                   <div>
-                    <dt className="text-sm text-muted-foreground">Email</dt>
                     <dd>{person.email}</dd>
                   </div>
                 </div>
