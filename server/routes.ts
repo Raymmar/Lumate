@@ -845,12 +845,11 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const [eventCount, peopleCount, userCount, totalAttendeesCount, lastCacheUpdate] = await Promise.all([
+      const [eventCount, peopleCount, userCount, totalAttendeesCount] = await Promise.all([
         storage.getEventCount(),
         storage.getPeopleCount(),
         storage.getUserCount(),
-        storage.getTotalAttendeesCount(),
-        storage.getLastCacheUpdate()
+        storage.getTotalAttendeesCount()
       ]);
 
       res.json({
@@ -858,9 +857,8 @@ export async function registerRoutes(app: Express) {
         people: peopleCount,
         users: userCount,
         uniqueAttendees: peopleCount, 
-        totalAttendees: totalAttendeesCount,
-        paidUsers: 0,
-        lastSync: lastCacheUpdate
+        totalAttendees: totalAttendeesCount, 
+        paidUsers: 0 
       });
     } catch (error) {
       console.error('Failed to fetch admin stats:', error);
@@ -1008,758 +1006,758 @@ export async function registerRoutes(app: Express) {
   }
 });
 
-  app.get("/api/admin/people", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const searchQuery = (req.query.search as string || '').toLowerCase();
-      const offset = (page - 1) * limit;
-
-      const totalCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(people)
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`
-        )
-        .then(result => Number(result[0].count));
-
-      const peopleList = await db
-        .select()
-        .from(people)
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`
-        )
-        .orderBy(people.id)
-        .limit(limit)
-        .offset(offset);
-
-      res.json({
-        people: peopleList,
-        total: totalCount
-      });
-    } catch (error) {
-      console.error('Failed to fetch people:', error);
-      res.status(500).json({ error: "Failed to fetch people" });
+app.get("/api/admin/people", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
-  });
 
-  app.get("/api/admin/events/:eventId/guests", async (req, res) => {
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const searchQuery = (req.query.search as string || '').toLowerCase();
+    const offset = (page - 1) * limit;
+
+    const totalCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(people)
+      .where(
+        searchQuery
+          ? sql`(
+              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
+            )`
+          : sql`1=1`
+      )
+      .then(result => Number(result[0].count));
+
+    const peopleList = await db
+      .select()
+      .from(people)
+      .where(
+        searchQuery
+          ? sql`(
+              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
+            )`
+          : sql`1=1`
+      )
+      .orderBy(people.id)
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      people: peopleList,
+      total: totalCount
+    });
+  } catch (error) {
+    console.error('Failed to fetch people:', error);
+    res.status(500).json({ error: "Failed to fetch people" });
+  }
+});
+
+app.get("/api/admin/events/:eventId/guests", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const eventId = req.params.eventId;
+    if (!eventId) {
+      return res.status(400).json({ error: "Missing event ID" });
+    }
+
+    let allGuests: any[] = [];
+    let hasMore = true;
+    let cursor = undefined;
+    let iterationCount = 0;      const MAX_ITERATIONS = 100; 
+
+    console.log('Starting guest sync for event:', eventId);
+
     try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      await storage.deleteAttendanceByEvent(eventId);
+      console.log('Cleared existing attendance records for event:', eventId);
+    } catch (error) {
+      console.error('Failed to clear existing attendance records:', error);
+      throw error;
+    }
+
+    while (hasMore && iterationCount < MAX_ITERATIONS) {
+      const params: Record<string, string> = { 
+        event_api_id: eventId 
+      };
+
+      if (cursor) {
+        params.pagination_cursor = cursor;
       }
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
+      console.log('Fetching guests with params:', params);
+      const response = await lumaApiRequest('event/get-guests', params);
 
-      const eventId = req.params.eventId;
-      if (!eventId) {
-        return res.status(400).json({ error: "Missing event ID" });
-      }
+      console.log('Response details:', {
+        currentBatch: response.entries?.length,
+        hasMore: response.has_more,
+        nextCursor: response.next_cursor
+      });
 
-      let allGuests: any[] = [];
-      let hasMore = true;
-      let cursor = undefined;
-      let iterationCount = 0;      const MAX_ITERATIONS = 100; 
+      if (response.entries) {
+        const approvedEntries = response.entries.filter((entry: any) => entry.guest.approval_status === 'approved');
 
-      console.log('Starting guest sync for event:', eventId);
+        for (const entry of approvedEntries) {
+          const guest = entry.guest;
+          console.log('Processing approved guest:', {
+            guestId: guest.api_id,
+            email: guest.email,
+            status:guest.approval_status,
+            registeredAt: guest.registered_at
+          });
 
-      try {
-        await storage.deleteAttendanceByEvent(eventId);
-        console.log('Cleared existing attendance records for event:', eventId);
-      } catch (error) {
-        console.error('Failed to clear existing attendance records:', error);
-        throw error;
-      }
-
-      while (hasMore && iterationCount < MAX_ITERATIONS) {
-        const params: Record<string, string> = { 
-          event_api_id: eventId 
-        };
-
-        if (cursor) {
-          params.pagination_cursor = cursor;
-        }
-
-        console.log('Fetching guests with params:', params);
-        const response = await lumaApiRequest('event/get-guests', params);
-
-        console.log('Response details:', {
-          currentBatch: response.entries?.length,
-          hasMore: response.has_more,
-          nextCursor: response.next_cursor
-        });
-
-        if (response.entries) {
-          const approvedEntries = response.entries.filter((entry: any) => entry.guest.approval_status === 'approved');
-
-          for (const entry of approvedEntries) {
-            const guest = entry.guest;
-            console.log('Processing approved guest:', {
-              guestId: guest.api_id,
-              email: guest.email,
-              status:guest.approval_status,
+          try {
+            await storage.upsertAttendance({
+              eventApiId: eventId,
+              userEmail: guest.email.toLowerCase(),
+              guestApiId: guest.api_id,
+              approvalStatus: guest.approval_status,
               registeredAt: guest.registered_at
             });
-
-            try {
-              await storage.upsertAttendance({
-                eventApiId: eventId,
-                userEmail: guest.email.toLowerCase(),
-                guestApiId: guest.api_id,
-                approvalStatus: guest.approval_status,
-                registeredAt: guest.registered_at
-              });
-              console.log('Successfully stored attendance for guest:', guest.api_id);            } catch (error) {
-              console.error('Failed to store attendance for guest:', {
-                guestId: guest.api_id,
-                error: error instanceof Error ? error.message : String(error)
-              });
-              throw error;
-            }
+            console.log('Successfully stored attendance for guest:', guest.api_id);            } catch (error) {
+            console.error('Failed to store attendance for guest:', {
+              guestId: guest.api_id,
+              error: error instanceof Error ? error.message : String(error)
+            });
+            throw error;
           }
-
-          allGuests = allGuests.concat(approvedEntries);
         }
 
-        hasMore = response.has_more;
-        cursor = response.next_cursor;
-        iterationCount++;
-
-        console.log('Pagination status:', {
-          iteration: iterationCount,
-          guestsCollected: allGuests.length,
-          hasMore,
-          cursor
-        });
+        allGuests = allGuests.concat(approvedEntries);
       }
 
-      if (iterationCount >= MAX_ITERATIONS) {
-        console.warn('Reached maximum iteration limit while syncing guests');
-      }
+      hasMore = response.has_more;
+      cursor = response.next_cursor;
+      iterationCount++;
 
-      await storage.updateEventAttendanceSync(eventId);
-
-      console.log('Completed guest sync:', {
-        eventId,
-        totalGuests: allGuests.length,
-        totalIterations: iterationCount
-      });
-
-      res.json({
-        guests: allGuests,
-        total: allGuests.length
-      });
-    } catch (error) {
-      console.error('Failed to fetch event guests:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-      }
-      res.status(500).json({ 
-        error: "Failed to fetch event guests",
-        message: error instanceof Error ? error.message : String(error)
+      console.log('Pagination status:', {
+        iteration: iterationCount,
+        guestsCollected: allGuests.length,
+        hasMore,
+        cursor
       });
     }
-  });
 
-  app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+    if (iterationCount >= MAX_ITERATIONS) {
+      console.warn('Reached maximum iteration limit while syncing guests');
+    }
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
+    await storage.updateEventAttendanceSync(eventId);
 
-      const eventId = req.params.eventId;
-      if (!eventId) {
-        return res.status(400).json({ error: "Missing event ID" });
-      }
+    console.log('Completed guest sync:', {
+      eventId,
+      totalGuests: allGuests.length,
+      totalIterations: iterationCount
+    });
 
-      const result = await db
-        .select({
-          id: people.id,
-          userName: people.userName,
-          email: people.email,
-          avatarUrl: people.avatarUrl,
-          api_id: people.api_id,
+    res.json({
+      guests: allGuests,
+      total: allGuests.length
+    });
+  } catch (error) {
+    console.error('Failed to fetch event guests:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
+    res.status(500).json({ 
+      error: "Failed to fetch event guests",
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const eventId = req.params.eventId;
+    if (!eventId) {
+      return res.status(400).json({ error: "Missing event ID" });
+    }
+
+    const result = await db
+      .select({
+        id: people.id,
+        userName: people.userName,
+        email: people.email,
+        avatarUrl: people.avatarUrl,
+        api_id: people.api_id,
+      })
+      .from(attendance)
+      .innerJoin(people, eq(attendance.userEmail, people.email))
+      .where(eq(attendance.eventApiId, eventId))
+      .orderBy(attendance.registeredAt);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to fetch event attendees:', error);
+    res.status(500).json({ error: "Failed to fetch attendees" });
+  }
+});
+
+app.post("/api/events/send-invite", async (req, res) => {
+  try {
+    const { email, event_api_id } = req.body;
+
+    if (!email || !event_api_id) {
+      return res.status(400).json({ error: "Missing email or event_api_id" });
+    }
+
+    console.log('Sending invite for event:', {
+      eventId: event_api_id,
+      userEmail: email
+    });
+
+    const response = await lumaApiRequest(
+      'event/send-invites',
+      undefined, 
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          guests: [{ email }],
+          event_api_id
         })
-        .from(attendance)
-        .innerJoin(people, eq(attendance.userEmail, people.email))
-        .where(eq(attendance.eventApiId, eventId))
-        .orderBy(attendance.registeredAt);
-
-      res.json(result);
-    } catch (error) {
-      console.error('Failed to fetch event attendees:', error);
-      res.status(500).json({ error: "Failed to fetch attendees" });
-    }
-  });
-
-  app.post("/api/events/send-invite", async (req, res) => {
-    try {
-      const { email, event_api_id } = req.body;
-
-      if (!email || !event_api_id) {
-        return res.status(400).json({ error: "Missing email or event_api_id" });
       }
+    );
 
-      console.log('Sending invite for event:', {
-        eventId: event_api_id,
-        userEmail: email
-      });
+    console.log('Invite sent successfully:', {
+      eventId: event_api_id,
+      userEmail: email,
+      response
+    });
 
-      const response = await lumaApiRequest(
-        'event/send-invites',
-        undefined, 
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            guests: [{ email }],
-            event_api_id
-          })
-        }
+    res.json({ 
+      message: "Invite sent successfully. Please check your email.",
+      details: response
+    });
+  } catch (error) {
+    console.error('Failed to send invite:', error);
+    res.status(500).json({ 
+      error: "Failed to send invite",
+      message: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+app.get("/api/public/posts", async (_req, res) => {
+  try {
+    console.log('Fetching public posts...');
+    const posts = await storage.getPosts();
+
+    const sortedPosts = posts.sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    console.log(`Retrieved ${posts.length} public posts`);
+    res.json({ posts: sortedPosts });
+  } catch (error) {
+    console.error('Failed to fetch public posts:', error);
+    res.status(500).json({ error: "Failed to fetch posts" });
+  }
+});
+
+app.post("/api/admin/posts", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const postData = req.body;
+
+    postData.creatorId = user.id;
+
+    const post = await storage.createPost(postData);
+
+    res.json(post);
+  } catch (error) {
+    console.error('Failed to create post:', error);
+    res.status(500).json({ error: "Failed to create post" });
+  }
+});
+
+app.get("/api/admin/posts", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const posts = await storage.getPosts();
+    res.json({ posts });
+  } catch (error) {
+    console.error('Failed to fetch posts:', error);
+    res.status(500).json({ error: "Failed to fetch posts" });
+  }
+});
+
+app.get("/api/admin/members", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const searchQuery = (req.query.search as string || '').toLowerCase();
+    const offset = (page - 1) * limit;
+
+    const totalCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(
+        searchQuery
+          ? sql`(LOWER(email) LIKE ${`%${searchQuery}%`} OR LOWER(display_name) LIKE ${`%${searchQuery}%`})`
+          : sql`1=1`
+      )
+      .then(result => Number(result[0].count));
+
+    const usersList = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        displayName: users.displayName,
+        isVerified: users.isVerified,
+        isAdmin: users.isAdmin,
+        createdAt: users.createdAt,
+        person: people
+      })
+      .from(users)
+      .leftJoin(people, eq(users.personId, people.id))
+      .where(
+        searchQuery
+          ? sql`(LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`})`
+          : sql`1=1`
+      )
+      .orderBy(users.createdAt)
+      .limit(limit)
+      .offset(offset);
+
+    res.json({
+      users: usersList,
+      total: totalCount
+    });
+  } catch (error) {
+    console.error('Failed to fetch members:', error);
+    res.status(500).json({ error: "Failed to fetch members" });
+  }
+});
+
+app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const currentUser = await storage.getUser(req.session.userId);
+    if (!currentUser?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const targetUserId = parseInt(req.params.id);
+    const targetUser = await storage.getUser(targetUserId);
+
+    if (!targetUser) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    console.log(`Toggling admin status for user ${targetUserId} from ${targetUser.isAdmin} to ${!targetUser.isAdmin}`);
+
+    const updatedUser = await storage.updateUserAdminStatus(targetUserId, !targetUser.isAdmin);
+
+    console.log(`Admin status for user ${targetUserId} updated successfully. New status: ${updatedUser.isAdmin}`);
+    res.json(updatedUser);
+  } catch (error) {
+    console.error('Failed to toggle admin status:', error);
+    res.status(500).json({ error: "Failed to toggle admin status" });
+  }
+});
+app.get("/api/admin/roles", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const roles = await db
+      .select()
+      .from(rolesTable)
+      .orderBy(rolesTable.id);
+
+    console.log('Fetched roles:', roles);
+    res.json(roles);
+  } catch (error) {
+    console.error('Failed to fetch roles:', error);
+    res.status(500).json({ error: "Failed to fetch roles" });
+  }
+});
+
+app.get("/api/admin/permissions", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const permissions = await db
+      .select()
+      .from(permissionsTable)
+      .orderBy(permissionsTable.id);
+
+    console.log('Fetched permissions:', permissions);
+    res.json(permissions);
+  } catch (error) {
+    console.error('Failed to fetch permissions:', error);
+    res.status(500).json({ error: "Failed to fetch permissions" });
+  }
+});
+
+app.get("/api/admin/roles/:id/permissions", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      console.log('Unauthorized access attempt - no session userId');
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const roleId = parseInt(req.params.id);
+    if (isNaN(roleId)) {
+      console.log('Invalid role ID:', req.params.id);
+      return res.status(400).json({ error: "Invalid role ID" });
+    }
+
+    console.log('Fetching permissions for role:', roleId);
+
+    const rolePermissions = await db
+      .select({
+        id: permissionsTable.id,
+        name: permissionsTable.name,
+        description: permissionsTable.description,
+        resource: permissionsTable.resource,
+        action: permissionsTable.action
+      })
+      .from(rolePermissionsTable)
+      .innerJoin(
+        permissionsTable, 
+        eq(permissionsTable.id, rolePermissionsTable.permissionId)
+      )
+      .where(eq(rolePermissionsTable.roleId, roleId));
+
+    console.log('Role permissions found:', {
+      roleId,
+      permissionsCount: rolePermissions.length,
+      permissions: rolePermissions.map(p => ({ id: p.id, name: p.name }))
+    });
+
+    res.json(rolePermissions);
+  } catch (error) {
+    console.error('Failed to fetch role permissions:', error);
+    res.status(500).json({ error: "Failed to fetch role permissions" });
+  }
+});
+
+app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      console.log('Unauthorized access attempt - no session userId');
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
+      return res.status(403).json({ error: "Not authorized" });
+    }
+
+    const roleId = parseInt(req.params.roleId);
+    const permissionId = parseInt(req.params.permissionId);
+
+    if (isNaN(roleId) || isNaN(permissionId)) {
+      console.log('Invalid role or permission ID:', { roleId: req.params.roleId, permissionId: req.params.permissionId });
+      return res.status(400).json({ error: "Invalid role or permission ID" });
+    }
+
+    const [role, permission] = await Promise.all([
+      db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
+      db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
+    ]);
+
+    if (!role[0] || !permission[0]) {
+      console.log('Role or permission not found:', { roleId, permissionId });
+      return res.status(404).json({ error: "Role or permission not found" });
+    }
+
+    console.log('Adding permission to role:', { 
+      roleId, 
+      roleName: role[0].name,
+      permissionId,
+      permissionName: permission[0].name
+    });
+
+    const existing = await db
+      .select()
+      .from(rolePermissionsTable)
+      .where(
+        and(
+          eq(rolePermissionsTable.roleId, roleId),
+          eq(rolePermissionsTable.permissionId, permissionId)
+        )
       );
 
-      console.log('Invite sent successfully:', {
-        eventId: event_api_id,
-        userEmail: email,
-        response
-      });
-
-      res.json({ 
-        message: "Invite sent successfully. Please check your email.",
-        details: response
-      });
-    } catch (error) {
-      console.error('Failed to send invite:', error);
-      res.status(500).json({ 
-        error: "Failed to send invite",
-        message: error instanceof Error ? error.message : String(error)
-      });
+    if (existing.length > 0) {
+      console.log('Permission already exists for role:', { roleId, permissionId });
+      return res.status(409).json({ error: "Permission already assigned to role" });
     }
-  });
 
-  app.get("/api/public/posts", async (_req, res) => {
-    try {
-      console.log('Fetching public posts...');
-      const posts = await storage.getPosts();
+    await db.insert(rolePermissionsTable).values({
+      roleId,
+      permissionId,
+      grantedBy: req.session.userId,
+      grantedAt: new Date().toISOString()
+    });
 
-      const sortedPosts = posts.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+    console.log('Successfully added permission to role');
 
-      console.log(`Retrieved ${posts.length} public posts`);
-      res.json({ posts: sortedPosts });
-    } catch (error) {
-      console.error('Failed to fetch public posts:', error);
-      res.status(500).json({ error: "Failed to fetch posts" });
+    const updatedPermissions = await db
+      .select({
+        id: permissionsTable.id,
+        name: permissionsTable.name,
+        description: permissionsTable.description,
+        resource: permissionsTable.resource,
+        action: permissionsTable.action
+      })
+      .from(rolePermissionsTable)
+      .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
+      .where(eq(rolePermissionsTable.roleId, roleId));
+
+    console.log('Updated permissions:', {
+      roleId,
+      roleName: role[0].name,
+      permissionsCount: updatedPermissions.length,
+      permissions: updatedPermissions.map(p => ({ id: p.id, name: p.name }))
+    });
+
+    res.json(updatedPermissions);
+  } catch (error) {
+    console.error('Failed to assign permission to role:', error);
+    res.status(500).json({ error: "Failed to assign permission to role" });
+  }
+});
+
+app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      console.log('Unauthorized access attempt - no session userId');
+      return res.status(401).json({ error: "Not authenticated" });
     }
-  });
 
-  app.post("/api/admin/posts", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const postData = req.body;
-
-      postData.creatorId = user.id;
-
-      const post = await storage.createPost(postData);
-
-      res.json(post);
-    } catch (error) {
-      console.error('Failed to create post:', error);
-      res.status(500).json({ error: "Failed to create post" });
+    const user = await storage.getUser(req.session.userId);
+    if (!user?.isAdmin) {
+      console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
+      return res.status(403).json({ error: "Not authorized" });
     }
-  });
 
-  app.get("/api/admin/posts", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+    const roleId = parseInt(req.params.roleId);
+    const permissionId = parseInt(req.params.permissionId);
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const posts = await storage.getPosts();
-      res.json({ posts });
-    } catch (error) {
-      console.error('Failed to fetch posts:', error);
-      res.status(500).json({ error: "Failed to fetch posts" });
+    if (isNaN(roleId) || isNaN(permissionId)) {
+      console.log('Invalid role or permission ID:', { roleId: req.params.roleId, permissionId: req.params.permissionId });
+      return res.status(400).json({ error: "Invalid role or permission ID" });
     }
-  });
 
-  app.get("/api/admin/members", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+    const [role, permission] = await Promise.all([
+      db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
+      db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
+    ]);
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
+    if (!role[0] || !permission[0]) {
+      console.log('Role or permission not found:', { roleId, permissionId });
+      return res.status(404).json({ error: "Role or permission not found" });
+    }
 
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const searchQuery = (req.query.search as string || '').toLowerCase();
-      const offset = (page - 1) * limit;
+    console.log('Removing permission from role:', { 
+      roleId, 
+      roleName: role[0].name,
+      permissionId,
+      permissionName: permission[0].name
+    });
 
-      const totalCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(users)
-        .where(
-          searchQuery
-            ? sql`(LOWER(email) LIKE ${`%${searchQuery}%`} OR LOWER(display_name) LIKE ${`%${searchQuery}%`})`
-            : sql`1=1`
+    const result = await db
+      .delete(rolePermissionsTable)
+      .where(
+        and(
+          eq(rolePermissionsTable.roleId, roleId),
+          eq(rolePermissionsTable.permissionId, permissionId)
         )
-        .then(result => Number(result[0].count));
+      )
+      .returning();
 
-      const usersList = await db
-        .select({
-          id: users.id,
-          email: users.email,
-          displayName: users.displayName,
-          isVerified: users.isVerified,
-          isAdmin: users.isAdmin,
-          createdAt: users.createdAt,
-          person: people
-        })
-        .from(users)
-        .leftJoin(people, eq(users.personId, people.id))
-        .where(
-          searchQuery
-            ? sql`(LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`})`
-            : sql`1=1`
-        )
-        .orderBy(users.createdAt)
-        .limit(limit)
-        .offset(offset);
+    console.log('Delete operation result:', result);
 
-      res.json({
-        users: usersList,
-        total: totalCount
-      });
-    } catch (error) {
-      console.error('Failed to fetch members:', error);
-      res.status(500).json({ error: "Failed to fetch members" });
+    const updatedPermissions = await db
+      .select({
+        id: permissionsTable.id,
+        name: permissionsTable.name,
+        description: permissionsTable.description,
+        resource: permissionsTable.resource,
+        action: permissionsTable.action
+      })
+      .from(rolePermissionsTable)
+      .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
+      .where(eq(rolePermissionsTable.roleId, roleId));
+
+    console.log('Updated permissions after removal:', {
+      roleId,
+      roleName: role[0].name,
+      permissionsCount: updatedPermissions.length,
+      permissions: updatedPermissions.map(p => ({ id: p.id, name: p.name }))
+    });
+
+    res.json(updatedPermissions);
+  } catch (error) {
+    console.error('Failed to remove permission from role:', error);
+    res.status(500).json({ error: "Failed to remove permission from role" });
+  }
+});
+
+app.post("/api/admin/members/:userId/roles/:roleName", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
-  });
 
-  app.post("/api/admin/users/:id/toggle-admin", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const currentUser = await storage.getUser(req.session.userId);
-      if (!currentUser?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const targetUserId = parseInt(req.params.id);
-      const targetUser = await storage.getUser(targetUserId);
-
-      if (!targetUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      console.log(`Toggling admin status for user ${targetUserId} from ${targetUser.isAdmin} to ${!targetUser.isAdmin}`);
-
-      const updatedUser = await storage.updateUserAdminStatus(targetUserId, !targetUser.isAdmin);
-
-      console.log(`Admin status for user ${targetUserId} updated successfully. New status: ${updatedUser.isAdmin}`);
-      res.json(updatedUser);
-    } catch (error) {
-      console.error('Failed to toggle admin status:', error);
-      res.status(500).json({ error: "Failed to toggle admin status" });
+    const adminUser = await storage.getUser(req.session.userId);
+    if (!adminUser?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
     }
-  });
-  app.get("/api/admin/roles", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const roles = await db
-        .select()
-        .from(rolesTable)
-        .orderBy(rolesTable.id);
-
-      console.log('Fetched roles:', roles);
-      res.json(roles);
-    } catch (error) {
-      console.error('Failed to fetch roles:', error);
-      res.status(500).json({ error: "Failed to fetch roles" });
+    const userId = parseInt(req.params.userId);
+    const roleName = req.params.roleName;
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
     }
-  });
 
-  app.get("/api/admin/permissions", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+    console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const permissions = await db
-        .select()
-        .from(permissionsTable)
-        .orderBy(permissionsTable.id);
-
-      console.log('Fetched permissions:', permissions);
-      res.json(permissions);
-    } catch (error) {
-      console.error('Failed to fetch permissions:', error);
-      res.status(500).json({ error: "Failed to fetch permissions" });
+    const role = await storage.getRoleByName(roleName);
+    if (!role) {
+      return res.status(404).json({ error: "Role not found" });
     }
-  });
 
-  app.get("/api/admin/roles/:id/permissions", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        console.log('Unauthorized access attempt - no session userId');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const roleId = parseInt(req.params.id);
-      if (isNaN(roleId)) {
-        console.log('Invalid role ID:', req.params.id);
-        return res.status(400).json({ error: "Invalid role ID" });
-      }
-
-      console.log('Fetching permissions for role:', roleId);
-
-      const rolePermissions = await db
-        .select({
-          id: permissionsTable.id,
-          name: permissionsTable.name,
-          description: permissionsTable.description,
-          resource: permissionsTable.resource,
-          action: permissionsTable.action
-        })
-        .from(rolePermissionsTable)
-        .innerJoin(
-          permissionsTable, 
-          eq(permissionsTable.id, rolePermissionsTable.permissionId)
-        )
-        .where(eq(rolePermissionsTable.roleId, roleId));
-
-      console.log('Role permissions found:', {
-        roleId,
-        permissionsCount: rolePermissions.length,
-        permissions: rolePermissions.map(p => ({ id: p.id, name: p.name }))
-      });
-
-      res.json(rolePermissions);
-    } catch (error) {
-      console.error('Failed to fetch role permissions:', error);
-      res.status(500).json({ error: "Failed to fetch role permissions" });
+    const currentRoles = await storage.getUserRoles(userId);
+    for (const currentRole of currentRoles) {
+      console.log(`Removing role ${currentRole.name} from user ${userId}`);
+      await storage.removeRoleFromUser(userId, currentRole.id);
     }
-  });
 
-  app.post("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        console.log('Unauthorized access attempt - no session userId');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+    await storage.assignRoleToUser(userId, role.id, req.session.userId);
+    console.log(`Assigned role ${roleName} to user ${userId}`);
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
-        return res.status(403).json({ error: "Not authorized" });
-      }
+    const updatedRoles = await storage.getUserRoles(userId);
+    res.json({ roles: updatedRoles });
+  } catch (error) {
+    console.error('Failed to update user roles:', error);
+    res.status(500).json({ error: "Failed to update user roles" });
+  }
+});
 
-      const roleId = parseInt(req.params.roleId);
-      const permissionId = parseInt(req.params.permissionId);
-
-      if (isNaN(roleId) || isNaN(permissionId)) {
-        console.log('Invalid role or permission ID:', { roleId: req.params.roleId, permissionId: req.params.permissionId });
-        return res.status(400).json({ error: "Invalid role or permission ID" });
-      }
-
-      const [role, permission] = await Promise.all([
-        db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
-        db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
-      ]);
-
-      if (!role[0] || !permission[0]) {
-        console.log('Role or permission not found:', { roleId, permissionId });
-        return res.status(404).json({ error: "Role or permission not found" });
-      }
-
-      console.log('Adding permission to role:', { 
-        roleId, 
-        roleName: role[0].name,
-        permissionId,
-        permissionName: permission[0].name
-      });
-
-      const existing = await db
-        .select()
-        .from(rolePermissionsTable)
-        .where(
-          and(
-            eq(rolePermissionsTable.roleId, roleId),
-            eq(rolePermissionsTable.permissionId, permissionId)
-          )
-        );
-
-      if (existing.length > 0) {
-        console.log('Permission already exists for role:', { roleId, permissionId });
-        return res.status(409).json({ error: "Permission already assigned to role" });
-      }
-
-      await db.insert(rolePermissionsTable).values({
-        roleId,
-        permissionId,
-        grantedBy: req.session.userId,
-        grantedAt: new Date().toISOString()
-      });
-
-      console.log('Successfully added permission to role');
-
-      const updatedPermissions = await db
-        .select({
-          id: permissionsTable.id,
-          name: permissionsTable.name,
-          description: permissionsTable.description,
-          resource: permissionsTable.resource,
-          action: permissionsTable.action
-        })
-        .from(rolePermissionsTable)
-        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
-        .where(eq(rolePermissionsTable.roleId, roleId));
-
-      console.log('Updated permissions:', {
-        roleId,
-        roleName: role[0].name,
-        permissionsCount: updatedPermissions.length,
-        permissions: updatedPermissions.map(p => ({ id: p.id, name: p.name }))
-      });
-
-      res.json(updatedPermissions);
-    } catch (error) {
-      console.error('Failed to assign permission to role:', error);
-      res.status(500).json({ error: "Failed to assign permission to role" });
+app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
+  try {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
     }
-  });
 
-  app.delete("/api/admin/roles/:roleId/permissions/:permissionId", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        console.log('Unauthorized access attempt - no session userId');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        console.log('Unauthorized access attempt - not admin:', { userId: req.session.userId });
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const roleId = parseInt(req.params.roleId);
-      const permissionId = parseInt(req.params.permissionId);
-
-      if (isNaN(roleId) || isNaN(permissionId)) {
-        console.log('Invalid role or permission ID:', { roleId: req.params.roleId, permissionId: req.params.permissionId });
-        return res.status(400).json({ error: "Invalid role or permission ID" });
-      }
-
-      const [role, permission] = await Promise.all([
-        db.select().from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1),
-        db.select().from(permissionsTable).where(eq(permissionsTable.id, permissionId)).limit(1)
-      ]);
-
-      if (!role[0] || !permission[0]) {
-        console.log('Role or permission not found:', { roleId, permissionId });
-        return res.status(404).json({ error: "Role or permission not found" });
-      }
-
-      console.log('Removing permission from role:', { 
-        roleId, 
-        roleName: role[0].name,
-        permissionId,
-        permissionName: permission[0].name
-      });
-
-      const result = await db
-        .delete(rolePermissionsTable)
-        .where(
-          and(
-            eq(rolePermissionsTable.roleId, roleId),
-            eq(rolePermissionsTable.permissionId, permissionId)
-          )
-        )
-        .returning();
-
-      console.log('Delete operation result:', result);
-
-      const updatedPermissions = await db
-        .select({
-          id: permissionsTable.id,
-          name: permissionsTable.name,
-          description: permissionsTable.description,
-          resource: permissionsTable.resource,
-          action: permissionsTable.action
-        })
-        .from(rolePermissionsTable)
-        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
-        .where(eq(rolePermissionsTable.roleId, roleId));
-
-      console.log('Updated permissions after removal:', {
-        roleId,
-        roleName: role[0].name,
-        permissionsCount: updatedPermissions.length,
-        permissions: updatedPermissions.map(p => ({ id: p.id, name: p.name }))
-      });
-
-      res.json(updatedPermissions);
-    } catch (error) {
-      console.error('Failed to remove permission from role:', error);
-      res.status(500).json({ error: "Failed to remove permission from role" });
+    const currentUser = await storage.getUser(req.session.userId);
+    if (!currentUser?.isAdmin) {
+      return res.status(403).json({ error: "Not authorized" });
     }
-  });
 
-  app.post("/api/admin/members/:userId/roles/:roleName", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
+    const userId = parseInt(req.params.id);
+    const { isAdmin } = req.body;
 
-      const adminUser = await storage.getUser(req.session.userId);
-      if (!adminUser?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const userId = parseInt(req.params.userId);
-      const roleName = req.params.roleName;
-      if (isNaN(userId)) {
-        return res.status(400).json({ error: "Invalid user ID" });
-      }
-
-      console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
-
-      const role = await storage.getRoleByName(roleName);
-      if (!role) {
-        return res.status(404).json({ error: "Role not found" });
-      }
-
-      const currentRoles = await storage.getUserRoles(userId);
-      for (const currentRole of currentRoles) {
-        console.log(`Removing role ${currentRole.name} from user ${userId}`);
-        await storage.removeRoleFromUser(userId, currentRole.id);
-      }
-
-      await storage.assignRoleToUser(userId, role.id, req.session.userId);
-      console.log(`Assigned role ${roleName} to user ${userId}`);
-
-      const updatedRoles = await storage.getUserRoles(userId);
-      res.json({ roles: updatedRoles });
-    } catch (error) {
-      console.error('Failed to update user roles:', error);
-      res.status(500).json({ error: "Failed to update user roles" });
+    if (typeof isAdmin !== 'boolean') {
+      return res.status(400).json({ error: "isAdmin must be a boolean" });
     }
-  });
 
-  app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+    console.log(`Updating admin status for user ${userId} to ${isAdmin} by admin ${req.session.userId}`);
+
+    const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
+    console.log(`Admin status for user ${userId} updated successfully. New status: ${updatedUser.isAdmin}`);
+
+    res.json({
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        displayName: updatedUser.displayName,
+        isVerified: updatedUser.isVerified,
+        isAdmin: updatedUser.isAdmin
       }
+    });
+  } catch (error) {
+    console.error('Failed to update user admin status:', error);
+    res.status(500).json({ error: "Failed to update user admin status" });
+  }
+});
 
-      const currentUser = await storage.getUser(req.session.userId);
-      if (!currentUser?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const userId = parseInt(req.params.id);
-      const { isAdmin } = req.body;
-
-      if (typeof isAdmin !== 'boolean') {
-        return res.status(400).json({ error: "isAdmin must be a boolean" });
-      }
-
-      console.log(`Updating admin status for user ${userId} to ${isAdmin} by admin ${req.session.userId}`);
-
-      const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
-      console.log(`Admin status for user ${userId} updated successfully. New status: ${updatedUser.isAdmin}`);
-
-      res.json({
-        user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          displayName: updatedUser.displayName,
-          isVerified: updatedUser.isVerified,
-          isAdmin: updatedUser.isAdmin
-        }
-      });
-    } catch (error) {
-      console.error('Failed to update user admin status:', error);
-      res.status(500).json({ error: "Failed to update user admin status" });
-    }
-  });
-
-  return createServer(app);
+return createServer(app);
 }
 
 declare module 'express-session' {

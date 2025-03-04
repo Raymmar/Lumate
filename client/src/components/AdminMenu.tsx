@@ -14,23 +14,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
-
-interface AdminStats {
-  events: number;
-  people: number;
-  users: number;
-  uniqueAttendees: number;
-  totalAttendees: number;
-  paidUsers: number;
-  lastSync: string;
-}
 
 interface SyncStats {
   eventCount: number;
   peopleCount: number;
-  lastSync?: string;
 }
 
 interface SyncProgressEvent {
@@ -53,23 +40,6 @@ export default function AdminMenu() {
   const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
-
-  // Query to fetch admin stats which includes last sync time
-  const { data: adminStats } = useQuery<AdminStats>({
-    queryKey: ['/api/admin/stats'],
-    refetchInterval: false,
-  });
-
-  useEffect(() => {
-    if (adminStats?.lastSync) {
-      setSyncStats(prev => ({
-        ...prev,
-        eventCount: prev?.eventCount || 0,
-        peopleCount: prev?.peopleCount || 0,
-        lastSync: adminStats.lastSync
-      }));
-    }
-  }, [adminStats]);
 
   const scrollToBottom = () => {
     if (logsEndRef.current) {
@@ -144,8 +114,7 @@ export default function AdminMenu() {
                   if (data.data) {
                     setSyncStats({
                       eventCount: data.data.eventCount,
-                      peopleCount: data.data.peopleCount,
-                      lastSync: new Date().toISOString()
+                      peopleCount: data.data.peopleCount
                     });
                   }
                   addSyncLog(`Sync completed. Events: ${data.data?.eventCount}, People: ${data.data?.peopleCount}`);
@@ -182,6 +151,7 @@ export default function AdminMenu() {
 
   return (
     <>
+      {/* Initial Warning Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -210,6 +180,7 @@ export default function AdminMenu() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Progress Dialog */}
       <AlertDialog open={showProgressDialog} onOpenChange={() => {}}>
         <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
@@ -231,7 +202,6 @@ export default function AdminMenu() {
                     <ul className="mt-2 list-disc pl-5 text-green-800 dark:text-green-100">
                       <li>{syncStats?.eventCount} events synced</li>
                       <li>{syncStats?.peopleCount} people synced</li>
-                      <li>Last sync: {syncStats?.lastSync ? format(new Date(syncStats.lastSync), "MMM d, yyyy h:mm a") : "N/A"}</li>
                     </ul>
                   </div>
                 </div>
@@ -272,22 +242,15 @@ export default function AdminMenu() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="space-y-2">
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => setShowConfirmDialog(true)}
-          disabled={isResetting}
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
-          {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
-        </Button>
-        {(syncStats?.lastSync || adminStats?.lastSync) && (
-          <p className="text-xs text-muted-foreground text-center">
-            Last synced: {format(new Date(syncStats?.lastSync || adminStats?.lastSync), "MMM d, yyyy h:mm a")}
-          </p>
-        )}
-      </div>
+      <Button
+        variant="outline"
+        className="w-full"
+        onClick={() => setShowConfirmDialog(true)}
+        disabled={isResetting}
+      >
+        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+        {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
+      </Button>
     </>
   );
 }
