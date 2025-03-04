@@ -202,7 +202,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         </div>
 
         {/* Bio/About Section - Always visible */}
-        <Card className="p-4">
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle>About</CardTitle>
           </CardHeader>
