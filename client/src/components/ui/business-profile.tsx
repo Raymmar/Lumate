@@ -102,22 +102,27 @@ export function BusinessProfile({
 
         <div className="space-y-2">
           {address && (
-            <a 
-              href={generateGoogleMapsUrl(address)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-md bg-card p-4 text-card-foreground hover:bg-accent/50 transition-colors"
+            <Button 
+              variant="secondary"
+              className="w-full h-auto p-4 justify-start"
+              asChild
             >
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-                <div>
-                  <p className="font-medium">{address.street}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {address.city}, {address.state} {address.zip}
-                  </p>
+              <a
+                href={generateGoogleMapsUrl(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="font-medium">{address.street}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {address.city}, {address.state} {address.zip}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </a>
+              </a>
+            </Button>
           )}
 
           {linkedin && (
