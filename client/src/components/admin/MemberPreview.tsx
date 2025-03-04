@@ -2,17 +2,19 @@ import { useToast } from "@/hooks/use-toast";
 import type { User, Role, Person } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Card,
-  CardHeader,
-  CardContent
-} from "@/components/ui/card";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Select, SelectContent, SelectTrigger, SelectValue, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectTrigger,
+  SelectValue,
+  SelectItem,
+} from "@/components/ui/select";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 
@@ -23,26 +25,30 @@ interface MemberPreviewProps {
 export function MemberPreview({ member }: MemberPreviewProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const initials = member.displayName?.split(' ').map(n => n[0]).join('') || member.email[0].toUpperCase();
+  const initials =
+    member.displayName
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
 
   const handleAdminToggle = async (checked: boolean) => {
     try {
       await apiRequest(
         `/api/admin/members/${member.id}/admin-status`,
-        'PATCH',
-        { isAdmin: checked }
+        "PATCH",
+        { isAdmin: checked },
       );
 
       // Invalidate the members cache to trigger a refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/members'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
 
       toast({
         title: "Success",
-        description: `Admin status ${checked ? 'granted to' : 'revoked from'} ${member.displayName || member.email}`,
+        description: `Admin status ${checked ? "granted to" : "revoked from"} ${member.displayName || member.email}`,
       });
     } catch (error) {
-      console.error('Failed to update admin status:', error);
+      console.error("Failed to update admin status:", error);
       toast({
         title: "Error",
         description: "Failed to update admin status",
@@ -55,12 +61,12 @@ export function MemberPreview({ member }: MemberPreviewProps) {
     try {
       const result = await apiRequest<{ roles: Role[] }>(
         `/api/admin/members/${member.id}/roles/${roleName}`,
-        'POST'
+        "POST",
       );
 
       if (result.roles) {
         setRoles(result.roles);
-        queryClient.invalidateQueries({ queryKey: ['/api/admin/members'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
 
         toast({
           title: "Success",
@@ -68,7 +74,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         });
       }
     } catch (error) {
-      console.error('Failed to update user roles:', error);
+      console.error("Failed to update user roles:", error);
       toast({
         title: "Error",
         description: "Failed to update user roles",
@@ -84,7 +90,9 @@ export function MemberPreview({ member }: MemberPreviewProps) {
           <AvatarFallback className="text-lg">{initials}</AvatarFallback>
         </Avatar>
         <div>
-          <h2 className="text-2xl font-bold">{member.displayName || 'No display name'}</h2>
+          <h2 className="text-2xl font-bold">
+            {member.displayName || "No display name"}
+          </h2>
           <p className="text-sm text-muted-foreground">{member.email}</p>
         </div>
       </div>
@@ -93,11 +101,11 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         <Badge variant={member.isVerified ? "default" : "secondary"}>
           {member.isVerified ? "Verified" : "Pending"}
         </Badge>
-        {member.isAdmin && (
-          <Badge variant="default">Admin</Badge>
-        )}
+        {member.isAdmin && <Badge variant="default">Admin</Badge>}
         {roles.map((role) => (
-          <Badge key={role.id} variant="outline">{role.name}</Badge>
+          <Badge key={role.id} variant="outline">
+            {role.name}
+          </Badge>
         ))}
       </div>
 
@@ -108,7 +116,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         <CardContent className="space-y-4">
           <div className="flex justify-between py-1">
             <span className="text-muted-foreground">Member since</span>
-            <span>{format(new Date(member.createdAt), 'PPP')}</span>
+            <span>{format(new Date(member.createdAt), "PPP")}</span>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -122,7 +130,10 @@ export function MemberPreview({ member }: MemberPreviewProps) {
 
           <div className="space-y-2">
             <Label>Role</Label>
-            <Select onValueChange={handleRoleChange} defaultValue={roles[0]?.name || "User"}>
+            <Select
+              onValueChange={handleRoleChange}
+              defaultValue={roles[0]?.name || "User"}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
@@ -138,7 +149,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
 
       <Card>
         <CardHeader className="pb-3">
-          <h3 className="font-medium">Linked Profile</h3>
+          <h3 className="font-medium">Linked Luma Profile</h3>
         </CardHeader>
         <CardContent>
           <RelatedPeople person={member.person} />
