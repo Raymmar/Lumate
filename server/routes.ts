@@ -937,7 +937,7 @@ export async function registerRoutes(app: Express) {
         status: response.guest?.approval_status
       });
     } catch (error) {
-      console.error('Failed to check RSVP status:', error);
+      console.error('Failedto check RSVP status:', error);
       res.status(500).json({ 
         error: "Failed to check RSVP status",
         message: error instanceof Error ? error.message : String(error)
@@ -997,27 +997,27 @@ export async function registerRoutes(app: Express) {
         .orderBy(sql`start_time DESC`)
         .limit(limit)
         .offset(offset);
-    const eventsWithStatus = await Promise.all(
-      eventsList.map(async (event) => {
-        const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
-        return {
-          ...event,
-          isSynced: attendanceStatus.hasAttendees,
-          lastSyncedAt: attendanceStatus.lastSyncTime,
-          lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
-        };
-      })
-    );
+      const eventsWithStatus = await Promise.all(
+        eventsList.map(async (event) => {
+          const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);
+          return {
+            ...event,
+            isSynced: attendanceStatus.hasAttendees,
+            lastSyncedAt: attendanceStatus.lastSyncTime,
+            lastAttendanceSync: event.lastAttendanceSync || attendanceStatus.lastSyncTime
+          };
+        })
+      );
 
-    res.json({
-      events: eventsWithStatus,
-      total: totalCount
-    });
-  } catch (error) {
-    console.error('Failed to fetch admin events:', error);
-    res.status(500).json({ error: "Failed to fetch events" });
-  }
-});
+      res.json({
+        events: eventsWithStatus,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch admin events:', error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
 
   app.get("/api/admin/people", async (req, res) => {
     try {
@@ -1093,20 +1093,59 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event ID" });
       }
 
+      // Initialize SSE connection
+      initSSE(res);
+
       let allGuests: any[] = [];
       let hasMore = true;
       let cursor = undefined;
-      let iterationCount = 0;      const MAX_ITERATIONS = 100; 
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 100;
 
-      console.log('Starting guest sync for event:', eventId);
+      // Fetch event details for progress messages
+      const event = await storage.getEventByApiId(eventId);
+      if (!event) {
+        sendSSEUpdate(res, {
+          type: 'error',
+          message: 'Event not found',
+          progress: 0
+        });
+        return res.end();
+      }
+
+      sendSSEUpdate(res, {
+        type: 'status',
+        message: `Starting attendance sync for event: ${event.title}`,
+        progress: 0
+      });
 
       try {
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Clearing existing attendance records...',
+          progress: 5
+        });
+
         await storage.deleteAttendanceByEvent(eventId);
-        console.log('Cleared existing attendance records for event:', eventId);
+
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Successfully cleared existing attendance records',
+          progress: 10
+        });
       } catch (error) {
-        console.error('Failed to clear existing attendance records:', error);
-        throw error;
+        sendSSEUpdate(res, {
+          type: 'error',
+          message: 'Failed to clear existing attendance records',
+          progress: 0
+        });
+        res.end();
+        return;
       }
+
+      let totalProcessed = 0;
+      let successCount = 0;
+      let failureCount = 0;
 
       while (hasMore && iterationCount < MAX_ITERATIONS) {
         const params: Record<string, string> = { 
@@ -1117,26 +1156,22 @@ export async function registerRoutes(app: Express) {
           params.pagination_cursor = cursor;
         }
 
-        console.log('Fetching guests with params:', params);
-        const response = await lumaApiRequest('event/get-guests', params);
-
-        console.log('Response details:', {
-          currentBatch: response.entries?.length,
-          hasMore: response.has_more,
-          nextCursor: response.next_cursor
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: `Fetching guests batch ${iterationCount + 1}...`,
+          progress: 10 + (iterationCount * 2)
         });
 
+        const response = await lumaApiRequest('event/get-guests', params);
+
         if (response.entries) {
-          const approvedEntries = response.entries.filter((entry: any) => entry.guest.approval_status === 'approved');
+          const approvedEntries = response.entries.filter((entry: any) => 
+            entry.guest.approval_status === 'approved'
+          );
 
           for (const entry of approvedEntries) {
             const guest = entry.guest;
-            console.log('Processing approved guest:', {
-              guestId: guest.api_id,
-              email: guest.email,
-              status:guest.approval_status,
-              registeredAt: guest.registered_at
-            });
+            totalProcessed++;
 
             try {
               await storage.upsertAttendance({
@@ -1146,12 +1181,30 @@ export async function registerRoutes(app: Express) {
                 approvalStatus: guest.approval_status,
                 registeredAt: guest.registered_at
               });
-              console.log('Successfully stored attendance for guest:', guest.api_id);            } catch (error) {
-              console.error('Failed to store attendance for guest:', {
-                guestId: guest.api_id,
-                error: error instanceof Error ? error.message : String(error)
+
+              successCount++;
+              sendSSEUpdate(res, {
+                type: 'progress',
+                message: `Successfully processed ${guest.email}`,
+                data: {
+                  total: totalProcessed,
+                  success: successCount,
+                  failure: failureCount
+                },
+                progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
               });
-              throw error;
+            } catch (error) {
+              failureCount++;
+              sendSSEUpdate(res, {
+                type: 'error',
+                message: `Failed to process ${guest.email}: ${error instanceof Error ? error.message : String(error)}`,
+                data: {
+                  total: totalProcessed,
+                  success: successCount,
+                  failure: failureCount
+                },
+                progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
+              });
             }
           }
 
@@ -1162,43 +1215,51 @@ export async function registerRoutes(app: Express) {
         cursor = response.next_cursor;
         iterationCount++;
 
-        console.log('Pagination status:', {
-          iteration: iterationCount,
-          guestsCollected: allGuests.length,
-          hasMore,
-          cursor
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: `Processed ${totalProcessed} guests so far...`,
+          data: {
+            total: totalProcessed,
+            success: successCount,
+            failure: failureCount,
+            hasMore,
+            currentBatch: iterationCount
+          },
+          progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
         });
       }
 
       if (iterationCount >= MAX_ITERATIONS) {
-        console.warn('Reached maximum iteration limit while syncing guests');
+        sendSSEUpdate(res, {
+          type: 'warning',
+          message: 'Reached maximum iteration limit while syncing guests',
+          progress: 95
+        });
       }
 
       await storage.updateEventAttendanceSync(eventId);
 
-      console.log('Completed guest sync:', {
-        eventId,
-        totalGuests: allGuests.length,
-        totalIterations: iterationCount
+      sendSSEUpdate(res, {
+        type: 'complete',
+        message: 'Attendance sync completed',
+        data: {
+          total: totalProcessed,
+          success: successCount,
+          failure: failureCount,
+          totalGuests: allGuests.length
+        },
+        progress: 100
       });
 
-      res.json({
-        guests: allGuests,
-        total: allGuests.length
-      });
+      res.end();
     } catch (error) {
-      console.error('Failed to fetch event guests:', error);
-      if (error instanceof Error) {
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          name: error.name
-        });
-      }
-      res.status(500).json({ 
-        error: "Failed to fetch event guests",
-        message: error instanceof Error ? error.message : String(error)
+      console.error('Failed to sync event guests:', error);
+      sendSSEUpdate(res, {
+        type: 'error',
+        message: error instanceof Error ? error.message : String(error),
+        progress: 0
       });
+      res.end();
     }
   });
 
