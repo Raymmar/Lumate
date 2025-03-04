@@ -61,32 +61,39 @@ async function syncEventAttendees(event: Event) {
   }
 }
 
+async function checkAndSyncEvents() {
+  try {
+    // Get both recently ended events and old unsynced events
+    const [recentlyEndedEvents, oldUnsynedEvents] = await Promise.all([
+      storage.getRecentlyEndedEvents(),
+      storage.getOldUnsyncedEvents()
+    ]);
+
+    const eventsToSync = [...recentlyEndedEvents, ...oldUnsynedEvents];
+    const uniqueEvents = eventsToSync.filter((event, index, self) => 
+      index === self.findIndex((e) => e.api_id === event.api_id)
+    );
+
+    console.log(`Found ${recentlyEndedEvents.length} recently ended events and ${oldUnsynedEvents.length} old unsynced events to sync`);
+
+    for (const event of uniqueEvents) {
+      await syncEventAttendees(event);
+    }
+  } catch (error) {
+    console.error('Error in event sync service:', error);
+  }
+}
+
 export function startEventSyncService() {
   // Run every 5 minutes
   const SYNC_INTERVAL = 5 * 60 * 1000;
 
-  setInterval(async () => {
-    try {
-      // Get both recently ended events and old unsynced events
-      const [recentlyEndedEvents, oldUnsynedEvents] = await Promise.all([
-        storage.getRecentlyEndedEvents(),
-        storage.getOldUnsyncedEvents() // New function to get events that ended >24h ago and haven't been synced
-      ]);
+  // Run an initial sync when the service starts
+  console.log('Running initial event sync on service start...');
+  checkAndSyncEvents();
 
-      const eventsToSync = [...recentlyEndedEvents, ...oldUnsynedEvents];
-      const uniqueEvents = eventsToSync.filter((event, index, self) => 
-        index === self.findIndex((e) => e.api_id === event.api_id)
-      );
-
-      console.log(`Found ${recentlyEndedEvents.length} recently ended events and ${oldUnsynedEvents.length} old unsynced events to sync`);
-
-      for (const event of uniqueEvents) {
-        await syncEventAttendees(event);
-      }
-    } catch (error) {
-      console.error('Error in event sync service:', error);
-    }
-  }, SYNC_INTERVAL);
+  // Set up periodic sync
+  setInterval(checkAndSyncEvents, SYNC_INTERVAL);
 
   console.log('Event sync service started with automatic old event syncing');
 }
