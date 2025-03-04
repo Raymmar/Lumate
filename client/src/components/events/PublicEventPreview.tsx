@@ -179,7 +179,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
   };
 
   return (
-    <PreviewSidebar 
+    <PreviewSidebar
       open={true}
       onOpenChange={(open) => {
         if (!open) onClose();
@@ -221,7 +221,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
 
             {/* RSVP Section */}
             {user ? (
-              <Button 
+              <Button
                 variant={rsvpStatus?.isGoing ? "default" : "outline"}
                 className={`w-full h-12 text-lg ${rsvpStatus?.isGoing && !isEventEnded ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
                 onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
@@ -319,7 +319,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                       )}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
+                      {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} -
                       {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
                       {event.timezone && ` (${event.timezone})`}
                     </p>
@@ -368,8 +368,8 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                   ) : attendees.length > 0 ? (
                     <div className="space-y-2">
                       {attendees.map((person) => (
-                        <Link 
-                          key={person.id} 
+                        <Link
+                          key={person.id}
                           href={`/people/${person.api_id}`}
                           className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                         >
@@ -384,9 +384,6 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                           </Avatar>
                           <div>
                             <p className="font-medium">{person.userName || "Anonymous"}</p>
-                            <AuthGuard>
-                              <p className="text-xs text-muted-foreground">{person.email}</p>
-                            </AuthGuard>
                           </div>
                         </Link>
                       ))}
