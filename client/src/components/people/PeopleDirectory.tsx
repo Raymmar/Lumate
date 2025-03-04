@@ -13,11 +13,11 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-// Keep existing interfaces
+// Updated interface to make email optional
 export interface Person {
   id: number;
   api_id: string;
-  email: string;
+  email?: string; // Made optional since it should only be available to admins
   userName: string | null;
   fullName: string | null;
   avatarUrl: string | null;

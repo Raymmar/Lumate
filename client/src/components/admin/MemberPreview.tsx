@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
+import { AdminGuard } from "@/components/AdminGuard";
 
 interface MemberPreviewProps {
   member: User & { roles?: Role[]; person?: Person | null };
@@ -29,7 +30,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
     member.displayName
       ?.split(" ")
       .map((n) => n[0])
-      .join("") || member.email[0].toUpperCase();
+      .join("") || member.email?.[0].toUpperCase() || "?"; // Handle potential undefined email
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
 
   const handleAdminToggle = async (checked: boolean) => {
@@ -45,7 +46,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
 
       toast({
         title: "Success",
-        description: `Admin status ${checked ? "granted to" : "revoked from"} ${member.displayName || member.email}`,
+        description: `Admin status ${checked ? "granted to" : "revoked from"} ${member.displayName || member.email || "user"}`,
       });
     } catch (error) {
       console.error("Failed to update admin status:", error);
@@ -70,7 +71,7 @@ export function MemberPreview({ member }: MemberPreviewProps) {
 
         toast({
           title: "Success",
-          description: `Updated roles for ${member.displayName || member.email}`,
+          description: `Updated roles for ${member.displayName || member.email || "user"}`,
         });
       }
     } catch (error) {
@@ -93,7 +94,9 @@ export function MemberPreview({ member }: MemberPreviewProps) {
           <h2 className="text-2xl font-bold">
             {member.displayName || "No display name"}
           </h2>
-          <p className="text-sm text-muted-foreground">{member.email}</p>
+          <AdminGuard>
+            <p className="text-sm text-muted-foreground">{member.email}</p>
+          </AdminGuard>
         </div>
       </div>
 
