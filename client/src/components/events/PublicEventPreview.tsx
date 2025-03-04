@@ -1,4 +1,4 @@
-import { Event } from "@shared/schema";
+import { Event, Person } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +19,9 @@ interface PublicEventPreviewProps {
 interface Attendee {
   id: number;
   api_id: string;
+  email: string;
   userName: string | null;
+  fullName: string | null;
   avatarUrl: string | null;
 }
 
@@ -151,14 +153,14 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                 <div>
                   <p className="font-medium">
                     {formatInTimeZone(
-                      new Date(event.startTime + 'Z'),
+                      new Date(event.startTime),
                       event.timezone || 'America/New_York',
                       'EEEE, MMMM d, yyyy'
                     )}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
-                    {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
+                    {formatInTimeZone(new Date(event.startTime), event.timezone || 'America/New_York', 'h:mm a')} - 
+                    {formatInTimeZone(new Date(event.endTime), event.timezone || 'America/New_York', 'h:mm a')}
                     {event.timezone && ` (${event.timezone})`}
                   </p>
                 </div>
