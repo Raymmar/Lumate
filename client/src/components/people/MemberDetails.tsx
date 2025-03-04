@@ -30,9 +30,9 @@ const mockMemberDetails = {
 
 export const MemberDetails: React.FC = () => {
   return (
-    <div className="space-y-6 py-6">
+    <div className="space-y-4">
       {/* Bio Section */}
-      <Card className="p-6">
+      <Card className="p-4">
         <div className="flex items-start gap-4">
           <div className="flex-shrink-0">
             <BookOpen className="h-5 w-5 text-muted-foreground" />
@@ -47,10 +47,10 @@ export const MemberDetails: React.FC = () => {
       </Card>
 
       {/* Contact Links */}
-      <Card className="p-6">
+      <Card className="p-4">
         <div className="space-y-4">
           {mockMemberDetails.linkedin && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Linkedin className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -66,7 +66,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.github && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Github className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -82,7 +82,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.twitter && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <X className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -98,7 +98,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.facebook && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Facebook className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -114,7 +114,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.instagram && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Instagram className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -130,7 +130,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.website && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Globe className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -146,7 +146,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.phone && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Phone className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -155,7 +155,7 @@ export const MemberDetails: React.FC = () => {
           )}
 
           {mockMemberDetails.email && (
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <Mail className="h-5 w-5 text-muted-foreground" />
               </div>
@@ -172,9 +172,9 @@ export const MemberDetails: React.FC = () => {
 
       {/* Call to Action */}
       {mockMemberDetails.callToAction && (
-        <Card className="p-6">
+        <Card className="p-4">
           <div className="space-y-4">
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 <MessageSquare className="h-5 w-5 text-muted-foreground" />
               </div>

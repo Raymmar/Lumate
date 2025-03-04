@@ -130,8 +130,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isProfileAdmin = Boolean(person.isAdmin);
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
-      <div className="md:col-span-2 space-y-6">
+    <div className="grid gap-4 md:grid-cols-3">
+      <div className="md:col-span-2 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Avatar className="h-20 w-20">
@@ -188,8 +188,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         </div>
 
         {person.bio && (
-          <Card>
-            <CardHeader>
+          <Card className="p-4">
+            <CardHeader className="pb-3">
               <CardTitle>Biography</CardTitle>
             </CardHeader>
             <CardContent>
@@ -203,8 +203,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       </div>
 
       <div>
-        <Card>
-          <CardContent className="space-y-6 pt-6">
+        <Card className="p-4">
+          <CardContent className="space-y-4 pt-4">
             <div className="space-y-4">
               <StatsCard
                 title="First Seen"
