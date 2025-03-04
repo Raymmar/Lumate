@@ -106,7 +106,7 @@ export function BusinessProfile({
               href={generateGoogleMapsUrl(address)}
               target="_blank"
               rel="noopener noreferrer"
-              className="block rounded-md border bg-card p-4 text-card-foreground hover:bg-accent/50 transition-colors"
+              className="block rounded-md bg-card p-4 text-card-foreground hover:bg-accent/50 transition-colors"
             >
               <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
