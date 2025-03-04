@@ -11,9 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
-import { CalendarDays, Users, Mail } from 'lucide-react';
+import { Star, Code, Heart, CalendarDays, Users, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
+import { ProfileBadge } from "@/components/ui/profile-badge";
 
 interface PersonProfileProps {
   personId: string;
@@ -129,6 +130,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
   const isProfileAdmin = Boolean(person.isAdmin);
 
+  // Mock data for badges - This should eventually come from the API
+  const userBadges = [
+    { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
+    { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
+    { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
+  ];
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="md:col-span-2 space-y-4">
@@ -182,16 +190,30 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
+        {/* Badges Section - Visible to all users */}
+        <div className="flex flex-wrap gap-2">
+          {userBadges.map((badge, index) => (
+            <ProfileBadge
+              key={index}
+              name={badge.name}
+              icon={badge.icon}
+            />
+          ))}
+        </div>
+
+        {/* Bio/About Section - Visible to all users */}
         {person.bio && (
           <Card className="p-4">
             <CardHeader className="pb-3">
-              <CardTitle>Biography</CardTitle>
+              <CardTitle>About</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{person.bio}</p>
             </CardContent>
           </Card>
         )}
+
+        {/* Additional details for authenticated users */}
         <AuthGuard>
           <MemberDetails />
         </AuthGuard>
