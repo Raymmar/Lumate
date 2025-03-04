@@ -21,15 +21,15 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query to fetch attendees for this event
+  // Query to fetch attendees for this event - using public endpoint
   const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
-    queryKey: [`/api/admin/events/${event.api_id}/attendees`],
+    queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
+      const response = await fetch(`/api/events/${event.api_id}/attendees`);
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     },
-    enabled: !!event.api_id
+    enabled: !!event.api_id // Always enabled when we have an event ID
   });
 
   // Query to check if user is RSVP'd
@@ -69,7 +69,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
         description: "You've successfully RSVP'd to this event.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
     },
     onError: (error: Error) => {
       toast({
