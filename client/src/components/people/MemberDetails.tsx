@@ -6,12 +6,11 @@ import {
   Linkedin,
   Phone, 
   Mail,
-  MessageSquare,
-  BookOpen,
   Github,
   Facebook,
   Instagram,
-  X
+  X,
+  BookOpen
 } from "lucide-react";
 
 // Mock data for layout purposes
@@ -48,124 +47,133 @@ export const MemberDetails: React.FC = () => {
 
       {/* Contact Links */}
       <Card className="p-4">
-        <div className="space-y-4">
+        <div className="space-y-2">
           {mockMemberDetails.linkedin && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Linkedin className="h-5 w-5 text-muted-foreground" />
-              </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
               <a
                 href={mockMemberDetails.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline min-w-0 truncate"
               >
+                <Linkedin className="h-4 w-4" />
                 LinkedIn
               </a>
-            </div>
+            </Button>
           )}
 
           {mockMemberDetails.github && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Github className="h-5 w-5 text-muted-foreground" />
-              </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
               <a
                 href={mockMemberDetails.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline min-w-0 truncate"
               >
+                <Github className="h-4 w-4" />
                 GitHub
               </a>
-            </div>
+            </Button>
           )}
 
           {mockMemberDetails.twitter && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <X className="h-5 w-5 text-muted-foreground" />
-              </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
               <a
                 href={mockMemberDetails.twitter}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline min-w-0 truncate"
               >
+                <X className="h-4 w-4" />
                 X
               </a>
-            </div>
+            </Button>
           )}
 
           {mockMemberDetails.facebook && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Facebook className="h-5 w-5 text-muted-foreground" />
-              </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
               <a
                 href={mockMemberDetails.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline min-w-0 truncate"
               >
+                <Facebook className="h-4 w-4" />
                 Facebook
               </a>
-            </div>
+            </Button>
           )}
 
           {mockMemberDetails.instagram && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Instagram className="h-5 w-5 text-muted-foreground" />
-              </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
               <a
                 href={mockMemberDetails.instagram}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline min-w-0 truncate"
               >
+                <Instagram className="h-4 w-4" />
                 Instagram
               </a>
-            </div>
+            </Button>
           )}
 
           {mockMemberDetails.website && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Globe className="h-5 w-5 text-muted-foreground" />
-              </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
               <a
                 href={mockMemberDetails.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm hover:underline min-w-0 truncate"
               >
+                <Globe className="h-4 w-4" />
                 Personal Website
               </a>
-            </div>
+            </Button>
           )}
 
           {mockMemberDetails.phone && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Phone className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <span className="text-sm min-w-0 truncate">{mockMemberDetails.phone}</span>
-            </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={`tel:${mockMemberDetails.phone}`}>
+                <Phone className="h-4 w-4" />
+                {mockMemberDetails.phone}
+              </a>
+            </Button>
           )}
 
           {mockMemberDetails.email && (
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Mail className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <a
-                href={`mailto:${mockMemberDetails.email}`}
-                className="text-sm hover:underline min-w-0 truncate"
-              >
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2"
+              asChild
+            >
+              <a href={`mailto:${mockMemberDetails.email}`}>
+                <Mail className="h-4 w-4" />
                 {mockMemberDetails.email}
               </a>
-            </div>
+            </Button>
           )}
         </div>
       </Card>
