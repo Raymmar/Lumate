@@ -15,7 +15,14 @@ import {
 } from "@/components/ui/pagination";
 
 interface PeopleResponse {
-  people: Person[];
+  people: (Person & { user?: { 
+    id: number;
+    email: string;
+    displayName: string | null;
+    isAdmin: boolean;
+    isVerified: boolean;
+    createdAt: string;
+  } | null })[];
   total: number;
 }
 
@@ -26,7 +33,7 @@ export function PeopleTable() {
   const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
   const itemsPerPage = 100;
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching } = useQuery<PeopleResponse>({
     queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
       const response = await fetch(
@@ -34,11 +41,8 @@ export function PeopleTable() {
       );
       if (!response.ok) throw new Error("Failed to fetch people");
       const data = await response.json();
-      return data as PeopleResponse;
+      return data;
     },
-    keepPreviousData: true,
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
   });
 
   const people = data?.people || [];

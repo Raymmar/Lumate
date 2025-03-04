@@ -11,14 +11,21 @@ import { format } from "date-fns";
 import { LinkedUser } from "./LinkedUser";
 
 interface PersonPreviewProps {
-  person: Person;
+  person: Person & { 
+    user?: { 
+      id: number;
+      email: string;
+      displayName: string | null;
+      isAdmin: boolean;
+      isVerified: boolean;
+      createdAt: string;
+    } | null 
+  };
 }
 
 export function PersonPreview({ person }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
-
-  console.log('PersonPreview - Received person data:', person); // Debug log
 
   return (
     <div className="space-y-6">
