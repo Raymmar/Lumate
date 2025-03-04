@@ -34,8 +34,8 @@ export const MemberDetails: React.FC = () => {
       {/* Bio Section */}
       <Card className="p-6">
         <div className="flex items-start gap-4">
-          <div className="p-2 bg-primary/5 rounded-md">
-            <BookOpen className="h-4 w-4 text-foreground" />
+          <div className="flex-shrink-0">
+            <BookOpen className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="space-y-1 min-w-0">
             <h3 className="text-sm font-medium">About</h3>
@@ -50,145 +50,121 @@ export const MemberDetails: React.FC = () => {
       <Card className="p-6">
         <div className="space-y-4">
           {mockMemberDetails.linkedin && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Linkedin className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Linkedin className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">LinkedIn</p>
-                <a
-                  href={mockMemberDetails.linkedin}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.linkedin.replace('https://linkedin.com/in/', '@')}
-                </a>
-              </div>
+              <a
+                href={mockMemberDetails.linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                LinkedIn
+              </a>
             </div>
           )}
 
           {mockMemberDetails.github && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Github className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Github className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">GitHub</p>
-                <a
-                  href={mockMemberDetails.github}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.github.replace('https://github.com/', '@')}
-                </a>
-              </div>
+              <a
+                href={mockMemberDetails.github}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                GitHub
+              </a>
             </div>
           )}
 
           {mockMemberDetails.twitter && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <X className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">X</p>
-                <a
-                  href={mockMemberDetails.twitter}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.twitter.replace('https://twitter.com/', '@')}
-                </a>
-              </div>
+              <a
+                href={mockMemberDetails.twitter}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                X
+              </a>
             </div>
           )}
 
           {mockMemberDetails.facebook && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Facebook className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Facebook className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Facebook</p>
-                <a
-                  href={mockMemberDetails.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.facebook.replace('https://facebook.com/', '@')}
-                </a>
-              </div>
+              <a
+                href={mockMemberDetails.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                Facebook
+              </a>
             </div>
           )}
 
           {mockMemberDetails.instagram && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Instagram className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Instagram className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Instagram</p>
-                <a
-                  href={mockMemberDetails.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.instagram.replace('https://instagram.com/', '@')}
-                </a>
-              </div>
+              <a
+                href={mockMemberDetails.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                Instagram
+              </a>
             </div>
           )}
 
           {mockMemberDetails.website && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Globe className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Globe className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Personal Website</p>
-                <a
-                  href={mockMemberDetails.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.website.replace('https://', '')}
-                </a>
-              </div>
+              <a
+                href={mockMemberDetails.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                Personal Website
+              </a>
             </div>
           )}
 
           {mockMemberDetails.phone && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Phone className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Phone className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Phone</p>
-                <span className="text-sm min-w-0 truncate">{mockMemberDetails.phone}</span>
-              </div>
+              <span className="text-sm min-w-0 truncate">{mockMemberDetails.phone}</span>
             </div>
           )}
 
           {mockMemberDetails.email && (
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <Mail className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <Mail className="h-5 w-5 text-muted-foreground" />
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Email</p>
-                <a
-                  href={`mailto:${mockMemberDetails.email}`}
-                  className="text-sm hover:underline min-w-0 truncate"
-                >
-                  {mockMemberDetails.email}
-                </a>
-              </div>
+              <a
+                href={`mailto:${mockMemberDetails.email}`}
+                className="text-sm hover:underline min-w-0 truncate"
+              >
+                {mockMemberDetails.email}
+              </a>
             </div>
           )}
         </div>
@@ -198,9 +174,9 @@ export const MemberDetails: React.FC = () => {
       {mockMemberDetails.callToAction && (
         <Card className="p-6">
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/5 rounded-md">
-                <MessageSquare className="h-4 w-4 text-foreground" />
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <MessageSquare className="h-5 w-5 text-muted-foreground" />
               </div>
               <h3 className="text-sm font-medium">Get in touch</h3>
             </div>
