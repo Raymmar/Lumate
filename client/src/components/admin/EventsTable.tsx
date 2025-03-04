@@ -205,17 +205,18 @@ export function EventsTable() {
               {syncProgress && (
                 <>
                   <Progress value={syncProgress.progress} className="h-2" />
-                  <div className="space-y-1">
-                    {/* Show count first */}
-                    {syncProgress.data && (
-                      <div className="min-h-[20px]">
+                  {/* Fixed height container for both status lines */}
+                  <div className="h-[48px] flex flex-col justify-center">
+                    {/* Count line */}
+                    <div className="h-[20px] flex items-center">
+                      {syncProgress.data && (
                         <p className="text-xs text-muted-foreground">
                           Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
                         </p>
-                      </div>
-                    )}
-                    {/* Show processing message second */}
-                    <div className="min-h-[20px]">
+                      )}
+                    </div>
+                    {/* Status message line */}
+                    <div className="h-[20px] flex items-center">
                       <p className="text-xs text-muted-foreground truncate">
                         {syncProgress.message}
                       </p>
@@ -287,13 +288,13 @@ export function EventsTable() {
       </div>
 
       <div className="min-h-[400px] relative mt-4">
-        <div 
+        <div
           className={`transition-opacity duration-300 ${
             isFetching ? 'opacity-50' : 'opacity-100'
           }`}
         >
-          <DataTable 
-            data={events} 
+          <DataTable
+            data={events}
             columns={columns}
             actions={actions}
             onRowClick={onRowClick}
@@ -328,13 +329,13 @@ export function EventsTable() {
         </Pagination>
       </div>
 
-      <PreviewSidebar 
-        open={!!selectedEvent} 
+      <PreviewSidebar
+        open={!!selectedEvent}
         onOpenChange={() => setSelectedEvent(null)}
       >
         {selectedEvent && (
-          <EventPreview 
-            event={selectedEvent} 
+          <EventPreview
+            event={selectedEvent}
             onSync={handleStartSync}
             onStartSync={handleStartSync}
           />
