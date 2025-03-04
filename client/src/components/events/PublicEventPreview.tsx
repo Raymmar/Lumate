@@ -208,7 +208,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                           Sending...
                         </>
                       ) : (
-                        "Join"
+                        "RSVP"
                       )}
                     </Button>
                   </div>
