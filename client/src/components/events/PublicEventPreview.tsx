@@ -36,7 +36,9 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
     queryKey: ['/api/events/check-rsvp', event.api_id],
     queryFn: async () => {
       const response = await fetch(`/api/events/check-rsvp?event_api_id=${event.api_id}`);
-      if (!response.ok) throw new Error('Failed to check RSVP status');
+      if (!response.ok) {
+        throw new Error('Failed to check RSVP status');
+      }
       return response.json();
     },
     enabled: !!user && !!event.api_id
