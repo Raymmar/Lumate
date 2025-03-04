@@ -10,8 +10,11 @@ import {
   Facebook,
   Instagram,
   X,
-  BookOpen
+  Star,
+  Code,
+  Heart
 } from "lucide-react";
+import { ProfileBadge } from "@/components/ui/profile-badge";
 
 // Mock data for layout purposes
 const mockMemberDetails = {
@@ -24,24 +27,35 @@ const mockMemberDetails = {
   website: "https://johndoe.dev",
   phone: "+1 (555) 123-4567",
   email: "john@example.com",
-  callToAction: "Book a consultation"
+  callToAction: "Book a consultation",
+  badges: [
+    { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
+    { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
+    { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
+  ]
 };
 
 export const MemberDetails: React.FC = () => {
   return (
     <div className="space-y-4">
+      {/* Badges Section */}
+      <div className="flex flex-wrap gap-2">
+        {mockMemberDetails.badges.map((badge, index) => (
+          <ProfileBadge
+            key={index}
+            name={badge.name}
+            icon={badge.icon}
+          />
+        ))}
+      </div>
+
       {/* Bio Section */}
       <Card className="p-4">
-        <div className="flex items-start gap-4">
-          <div className="flex-shrink-0">
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <div className="space-y-1 min-w-0">
-            <h3 className="text-sm font-medium">About</h3>
-            <p className="text-sm text-muted-foreground">
-              {mockMemberDetails.bio}
-            </p>
-          </div>
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium">About</h3>
+          <p className="text-sm text-muted-foreground">
+            {mockMemberDetails.bio}
+          </p>
         </div>
       </Card>
 
