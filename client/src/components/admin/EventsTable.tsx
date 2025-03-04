@@ -18,7 +18,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 interface EventWithSync extends Event {
   isSynced: boolean;
@@ -50,17 +50,8 @@ export function EventsTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
-  const [syncLogs, setSyncLogs] = useState<string[]>([]);
-  const logsEndRef = useRef<HTMLDivElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
-
-  // Auto-scroll effect for logs
-  useEffect(() => {
-    if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [syncLogs]);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
@@ -88,7 +79,6 @@ export function EventsTable() {
   const handleStartSync = async (eventId: string) => {
     setSyncingEvents(prev => [...prev, eventId]);
     setSyncProgress({ message: "Starting sync...", progress: 0 });
-    setSyncLogs([]);
 
     try {
       const response = await fetch(`/api/admin/events/${eventId}/guests`);
@@ -139,8 +129,6 @@ export function EventsTable() {
                   data: data.data,
                   type: data.type
                 });
-
-                setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
 
                 if (data.type === 'complete') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
@@ -224,22 +212,13 @@ export function EventsTable() {
                       <p className="text-xs text-muted-foreground">{syncProgress.message}</p>
                     </div>
                     {syncProgress.data && (
-                      <p className="text-xs text-muted-foreground">
-                        Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
-                      </p>
+                      <div className="min-h-[20px]">
+                        <p className="text-xs text-muted-foreground">
+                          Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
+                        </p>
+                      </div>
                     )}
                   </div>
-                  {/* Fixed height scroll area with auto-scroll */}
-                  <ScrollArea className="h-[100px] w-full rounded-md border p-2">
-                    <div className="space-y-1">
-                      {syncLogs.map((log, index) => (
-                        <p key={index} className="text-xs text-muted-foreground">
-                          {log}
-                        </p>
-                      ))}
-                      <div ref={logsEndRef} />
-                    </div>
-                  </ScrollArea>
                 </>
               )}
             </div>
