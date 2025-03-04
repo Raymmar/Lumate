@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
-import { CalendarDays, Users } from 'lucide-react';
+import { CalendarDays, Users, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface PersonProfileProps {
@@ -186,7 +186,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        <Card className="cursor-pointer" onClick={() => window.location.href = `mailto:${person.email}`}>  
+        <Card className="cursor-pointer" onClick={() => window.open(`mailto:${person.email}`, '_blank')}>
           <CardContent>
             <dl className="pt-4">
               {person.fullName && (
@@ -209,9 +209,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     <dd>{person.email}</dd>
                   </div>
                   <div className="text-foreground">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 13v8H8v-8m8 8l-8-8m8 0h-6" />
-                    </svg>
+                    <Mail className="w-4 h-4" />
                   </div>
                 </div>
                 {person.phoneNumber && (
