@@ -206,19 +206,25 @@ export function EventsTable() {
                 <>
                   <Progress value={syncProgress.progress} className="h-2" />
                   <div className="space-y-1">
-                    {/* Fixed height message area with text truncation */}
-                    <div className="min-h-[20px]">
-                      <p className="text-xs text-muted-foreground truncate">
-                        {syncProgress.message}
+                    {/* Status message container with fixed height and content */}
+                    <div className="min-h-[20px] flex flex-col justify-center">
+                      <p className="text-xs text-muted-foreground">
+                        Processing attendees
+                        {syncProgress.message.includes('@') && (
+                          <span className="truncate inline-block ml-1">
+                            ({syncProgress.message.split(' ').pop()})
+                          </span>
+                        )}
                       </p>
                     </div>
-                    {syncProgress.data && (
-                      <div className="min-h-[20px]">
+                    {/* Stats container with fixed height */}
+                    <div className="min-h-[20px] flex flex-col justify-center">
+                      {syncProgress.data && (
                         <p className="text-xs text-muted-foreground">
                           Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
                         </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </>
               )}
