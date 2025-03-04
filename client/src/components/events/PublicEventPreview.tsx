@@ -34,6 +34,12 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < events.length - 1;
 
+  // Find the next upcoming event for the invite
+  const now = new Date();
+  const nextUpcomingEvent = events
+    .filter(e => new Date(e.startTime) > now)
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+
   // Query to fetch attendees for this event
   const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
     queryKey: [`/api/admin/events/${event.api_id}/attendees`],
@@ -105,7 +111,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
         },
         body: JSON.stringify({
           email,
-          event_api_id: event.api_id
+          event_api_id: nextUpcomingEvent?.api_id
         })
       });
 
@@ -189,7 +195,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">Welcome to Sarasota Tech</h3>
                   <p className="text-sm text-muted-foreground">
-                    Thanks for joining! We've sent an invite to your email for this event.
+                    Thanks for joining! We've sent an invite to your email for our next event.
                     Once you receive it, you can claim your profile to track your attendance and
                     stay connected with the community.
                   </p>
@@ -198,7 +204,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                   </p>
                 </CardContent>
               </Card>
-            ) : (
+            ) : nextUpcomingEvent ? (
               <Card>
                 <CardContent className="p-6">
                   <form onSubmit={handleInvite} className="space-y-4">
@@ -228,10 +234,23 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                       </Button>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Drop your email for an invite to this event and start networking with
-                      the region's top tech professionals.
+                      Drop your email for an invite to our next event on{' '}
+                      {formatInTimeZone(
+                        new Date(nextUpcomingEvent.startTime + 'Z'),
+                        nextUpcomingEvent.timezone || 'America/New_York',
+                        'MMMM d'
+                      )}{' '}
+                      and start networking with the region's top tech professionals.
                     </p>
                   </form>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground">
+                    No upcoming events available at the moment.
+                  </p>
                 </CardContent>
               </Card>
             )}
