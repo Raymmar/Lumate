@@ -29,10 +29,10 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     },
-    enabled: !!event.api_id
+    enabled: !!event.api_id // Always fetch attendees regardless of auth status
   });
 
-  // Query to check if user is RSVP'd
+  // Query to check if user is RSVP'd (only when authenticated)
   const { data: rsvpStatus } = useQuery({
     queryKey: ['/api/events/check-rsvp', event.api_id],
     queryFn: async () => {
@@ -179,7 +179,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
             </CardContent>
           </Card>
 
-          {/* Attendees List */}
+          {/* Attendees List - Always visible */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
