@@ -14,6 +14,7 @@ import { events, attendance } from '@shared/schema';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
+import { CacheService } from './services/CacheService';
 
 interface Post {
   id: number;
@@ -104,6 +105,11 @@ export async function lumaApiRequest(
 }
 
 export async function registerRoutes(app: Express) {
+  console.log('Initializing CacheService...');
+  const cacheService = CacheService.getInstance();
+  console.log('CacheService initialized.');
+
+
   const PostgresStore = connectPg(session);
   const isProduction = process.env.NODE_ENV === 'production';
 
@@ -785,7 +791,6 @@ export async function registerRoutes(app: Express) {
           progress: 20 
         });
 
-        const { CacheService } = await import('./services/CacheService');
         const cacheService = CacheService.getInstance();
 
         cacheService.on('fetchProgress', (data) => {
@@ -936,7 +941,7 @@ export async function registerRoutes(app: Express) {
         isGoing: response.guest?.approval_status === 'approved',
         status: response.guest?.approval_status
       });
-    } catch (error) {
+    } catch(error) {
       console.error('Failedto check RSVP status:', error);
       res.status(500).json({ 
         error: "Failed to check RSVP status",

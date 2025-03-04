@@ -39,21 +39,34 @@ export class CacheService extends EventEmitter {
   }
 
   private startSync() {
+    const now = new Date();
+    this.logSync('Starting sync service...', {
+      startTime: now.toISOString()
+    });
+
     // First clear any existing interval
     if (this.cacheInterval) {
       clearInterval(this.cacheInterval);
       this.cacheInterval = null;
+      this.logSync('Cleared existing sync interval');
     }
 
     // Run initial sync
+    this.logSync('Running initial sync...');
     this.updateCache().catch(err => {
       this.logSync('Initial sync failed:', err);
     });
 
     // Set up hourly interval
     this.cacheInterval = setInterval(() => {
+      const currentTime = new Date();
+      this.logSync('Interval triggered', {
+        currentTime: currentTime.toISOString(),
+        isCaching: this.isCaching
+      });
+
       if (!this.isCaching) {
-        this.logSync('Running hourly sync...');
+        this.logSync('Starting hourly sync...');
         this.updateCache().catch(err => {
           this.logSync('Hourly sync failed:', err);
         });
