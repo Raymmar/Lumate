@@ -45,87 +45,79 @@ export function NavBar() {
         {user && isAdmin && (
           <AdminBadge className="mr-2" asLink />
         )}
-        {!user && (
-          <ClaimProfileDialog 
-            trigger={
-              <Button variant="outline" size="sm">
-                Claim Your Account
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>
+                    {(user.displayName || user.email).charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               </Button>
-            }
-          />
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>
-                  {user ? (
-                    (user.displayName || user.email).charAt(0).toUpperCase()
-                  ) : (
-                    <User className="h-4 w-4 text-foreground" />
-                  )}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
-            {user ? (
-              <>
-                {isAdmin && (
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin">
-                      <span className="flex items-center">
-                        <Shield className="mr-2 h-4 w-4 text-foreground" />
-                        Admin Dashboard
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                {user.api_id && (
-                  <DropdownMenuItem asChild>
-                    <Link href={`/people/${user.api_id}`}>
-                      <span className="flex items-center">
-                        <User className="mr-2 h-4 w-4 text-foreground" />
-                        Profile
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              {isAdmin && (
                 <DropdownMenuItem asChild>
-                  <Link href="/settings">
+                  <Link href="/admin">
                     <span className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4 text-foreground" />
-                      Settings
+                      <Shield className="mr-2 h-4 w-4 text-foreground" />
+                      Admin Dashboard
                     </span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onSelect={() => logoutMutation.mutate()}
-                  disabled={logoutMutation.isPending}
-                >
-                  <span className="flex items-center">
-                    {logoutMutation.isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin text-foreground" />
-                    ) : (
-                      <LogOut className="mr-2 h-4 w-4 text-foreground" />
-                    )}
-                    {logoutMutation.isPending ? "Logging out..." : "Log out"}
-                  </span>
+              )}
+              {user.api_id && (
+                <DropdownMenuItem asChild>
+                  <Link href={`/people/${user.api_id}`}>
+                    <span className="flex items-center">
+                      <User className="mr-2 h-4 w-4 text-foreground" />
+                      Profile
+                    </span>
+                  </Link>
                 </DropdownMenuItem>
-              </>
-            ) : (
+              )}
               <DropdownMenuItem asChild>
-                <Link href="/login">
+                <Link href="/settings">
                   <span className="flex items-center">
-                    <LogIn className="mr-2 h-4 w-4 text-foreground" />
-                    Log in
+                    <Settings className="mr-2 h-4 w-4 text-foreground" />
+                    Settings
                   </span>
                 </Link>
               </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onSelect={() => logoutMutation.mutate()}
+                disabled={logoutMutation.isPending}
+              >
+                <span className="flex items-center">
+                  {logoutMutation.isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-foreground" />
+                  ) : (
+                    <LogOut className="mr-2 h-4 w-4 text-foreground" />
+                  )}
+                  {logoutMutation.isPending ? "Logging out..." : "Log out"}
+                </span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <div className="flex items-center gap-2">
+            <ClaimProfileDialog 
+              trigger={
+                <Button variant="outline" size="sm">
+                  Claim Your Account
+                </Button>
+              }
+            />
+            <Link href="/login">
+              <Button variant="default" size="sm">
+                <LogIn className="mr-2 h-4 w-4" />
+                Log in
+              </Button>
+            </Link>
+          </div>
+        )}
       </div>
     </nav>
   );
