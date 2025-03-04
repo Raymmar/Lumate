@@ -13,6 +13,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
 import { CalendarDays, Users, Mail } from 'lucide-react';
 import { format } from 'date-fns';
+import { MemberDetails } from './MemberDetails';
 
 interface PersonProfileProps {
   personId: string;
@@ -232,6 +233,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             </CardContent>
           </Card>
         )}
+        <AuthGuard>
+          <MemberDetails />
+        </AuthGuard>
       </div>
 
       <div>
