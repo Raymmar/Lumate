@@ -869,51 +869,55 @@ export class PostgresStorage implements IStorage {
       console.log('Updating stats for person:', personId);
 
       // Get all approved attendance records for this person
-      const attendanceRecords = await db
-        .select({
-          registeredAt: attendance.registeredAt,
-          approvalStatus: attendance.approvalStatus
-        })
-        .from(attendance)
-        .where(and(
-          eq(attendance.personId, personId),
-          eq(attendance.approvalStatus, 'approved')
-        ))
-        .orderBy(attendance.registeredAt);
+      const result = await db.execute(sql`
+        WITH approved_attendance AS (
+          SELECT 
+            registered_at,
+            approval_status
+          FROM attendance 
+          WHERE person_id = ${personId}
+          AND approval_status = 'approved'
+          ORDER BY registered_at
+        )
+        SELECT 
+          COUNT(*) as total_events,
+          MIN(registered_at) as first_event,
+          MAX(registered_at) as last_event
+        FROM approved_attendance
+      `);
 
-      console.log(`Found ${attendanceRecords.length} approved attendance records`);
+      const statsData = result.rows[0];
+      console.log('Raw stats data:', statsData);
 
       const stats = {
-        totalEventsAttended: attendanceRecords.length,
-        firstEventDate: attendanceRecords[0]?.registeredAt || null,
-        lastEventDate: attendanceRecords[attendanceRecords.length - 1]?.registeredAt || null,
+        totalEventsAttended: Number(statsData.total_events),
+        firstEventDate: statsData.first_event,
+        lastEventDate: statsData.last_event,
         lastUpdated: new Date().toISOString()
       };
 
-      // Calculate average events per year if we have attendance
+      // Calculate average events per year if we have events
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
         const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
 
-        stats.averageEventsPerYear = yearsDiff > 0 
-          ? Number((stats.totalEventsAttended / yearsDiff).toFixed(2))
-          : stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
+        if (yearsDiff > 0) {
+          stats.averageEventsPerYear = Number((stats.totalEventsAttended / yearsDiff).toFixed(2));
+        }
       }
 
       console.log('Calculated stats:', stats);
 
-      // Update the person's stats using raw SQL to handle JSON properly
-      const query = sql`
+      // Update the person's stats using raw SQL
+      const updateResult = await db.execute(sql`
         UPDATE people 
-        SET stats = ${sql.json(stats)}::jsonb
+        SET stats = ${JSON.stringify(stats)}::jsonb
         WHERE id = ${personId}
         RETURNING *
-      `;
+      `);
 
-      const result = await db.execute(query);
-      const updatedPerson = result.rows[0] as Person;
-
+      const updatedPerson = updateResult.rows[0] as Person;
       if (!updatedPerson) {
         throw new Error(`Person with ID ${personId} not found`);
       }
