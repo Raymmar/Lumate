@@ -49,8 +49,8 @@ export function RolesAndPermissions() {
   const selectedRole = roles?.find(r => r.id.toString() === selectedRoleId);
 
   const { data: rolePermissions, isLoading: rolePermissionsLoading } = useQuery<Permission[]>({
-    queryKey: ['/api/admin/roles', selectedRoleId, 'permissions'],
-    enabled: !!selectedRoleId
+    queryKey: ['/api/admin/roles', selectedRole?.id, 'permissions'],
+    enabled: !!selectedRole
   });
 
   const isRequiredPermission = (roleName: string, permissionName: string) => {
@@ -82,28 +82,21 @@ export function RolesAndPermissions() {
       setUpdatingPermissions(prev => new Set(prev).add(permKey));
 
       const method = hasPermission ? 'DELETE' : 'POST';
+      const oldPermissions = queryClient.getQueryData<Permission[]>(['/api/admin/roles', roleId, 'permissions']) || [];
 
-      // Optimistically update the UI
-      queryClient.setQueryData<Permission[]>(
-        ['/api/admin/roles', roleId.toString(), 'permissions'],
-        oldPermissions => {
-          if (!oldPermissions) return [];
-          return hasPermission 
-            ? oldPermissions.filter(p => p.id !== permissionId)
-            : [...oldPermissions, permission];
-        }
+      queryClient.setQueryData(
+        ['/api/admin/roles', roleId, 'permissions'],
+        hasPermission
+          ? oldPermissions.filter(p => p.id !== permissionId)
+          : [...oldPermissions, permission]
       );
 
-      const response = await apiRequest<Permission[]>(
+      const updatedPermissions = await apiRequest<Permission[]>(
         `/api/admin/roles/${roleId}/permissions/${permissionId}`,
         method
       );
 
-      // Update with the server response
-      queryClient.setQueryData(
-        ['/api/admin/roles', roleId.toString(), 'permissions'], 
-        response
-      );
+      queryClient.setQueryData(['/api/admin/roles', roleId, 'permissions'], updatedPermissions);
 
       toast({
         title: "Success",
@@ -112,9 +105,8 @@ export function RolesAndPermissions() {
     } catch (error) {
       console.error('Failed to update role permission:', error);
 
-      // Revert optimistic update and refresh from server
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/admin/roles', roleId.toString(), 'permissions']
+        queryKey: ['/api/admin/roles', roleId, 'permissions'] 
       });
 
       toast({
@@ -154,13 +146,7 @@ export function RolesAndPermissions() {
             <label className="text-sm font-medium mb-2 block">Select Role</label>
             <Select
               value={selectedRoleId?.toString()}
-              onValueChange={(value) => {
-                setSelectedRoleId(value);
-                // Prefetch the permissions for this role
-                queryClient.prefetchQuery({
-                  queryKey: ['/api/admin/roles', value, 'permissions']
-                });
-              }}
+              onValueChange={(value) => setSelectedRoleId(value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Select a role" />

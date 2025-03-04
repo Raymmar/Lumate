@@ -1153,8 +1153,6 @@ export class PostgresStorage implements IStorage {
   // Role permission management methods
   async assignPermissionToRole(roleId: number, permissionId: number, grantedBy: number): Promise<RolePermission> {
     try {
-      console.log('Assigning permission to role:', { roleId, permissionId, grantedBy });
-
       const [rolePermission] = await db
         .insert(rolePermissions)
         .values({
@@ -1172,9 +1170,7 @@ export class PostgresStorage implements IStorage {
 
   async removePermissionFromRole(roleId: number, permissionId: number): Promise<void> {
     try {
-      console.log('Removing permission from role:', { roleId, permissionId });
-
-      const result = await db
+      await db
         .delete(rolePermissions)
         .where(
           and(
@@ -1182,8 +1178,6 @@ export class PostgresStorage implements IStorage {
             eq(rolePermissions.permissionId, permissionId)
           )
         );
-
-      console.log('Successfully removed permission from role');
     } catch (error) {
       console.error('Failed to remove permission from role:', error);
       throw error;
@@ -1192,26 +1186,18 @@ export class PostgresStorage implements IStorage {
 
   async getRolePermissions(roleId: number): Promise<Permission[]> {
     try {
-      console.log('Fetching permissions for role:', roleId);
-
-      const permissions = await db
+      return await db
         .select({
           id: permissions.id,
           name: permissions.name,
+          description: permissions.description,
           resource: permissions.resource,
           action: permissions.action,
-          description: permissions.description,
-          createdAt: permissions.createdAt
+          createdAt: permissions.createdAt,
         })
         .from(rolePermissions)
-        .innerJoin(
-          permissions,
-          eq(rolePermissions.permissionId, permissions.id)
-        )
+        .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
         .where(eq(rolePermissions.roleId, roleId));
-
-      console.log(`Found ${permissions.length} permissions for role ${roleId}`);
-      return permissions;
     } catch (error) {
       console.error('Failed to get role permissions:', error);
       throw error;
