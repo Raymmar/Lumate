@@ -104,7 +104,7 @@ export function BusinessProfile({
           {address && (
             <Button
               variant="secondary"
-              className="w-full justify-start gap-2 text-left"
+              className="w-full justify-start gap-2 text-left py-2"
               asChild
             >
               <a 
