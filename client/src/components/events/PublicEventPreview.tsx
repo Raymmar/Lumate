@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -196,8 +197,9 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
               ) : attendees.length > 0 ? (
                 <div className="space-y-2">
                   {attendees.map((person) => (
-                    <div 
-                      key={person.id}
+                    <Link 
+                      key={person.id} 
+                      href={`/people/${person.api_id}`}
                       className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                     >
                       <Avatar className="h-8 w-8">
@@ -212,7 +214,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                       <div>
                         <p className="font-medium">{person.userName || "Anonymous"}</p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (
