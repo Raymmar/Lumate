@@ -39,6 +39,14 @@ export interface BusinessProfileProps {
   consultationUrl?: string;
 }
 
+function generateGoogleMapsUrl(address: BusinessProfileProps['address']) {
+  if (!address) return '';
+  const query = encodeURIComponent(
+    `${address.street}, ${address.city}, ${address.state} ${address.zip}`
+  );
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
 export function BusinessProfile({
   name,
   description,
@@ -94,12 +102,26 @@ export function BusinessProfile({
 
         <div className="space-y-2">
           {address && (
-            <div className="flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span>
-                {address.street}, {address.city}, {address.state} {address.zip}
-              </span>
-            </div>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-2 text-left"
+              asChild
+            >
+              <a 
+                href={generateGoogleMapsUrl(address)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start"
+              >
+                <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">{address.street}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {address.city}, {address.state} {address.zip}
+                  </p>
+                </div>
+              </a>
+            </Button>
           )}
 
           {linkedin && (
