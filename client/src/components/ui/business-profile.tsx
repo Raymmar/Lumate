@@ -102,17 +102,13 @@ export function BusinessProfile({
 
         <div className="space-y-2">
           {address && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2 text-left py-2"
-              asChild
+            <a 
+              href={generateGoogleMapsUrl(address)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-md border bg-card p-4 text-card-foreground hover:bg-accent/50 transition-colors"
             >
-              <a 
-                href={generateGoogleMapsUrl(address)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-start"
-              >
+              <div className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
                 <div>
                   <p className="font-medium">{address.street}</p>
@@ -120,8 +116,8 @@ export function BusinessProfile({
                     {address.city}, {address.state} {address.zip}
                   </p>
                 </div>
-              </a>
-            </Button>
+              </div>
+            </a>
           )}
 
           {linkedin && (
