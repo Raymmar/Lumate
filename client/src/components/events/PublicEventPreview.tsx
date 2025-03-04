@@ -109,8 +109,8 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
           {/* RSVP Button - Full Width */}
           {user ? (
             <Button 
-              variant={rsvpStatus?.isGoing ? "outline" : "default"}
-              className="w-full h-12 text-lg"
+              variant={rsvpStatus?.isGoing ? "default" : "outline"}
+              className={`w-full h-12 text-lg ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
               onClick={() => !rsvpStatus?.isGoing && rsvpMutation.mutate()}
               disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
             >
@@ -120,7 +120,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                   Processing...
                 </>
               ) : rsvpStatus?.isGoing ? (
-                "You're attending!"
+                "See you there!"
               ) : (
                 "RSVP Now"
               )}
@@ -211,7 +211,6 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                       </Avatar>
                       <div>
                         <p className="font-medium">{person.userName || "Anonymous"}</p>
-                        <p className="text-xs text-muted-foreground">{person.email}</p>
                       </div>
                     </div>
                   ))}
