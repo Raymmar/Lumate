@@ -168,9 +168,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               </h1>
               <div className="flex items-center gap-2">
                 <AuthGuard>
-                  {person.email && (
-                    <p className="text-muted-foreground">{person.email}</p>
-                  )}
+                  <p className="text-muted-foreground">{person.email}</p>
                 </AuthGuard>
               </div>
             </div>
