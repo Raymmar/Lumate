@@ -13,8 +13,7 @@ export class CacheService extends EventEmitter {
   private readonly MAX_RETRIES = 3;  // Maximum number of retries for failed requests
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
   private lastSuccessfulSync: Date | null = null;
-  private readonly PEAK_INTERVAL = 60 * 60 * 1000; // 1 hour in milliseconds
-  private readonly OFF_PEAK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+  private readonly SYNC_INTERVAL = 60 * 60 * 1000; // Fixed 1-hour interval in milliseconds
 
   private constructor() {
     super();
@@ -30,39 +29,49 @@ export class CacheService extends EventEmitter {
     return this.instance;
   }
 
-  private isPeakHours(): boolean {
+  private getNextScheduledTime(): Date {
     const now = new Date();
-    const estTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const hour = estTime.getHours();
-    return hour >= 8 && hour < 12;
-  }
-
-  private getNextInterval(): number {
-    return this.isPeakHours() ? this.PEAK_INTERVAL : this.OFF_PEAK_INTERVAL;
+    // Always schedule for the next hour mark
+    const nextTime = new Date(now);
+    nextTime.setHours(nextTime.getHours() + 1);
+    nextTime.setMinutes(0);
+    nextTime.setSeconds(0);
+    nextTime.setMilliseconds(0);
+    return nextTime;
   }
 
   private scheduleNextSync() {
-    const nextInterval = this.getNextInterval();
-    const isPeak = this.isPeakHours();
-
-    this.logSync(`Scheduling next sync - ${isPeak ? 'Peak hours' : 'Off-peak hours'}`, {
-      nextSyncIn: `${nextInterval / 1000 / 60} minutes`,
-      currentTime: new Date().toISOString(),
-      isPeakHours: isPeak
-    });
-
     if (this.cacheInterval) {
-      clearInterval(this.cacheInterval);
+      // Don't clear existing interval if it's already set
+      return;
     }
 
-    this.cacheInterval = setInterval(() => {
-      this.logSync('Running scheduled cache update...');
+    const now = new Date();
+    const nextSync = this.getNextScheduledTime();
+    const initialDelay = nextSync.getTime() - now.getTime();
+
+    // Schedule the first sync
+    setTimeout(() => {
+      // Run the first sync
       this.updateCache().catch(error => {
         this.logSync('Scheduled cache update failed:', error);
       });
-      // Reschedule for next interval in case peak hours changed
-      this.scheduleNextSync();
-    }, nextInterval);
+
+      // Then set up recurring interval
+      this.cacheInterval = setInterval(() => {
+        this.logSync('Running hourly cache update...');
+        this.updateCache().catch(error => {
+          this.logSync('Hourly cache update failed:', error);
+        });
+      }, this.SYNC_INTERVAL);
+
+    }, initialDelay);
+
+    this.logSync('Next sync scheduled', {
+      nextSyncTime: nextSync.toISOString(),
+      initialDelayMs: initialDelay,
+      interval: this.SYNC_INTERVAL
+    });
   }
 
   private emitProgress(message: string, progress: number) {
@@ -550,12 +559,14 @@ export class CacheService extends EventEmitter {
   }
 
   startCaching() {
-    this.logSync('Running initial cache update...');
+    this.logSync('Starting cache service...');
+
+    // Run initial cache update
     this.updateCache().catch(error => {
       this.logSync('Initial cache update failed:', error);
     });
 
-    // Schedule first sync
+    // Schedule next sync
     this.scheduleNextSync();
   }
 
