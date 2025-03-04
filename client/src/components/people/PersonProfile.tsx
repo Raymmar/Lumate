@@ -163,11 +163,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   <p className="text-muted-foreground">{person.email}</p>
                 </AuthGuard>
               </div>
-              <div className="mt-2">
-                <Button variant="outline" size="sm" className="text-xs">
-                  + Add Tag
-                </Button>
-              </div>
             </div>
           </div>
 
