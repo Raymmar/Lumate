@@ -173,13 +173,7 @@ export const MemberDetails: React.FC = () => {
       {/* Call to Action */}
       {mockMemberDetails.callToAction && (
         <Card className="p-4">
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <MessageSquare className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <h3 className="text-sm font-medium">Get in touch</h3>
-            </div>
+          <div>
             <Button className="w-full">
               {mockMemberDetails.callToAction}
             </Button>
