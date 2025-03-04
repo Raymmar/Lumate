@@ -3,6 +3,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { PreviewSidebar } from "@/components/admin/PreviewSidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -20,6 +22,9 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [isInviting, setIsInviting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   // Query to fetch attendees for this event
   const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
@@ -29,7 +34,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     },
-    enabled: !!event.api_id
+    enabled: !!event.api_id && !!user
   });
 
   // Query to check if user is RSVP'd
@@ -80,6 +85,45 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
     },
   });
 
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsInviting(true);
+
+    try {
+      const response = await fetch('/api/events/send-invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          event_api_id: event.api_id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to send invite');
+      }
+
+      toast({
+        title: "Success!",
+        description: "Please check your email for the invitation.",
+      });
+
+      setIsSubmitted(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to send invite",
+        variant: "destructive",
+      });
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
   return (
     <PreviewSidebar 
       open={true}
@@ -106,7 +150,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
             )}
           </div>
 
-          {/* RSVP Button - Full Width */}
+          {/* RSVP Section */}
           {user ? (
             <Button 
               variant={rsvpStatus?.isGoing ? "default" : "outline"}
@@ -125,14 +169,56 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                 "RSVP Now"
               )}
             </Button>
-          ) : event.url && (
-            <Button 
-              variant="default"
-              className="w-full h-12 text-lg"
-              onClick={() => window.open(event.url, '_blank')}
-            >
-              Register for Event
-            </Button>
+          ) : isSubmitted ? (
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold mb-2">Welcome to Sarasota Tech</h3>
+                <p className="text-sm text-muted-foreground">
+                  Thanks for joining! We've sent an invite to your email for this event.
+                  Once you receive it, you can claim your profile to track your attendance and
+                  stay connected with the community.
+                </p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Be sure to check your inbox (or spam folder) for the invitation email.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="p-6">
+                <form onSubmit={handleInvite} className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Email"
+                      type="email"
+                      className="flex-1"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={isInviting}
+                    />
+                    <Button
+                      className="bg-primary hover:bg-primary/90"
+                      type="submit"
+                      disabled={isInviting}
+                    >
+                      {isInviting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Join"
+                      )}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Drop your email for an invite to this event and start networking with
+                    the region's top tech professionals.
+                  </p>
+                </form>
+              </CardContent>
+            </Card>
           )}
 
           {/* Attendees List - Only show for logged in users */}
