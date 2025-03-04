@@ -319,6 +319,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   
+  
 
   async getPerson(id: number): Promise<Person | null> {
     try {
@@ -731,11 +732,30 @@ export class PostgresStorage implements IStorage {
   }
   async deleteAttendanceByEvent(eventApiId: string): Promise<void> {
     try {
-      // Modified to only delete records for the specific event
+      // First get all affected persons before deleting
+      const affectedPersons = await db
+        .select({ personId: attendance.personId })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventApiId))
+        .groupBy(attendance.personId);
+
+      console.log(`Found ${affectedPersons.length} persons affected by attendance deletion`);
+
+      // Delete the attendance records
       await db
         .delete(attendance)
         .where(eq(attendance.eventApiId, eventApiId));
+
       console.log('Successfully deleted attendance records for event:', eventApiId);
+
+      // Update stats for all affected persons
+      for (const { personId } of affectedPersons) {
+        if (personId) {
+          await this.updatePersonStats(personId);
+        }
+      }
+
+      console.log('Successfully updated stats for all affected persons');
     } catch (error) {
       console.error('Failed to delete attendance records:', error);
       throw error;
@@ -846,16 +866,24 @@ export class PostgresStorage implements IStorage {
 
   async updatePersonStats(personId: number): Promise<Person> {
     try {
-      // Get all attendance records for this person
+      console.log('Updating stats for person:', personId);
+
+      // Get all approved attendance records for this person
       const attendanceRecords = await db
         .select({
-          registeredAt: attendance.registeredAt
+          registeredAt: attendance.registeredAt,
+          approvalStatus: attendance.approvalStatus
         })
         .from(attendance)
-        .where(eq(attendance.personId, personId))
+        .where(and(
+          eq(attendance.personId, personId),
+          eq(attendance.approvalStatus, 'approved')
+        ))
         .orderBy(attendance.registeredAt);
 
-      const stats: Record<string, any> = {
+      console.log(`Found ${attendanceRecords.length} approved attendance records`);
+
+      const stats = {
         totalEventsAttended: attendanceRecords.length,
         firstEventDate: attendanceRecords[0]?.registeredAt || null,
         lastEventDate: attendanceRecords[attendanceRecords.length - 1]?.registeredAt || null,
@@ -866,25 +894,35 @@ export class PostgresStorage implements IStorage {
       if (stats.firstEventDate && stats.lastEventDate) {
         const firstDate = new Date(stats.firstEventDate);
         const lastDate = new Date(stats.lastEventDate);
-        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25); // Average year length
-        if (yearsDiff > 0) {
-          stats.averageEventsPerYear = stats.totalEventsAttended / yearsDiff;
-        } else {
-          // If less than a year, project to annual rate
-          stats.averageEventsPerYear = stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
-        }
+        const yearsDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+        stats.averageEventsPerYear = yearsDiff > 0 
+          ? Number((stats.totalEventsAttended / yearsDiff).toFixed(2))
+          : stats.totalEventsAttended * (365.25 / ((lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)));
       }
 
-      // Update the person's stats
-      const [updatedPerson] = await db
-        .update(people)
-        .set({ stats })
-        .where(eq(people.id, personId))
-        .returning();
+      console.log('Calculated stats:', stats);
+
+      // Update the person's stats using raw SQL to handle JSON properly
+      const query = sql`
+        UPDATE people 
+        SET stats = ${sql.json(stats)}::jsonb
+        WHERE id = ${personId}
+        RETURNING *
+      `;
+
+      const result = await db.execute(query);
+      const updatedPerson = result.rows[0] as Person;
 
       if (!updatedPerson) {
         throw new Error(`Person with ID ${personId} not found`);
       }
+
+      console.log('Successfully updated person stats:', {
+        personId,
+        totalEvents: stats.totalEventsAttended,
+        lastUpdated: stats.lastUpdated
+      });
 
       return updatedPerson;
     } catch (error) {
@@ -931,7 +969,7 @@ export class PostgresStorage implements IStorage {
   }
 
   async getPosts(): Promise<Post[]> {
-    console.log('Fetching all posts from database...');
+    console.log('Fetchingall posts from database...');
     const result = await db.select().from(posts).orderBy(posts.createdAt);
     console.log(`Found ${result.length} posts in database`);
     return result;
