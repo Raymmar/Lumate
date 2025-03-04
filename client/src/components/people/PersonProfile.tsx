@@ -187,42 +187,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        <Card className="cursor-pointer" onClick={() => window.location.href = `mailto:${person.email}`}>
-          <CardContent>
-            <dl className="pt-4">
-              {person.fullName && (
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
-                  <dd>{person.fullName}</dd>
-                </div>
-              )}
-              <AuthGuard
-                fallback={
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">Contact Information</dt>
-                    <dd className="text-sm text-muted-foreground">Sign in to view</dd>
-                  </div>
-                }
-              >
-                <div className="flex gap-3 items-center">
-                  <div className="text-foreground">
-                    <Mail className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <dd>{person.email}</dd>
-                  </div>
-                </div>
-                {person.phoneNumber && (
-                  <div>
-                    <dt className="text-sm font-medium text-muted-foreground">Phone</dt>
-                    <dd>{person.phoneNumber}</dd>
-                  </div>
-                )}
-              </AuthGuard>
-            </dl>
-          </CardContent>
-        </Card>
-
         {person.bio && (
           <Card>
             <CardHeader>
