@@ -203,7 +203,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
         {/* Bio/About Section - Always visible */}
         <Card>
-          <CardContent>
+          <CardContent className="py-4 pt-4">
             {person.bio ? (
               <p className="text-sm text-muted-foreground">{person.bio}</p>
             ) : (
