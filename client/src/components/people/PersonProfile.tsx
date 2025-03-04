@@ -186,12 +186,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-          </CardHeader>
+        <Card className="cursor-pointer" onClick={() => window.location.href = `mailto:${person.email}`}>  
           <CardContent>
-            <dl className="space-y-2">
+            <dl className="pt-4">
               {person.fullName && (
                 <div>
                   <dt className="text-sm font-medium text-muted-foreground">Full Name</dt>
@@ -206,9 +203,16 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   </div>
                 }
               >
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">Email</dt>
-                  <dd>{person.email}</dd>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <dt className="text-sm font-medium text-muted-foreground">Email</dt>
+                    <dd>{person.email}</dd>
+                  </div>
+                  <div className="text-foreground">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 13v8H8v-8m8 8l-8-8m8 0h-6" />
+                    </svg>
+                  </div>
                 </div>
                 {person.phoneNumber && (
                   <div>
