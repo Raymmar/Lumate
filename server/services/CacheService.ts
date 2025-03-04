@@ -1,7 +1,6 @@
 import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
-import { db } from '../db';
-import { sql } from 'drizzle-orm';
+import { db, sql } from '@shared/schema';
 import { users } from '@shared/schema';
 import { EventEmitter } from 'events';
 

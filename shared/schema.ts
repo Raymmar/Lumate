@@ -1,6 +1,32 @@
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import { pgTable, text, serial, timestamp, varchar, json, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Database connection setup
+neonConfig.webSocketConstructor = ws;
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
+}
+
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle({ client: pool });
+
+// Health check function
+export async function ensureTablesExist() {
+  try {
+    await pool.query('SELECT NOW()');
+    console.log('Database connection established successfully');
+  } catch (error) {
+    console.error('Error connecting to database:', error);
+    throw error;
+  }
+}
 
 export const cacheMetadata = pgTable("cache_metadata", {
   id: serial("id").primaryKey(),
