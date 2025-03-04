@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Event } from "@shared/schema";
@@ -16,6 +16,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface EventWithSync extends Event {
   isSynced: boolean;
@@ -28,12 +30,26 @@ interface EventsResponse {
   total: number;
 }
 
+interface SyncProgress {
+  message: string;
+  progress: number;
+  data?: {
+    total: number;
+    success: number;
+    failure: number;
+  };
+  type?: string;
+}
+
 export function EventsTable() {
+  const queryClient = useQueryClient();
   const [selectedEvent, setSelectedEvent] = useState<EventWithSync | null>(null);
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
+  const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
+  const [syncLogs, setSyncLogs] = useState<string[]>([]);
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching } = useQuery({
@@ -46,7 +62,6 @@ export function EventsTable() {
       const data = await response.json();
       return data as EventsResponse;
     },
-    keepPreviousData: true,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
@@ -55,12 +70,63 @@ export function EventsTable() {
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  const handleStartSync = (eventId: string) => {
+  const handleStartSync = async (eventId: string) => {
     setSyncingEvents(prev => [...prev, eventId]);
-  };
+    setSyncProgress({ message: "Starting sync...", progress: 0 });
+    setSyncLogs([]);
 
-  const handleSync = (eventId: string) => {
-    setSyncingEvents(prev => prev.filter(id => id !== eventId));
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/guests`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Failed to initialize stream reader');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const messages = chunk.split('\n\n').filter(Boolean);
+
+        for (const message of messages) {
+          if (message.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(message.slice(6));
+
+              setSyncProgress({
+                message: data.message,
+                progress: data.progress,
+                data: data.data,
+                type: data.type
+              });
+
+              setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
+
+              if (data.type === 'complete' || data.type === 'error') {
+                setSyncingEvents(prev => prev.filter(id => id !== eventId));
+                if (data.type === 'complete') {
+                  // Refetch events to get updated sync status
+                  queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+                }
+              }
+            } catch (parseError) {
+              console.error('Error parsing SSE message:', parseError);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error during sync:', error);
+      setSyncingEvents(prev => prev.filter(id => id !== eventId));
+      setSyncProgress(null);
+    }
   };
 
   const formatLastSyncTime = (dateStr: string | null, timezone: string | null) => {
@@ -99,10 +165,32 @@ export function EventsTable() {
 
         if (isSyncing) {
           return (
-            <Badge variant="secondary" className="animate-pulse">
-              <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-              Syncing...
-            </Badge>
+            <div className="space-y-2">
+              <Badge variant="secondary" className="flex items-center gap-1">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Syncing...
+              </Badge>
+              {syncProgress && (
+                <>
+                  <Progress value={syncProgress.progress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{syncProgress.message}</p>
+                  {syncProgress.data && (
+                    <p className="text-xs text-muted-foreground">
+                      Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
+                    </p>
+                  )}
+                  <ScrollArea className="h-24 w-full rounded-md border p-2">
+                    <div className="space-y-1">
+                      {syncLogs.map((log, index) => (
+                        <p key={index} className="text-xs text-muted-foreground">
+                          {log}
+                        </p>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+            </div>
           );
         }
 
@@ -214,7 +302,7 @@ export function EventsTable() {
         {selectedEvent && (
           <EventPreview 
             event={selectedEvent} 
-            onSync={handleSync}
+            onSync={handleStartSync}
             onStartSync={handleStartSync}
           />
         )}
