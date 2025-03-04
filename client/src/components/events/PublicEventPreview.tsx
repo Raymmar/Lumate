@@ -12,6 +12,7 @@ import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { Link } from "wouter";
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -164,7 +165,7 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                   Processing...
                 </>
               ) : rsvpStatus?.isGoing ? (
-                "See you there!"
+                "You're in"
               ) : (
                 "RSVP Now"
               )}
@@ -253,7 +254,13 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                           )}
                         </Avatar>
                         <div>
-                          <p className="font-medium">{person.userName || "Anonymous"}</p>
+                          <p className="font-medium">
+                            {person.userName || (
+                              <Link href="/login" className="text-primary hover:underline">
+                                Log in to view
+                              </Link>
+                            )}
+                          </p>
                         </div>
                       </div>
                     ))}
