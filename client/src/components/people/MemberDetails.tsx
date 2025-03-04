@@ -11,7 +11,7 @@ import {
   Github,
   Facebook,
   Instagram,
-  Twitter
+  X
 } from "lucide-react";
 
 // Mock data for layout purposes
@@ -60,7 +60,7 @@ export const MemberDetails: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-sm hover:underline min-w-0 truncate"
               >
-                LinkedIn Profile
+                LinkedIn
               </a>
             </div>
           )}
@@ -76,7 +76,7 @@ export const MemberDetails: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-sm hover:underline min-w-0 truncate"
               >
-                GitHub Profile
+                GitHub
               </a>
             </div>
           )}
@@ -84,7 +84,7 @@ export const MemberDetails: React.FC = () => {
           {mockMemberDetails.twitter && (
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0">
-                <Twitter className="h-5 w-5 text-muted-foreground" />
+                <X className="h-5 w-5 text-muted-foreground" />
               </div>
               <a
                 href={mockMemberDetails.twitter}
@@ -92,7 +92,7 @@ export const MemberDetails: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-sm hover:underline min-w-0 truncate"
               >
-                Twitter/X Profile
+                X
               </a>
             </div>
           )}
@@ -108,7 +108,7 @@ export const MemberDetails: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-sm hover:underline min-w-0 truncate"
               >
-                Facebook Profile
+                Facebook
               </a>
             </div>
           )}
@@ -124,7 +124,7 @@ export const MemberDetails: React.FC = () => {
                 rel="noopener noreferrer"
                 className="text-sm hover:underline min-w-0 truncate"
               >
-                Instagram Profile
+                Instagram
               </a>
             </div>
           )}
