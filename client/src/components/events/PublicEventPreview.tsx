@@ -223,7 +223,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
             {user ? (
               <Button 
                 variant={rsvpStatus?.isGoing ? "default" : "outline"}
-                className={`w-full h-12 text-lg ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                className={`w-full h-12 text-lg ${rsvpStatus?.isGoing && !isEventEnded ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
                 onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
                 disabled={rsvpMutation.isPending || rsvpStatus?.isGoing || isEventEnded}
               >
@@ -232,10 +232,10 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Processing...
                   </>
-                ) : rsvpStatus?.isGoing ? (
-                  "You're in"
                 ) : isEventEnded ? (
                   "Event has ended"
+                ) : rsvpStatus?.isGoing ? (
+                  "You're in"
                 ) : (
                   "RSVP Now"
                 )}
