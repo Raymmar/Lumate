@@ -67,11 +67,20 @@ export function startEventSyncService() {
 
   setInterval(async () => {
     try {
-      const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
+      // Get both recently ended events and old unsynced events
+      const [recentlyEndedEvents, oldUnsynedEvents] = await Promise.all([
+        storage.getRecentlyEndedEvents(),
+        storage.getOldUnsyncedEvents() // New function to get events that ended >24h ago and haven't been synced
+      ]);
 
-      console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
+      const eventsToSync = [...recentlyEndedEvents, ...oldUnsynedEvents];
+      const uniqueEvents = eventsToSync.filter((event, index, self) => 
+        index === self.findIndex((e) => e.api_id === event.api_id)
+      );
 
-      for (const event of recentlyEndedEvents) {
+      console.log(`Found ${recentlyEndedEvents.length} recently ended events and ${oldUnsynedEvents.length} old unsynced events to sync`);
+
+      for (const event of uniqueEvents) {
         await syncEventAttendees(event);
       }
     } catch (error) {
@@ -79,5 +88,5 @@ export function startEventSyncService() {
     }
   }, SYNC_INTERVAL);
 
-  console.log('Event sync service started');
+  console.log('Event sync service started with automatic old event syncing');
 }
