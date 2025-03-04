@@ -14,16 +14,20 @@ export class CacheService extends EventEmitter {
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
   private lastSuccessfulSync: Date | null = null;
   private readonly SYNC_INTERVAL = 60 * 60 * 1000; // Fixed 1-hour interval in milliseconds
+  private nextScheduledSync: Date | null = null;
+  private syncTimer: NodeJS.Timeout | null = null;
 
   private constructor() {
     super();
-    console.log('[CacheService] Starting CacheService...');
-    this.startCaching();
+    this.logSync('[CacheService] Starting CacheService...');
+    this.startCaching().catch(error => {
+      this.logSync('Failed to start caching service:', error);
+    });
   }
 
   static getInstance() {
     if (!this.instance) {
-      console.log('[CacheService] Creating new CacheService instance...');
+      this.logSync('[CacheService] Creating new CacheService instance...');
       this.instance = new CacheService();
     }
     return this.instance;
@@ -31,48 +35,72 @@ export class CacheService extends EventEmitter {
 
   private getNextScheduledTime(): Date {
     const now = new Date();
-    // Always schedule for the next hour mark
-    const nextTime = new Date(now);
-    nextTime.setHours(nextTime.getHours() + 1);
-    nextTime.setMinutes(0);
-    nextTime.setSeconds(0);
-    nextTime.setMilliseconds(0);
+    const nextTime = new Date(now.getTime() + this.SYNC_INTERVAL);
     return nextTime;
   }
 
-  private scheduleNextSync() {
-    if (this.cacheInterval) {
-      // Don't clear existing interval if it's already set
-      return;
-    }
+  private async scheduleNextSync() {
+    try {
+      if (this.syncTimer) {
+        clearTimeout(this.syncTimer);
+        this.syncTimer = null;
+      }
 
-    const now = new Date();
-    const nextSync = this.getNextScheduledTime();
-    const initialDelay = nextSync.getTime() - now.getTime();
+      if (this.cacheInterval) {
+        clearInterval(this.cacheInterval);
+        this.cacheInterval = null;
+      }
 
-    // Schedule the first sync
-    setTimeout(() => {
-      // Run the first sync
-      this.updateCache().catch(error => {
-        this.logSync('Scheduled cache update failed:', error);
+      const now = new Date();
+      const nextSync = this.getNextScheduledTime();
+      const initialDelay = nextSync.getTime() - now.getTime();
+      this.nextScheduledSync = nextSync;
+
+      this.logSync('Scheduling next sync', {
+        currentTime: now.toISOString(),
+        nextSyncTime: nextSync.toISOString(),
+        initialDelayMs: initialDelay
       });
 
-      // Then set up recurring interval
-      this.cacheInterval = setInterval(() => {
-        this.logSync('Running hourly cache update...');
-        this.updateCache().catch(error => {
-          this.logSync('Hourly cache update failed:', error);
-        });
-      }, this.SYNC_INTERVAL);
+      const runSync = async () => {
+        this.logSync('Executing scheduled sync...');
+        try {
+          await this.updateCache();
+          this.logSync('Scheduled sync completed successfully');
+        } catch (error) {
+          this.logSync('Scheduled sync failed:', error);
+        }
+      };
 
-    }, initialDelay);
+      // Create a self-sustaining interval that won't be garbage collected
+      const createInterval = () => {
+        this.cacheInterval = setInterval(async () => {
+          await runSync();
+        }, this.SYNC_INTERVAL);
 
-    this.logSync('Next sync scheduled', {
-      nextSyncTime: nextSync.toISOString(),
-      initialDelayMs: initialDelay,
-      interval: this.SYNC_INTERVAL
-    });
+        // Prevent the interval from being garbage collected
+        if (this.cacheInterval.unref) {
+          this.cacheInterval.unref();
+        }
+      };
+
+      // Schedule initial sync
+      this.syncTimer = setTimeout(async () => {
+        await runSync();
+        createInterval();
+      }, initialDelay);
+
+      // Prevent the timer from being garbage collected
+      if (this.syncTimer.unref) {
+        this.syncTimer.unref();
+      }
+
+    } catch (error) {
+      this.logSync('Failed to schedule next sync:', error);
+      throw error;
+    }
   }
+
 
   private emitProgress(message: string, progress: number) {
     console.log(`[CacheService] Progress: ${message} (${progress}%)`);
@@ -558,22 +586,38 @@ export class CacheService extends EventEmitter {
     }
   }
 
-  startCaching() {
+  async startCaching() {
     this.logSync('Starting cache service...');
+    try {
+      // Run initial cache update
+      await this.updateCache();
+      this.logSync('Initial cache update completed successfully');
 
-    // Run initial cache update
-    this.updateCache().catch(error => {
-      this.logSync('Initial cache update failed:', error);
-    });
+      // Schedule next sync
+      await this.scheduleNextSync();
+      this.logSync('Cache service started successfully', {
+        nextScheduledSync: this.nextScheduledSync?.toISOString()
+      });
+    } catch (error) {
+      this.logSync('Failed to start cache service:', error);
+      throw error;
+    }
+  }
 
-    // Schedule next sync
-    this.scheduleNextSync();
+  getNextSyncTime() {
+    return this.nextScheduledSync;
   }
 
   stopCaching() {
+    if (this.syncTimer) {
+      clearTimeout(this.syncTimer);
+      this.syncTimer = null;
+    }
     if (this.cacheInterval) {
       clearInterval(this.cacheInterval);
       this.cacheInterval = null;
     }
+    this.nextScheduledSync = null;
+    this.logSync('Cache service stopped');
   }
 }
