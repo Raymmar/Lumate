@@ -1,14 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { sql, db } from "@shared/schema";
-import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable, events, attendance } from "@shared/schema";
+import { sql } from "drizzle-orm";
+import { db } from "./db";
 import uploadRouter from './routes/upload';
 import unsplashRouter from './routes/unsplash';
+import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
+import { events, attendance } from '@shared/schema';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
@@ -261,7 +263,6 @@ export async function registerRoutes(app: Express) {
 
         console.log(`Returning sorted people from index ${start} to ${end -1}`);
         
-
         res.json({
           people: paginatedPeople,
           total: sortedPeople.length
@@ -942,7 +943,8 @@ export async function registerRoutes(app: Express) {
         await storage.upsertRsvpStatus({
           userApiId: person.api_id,
           eventApiId: event_api_id as string,
-          status: response.guest.approval_status        });
+          status: response.guest.approval_status
+        });
       }
 
       res.json({ 

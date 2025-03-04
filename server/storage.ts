@@ -14,9 +14,9 @@ import {
   Attendance, InsertAttendance,
   CacheMetadata, InsertCacheMetadata,
   events, people, users, roles, permissions, userRoles, rolePermissions,
-  posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  db // Import db from schema instead of db.ts
+  posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata
 } from "@shared/schema";
+import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
 import crypto from "crypto";
 
