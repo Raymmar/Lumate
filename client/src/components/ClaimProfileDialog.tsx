@@ -106,7 +106,7 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
         <DialogHeader>
           <DialogTitle>Claim Your Profile</DialogTitle>
           <DialogDescription>
-            If you have attended one of our events in the past you can enter your email below to claim your ST profile. Just be sure to use the same email you used to register for the event.
+            If you've attended one of our events in the past, enter your email to claim your member profile.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
