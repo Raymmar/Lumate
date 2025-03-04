@@ -374,13 +374,12 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                           className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                         >
                           <Avatar className="h-8 w-8">
-                            {person.avatarUrl ? (
+                            {person.avatarUrl && (
                               <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                            ) : (
-                              <AvatarFallback>
-                                {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                              </AvatarFallback>
                             )}
+                            <AvatarFallback>
+                              {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
                             <p className="font-medium">{person.userName || "Anonymous"}</p>
