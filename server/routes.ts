@@ -348,12 +348,26 @@ export async function registerRoutes(app: Express) {
       const attendanceCount = await db
         .select({ count: sql`count(*)` })
         .from(attendance)
-        .where(person.id ? eq(attendance.personId, person.id) : sql`1=0`); 
+        .where(sql`LOWER(user_email) = LOWER(${person.email})`);
 
-      res.json({
+      // Update the person's stats in the database
+      const stats = {
         attendanceCount: Number(attendanceCount[0]?.count || 0),
         firstSeen: person.createdAt
-      });
+      };
+
+      // Update the stats in the people table
+      await db.execute(sql`
+        UPDATE people 
+        SET stats = jsonb_set(
+          COALESCE(stats, '{}'::jsonb),
+          '{totalEventsAttended}',
+          ${stats.attendanceCount}::text::jsonb
+        )
+        WHERE id = ${person.id}
+      `);
+
+      res.json(stats);
     } catch (error) {
       console.error('Failed to fetch person stats:', error);
       res.status(500).json({ error: "Failed to fetch person stats" });
