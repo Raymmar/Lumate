@@ -6,6 +6,14 @@ async function syncEventAttendees(event: Event) {
   console.log(`Event details: Start: ${event.startTime}, End: ${event.endTime}, Last sync: ${event.lastAttendanceSync || 'never'}`);
 
   try {
+    // Check initial sync status
+    const initialStatus = await storage.getEventAttendanceStatus(event.api_id);
+    console.log('Initial sync status:', {
+      eventId: event.api_id,
+      hasAttendees: initialStatus.hasAttendees,
+      lastSyncTime: initialStatus.lastSyncTime
+    });
+
     // Clear existing attendance records for this event
     await storage.deleteAttendanceByEvent(event.api_id);
 
@@ -73,6 +81,16 @@ async function syncEventAttendees(event: Event) {
 
     // Update event sync timestamp
     await storage.updateEventAttendanceSync(event.api_id);
+
+    // Check final sync status
+    const finalStatus = await storage.getEventAttendanceStatus(event.api_id);
+    console.log('Final sync status:', {
+      eventId: event.api_id,
+      hasAttendees: finalStatus.hasAttendees,
+      lastSyncTime: finalStatus.lastSyncTime,
+      totalGuestsProcessed: allGuests.length
+    });
+
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
@@ -88,7 +106,7 @@ async function checkAndSyncEvents() {
     ]);
 
     const eventsToSync = [...recentlyEndedEvents, ...oldUnsynedEvents];
-    const uniqueEvents = eventsToSync.filter((event, index, self) => 
+    const uniqueEvents = eventsToSync.filter((event, index, self) =>
       index === self.findIndex((e) => e.api_id === event.api_id)
     );
 
