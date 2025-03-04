@@ -227,19 +227,8 @@ export async function registerRoutes(app: Express) {
       );
 
       let query = db
-        .select({
-          ...people,
-          user: {
-            id: users.id,
-            email: users.email,
-            displayName: users.displayName,
-            isAdmin: users.isAdmin,
-            isVerified: users.isVerified,
-            createdAt: users.createdAt
-          }
-        })
+        .select()
         .from(people)
-        .leftJoin(users, eq(users.email, people.email))
         .where(
           searchQuery
             ? sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
@@ -264,13 +253,7 @@ export async function registerRoutes(app: Express) {
 
         const start = (page - 1) * limit;
         const end = start + limit;
-        const paginatedPeople = sortedPeople.slice(start, end).map(person => {
-          const { user, ...personData } = person;
-          return {
-            ...personData,
-            user: user.id ? user : null
-          };
-        });
+        const paginatedPeople = sortedPeople.slice(start, end);
 
         console.log(`Returning sorted people from index ${start} to ${end -1}`);
 
@@ -281,24 +264,10 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      const allPeople = await query;
+      const allPeople = await query.orderBy(people.id);
       const start = (page - 1) * limit;
       const end = start + limit;
-      const paginatedPeople = allPeople.slice(start, end).map(person => {
-        const { user, ...personData } = person;
-        return {
-          ...personData,
-          user: user.id ? user : null
-        };
-      });
-
-      console.log(`Returning paginated people with user data: `, 
-        paginatedPeople.map(p => ({ 
-          email: p.email, 
-          hasUser: !!p.user,
-          userId: p.user?.id 
-        }))
-      );
+      const paginatedPeople = allPeople.slice(start, end);
 
       res.json({
         people: paginatedPeople,
@@ -1014,7 +983,7 @@ export async function registerRoutes(app: Express) {
         .orderBy(sql`start_time DESC`)
         .limit(limit)
         .offset(offset);
-    
+
     const eventsWithStatus = await Promise.all(
       eventsList.map(async (event) => {
         const attendanceStatus = await storage.getEventAttendanceStatus(event.api_id);

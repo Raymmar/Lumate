@@ -186,31 +186,9 @@ export class PostgresStorage implements IStorage {
   
   async getPeople(): Promise<Person[]> {
     console.log('Fetching all people from database...');
-    const result = await db
-      .select({
-        ...people,
-        user: {
-          id: users.id,
-          email: users.email,
-          displayName: users.displayName,
-          isAdmin: users.isAdmin,
-          isVerified: users.isVerified,
-          createdAt: users.createdAt
-        }
-      })
-      .from(people)
-      .leftJoin(users, eq(users.email, people.email));
-
+    const result = await db.select().from(people);
     console.log(`Found ${result.length} people in database`);
-
-    // Transform results to include proper user objects
-    return result.map(record => {
-      const { user, ...person } = record;
-      return {
-        ...person,
-        user: user.id ? user : null // Only include user if we found a matching record
-      };
-    });
+    return result;
   }
   
   async getPeopleCount(): Promise<number> {
@@ -375,14 +353,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .select({
           ...people,
-          user: {
-            id: users.id,
-            email: users.email,
-            displayName: users.displayName,
-            isAdmin: users.isAdmin,
-            isVerified: users.isVerified,
-            createdAt: users.createdAt
-          }
+          isAdmin: users.isAdmin
         })
         .from(people)
         .leftJoin(users, eq(users.email, people.email))
@@ -393,16 +364,11 @@ export class PostgresStorage implements IStorage {
         return null;
       }
 
-      // Transform the result to match the Person type with optional user field
-      const personData = result[0];
-      const { user, ...person } = personData;
-
-      // Only include the user if we found a matching record (check for id since it's required)
-      const userRecord = user.id ? user : null;
-
+      // Extract the person data and admin status
+      const person = result[0];
       return {
         ...person,
-        user: userRecord
+        isAdmin: Boolean(person.isAdmin)
       };
     } catch (error) {
       console.error('Failed to get person by API ID:', error);
@@ -977,7 +943,7 @@ export class PostgresStorage implements IStorage {
 
       const [newPost] = await db
         .insert(posts)
-                .values({
+        .values({
           ...post,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
