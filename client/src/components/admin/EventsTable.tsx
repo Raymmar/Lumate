@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { formatInTimeZone } from 'date-fns-tz';
 import type { Event } from "@shared/schema";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw } from "lucide-react";
@@ -18,7 +18,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Progress } from "@/components/ui/progress";
-
 
 interface EventWithSync extends Event {
   isSynced: boolean;
@@ -198,7 +197,7 @@ export function EventsTable() {
 
         if (isSyncing) {
           return (
-            <div className="space-y-2">
+            <div className="space-y-2 w-[300px]">
               <Badge variant="secondary" className="flex items-center gap-1">
                 <RefreshCw className="w-3 h-3 animate-spin" />
                 Syncing...
@@ -207,9 +206,11 @@ export function EventsTable() {
                 <>
                   <Progress value={syncProgress.progress} className="h-2" />
                   <div className="space-y-1">
-                    {/* Fixed height message area */}
+                    {/* Fixed height message area with text truncation */}
                     <div className="min-h-[20px]">
-                      <p className="text-xs text-muted-foreground">{syncProgress.message}</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {syncProgress.message}
+                      </p>
                     </div>
                     {syncProgress.data && (
                       <div className="min-h-[20px]">
