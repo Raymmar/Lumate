@@ -15,6 +15,8 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import { AuthGuard } from "@/components/AuthGuard";
+import { DialogTitle } from "@/components/ui/dialog";
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -180,6 +182,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
         if (!open) onClose();
       }}
     >
+      <DialogTitle className="sr-only">Event Preview</DialogTitle>
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto pb-16">
           {event.coverUrl && (

@@ -9,18 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PublicEventPreview } from "./PublicEventPreview";
 import { useState } from "react";
-
-interface Event {
-  id: number;
-  title: string;
-  description: string | null;
-  startTime: string;
-  endTime: string;
-  coverUrl: string | null;
-  url: string | null;
-  timezone: string | null;
-  api_id: string;
-}
+import { Event } from "@shared/schema";
 
 interface EventsResponse {
   events: Event[];
