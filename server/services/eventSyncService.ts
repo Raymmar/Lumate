@@ -3,6 +3,7 @@ import type { Event } from '@shared/schema';
 
 async function syncEventAttendees(event: Event) {
   console.log(`Starting background sync for event: ${event.title} (${event.api_id})`);
+  console.log(`Event details: Start: ${event.startTime}, End: ${event.endTime}, Last sync: ${event.lastAttendanceSync || 'never'}`);
 
   try {
     // Clear existing attendance records for this event
@@ -14,6 +15,7 @@ async function syncEventAttendees(event: Event) {
     const allGuests: any[] = [];
 
     while (hasMore && page <= 10) {
+      console.log(`Fetching guests page ${page} for event ${event.api_id}`);
       const params = new URLSearchParams({
         event_api_id: event.api_id,
         ...(cursor ? { pagination_cursor: cursor } : {})
@@ -40,10 +42,24 @@ async function syncEventAttendees(event: Event) {
       hasMore = data.has_more;
       cursor = data.pagination_cursor;
       page++;
+
+      console.log(`Pagination status:`, {
+        iteration: page,
+        guestsCollected: allGuests.length,
+        hasMore,
+        cursor
+      });
     }
 
     // Process and store approved guests
     for (const guest of allGuests) {
+      console.log('Processing approved guest:', {
+        guestId: guest.api_id,
+        email: guest.email,
+        status: guest.approval_status,
+        registeredAt: guest.registered_at
+      });
+
       await storage.upsertAttendance({
         guestApiId: guest.api_id,
         eventApiId: event.api_id,
@@ -51,6 +67,8 @@ async function syncEventAttendees(event: Event) {
         registeredAt: guest.registered_at,
         approvalStatus: guest.approval_status,
       });
+
+      console.log('Successfully stored attendance for guest:', guest.api_id);
     }
 
     // Update event sync timestamp
