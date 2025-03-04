@@ -51,8 +51,16 @@ export function EventsTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
+
+  // Auto-scroll effect for logs
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [syncLogs]);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
@@ -116,18 +124,15 @@ export function EventsTable() {
                 try {
                   data = JSON.parse(jsonStr);
                 } catch (jsonError) {
-                  // Silently log JSON parsing errors
                   console.warn('Invalid JSON received:', jsonStr);
                   continue;
                 }
 
-                // Skip invalid data structures without showing errors
                 if (!data || typeof data.message !== 'string' || typeof data.progress !== 'number') {
                   console.warn('Invalid data structure received:', data);
                   continue;
                 }
 
-                // Update UI state
                 setSyncProgress({
                   message: data.message,
                   progress: data.progress,
@@ -137,7 +142,6 @@ export function EventsTable() {
 
                 setSyncLogs(logs => [...logs, `${new Date().toLocaleTimeString()}: ${data.message}`]);
 
-                // Only show completion notification
                 if (data.type === 'complete') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
                   await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
@@ -147,19 +151,16 @@ export function EventsTable() {
                   });
                 }
               } catch (parseError) {
-                // Silently log any SSE processing errors
                 console.warn('Error processing SSE message:', parseError);
               }
             }
           }
         } catch (readError) {
-          // Only log stream errors to console
           console.error('Error reading SSE stream:', readError);
           break;
         }
       }
     } catch (error) {
-      // Only show error for complete sync failure
       console.error('Error during sync:', error);
       toast({
         title: "Error",
@@ -217,19 +218,26 @@ export function EventsTable() {
               {syncProgress && (
                 <>
                   <Progress value={syncProgress.progress} className="h-2" />
-                  <p className="text-xs text-muted-foreground">{syncProgress.message}</p>
-                  {syncProgress.data && (
-                    <p className="text-xs text-muted-foreground">
-                      Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
-                    </p>
-                  )}
-                  <ScrollArea className="h-24 w-full rounded-md border p-2">
+                  <div className="space-y-1">
+                    {/* Fixed height message area */}
+                    <div className="min-h-[20px]">
+                      <p className="text-xs text-muted-foreground">{syncProgress.message}</p>
+                    </div>
+                    {syncProgress.data && (
+                      <p className="text-xs text-muted-foreground">
+                        Processed: {syncProgress.data.total} (Success: {syncProgress.data.success}, Failed: {syncProgress.data.failure})
+                      </p>
+                    )}
+                  </div>
+                  {/* Fixed height scroll area with auto-scroll */}
+                  <ScrollArea className="h-[100px] w-full rounded-md border p-2">
                     <div className="space-y-1">
                       {syncLogs.map((log, index) => (
                         <p key={index} className="text-xs text-muted-foreground">
                           {log}
                         </p>
                       ))}
+                      <div ref={logsEndRef} />
                     </div>
                   </ScrollArea>
                 </>
