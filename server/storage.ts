@@ -28,6 +28,7 @@ export interface IStorage {
   insertEvent(event: InsertEvent): Promise<Event>;
   getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
+  getEventByApiId(apiId: string): Promise<Event | null>; // Added method
 
   // People
   getPeople(): Promise<Person[]>;
@@ -321,7 +322,6 @@ export class PostgresStorage implements IStorage {
     }
   }
   
-
 
   async getPerson(id: number): Promise<Person | null> {
     try {
@@ -974,8 +974,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   // Add the new implementation
-  async updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User> {
-    try {
+  async updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User> {    try {
       console.log('Updating user admin status:', { userId, isAdmin });
 
             const [updatedUser] = await db
@@ -1299,6 +1298,20 @@ export class PostgresStorage implements IStorage {
       return newPostTag;
     } catch (error) {
       console.error('Failed to add tag to post:', error);
+      throw error;
+    }
+  }
+  async getEventByApiId(apiId: string): Promise<Event | null> {
+    try {
+      const result = await db
+        .select()
+        .from(events)
+        .where(eq(events.api_id, apiId))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get event by API ID:', error);
       throw error;
     }
   }
