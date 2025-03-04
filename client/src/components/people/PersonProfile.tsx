@@ -190,7 +190,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        {/* Badges Section - Visible to all users */}
+        {/* Badges Section - Always visible */}
         <div className="flex flex-wrap gap-2">
           {userBadges.map((badge, index) => (
             <ProfileBadge
@@ -201,17 +201,19 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           ))}
         </div>
 
-        {/* Bio/About Section - Visible to all users */}
-        {person.bio && (
-          <Card className="p-4">
-            <CardHeader className="pb-3">
-              <CardTitle>About</CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Bio/About Section - Always visible */}
+        <Card className="p-4">
+          <CardHeader className="pb-3">
+            <CardTitle>About</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {person.bio ? (
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{person.bio}</p>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <p className="text-sm text-muted-foreground italic">No bio available</p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Additional details for authenticated users */}
         <AuthGuard>
