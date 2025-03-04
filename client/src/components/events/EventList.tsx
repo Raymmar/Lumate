@@ -210,6 +210,8 @@ export default function EventList() {
         <PublicEventPreview
           event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
+          events={eventsArray}
+          onNavigate={setSelectedEvent}
         />
       )}
     </div>
