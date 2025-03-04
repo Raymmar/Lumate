@@ -262,7 +262,7 @@ export async function registerRoutes(app: Express) {
         const paginatedPeople = sortedPeople.slice(start, end);
 
         console.log(`Returning sorted people from index ${start} to ${end -1}`);
-
+        
         res.json({
           people: paginatedPeople,
           total: sortedPeople.length
