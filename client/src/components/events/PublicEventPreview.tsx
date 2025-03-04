@@ -135,6 +135,50 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
             </Button>
           )}
 
+          {/* Attendees List - Only show for logged in users */}
+          {user && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Event Attendees</h3>
+                  <Badge variant="secondary">{attendees.length} registered</Badge>
+                </div>
+
+                {isLoadingAttendees ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
+                    ))}
+                  </div>
+                ) : attendees.length > 0 ? (
+                  <div className="space-y-2">
+                    {attendees.map((person) => (
+                      <div 
+                        key={person.id}
+                        className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                      >
+                        <Avatar className="h-8 w-8">
+                          {person.avatarUrl ? (
+                            <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                          ) : (
+                            <AvatarFallback>
+                              {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{person.userName || "Anonymous"}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-start gap-3">
@@ -175,48 +219,6 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
                     )}
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Attendees List */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">Event Attendees</h3>
-                <Badge variant="secondary">{attendees.length} registered</Badge>
-              </div>
-
-              {isLoadingAttendees ? (
-                <div className="space-y-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
-                  ))}
-                </div>
-              ) : attendees.length > 0 ? (
-                <div className="space-y-2">
-                  {attendees.map((person) => (
-                    <div 
-                      key={person.id}
-                      className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                    >
-                      <Avatar className="h-8 w-8">
-                        {person.avatarUrl ? (
-                          <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                        ) : (
-                          <AvatarFallback>
-                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{person.userName || "Anonymous"}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>
               )}
             </CardContent>
           </Card>
