@@ -44,7 +44,8 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
     queryFn: async () => {
       const response = await fetch(`/api/events/check-rsvp?event_api_id=${event.api_id}`);
       if (!response.ok) {
-        throw new Error('Failed to check RSVP status');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to check RSVP status');
       }
       return response.json();
     },
@@ -187,7 +188,6 @@ export function PublicEventPreview({ event, onClose }: PublicEventPreviewProps) 
             </CardContent>
           </Card>
 
-          {/* Attendees List - Always visible */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
