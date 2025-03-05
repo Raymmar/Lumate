@@ -42,7 +42,8 @@ async function syncEventAttendees(event: Event) {
       page++;
     }
 
-    // Process and store approved guests
+    // Process and store approved guests with sync timestamp
+    const syncTimestamp = new Date().toISOString();
     for (const guest of allGuests) {
       await storage.upsertAttendance({
         guestApiId: guest.api_id,
@@ -50,14 +51,16 @@ async function syncEventAttendees(event: Event) {
         userEmail: guest.email.toLowerCase(),
         registeredAt: guest.registered_at,
         approvalStatus: guest.approval_status,
+        lastSyncedAt: syncTimestamp
       });
     }
 
     // Update event sync timestamp
-    await storage.updateEventAttendanceSync(event.api_id);
+    await storage.updateEventAttendanceSync(event.api_id, syncTimestamp);
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
+    throw error; // Re-throw to handle in the caller
   }
 }
 
@@ -72,7 +75,12 @@ export function startEventSyncService() {
       console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
 
       for (const event of recentlyEndedEvents) {
-        await syncEventAttendees(event);
+        try {
+          await syncEventAttendees(event);
+        } catch (error) {
+          console.error(`Failed to sync event ${event.api_id}:`, error);
+          // Continue with next event even if one fails
+        }
       }
     } catch (error) {
       console.error('Error in event sync service:', error);

@@ -65,44 +65,55 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
       onStartSync(event.api_id);
     }
 
-    fetch(`/api/admin/events/${event.api_id}/guests`)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch attendees');
-        }
-        const data = await response.json();
+    try {
+      const response = await fetch(`/api/admin/events/${event.api_id}/guests`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch attendees');
+      }
 
-        // Optimistically update local state
-        const now = new Date().toISOString();
-        setLocalSyncStatus({
-          isSynced: true,
-          lastSyncedAt: now
-        });
-
-        if (onSync) {
-          onSync(event.api_id);
-        }
-
-        toast({
-          title: "Success",
-          description: "Successfully synced attendees data",
-        });
-
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
-      })
-      .catch((error) => {
-        console.error('Error fetching attendees:', error);
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to sync attendees",
-          variant: "destructive",
-        });
-      })
-      .finally(() => {
-        setIsSyncing(false);
+      // Optimistically update local state
+      const now = new Date().toISOString();
+      setLocalSyncStatus({
+        isSynced: true,
+        lastSyncedAt: now
       });
+
+      if (onSync) {
+        onSync(event.api_id);
+      }
+
+      toast({
+        title: "Success",
+        description: "Successfully synced attendees data",
+      });
+
+      // Invalidate all related queries to ensure data consistency
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/stats`] })
+      ]);
+
+    } catch (error) {
+      console.error('Error fetching attendees:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync attendees",
+        variant: "destructive",
+      });
+
+      // Revert optimistic updates on error
+      setLocalSyncStatus({
+        isSynced: !!event.lastAttendanceSync,
+        lastSyncedAt: event.lastAttendanceSync
+      });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Derive sync status from attendees count and last sync time
