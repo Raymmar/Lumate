@@ -39,8 +39,8 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const existingTagTexts = Array.from(new Set(existingTags?.tags.map(t => t.text) || []));
 
   // Filter tags based on input
-  const filteredTags = currentTag === "" 
-    ? existingTagTexts 
+  const filteredTags = currentTag === ""
+    ? existingTagTexts
     : existingTagTexts.filter((tag) =>
         tag.toLowerCase().includes(currentTag.toLowerCase()) &&
         !tags.includes(tag.toLowerCase())
@@ -114,9 +114,9 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           render={({ field }) => (
             <FormItem className="space-y-1">
               <FormControl>
-                <Textarea 
-                  {...field} 
-                  className="text-2xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-0 h-auto overflow-hidden" 
+                <Textarea
+                  {...field}
+                  className="text-2xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-0 h-auto overflow-hidden"
                   placeholder="Post title"
                   rows={1}
                   onInput={(e) => {
@@ -134,12 +134,12 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         <FormField
           control={form.control}
           name="summary"
-          render={({ field: { value, ...field }}) => (
+          render={({ field: { value, ...field } }) => (
             <FormItem className="space-y-0">
               <FormControl>
-                <Textarea 
-                  {...field} 
-                  value={value || ""} 
+                <Textarea
+                  {...field}
+                  value={value || ""}
                   placeholder="Add your summary here and this will be used as post meta description as well."
                   className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                 />
@@ -166,14 +166,13 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           )}
         />
 
-        {/* Tags Section */}
+        {/* Tags Section - Now without label */}
         <div className="space-y-2">
-          <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
           <div className="flex flex-wrap gap-2 mb-2">
             {tags.map(tag => (
               <Badge key={tag} variant="secondary" className="gap-1">
                 {tag}
-                <button 
+                <button
                   type="button"
                   onClick={() => removeTag(tag)}
                   className="ml-1 hover:text-destructive"
@@ -185,17 +184,16 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           </div>
           <div className="relative">
             <Command className="rounded-lg overflow-visible border-0">
-              <CommandInput 
+              <CommandInput
                 placeholder="Search tags or create new ones..."
                 value={currentTag}
                 onValueChange={setCurrentTag}
                 onKeyDown={handleAddTag}
                 onFocus={() => setIsTagSearchFocused(true)}
                 onBlur={() => {
-                  // Small delay to allow clicking on suggestions
                   setTimeout(() => setIsTagSearchFocused(false), 200);
                 }}
-                className="border-0 bg-muted/50 focus:ring-0 focus-visible:ring-0"
+                className="border-0 bg-muted/50 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
               {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
                 <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50">
@@ -234,11 +232,11 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           </div>
         </div>
 
-        <div className="space-y-4 pt-4"> {/* Removed border-t */}
+        <div className="space-y-4">
           <FormField
             control={form.control}
             name="featuredImage"
-            render={({ field: { value, onChange }}) => (
+            render={({ field: { value, onChange } }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
                 <FormControl>
@@ -255,15 +253,15 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           <FormField
             control={form.control}
             name="videoUrl"
-            render={({ field: { value, ...field }}) => (
+            render={({ field: { value, ...field } }) => (
               <FormItem className="space-y-1">
                 <FormLabel className="text-sm text-muted-foreground">Video URL</FormLabel>
                 <FormControl>
-                  <Input 
-                    {...field} 
-                    type="url" 
-                    value={value || ""} 
-                    placeholder="https://..." 
+                  <Input
+                    {...field}
+                    type="url"
+                    value={value || ""}
+                    placeholder="https://..."
                     className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                 </FormControl>
@@ -276,15 +274,15 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             <FormField
               control={form.control}
               name="ctaLink"
-              render={({ field: { value, ...field }}) => (
+              render={({ field: { value, ...field } }) => (
                 <FormItem className="space-y-1">
                   <FormLabel className="text-sm text-muted-foreground">CTA Link</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      type="url" 
-                      value={value || ""} 
-                      placeholder="https://..." 
+                    <Input
+                      {...field}
+                      type="url"
+                      value={value || ""}
+                      placeholder="https://..."
                       className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </FormControl>
@@ -296,14 +294,14 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             <FormField
               control={form.control}
               name="ctaLabel"
-              render={({ field: { value, ...field }}) => (
+              render={({ field: { value, ...field } }) => (
                 <FormItem className="space-y-1">
                   <FormLabel className="text-sm text-muted-foreground">CTA Label</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      value={value || ""} 
-                      placeholder="Learn more" 
+                    <Input
+                      {...field}
+                      value={value || ""}
+                      placeholder="Learn more"
                       className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </FormControl>
