@@ -167,7 +167,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         />
 
         {/* Tags Section */}
-        <div className="space-y-2 pt-4">
+        <div className="space-y-2">
           <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
           <div className="flex flex-wrap gap-2 mb-2">
             {tags.map(tag => (
@@ -184,7 +184,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             ))}
           </div>
           <div className="relative">
-            <Command className="rounded-lg border overflow-visible">
+            <Command className="rounded-lg overflow-visible border-0">
               <CommandInput 
                 placeholder="Search tags or create new ones..."
                 value={currentTag}
@@ -198,7 +198,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
                 className="border-0 bg-muted/50 focus:ring-0 focus-visible:ring-0"
               />
               {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
-                <div className="absolute top-full left-0 right-0 bg-popover border rounded-lg shadow-md mt-1 z-50">
+                <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50">
                   <CommandEmpty>
                     {currentTag.trim() && (
                       <button
@@ -234,7 +234,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t">
+        <div className="space-y-4 pt-4"> {/* Removed border-t */}
           <FormField
             control={form.control}
             name="featuredImage"
