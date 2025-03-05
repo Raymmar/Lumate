@@ -88,8 +88,14 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
 
   const handleSelectTag = (tag: string) => {
     const normalizedTag = tag.toLowerCase().trim();
-    if (!tags.includes(normalizedTag)) {
+    if (!tags.includes(normalizedTag) && tags.length < 3) {
       setTags([...tags, normalizedTag]);
+    } else if (tags.length >= 3) {
+      toast({
+        title: "Tag limit reached",
+        description: "Maximum of 3 tags allowed per post",
+        variant: "destructive"
+      });
     }
     setCurrentTag("");
   };

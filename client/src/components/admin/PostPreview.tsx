@@ -25,7 +25,7 @@ function getVideoEmbedUrl(url: string): string | null {
 
     // YouTube
     if (videoUrl.hostname.includes('youtube.com') || videoUrl.hostname.includes('youtu.be')) {
-      const videoId = videoUrl.hostname.includes('youtu.be') 
+      const videoId = videoUrl.hostname.includes('youtu.be')
         ? videoUrl.pathname.slice(1)
         : videoUrl.searchParams.get('v');
       return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -43,14 +43,14 @@ function getVideoEmbedUrl(url: string): string | null {
   }
 }
 
-export function PostPreview({ 
-  post, 
-  isNew = false, 
-  onClose, 
-  onSave, 
+export function PostPreview({
+  post,
+  isNew = false,
+  onClose,
+  onSave,
   readOnly = false,
   posts = [],
-  onNavigate 
+  onNavigate
 }: PostPreviewProps) {
   console.log("PostPreview render - isNew:", isNew, "post:", post, "readOnly:", readOnly);
 
@@ -85,7 +85,7 @@ export function PostPreview({
   if ((isNew || !post) && !readOnly) {
     console.log("Rendering new post form");
     return (
-      <PreviewSidebar 
+      <PreviewSidebar
         open={true}
         onOpenChange={(open) => {
           console.log("PreviewSidebar onOpenChange:", open);
@@ -113,7 +113,7 @@ export function PostPreview({
   };
 
   return (
-    <PreviewSidebar 
+    <PreviewSidebar
       open={true}
       onOpenChange={(open) => {
         console.log("PreviewSidebar onOpenChange:", open);
@@ -123,6 +123,17 @@ export function PostPreview({
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto pb-16">
           <div className="space-y-6">
+            {/* Tags Section */}
+            {post?.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.tags.map((tag: string) => (
+                  <Badge key={tag} variant="outline" className="text-xs">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
             {/* Title Section */}
             {post?.title && (
               <div>
@@ -136,8 +147,8 @@ export function PostPreview({
             {/* Featured Image Section */}
             {post?.featuredImage && (
               <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden">
-                <img 
-                  src={post.featuredImage} 
+                <img
+                  src={post.featuredImage}
                   alt={post.title}
                   className="w-full h-full object-cover"
                 />
@@ -158,8 +169,8 @@ export function PostPreview({
 
             {/* CTA Section */}
             {post?.ctaLink && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full"
                 onClick={() => {
                   if (post.ctaLink) window.open(post.ctaLink, '_blank');
