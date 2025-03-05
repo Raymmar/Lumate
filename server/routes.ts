@@ -938,7 +938,8 @@ export async function registerRoutes(app: Express) {
         eventId: event_api_id,
         userEmail: user.email,
         status: response.guest?.approval_status,
-        fullResponse: response      });
+        fullResponse: response
+      });
 
       if (response.guest?.approval_status) {
         await storage.upsertRsvpStatus({          userApiId: person.api_id,
@@ -1111,6 +1112,13 @@ export async function registerRoutes(app: Express) {
       // Initialize SSE connection
       initSSE(res);
 
+      let allGuests: any[] = [];
+      let hasMore = true;
+      let cursor = undefined;
+      let iterationCount = 0;
+      const MAX_ITERATIONS = 100;
+
+      // Fetch event details for progress messages
       const event = await storage.getEventByApiId(eventId);
       if (!event) {
         sendSSEUpdate(res, {
@@ -1123,60 +1131,61 @@ export async function registerRoutes(app: Express) {
 
       sendSSEUpdate(res, {
         type: 'status',
-        message: `Starting attendance sync for ${event.title}`,
+        message: `Starting attendance sync for event: ${event.title}`,
         progress: 0
       });
 
-      let cursor = null;
-      let hasMore = true;
+      try {
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Clearing existing attendance records...',
+          progress: 5
+        });
+
+        await storage.deleteAttendanceByEvent(eventId);
+
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Successfully cleared existing attendance records',
+          progress: 10
+        });
+      } catch (error) {
+        sendSSEUpdate(res, {
+          type: 'error',
+          message: 'Failed to clear existing attendance records',
+          progress: 0
+        });
+        res.end();
+        return;
+      }
+
       let totalProcessed = 0;
       let successCount = 0;
       let failureCount = 0;
-      let totalApprovedGuests = 0;
 
-      // Add delay between API calls to handle rate limiting
-      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+      while (hasMore && iterationCount < MAX_ITERATIONS) {
+        const params: Record<string, string> = { 
+          event_api_id: eventId 
+        };
 
-      while (hasMore) {
-        try {
-          // Add delay between API calls
-          await delay(1000);
+        if (cursor) {
+          params.pagination_cursor = cursor;
+        }
 
-          const params: Record<string, string> = { 
-            event_api_id: eventId 
-          };
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: `Fetching guests batch ${iterationCount + 1}...`,
+          progress: 10 + (iterationCount * 2)
+        });
 
-          if (cursor) {
-            params.cursor = cursor;
-          }
+        const response = await lumaApiRequest('event/get-guests', params);
 
-          const response = await lumaApiRequest('event/get-guests', params);
+        if (response.entries) {
+          const approvedEntries = response.entries.filter((entry: any) => 
+            entry.guest.approval_status === 'approved'
+          );
 
-          if (!response.entries) {
-            console.log('No entries found in response');
-            break;
-          }
-
-          // Filter for approved guests only
-          const approvedGuests = response.entries.filter((entry: any) => {
-            const isApproved = entry.guest?.approval_status === 'approved';
-            if (!isApproved) {
-              console.log('Skipping non-approved guest:', {
-                email: entry.guest?.email,
-                status: entry.guest?.approval_status
-              });
-            }
-            return isApproved;
-          });
-
-          console.log('Processing batch:', {
-            totalGuests: response.entries.length,
-            approvedGuests: approvedGuests.length
-          });
-
-          totalApprovedGuests += approvedGuests.length;
-
-          for (const entry of approvedGuests) {
+          for (const entry of approvedEntries) {
             const guest = entry.guest;
             totalProcessed++;
 
@@ -1185,134 +1194,88 @@ export async function registerRoutes(app: Express) {
                 eventApiId: eventId,
                 userEmail: guest.email.toLowerCase(),
                 guestApiId: guest.api_id,
-                approvalStatus: 'approved',
+                approvalStatus: guest.approval_status,
                 registeredAt: guest.registered_at
               });
 
               successCount++;
               sendSSEUpdate(res, {
                 type: 'progress',
-                message: `Processing approved attendees (${successCount}/${totalApprovedGuests})...`,
+                message: `Successfully processed ${guest.email}`,
                 data: {
                   total: totalProcessed,
                   success: successCount,
-                  failure: failureCount,
-                  approved: totalApprovedGuests
+                  failure: failureCount
                 },
-                progress: Math.min(90, (successCount / totalApprovedGuests) * 90)
+                progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
               });
-
             } catch (error) {
-              console.error('Failed to process attendee:', {
-                email: guest.email,
-                error: error instanceof Error ? error.message : String(error)
-              });
               failureCount++;
+              sendSSEUpdate(res, {
+                type: 'error',
+                message: `Failed to process ${guest.email}: ${error instanceof Error ? error.message : String(error)}`,
+                data: {
+                  total: totalProcessed,
+                  success: successCount,
+                  failure: failureCount
+                },
+                progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
+              });
             }
           }
 
-          hasMore = response.has_more && response.next_cursor;
-          cursor = response.next_cursor;
-
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('rate limit')) {
-            console.log('Rate limit hit, waiting before retry...');
-            await delay(5000);
-            continue;
-          }
-          throw error;
+          allGuests = allGuests.concat(approvedEntries);
         }
+
+        hasMore = response.has_more;
+        cursor = response.next_cursor;
+        iterationCount++;
+
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: `Processed ${totalProcessed} guests so far...`,
+          data: {
+            total: totalProcessed,
+            success: successCount,
+            failure: failureCount,
+            hasMore,
+            currentBatch: iterationCount
+          },
+          progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
+        });
       }
 
-      // Update event sync status
-      await db.update(events)
-        .set({ 
-          lastAttendanceSync: new Date().toISOString()
-        })
-        .where(eq(events.api_id, eventId));
+      if (iterationCount >= MAX_ITERATIONS) {
+        sendSSEUpdate(res, {
+          type: 'warning',
+          message: 'Reached maximum iteration limit while syncing guests',
+          progress: 95
+        });
+      }
 
-      const summary = `Sync completed. Processed ${successCount} approved attendees out of ${totalApprovedGuests} total approved guests.`;
-      console.log(summary);
+      await storage.updateEventAttendanceSync(eventId);
 
       sendSSEUpdate(res, {
         type: 'complete',
-        message: summary,
+        message: 'Attendance sync completed',
         data: {
           total: totalProcessed,
           success: successCount,
           failure: failureCount,
-          approved: totalApprovedGuests
+          totalGuests: allGuests.length
         },
         progress: 100
       });
 
       res.end();
     } catch (error) {
-      console.error('Failed to sync event attendees:', error);
+      console.error('Failed to sync event guests:', error);
       sendSSEUpdate(res, {
         type: 'error',
         message: error instanceof Error ? error.message : String(error),
         progress: 0
       });
       res.end();
-    }
-  });
-
-  app.get("/api/admin/people", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const searchQuery = (req.query.search as string || '').toLowerCase();
-      const offset = (page - 1) * limit;
-
-      const totalCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(people)
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`
-        )
-        .then(result => Number(result[0].count));
-
-      const peopleList = await db
-        .select()
-        .from(people)
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`
-        )
-        .orderBy(people.id)
-        .limit(limit)
-        .offset(offset);
-
-      res.json({
-        people: peopleList,
-        total: totalCount
-      });
-    } catch (error) {
-      console.error('Failed to fetch people:', error);
-      res.status(500).json({ error: "Failed to fetch people" });
     }
   });
 
