@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // Added import for Badge component
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -112,20 +111,9 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                         {post.summary}
                       </p>
                     )}
-                    <div className="mt-2 space-y-2">
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(post.createdAt), 'MMM d, yyyy')}
-                      </p>
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {post.tags.map((tag: string) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(new Date(post.createdAt), 'MMM d, yyyy')}
+                    </p>
                   </div>
                 </div>
               </div>

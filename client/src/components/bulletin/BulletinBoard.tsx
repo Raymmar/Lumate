@@ -13,8 +13,10 @@ import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
 import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
 
-// PinnedPostsCarousel component updates
+
+// Only updating the PinnedPostsCarousel component section
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
@@ -70,6 +72,17 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
       {/* Gradient overlay for text readability */}
       <div className="absolute inset-0 bg-black/60" />
+
+      {/* Tags */}
+      {currentPost.tags && currentPost.tags.length > 0 && (
+        <div className="absolute top-6 right-6 flex flex-wrap gap-2 z-20">
+          {currentPost.tags.map((tag: string) => (
+            <Badge key={tag} variant="outline" className="text-xs text-white border-white/40 hover:bg-white/10">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {pinnedPosts.length > 1 && (
         <>
