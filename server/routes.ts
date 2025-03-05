@@ -1304,37 +1304,35 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
     try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
       const eventId = req.params.eventId;
-      if (!eventId) {
-        return res.status(400).json({ error: "Missing event ID" });
-      }
 
-      const result = await db
+      // Get the count first
+      const attendanceCount = await db
+        .select({ count: sql`count(*)` })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventId));
+
+      // Get the attendees with their details
+      const attendees = await db
         .select({
           id: people.id,
+          api_id: people.api_id,
           userName: people.userName,
           email: people.email,
-          avatarUrl: people.avatarUrl,
-          api_id: people.api_id,
+          avatarUrl: people.avatarUrl
         })
         .from(attendance)
-        .innerJoin(people, eq(attendance.userEmail, people.email))
+        .innerJoin(people, eq(attendance.personId, people.id))
         .where(eq(attendance.eventApiId, eventId))
-        .orderBy(attendance.registeredAt);
+        .orderBy(sql`registered_at DESC`);
 
-      res.json(result);
+      res.json({
+        attendees,
+        total: Number(attendanceCount[0]?.count || 0)
+      });
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);
-      res.status(500).json({ error: "Failed to fetch attendees" });
+      res.status(500).json({ error: "Failed to fetch event attendees" });
     }
   });
 
