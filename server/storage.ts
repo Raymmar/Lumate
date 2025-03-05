@@ -948,31 +948,35 @@ export class PostgresStorage implements IStorage {
 
   async getPosts(): Promise<Post[]> {
     console.log('Fetching all posts from database...');
-    const result = await db
-      .select({
-        id: posts.id,
-        title: posts.title,
-        summary: posts.summary,
-        body: posts.body,
-        featuredImage: posts.featuredImage,
-        videoUrl: posts.videoUrl,
-        ctaLink: posts.ctaLink,
-        ctaLabel: posts.ctaLabel,
-        isPinned: posts.isPinned,
-        creatorId: posts.creatorId,
-        createdAt: posts.createdAt,
-        updatedAt: posts.updatedAt,
-        creator: {
-          id: users.id,
-          displayName: users.displayName
-        }
-      })
-      .from(posts)
-      .leftJoin(users, eq(posts.creatorId, users.id))
-      .orderBy(posts.createdAt);
+    try {
+      const result = await db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          summary: posts.summary,
+          body: posts.body,
+          featuredImage: posts.featuredImage,
+          videoUrl: posts.videoUrl,
+          ctaLink: posts.ctaLink,
+          ctaLabel: posts.ctaLabel,
+          isPinned: posts.isPinned,
+          creatorId: posts.creatorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          creator: {
+            id: users.id,
+            displayName: users.displayName
+          }
+        })
+        .from(posts)
+        .leftJoin(users, eq(posts.creatorId, users.id));
 
-    console.log(`Found ${result.length} posts in database`);
-    return result;
+      console.log('Posts with creators:', JSON.stringify(result, null, 2));
+      return result;
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      throw error;
+    }
   }
 
   async createPost(post: InsertPost): Promise<Post> {
@@ -984,7 +988,7 @@ export class PostgresStorage implements IStorage {
         .values({
           ...post,
           createdAt: new Date().toISOString(),
-          updatedAt: newDate().toISOString()
+          updatedAt: new Date().toISOString()
         })
         .returning();
 
