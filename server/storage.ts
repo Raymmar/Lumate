@@ -949,27 +949,58 @@ export class PostgresStorage implements IStorage {
   async getPosts(): Promise<Post[]> {
     console.log('Fetching all posts from database...');
     try {
-      // First get all posts with their creators
+      // Debug query to check users
+      const allUsers = await db.select().from(users);
+      console.log('Available users:', allUsers.map(u => ({
+        id: u.id,
+        displayName: u.displayName,
+        email: u.email
+      })));
+
+      // Debug query to check posts
+      const allPosts = await db.select().from(posts);
+      console.log('All posts with creator IDs:', allPosts.map(p => ({
+        id: p.id,
+        title: p.title,
+        creatorId: p.creatorId
+      })));
+
+      // Main query with explicit column selection
       const result = await db
         .select({
-          post: posts,
-          creator: users
+          post: {
+            id: posts.id,
+            title: posts.title,
+            summary: posts.summary,
+            body: posts.body,
+            featuredImage: posts.featuredImage,
+            videoUrl: posts.videoUrl,ctaLink: posts.ctaLink,
+            ctaLabel: posts.ctaLabel,
+            isPinned: posts.isPinned,
+            creatorId: posts.creatorId,
+            createdAt: posts.createdAt,
+            updatedAt: posts.updatedAt
+          },
+          creator: {
+            id: users.id,
+            displayName: users.displayName
+          }
         })
         .from(posts)
         .leftJoin(users, eq(posts.creatorId, users.id));
 
-      console.log('Query result:', result);
+      console.log('Raw join result:', JSON.stringify(result, null, 2));
 
       // Transform the result to match our Post type
       const transformedPosts = result.map(row => ({
         ...row.post,
-        creator: row.creator ? {
+        creator: row.creator.id ? {
           id: row.creator.id,
           displayName: row.creator.displayName
         } : undefined
       }));
 
-      console.log('Posts with creators:', transformedPosts);
+      console.log('Transformed posts:', JSON.stringify(transformedPosts, null, 2));
       return transformedPosts;
     } catch (error) {
       console.error('Error fetching posts:', error);
