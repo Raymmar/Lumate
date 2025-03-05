@@ -65,43 +65,66 @@ export async function lumaApiRequest(
       hasBody: !!options.body
     });
 
-    try {
-      const response = await fetch(url.toString(), {
-        method: options.method || 'GET',
-        headers: {
-          'accept': 'application/json',
-          'content-type': 'application/json',
-          'x-luma-api-key': process.env.LUMA_API_KEY
-        },
-        ...(options.body ? { body: options.body } : {})
-      });
+    const maxRetries = 3;
+    let retryCount = 0;
+    let retryDelay = 1000; // Start with 1 second delay
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Luma API error for ${endpoint}:`, {
-          status: response.status,
-          statusText: response.statusText,
-          errorText,
-          params
+    while (retryCount < maxRetries) {
+      try {
+        const response = await fetch(url.toString(), {
+          method: options.method || 'GET',
+          headers: {
+            'accept': 'application/json',
+            'content-type': 'application/json',
+            'x-luma-api-key': process.env.LUMA_API_KEY
+          },
+          ...(options.body ? { body: options.body } : {})
         });
-        throw new Error(`Luma API error: ${response.statusText} - ${errorText}`);
+
+        if (response.status === 429) {
+          retryCount++;
+          const retryAfter = response.headers.get('Retry-After');
+          const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : retryDelay;
+
+          console.log(`Rate limited, waiting ${waitTime}ms before retry ${retryCount}/${maxRetries}`);
+
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          retryDelay *= 2; // Exponential backoff
+          continue;
+        }
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Luma API error for ${endpoint}:`, {
+            status: response.status,
+            statusText: response.statusText,
+            errorText,
+            params
+          });
+          throw new Error(`Luma API error: ${response.statusText} - ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        console.log(`Luma API response for ${endpoint}:`, {
+          status: response.status,
+          hasData: !!data,
+          hasEntries: data?.entries?.length > 0,
+          entriesCount: data?.entries?.length,
+          hasMore: data?.has_more,
+          nextCursor: data?.next_cursor
+        });
+
+        return data;
+      } catch (error) {
+        if (retryCount === maxRetries - 1) {
+          console.error(`Luma API request failed for ${endpoint} after ${maxRetries} retries:`, error);
+          throw error;
+        }
+        retryCount++;
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        retryDelay *= 2; // Exponential backoff
       }
-
-      const data = await response.json();
-
-      console.log(`Luma API response for ${endpoint}:`, {
-        status: response.status,
-        hasData: !!data,
-        hasEntries: data?.entries?.length > 0,
-        entriesCount: data?.entries?.length,
-        hasMore: data?.has_more,
-        nextCursor: data?.next_cursor
-      });
-
-      return data;
-    } catch (error) {
-      console.error(`Luma API request failed for ${endpoint}:`, error);
-      throw error;
     }
 }
 
@@ -943,9 +966,9 @@ export async function registerRoutes(app: Express) {
 
       if (response.guest?.approval_status) {
                 await storage.upsertRsvpStatus({          userApiId: person.api_id,
-          eventApiId: event_api_id as string,
-          status: response.guest.approval_status
-        });
+        eventApiId: event_api_id as string,
+        status: response.guest.approval_status
+      });
       }
 
       res.json({ 

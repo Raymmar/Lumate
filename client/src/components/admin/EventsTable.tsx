@@ -46,6 +46,7 @@ export function EventsTable() {
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<EventWithSync | null>(null);
   const [syncingEvents, setSyncingEvents] = useState<string[]>([]);
+  const [clearingEvents, setClearingEvents] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [syncProgress, setSyncProgress] = useState<SyncProgress | null>(null);
@@ -236,7 +237,17 @@ export function EventsTable() {
       header: "Sync Status",
       cell: (row: EventWithSync) => {
         const isSyncing = syncingEvents.includes(row.api_id);
+        const isClearing = clearingEvents.includes(row.api_id);
         const isSynced = row.lastAttendanceSync !== null;
+
+        if (isClearing) {
+          return (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Clearing...
+            </Badge>
+          );
+        }
 
         if (isSyncing) {
           return (
@@ -248,9 +259,7 @@ export function EventsTable() {
               {syncProgress && (
                 <>
                   <Progress value={syncProgress.progress} className="h-2" />
-                  {/* Fixed height container for both status lines */}
                   <div className="h-[48px] flex flex-col justify-center">
-                    {/* Count line */}
                     <div className="h-[20px] flex items-center">
                       {syncProgress.data && (
                         <p className="text-xs text-muted-foreground">
@@ -258,7 +267,6 @@ export function EventsTable() {
                         </p>
                       )}
                     </div>
-                    {/* Status message line */}
                     <div className="h-[20px] flex items-center">
                       <p className="text-xs text-muted-foreground truncate">
                         {syncProgress.message}
@@ -291,6 +299,8 @@ export function EventsTable() {
 
   const handleClearAttendance = async (event: EventWithSync) => {
     try {
+      setClearingEvents(prev => [...prev, event.api_id]);
+
       // Optimistically update UI
       if (selectedEvent && selectedEvent.api_id === event.api_id) {
         setSelectedEvent(prev => prev ? {
@@ -346,6 +356,16 @@ export function EventsTable() {
         description: "Failed to clear attendance. Please try again.",
         variant: "destructive",
       });
+
+      // Revert optimistic updates on error
+      if (selectedEvent && selectedEvent.api_id === event.api_id) {
+        const currentEvent = await queryClient.fetchQuery({
+          queryKey: [`/api/admin/events/${event.api_id}`],
+        });
+        setSelectedEvent(currentEvent);
+      }
+    } finally {
+      setClearingEvents(prev => prev.filter(id => id !== event.api_id));
     }
   };
 
