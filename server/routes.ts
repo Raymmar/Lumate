@@ -1104,99 +1104,124 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const { eventId } = req.params;
+      const eventId = req.params.eventId;
       if (!eventId) {
         return res.status(400).json({ error: "Missing event ID" });
       }
 
+      // Initialize SSE connection
       initSSE(res);
-      sendSSEUpdate(res, { 
-        type: 'status',
-        message: 'Starting attendance sync...',
-        progress: 0
-      });
 
       const event = await storage.getEventByApiId(eventId);
       if (!event) {
-        throw new Error('Event not found');
+        sendSSEUpdate(res, {
+          type: 'error',
+          message: 'Event not found',
+          progress: 0
+        });
+        return res.end();
       }
 
-      let cursor = null;
-      let page = 1;
-      let totalAttendees: any[] = [];
+      sendSSEUpdate(res, {
+        type: 'status',
+        message: `Starting attendance sync for ${event.title}`,
+        progress: 0
+      });
 
-      // Fetch all attendees with pagination
-      while (true) {
+      let cursor = null;
+      let hasMore = true;
+      let totalProcessed = 0;
+      let successCount = 0;
+      let failureCount = 0;
+
+      // Add delay between API calls to handle rate limiting
+      const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+      while (hasMore) {
         try {
-          const queryParams: Record<string, string> = {
-            event_api_id: eventId,
-            ...(cursor ? { cursor } : {})
+          // Add delay between API calls
+          await delay(1000);
+
+          const params: Record<string, string> = { 
+            event_api_id: eventId 
           };
 
-          const response = await lumaApiRequest('event/get-guests', queryParams);
+          if (cursor) {
+            params.cursor = cursor;
+          }
+
+          const response = await lumaApiRequest('event/get-guests', params);
 
           if (!response.entries) {
             break;
           }
 
-          totalAttendees = totalAttendees.concat(response.entries);
-          sendSSEUpdate(res, {
-            type: 'status',
-            message: `Fetched page ${page} of attendees...`,
-            progress: 25,
-            data: {
-              total: totalAttendees.length,
-              success: 0,
-              failure: 0
-            }
-          });
+          const approvedEntries = response.entries.filter((entry: any) => 
+            entry.guest?.approval_status === 'approved'
+          );
 
-          if (!response.has_more || !response.next_cursor) {
-            break;
+          for (const entry of approvedEntries) {
+            const guest = entry.guest;
+            totalProcessed++;
+
+            try {
+              await storage.upsertAttendance({
+                eventApiId: eventId,
+                userEmail: guest.email.toLowerCase(),
+                guestApiId: guest.api_id,
+                approvalStatus: guest.approval_status,
+                registeredAt: guest.registered_at
+              });
+
+              successCount++;
+            } catch (error) {
+              console.error('Failed to process attendee:', error);
+              failureCount++;
+            }
+
+            sendSSEUpdate(res, {
+              type: 'progress',
+              message: `Processing attendees...`,
+              data: {
+                total: totalProcessed,
+                success: successCount,
+                failure: failureCount
+              },
+              progress: Math.min(90, (totalProcessed / (response.total || 1)) * 90)
+            });
           }
 
+          hasMore = response.has_more && response.next_cursor;
           cursor = response.next_cursor;
-          page++;
+
         } catch (error) {
-          console.error(`Failed to fetch page ${page}:`, error);
-          sendSSEUpdate(res, {
-            type: 'error',
-            message: `Failed to fetch page ${page}: ${error instanceof Error ? error.message : String(error)}`,
-            progress: 25
-          });
+          if (error instanceof Error && error.message.includes('rate limit')) {
+            // If we hit rate limit, wait longer before retrying
+            await delay(5000);
+            continue;
+          }
           throw error;
         }
       }
 
-      sendSSEUpdate(res, {
-        type: 'status',
-        message: 'Processing attendees...',
-        progress: 50,
-        data: {
-          total: totalAttendees.length,
-          success: 0,
-          failure: 0
-        }
-      });
-
-      // Process attendees in batches
-      const results = await batchProcessAttendees(totalAttendees, eventId);
-
       // Update event sync status
-      await storage.updateEventSyncStatus(eventId, {
-        lastAttendanceSync: new Date().toISOString(),
-        totalAttendees: results.success
-      });
+      const now = new Date().toISOString();
+      await db.update(events)
+        .set({ 
+          lastAttendanceSync: now,
+          updatedAt: now
+        })
+        .where(eq(events.api_id, eventId));
 
       sendSSEUpdate(res, {
         type: 'complete',
         message: 'Sync completed successfully',
-        progress: 100,
         data: {
-          total: results.total,
-          success: results.success,
-          failure: results.failure
-        }
+          total: totalProcessed,
+          success: successCount,
+          failure: failureCount
+        },
+        progress: 100
       });
 
       res.end();
@@ -1210,45 +1235,6 @@ export async function registerRoutes(app: Express) {
       res.end();
     }
   });
-
-  async function batchProcessAttendees(attendees: any[], eventApiId: string) {
-    const batchSize = 50;
-    const results = {
-      total: attendees.length,
-      success: 0,
-      failure: 0,
-      processed: new Set<string>()
-    };
-
-    for (let i = 0; i < attendees.length; i += batchSize) {
-      const batch = attendees.slice(i, i + batchSize);
-
-      await Promise.all(batch.map(async (attendee) => {
-        try {
-          const normalizedEmail = attendee.email.toLowerCase();
-          if (results.processed.has(normalizedEmail)) {
-            return;
-          }
-
-          await storage.upsertAttendance({
-            eventApiId,
-            userEmail: normalizedEmail,
-            guestApiId: attendee.api_id,
-            approvalStatus: attendee.approval_status,
-            registeredAt: attendee.registered_at,
-          });
-
-          results.success++;
-          results.processed.add(normalizedEmail);
-        } catch (error) {
-          console.error('Failed to process attendee:', error);
-          results.failure++;
-        }
-      }));
-    }
-
-    return results;
-  }
 
   app.get("/api/admin/people", async (req, res) => {
     try {
