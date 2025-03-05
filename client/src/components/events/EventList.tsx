@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, ExternalLink } from "lucide-react";
+import { CalendarDays, ExternalLink, Users } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PublicEventPreview } from "./PublicEventPreview";
 import { useState } from "react";
 import { Event } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
 
 interface EventsResponse {
   events: Event[];
@@ -48,6 +49,17 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
     enabled: !!user
   });
 
+  // Add query for attendees
+  const { data: attendeesData, isLoading: isAttendeesLoading } = useQuery({
+    queryKey: [`/api/events/${event.api_id}/attendees`],
+    queryFn: async () => {
+      const response = await fetch(`/api/events/${event.api_id}/attendees`);
+      if (!response.ok) throw new Error('Failed to fetch attendees');
+      return response.json();
+    },
+    staleTime: 30000
+  });
+
   const rsvpMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/events/rsvp', {
@@ -73,6 +85,7 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
         description: "You've successfully RSVP'd to this event.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
     },
     onError: (error: Error) => {
       toast({
@@ -112,8 +125,8 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
             )}
           </AspectRatio>
 
-          <AuthGuard>
-            <div className="absolute bottom-2 left-2">
+          <div className="absolute bottom-2 left-2 flex gap-2">
+            <AuthGuard>
               <Button 
                 size="sm" 
                 className="text-xs"
@@ -123,8 +136,8 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
               >
                 {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
               </Button>
-            </div>
-          </AuthGuard>
+            </AuthGuard>
+          </div>
         </div>
 
         <div className="p-4">
@@ -134,6 +147,18 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
               <CalendarDays className="h-3.5 w-3.5" />
               <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
             </div>
+
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Users className="h-3.5 w-3.5" />
+              {isAttendeesLoading ? (
+                <Skeleton className="h-4 w-16" />
+              ) : (
+                <Badge variant="secondary" className="text-xs">
+                  {attendeesData?.total || 0} attending
+                </Badge>
+              )}
+            </div>
+
             {event.description && (
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {event.description}

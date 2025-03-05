@@ -2098,6 +2098,32 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/events/:id/attendees", async (req, res) => {
+    try {
+      const eventId = req.params.id;
+
+      const attendeesList = await db
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          userName: people.userName,
+          avatarUrl: people.avatarUrl
+        })
+        .from(attendance)
+        .innerJoin(people, eq(attendance.personId, people.id))
+        .where(eq(attendance.eventApiId, eventId))
+        .orderBy(attendance.registeredAt);
+
+      res.json({
+        attendees: attendeesList,
+        total: attendeesList.length
+      });
+    } catch (error) {
+      console.error('Failed to fetch event attendees:', error);
+      res.status(500).json({ error: "Failed to fetch event attendees" });
+    }
+  });
+
   return createServer(app);
 }
 
