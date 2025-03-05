@@ -29,6 +29,7 @@ export interface IStorage {
   getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
   getEventByApiId(apiId: string): Promise<Event | null>; // Added method
+  getFutureEvents(): Promise<Event[]>; // Added method
 
   // People
   getPeople(): Promise<Person[]>;
@@ -1411,6 +1412,22 @@ export class PostgresStorage implements IStorage {
       return updatedEvent;
     } catch (error) {
       console.error('Failed to clear event attendance:', error);
+      throw error;
+    }
+  }
+
+  async getFutureEvents(): Promise<Event[]> {
+    try {
+      // Get events that haven't ended yet
+      const result = await db
+        .select()
+        .from(events)
+        .where(sql`end_time > NOW()`)
+        .orderBy(events.startTime);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to get future events:', error);
       throw error;
     }
   }

@@ -42,7 +42,7 @@ async function syncEventAttendees(event: Event) {
       page++;
     }
 
-    // Process and store approved guests with sync timestamp
+    // Process and store approved guests
     const syncTimestamp = new Date().toISOString();
     for (const guest of allGuests) {
       await storage.upsertAttendance({
@@ -50,13 +50,12 @@ async function syncEventAttendees(event: Event) {
         eventApiId: event.api_id,
         userEmail: guest.email.toLowerCase(),
         registeredAt: guest.registered_at,
-        approvalStatus: guest.approval_status,
-        lastSyncedAt: syncTimestamp
+        approvalStatus: guest.approval_status
       });
     }
 
     // Update event sync timestamp
-    await storage.updateEventAttendanceSync(event.api_id, syncTimestamp);
+    await storage.updateEventSync(event.api_id, syncTimestamp);
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
@@ -64,14 +63,35 @@ async function syncEventAttendees(event: Event) {
   }
 }
 
-export function startEventSyncService() {
-  // Run every 5 minutes
-  const SYNC_INTERVAL = 5 * 60 * 1000;
+async function syncFutureEvents() {
+  try {
+    const futureEvents = await storage.getFutureEvents();
+    console.log(`Found ${futureEvents.length} future events to sync`);
 
+    for (const event of futureEvents) {
+      try {
+        await syncEventAttendees(event);
+      } catch (error) {
+        console.error(`Failed to sync future event ${event.api_id}:`, error);
+        // Continue with next event even if one fails
+      }
+    }
+  } catch (error) {
+    console.error('Error in future events sync:', error);
+  }
+}
+
+export function startEventSyncService() {
+  // Run every 5 minutes for recently ended events
+  const RECENT_SYNC_INTERVAL = 5 * 60 * 1000;
+
+  // Run every 6 hours for future events
+  const FUTURE_SYNC_INTERVAL = 6 * 60 * 60 * 1000;
+
+  // Sync recently ended events
   setInterval(async () => {
     try {
       const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
-
       console.log(`Found ${recentlyEndedEvents.length} recently ended events to sync`);
 
       for (const event of recentlyEndedEvents) {
@@ -85,7 +105,18 @@ export function startEventSyncService() {
     } catch (error) {
       console.error('Error in event sync service:', error);
     }
-  }, SYNC_INTERVAL);
+  }, RECENT_SYNC_INTERVAL);
 
-  console.log('Event sync service started');
+  // Sync future events every 6 hours
+  setInterval(async () => {
+    console.log('Starting scheduled sync of future events...');
+    await syncFutureEvents();
+  }, FUTURE_SYNC_INTERVAL);
+
+  // Initial sync of future events when service starts
+  syncFutureEvents().catch(error => {
+    console.error('Failed initial sync of future events:', error);
+  });
+
+  console.log('Event sync service started with both recent and future event syncing');
 }
