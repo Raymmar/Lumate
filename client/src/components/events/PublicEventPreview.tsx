@@ -185,6 +185,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      className="outline-none focus:outline-none focus-visible:outline-none"
     >
       <DialogTitle className="sr-only">Event Preview</DialogTitle>
       <div className="flex flex-col h-full">
@@ -310,7 +311,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
             <Card>
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                  <Calendar className="h-5 w-5 shrink-0 text-muted-foreground" />
                   <div>
                     <p className="font-medium">
                       {formatInTimeZone(
@@ -329,7 +330,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
 
                 {event.location && (
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                    <MapPin className="h-5 w-5 shrink-0 text-muted-foreground" />
                     <div>
                       {event.location.full_address && (
                         <p className="font-medium">{event.location.full_address}</p>

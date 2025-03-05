@@ -142,14 +142,14 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
 
         <div className="p-4">
           <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">{event.title}</h3>
-          <div className="mt-2 space-y-1.5">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <CalendarDays className="h-3.5 w-3.5" />
-              <span className="text-xs">{formatEventDate(event.startTime, event.timezone)}</span>
+          <div className="mt-2 space-y-1">
+            <div className="flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">{formatEventDate(event.startTime, event.timezone)}</span>
             </div>
 
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1">
+              <Users className="h-3.5 w-3.5 text-muted-foreground" />
               {isAttendeesLoading ? (
                 <Skeleton className="h-4 w-16" />
               ) : (
