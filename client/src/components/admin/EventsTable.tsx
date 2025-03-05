@@ -371,6 +371,12 @@ export function EventsTable() {
 
   const actions = [
     {
+      label: (event: EventWithSync) => event.lastAttendanceSync ? "Re-sync attendees" : "Sync attendees",
+      onClick: (event: EventWithSync) => {
+        handleStartSync(event.api_id);
+      },
+    },
+    {
       label: "View details",
       onClick: (event: EventWithSync) => {
         setSelectedEvent(event);
