@@ -942,8 +942,7 @@ export async function registerRoutes(app: Express) {
       });
 
       if (response.guest?.approval_status) {
-        await storage.upsertRsvpStatus({
-          userApiId: person.api_id,
+        await storage.upsertRsvpStatus({          userApiId: person.api_id,
           eventApiId: event_api_id as string,
           status: response.guest.approval_status
         });
@@ -1439,7 +1438,7 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Get posts with their tags
+      // Get posts with their tags and creators
       const postsWithTags = await db
         .select({
           id: posts.id,
@@ -1454,22 +1453,29 @@ export async function registerRoutes(app: Express) {
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
           creatorId: posts.creatorId,
+          creator_id: users.id,
+          creator_display_name: users.displayName,
           tags_text: tags.text
         })
         .from(posts)
+        .leftJoin(users, eq(posts.creatorId, users.id))
         .leftJoin(postTags, eq(posts.id, postTags.postId))
         .leftJoin(tags, eq(postTags.tagId, tags.id));
 
-      // Group posts with their tags
+      // Group posts with their tags and creators
       const groupedPosts = postsWithTags.reduce((acc: any[], post) => {
         const existingPost = acc.find(p => p.id === post.id);
         if (existingPost) {
           if (post.tags_text) {
-            existingPost.tags = [...existingPost.tags, post.tags_text];
+            existingPost.tags = [...new Set([...existingPost.tags, post.tags_text])];
           }
         } else {
           acc.push({
             ...post,
+            creator: post.creator_id ? {
+              id: post.creator_id,
+              displayName: post.creator_display_name
+            } : undefined,
             tags: post.tags_text ? [post.tags_text] : []
           });
         }
@@ -1478,7 +1484,7 @@ export async function registerRoutes(app: Express) {
 
       res.json({ posts: groupedPosts });
     } catch (error) {
-      console.error('Failed to fetch posts:', error);
+      console.error('Failed to fetch admin posts:', error);
       res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
