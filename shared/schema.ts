@@ -184,7 +184,10 @@ export const insertPostTagSchema = createInsertSchema(postTags).omit({
 export type Tag = typeof tags.$inferSelect;
 export type InsertTag = z.infer<typeof insertTagSchema>;
 
-export type Post = typeof posts.$inferSelect;
+export type Post = typeof posts.$inferSelect & {
+  creator?: { id: number; name: string; };
+  tags?: string[];
+};
 export type InsertPost = z.infer<typeof insertPostSchema>;
 
 export type PostTag = typeof postTags.$inferSelect;

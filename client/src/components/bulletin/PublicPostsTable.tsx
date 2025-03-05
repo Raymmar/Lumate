@@ -1,12 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Post } from "@shared/schema";
-import { format } from "date-fns";
+import TimeAgo from 'javascript-time-ago';
+import en from 'javascript-time-ago/locale/en';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+
+// Initialize TimeAgo
+TimeAgo.addLocale(en);
+const timeAgo = new TimeAgo('en-US');
 
 // Export query key for reuse
 export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
@@ -111,9 +116,11 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                         {post.summary}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {format(new Date(post.createdAt), 'MMM d, yyyy')}
-                    </p>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                      <span>{post.creator?.name || 'Unknown'}</span>
+                      <span>•</span>
+                      <span>{timeAgo.format(new Date(post.createdAt))}</span>
+                    </div>
                   </div>
                 </div>
               </div>
