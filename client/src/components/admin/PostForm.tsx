@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertPostSchema, type InsertPost } from "@shared/schema";
+import { insertPostSchema, insertTagSchema, type InsertPost, type InsertTag } from "@shared/schema";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,27 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
+import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 interface PostFormProps {
-  onSubmit: (data: InsertPost) => Promise<void>;
+  onSubmit: (data: InsertPost & { tags?: string[] }) => Promise<void>;
   defaultValues?: Partial<InsertPost>;
 }
 
 export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [tags, setTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState("");
+
+  // Fetch existing tags
+  const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
+    queryKey: ["/api/tags"],
+  });
 
   // Extend the schema to add required validations
   const extendedPostSchema = insertPostSchema.extend({
@@ -46,7 +56,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
 
   const handleSubmit = async (data: InsertPost) => {
     try {
-      await onSubmit(data);
+      await onSubmit({ ...data, tags });
       // Invalidate the public posts query to trigger a refetch
       queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
       toast({
@@ -60,6 +70,21 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         variant: "destructive"
       });
     }
+  };
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && currentTag.trim()) {
+      e.preventDefault();
+      const normalizedTag = currentTag.trim().toLowerCase();
+      if (!tags.includes(normalizedTag)) {
+        setTags([...tags, normalizedTag]);
+      }
+      setCurrentTag("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
   return (
@@ -122,6 +147,38 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
             </FormItem>
           )}
         />
+
+        {/* Tags Section */}
+        <div className="space-y-2 pt-4">
+          <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {tags.map(tag => (
+              <Badge key={tag} variant="secondary" className="gap-1">
+                {tag}
+                <button 
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="ml-1 hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+          <Input
+            type="text"
+            placeholder="Add tags (press Enter)"
+            value={currentTag}
+            onChange={(e) => setCurrentTag(e.target.value)}
+            onKeyDown={handleAddTag}
+            className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          {existingTags?.tags && existingTags.tags.length > 0 && (
+            <div className="text-sm text-muted-foreground mt-1">
+              Existing tags: {existingTags.tags.map(tag => tag.text).join(", ")}
+            </div>
+          )}
+        </div>
 
         <div className="space-y-4 pt-4 border-t">
           <FormField
