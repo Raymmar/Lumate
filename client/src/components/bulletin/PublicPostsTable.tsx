@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ImageIcon, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"; // Added import for Badge component
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -25,7 +26,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
   });
 
   // Sort posts by creation date only (newest first)
-  const sortedPosts = data?.posts?.sort((a, b) => 
+  const sortedPosts = data?.posts?.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -41,7 +42,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
         <div className="flex items-center justify-between">
           <CardTitle>Community News</CardTitle>
           {canCreatePosts && onCreatePost && (
-            <Button 
+            <Button
               onClick={onCreatePost}
               className="bg-primary hover:bg-primary/90"
             >
@@ -77,7 +78,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
         ) : (
           <div className="space-y-4">
             {displayedPosts?.map((post) => (
-              <div 
+              <div
                 key={post.id}
                 className="p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
                 onClick={() => onSelect(post)}
@@ -85,8 +86,8 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                 <div className="flex gap-4">
                   {post.featuredImage ? (
                     <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                      <img 
-                        src={post.featuredImage} 
+                      <img
+                        src={post.featuredImage}
                         alt=""
                         className="w-full h-full object-cover"
                         style={{ aspectRatio: '1 / 1' }}
@@ -111,9 +112,20 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                         {post.summary}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-2">
-                      {format(new Date(post.createdAt), 'MMM d, yyyy')}
-                    </p>
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(post.createdAt), 'MMM d, yyyy')}
+                      </p>
+                      {post.tags && post.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {post.tags.map((tag: string) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

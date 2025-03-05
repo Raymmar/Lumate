@@ -123,17 +123,6 @@ export function PostPreview({
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto pb-16">
           <div className="space-y-6">
-            {/* Tags Section */}
-            {post?.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag: string) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
             {/* Title Section */}
             {post?.title && (
               <div>
@@ -165,6 +154,16 @@ export function PostPreview({
                   </span>
                 )}
               </div>
+              {/* Tags Section - Moved under timestamp */}
+              {post?.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* CTA Section */}
