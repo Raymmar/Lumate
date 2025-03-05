@@ -12,12 +12,11 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
-import { X, Check, ChevronsUpDown } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost & { tags?: string[] }) => Promise<void>;
@@ -29,7 +28,6 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const queryClient = useQueryClient();
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
-  const [open, setOpen] = useState(false);
 
   // Fetch existing tags
   const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
@@ -93,7 +91,6 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
       setTags([...tags, normalizedTag]);
     }
     setCurrentTag("");
-    setOpen(false);
   };
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -185,56 +182,51 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
               </Badge>
             ))}
           </div>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0 h-9"
-              >
-                {currentTag || "Select or create a tag..."}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0">
-              <Command>
-                <CommandInput 
-                  placeholder="Search tags..."
-                  value={currentTag}
-                  onValueChange={setCurrentTag}
-                  onKeyDown={handleAddTag}
-                />
-                <CommandEmpty>
-                  {currentTag.trim() && (
-                    <button
-                      className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
-                      onClick={() => handleSelectTag(currentTag)}
-                    >
-                      Create tag "{currentTag}"
-                    </button>
-                  )}
-                </CommandEmpty>
-                <CommandGroup>
-                  {filteredTags.map((tag) => (
-                    <CommandItem
-                      key={tag}
-                      value={tag}
-                      onSelect={handleSelectTag}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          tags.includes(tag.toLowerCase()) ? "opacity-100" : "opacity-0"
-                        )}
-                      />
-                      {tag}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <div className="relative">
+            <Command className="rounded-lg border overflow-visible">
+              <CommandInput 
+                placeholder="Search tags or create new ones..."
+                value={currentTag}
+                onValueChange={setCurrentTag}
+                onKeyDown={handleAddTag}
+                className="border-0 focus:ring-0"
+              />
+              <div className="relative">
+                {(currentTag || filteredTags.length > 0) && (
+                  <div className="absolute top-0 left-0 right-0 bg-popover border rounded-lg shadow-md">
+                    <CommandEmpty>
+                      {currentTag.trim() && (
+                        <button
+                          className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
+                          onClick={() => handleSelectTag(currentTag)}
+                        >
+                          Create tag "{currentTag}"
+                        </button>
+                      )}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {filteredTags.map((tag) => (
+                        <CommandItem
+                          key={tag}
+                          value={tag}
+                          onSelect={handleSelectTag}
+                          className="flex items-center gap-2"
+                        >
+                          <Check
+                            className={cn(
+                              "h-4 w-4",
+                              tags.includes(tag.toLowerCase()) ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {tag}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </div>
+                )}
+              </div>
+            </Command>
+          </div>
         </div>
 
         <div className="space-y-4 pt-4 border-t">
