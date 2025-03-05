@@ -1872,7 +1872,7 @@ export async function registerRoutes(app: Express) {
       const roleName = req.params.roleName;
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
-      }
+}
 
       console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
@@ -2102,21 +2102,29 @@ export async function registerRoutes(app: Express) {
     try {
       const eventId = req.params.id;
 
+      // First get all attendees with their details
       const attendeesList = await db
         .select({
           id: people.id,
           api_id: people.api_id,
           userName: people.userName,
+          email: people.email,
           avatarUrl: people.avatarUrl
         })
         .from(attendance)
-        .innerJoin(people, eq(attendance.personId, people.id))
+        .leftJoin(people, eq(attendance.personId, people.id))
         .where(eq(attendance.eventApiId, eventId))
-        .orderBy(attendance.registeredAt);
+        .orderBy(sql`registered_at DESC`);
+
+      // Get total count including those without profiles
+      const totalCount = await db
+        .select({ count: sql`count(*)` })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventId));
 
       res.json({
         attendees: attendeesList,
-        total: attendeesList.length
+        total: Number(totalCount[0]?.count || 0)
       });
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);

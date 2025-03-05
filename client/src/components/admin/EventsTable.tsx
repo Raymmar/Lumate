@@ -150,6 +150,7 @@ export function EventsTable() {
                   queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
                   queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}`] }),
                   queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}/attendees`] }),
+                  queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/attendees`] }), // Public attendees
                   queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}/attendance`] }),
                   queryClient.invalidateQueries({ queryKey: ["/api/events"] }), // Public events list
                   queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
@@ -324,6 +325,7 @@ export function EventsTable() {
         queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] }), // Public attendees
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
         queryClient.invalidateQueries({ queryKey: ["/api/events"] }), // Public events list
         queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
@@ -352,8 +354,8 @@ export function EventsTable() {
       }
 
       // Revert the attendees list
-      await queryClient.invalidateQueries({ 
-        queryKey: [`/api/admin/events/${event.api_id}/attendees`] 
+      await queryClient.invalidateQueries({
+        queryKey: [`/api/admin/events/${event.api_id}/attendees`]
       });
     } finally {
       setClearingEvents(prev => prev.filter(id => id !== event.api_id));
