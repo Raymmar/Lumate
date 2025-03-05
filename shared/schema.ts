@@ -188,7 +188,6 @@ export type Post = typeof posts.$inferSelect & {
   creator?: { 
     id: number; 
     displayName: string | null;
-    email: string;
   };
   tags?: string[];
 };

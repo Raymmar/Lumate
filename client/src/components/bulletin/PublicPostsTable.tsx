@@ -117,7 +117,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                       </p>
                     )}
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                      <span>{post.creator?.displayName || post.creator?.email || 'Unknown'}</span>
+                      <span>{post.creator?.displayName || 'Unknown'}</span>
                       <span>•</span>
                       <span>{timeAgo.format(new Date(post.createdAt))}</span>
                     </div>

@@ -950,16 +950,27 @@ export class PostgresStorage implements IStorage {
     console.log('Fetching all posts from database...');
     const result = await db
       .select({
-        ...posts,
+        id: posts.id,
+        title: posts.title,
+        summary: posts.summary,
+        body: posts.body,
+        featuredImage: posts.featuredImage,
+        videoUrl: posts.videoUrl,
+        ctaLink: posts.ctaLink,
+        ctaLabel: posts.ctaLabel,
+        isPinned: posts.isPinned,
+        creatorId: posts.creatorId,
+        createdAt: posts.createdAt,
+        updatedAt: posts.updatedAt,
         creator: {
           id: users.id,
-          displayName: users.displayName,
-          email: users.email
+          displayName: users.displayName
         }
       })
       .from(posts)
-      .leftJoin(users, eq(users.id, posts.creatorId))
+      .leftJoin(users, eq(posts.creatorId, users.id))
       .orderBy(posts.createdAt);
+
     console.log(`Found ${result.length} posts in database`);
     return result;
   }
@@ -973,7 +984,7 @@ export class PostgresStorage implements IStorage {
         .values({
           ...post,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          updatedAt: newDate().toISOString()
         })
         .returning();
 
