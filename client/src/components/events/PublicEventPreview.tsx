@@ -352,48 +352,47 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
             </Card>
 
             {/* Attendees List */}
-            {user && (
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">Event Attendees</h3>
-                    <Badge variant="secondary">{attendees.length} registered</Badge>
-                  </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Event Attendees</h3>
+                  <Badge variant="secondary">{attendees?.total || 0} registered</Badge>
+                </div>
 
-                  {isLoadingAttendees ? (
-                    <div className="space-y-2">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
-                      ))}
-                    </div>
-                  ) : attendees.length > 0 ? (
-                    <div className="space-y-2">
-                      {attendees.map((person) => (
-                        <Link
-                          key={person.id}
-                          href={`/people/${person.api_id}`}
-                          className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                        >
-                          <Avatar className="h-8 w-8">
-                            {person.avatarUrl && (
-                              <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                            )}
-                            <AvatarFallback>
-                              {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{person.userName || "Anonymous"}</p>
-                          </div>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
+                {isLoadingAttendees ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
+                    ))}
+                  </div>
+                ) : attendees?.attendees?.length > 0 ? (
+                  <div className="space-y-2">
+                    {attendees.attendees.map((person) => (
+                      <Link
+                        key={person.id}
+                        href={`/people/${person.api_id}`}
+                        className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                      >
+                        <Avatar className="h-8 w-8">
+                          {person.avatarUrl && (
+                            <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                          )}
+                          <AvatarFallback>
+                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{person.userName || "Anonymous"}</p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>
+                )}
+              </CardContent>
+            </Card>
+
           </div>
         </div>
 
