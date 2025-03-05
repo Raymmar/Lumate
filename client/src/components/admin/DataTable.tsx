@@ -23,7 +23,7 @@ interface DataTableProps<T> {
     cell: (row: T) => React.ReactNode;
   }[];
   actions?: {
-    label: string;
+    label: string | ((row: T) => string);
     onClick: (row: T) => void;
   }[];
   onRowClick?: (row: T) => void;
@@ -71,7 +71,7 @@ export function DataTable<T>({ data, columns, actions, onRowClick }: DataTablePr
                             action.onClick(row);
                           }}
                         >
-                          {action.label}
+                          {typeof action.label === 'function' ? action.label(row) : action.label}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>
