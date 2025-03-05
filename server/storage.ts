@@ -968,39 +968,54 @@ export class PostgresStorage implements IStorage {
       // Main query with explicit column selection
       const result = await db
         .select({
-          post: {
-            id: posts.id,
-            title: posts.title,
-            summary: posts.summary,
-            body: posts.body,
-            featuredImage: posts.featuredImage,
-            videoUrl: posts.videoUrl,ctaLink: posts.ctaLink,
-            ctaLabel: posts.ctaLabel,
-            isPinned: posts.isPinned,
-            creatorId: posts.creatorId,
-            createdAt: posts.createdAt,
-            updatedAt: posts.updatedAt
-          },
-          creator: {
-            id: users.id,
-            displayName: users.displayName
-          }
+          id: posts.id,
+          title: posts.title,
+          summary: posts.summary,
+          body: posts.body,
+          featuredImage: posts.featuredImage,
+          videoUrl: posts.videoUrl,
+          ctaLink: posts.ctaLink,
+ctaLabel: posts.ctaLabel,
+          isPinned: posts.isPinned,
+          creatorId: posts.creatorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          creator_id: users.id,
+          creator_display_name: users.displayName
         })
         .from(posts)
-        .leftJoin(users, eq(posts.creatorId, users.id));
+        .leftJoin(users, eq(posts.creatorId, users.id))
+        .orderBy(posts.createdAt);
 
       console.log('Raw join result:', JSON.stringify(result, null, 2));
 
       // Transform the result to match our Post type
       const transformedPosts = result.map(row => ({
-        ...row.post,
-        creator: row.creator.id ? {
-          id: row.creator.id,
-          displayName: row.creator.displayName
+        id: row.id,
+        title: row.title,
+        summary: row.summary,
+        body: row.body,
+        featuredImage: row.featuredImage,
+        videoUrl: row.videoUrl,
+        ctaLink: row.ctaLink,
+        ctaLabel: row.ctaLabel,
+        isPinned: row.isPinned,
+        creatorId: row.creatorId,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        creator: row.creator_id ? {
+          id: row.creator_id,
+          displayName: row.creator_display_name
         } : undefined
       }));
 
-      console.log('Transformed posts:', JSON.stringify(transformedPosts, null, 2));
+      console.log('Final transformed posts:', transformedPosts.map(p => ({
+        id: p.id,
+        title: p.title,
+        creatorId: p.creatorId,
+        creator: p.creator
+      })));
+
       return transformedPosts;
     } catch (error) {
       console.error('Error fetching posts:', error);

@@ -1360,51 +1360,19 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/public/posts", async (_req, res) => {
+  app.get("/api/public/posts", async (req, res) => {
     try {
       console.log('Fetching public posts...');
-      // Get posts with their tags
-      const postsWithTags = await db
-        .select({
-          id: posts.id,
-          title: posts.title,
-          summary: posts.summary,
-          body: posts.body,
-          featuredImage: posts.featuredImage,
-          videoUrl: posts.videoUrl,
-          ctaLink: posts.ctaLink,
-          ctaLabel: posts.ctaLabel,
-          isPinned: posts.isPinned,
-          createdAt: posts.createdAt,
-          updatedAt: posts.updatedAt,
-          creatorId: posts.creatorId,
-          tags_text: tags.text
-        })
-        .from(posts)
-        .leftJoin(postTags, eq(posts.id, postTags.postId))
-        .leftJoin(tags, eq(postTags.tagId, tags.id));
-
-      console.log('Fetchingall posts from database...');
-
-      // Group posts with their tags
-      const groupedPosts = postsWithTags.reduce((acc: any[], post) => {
-        const existingPost = acc.find(p => p.id === post.id);
-        if (existingPost) {
-          if (post.tags_text) {
-            existingPost.tags = [...existingPost.tags, post.tags_text];
-          }
-        } else {
-          acc.push({
-            ...post,
-            tags: post.tags_text ? [post.tags_text] : []
-          });
-        }
-        return acc;
-      }, []);
-
-      res.json({ posts: groupedPosts });
+      const posts = await storage.getPosts();
+      console.log('Public posts retrieved:', posts.map(p => ({
+        id: p.id,
+        title: p.title,
+        creatorId: p.creatorId,
+        creator: p.creator
+      })));
+      res.json({ posts });
     } catch (error) {
-      console.error('Failed to fetch public posts:', error);
+      console.error('Failed to fetch posts:', error);
       res.status(500).json({ error: "Failed to fetch posts" });
     }
   });
@@ -1437,49 +1405,23 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const { tags: tagList, ...postData } = req.body;
+      const post = {
+        ...req.body,
+        creatorId: req.session.userId // Ensure we're setting the creator ID from the session
+      };
 
-      // Create the post
-      const [post] = await db
-        .insert(posts)
-        .values({
-          ...postData,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          creatorId: user.id
-        })
-        .returning();
+      console.log('Creating post with data:', { 
+        ...post,
+        body: post.body?.substring(0, 100) + '...' // Truncate body for logging
+      });
 
-      // Handle tags if provided
-      if (tagList && Array.isArray(tagList)) {
-        const sanitizedTags = [...new Set(tagList.map(tag => tag.toLowerCase().trim()))];
+      const createdPost = await storage.createPost(post);
+      console.log('Post created successfully:', { 
+        id: createdPost.id,
+        creatorId: createdPost.creatorId
+      });
 
-        for (const tagText of sanitizedTags) {
-          // Find or create tag
-          let [existingTag] = await db
-            .select()
-            .from(tags)
-            .where(sql`LOWER(text) = LOWER(${tagText})`);
-
-          if (!existingTag) {
-            [existingTag] = await db
-              .insert(tags)
-              .values({ text: tagText })
-              .returning();
-          }
-
-          // Link tag to post
-          await db
-            .insert(postTags)
-            .values({
-              postId: post.id,
-              tagId: existingTag.id
-            })
-            .onConflictDoNothing();
-        }
-      }
-
-      res.json(post);
+      res.json(createdPost);
     } catch (error) {
       console.error('Failed to create post:', error);
       res.status(500).json({ error: "Failed to create post" });
