@@ -396,7 +396,16 @@ export function BulletinBoard() {
         <JoinUsSection />
       </div>
 
-      {/* Stats Grid */}
+      {/* Pinned Posts Carousel */}
+      <PinnedPostsCarousel onSelect={setSelectedPost} />
+
+      {/* Latest Posts Section */}
+      <PublicPostsTable
+        onSelect={setSelectedPost}
+        onCreatePost={() => setIsCreating(true)}
+      />
+
+      {/* Stats Grid - Moved here */}
       <div className="grid gap-3 md:grid-cols-3">
         <StatCard
           title="Events"
@@ -420,15 +429,6 @@ export function BulletinBoard() {
           description="63% open rate 21% click rate"
         />
       </div>
-
-      {/* Pinned Posts Carousel */}
-      <PinnedPostsCarousel onSelect={setSelectedPost} />
-
-      {/* Latest Posts Section */}
-      <PublicPostsTable
-        onSelect={setSelectedPost}
-        onCreatePost={() => setIsCreating(true)}
-      />
 
       {/* Post Preview/Creation Modal */}
       {(selectedPost || isCreating) && (
