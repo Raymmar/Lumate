@@ -1467,8 +1467,44 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const posts = await storage.getPosts();
-      res.json({ posts });
+      // Get posts with their tags
+      const postsWithTags = await db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          summary: posts.summary,
+          body: posts.body,
+          featuredImage: posts.featuredImage,
+          videoUrl: posts.videoUrl,
+          ctaLink: posts.ctaLink,
+          ctaLabel: posts.ctaLabel,
+          isPinned: posts.isPinned,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          creatorId: posts.creatorId,
+          tags_text: tags.text
+        })
+        .from(posts)
+        .leftJoin(postTags, eq(posts.id, postTags.postId))
+        .leftJoin(tags, eq(postTags.tagId, tags.id));
+
+      // Group posts with their tags
+      const groupedPosts = postsWithTags.reduce((acc: any[], post) => {
+        const existingPost = acc.find(p => p.id === post.id);
+        if (existingPost) {
+          if (post.tags_text) {
+            existingPost.tags = [...existingPost.tags, post.tags_text];
+          }
+        } else {
+          acc.push({
+            ...post,
+            tags: post.tags_text ? [post.tags_text] : []
+          });
+        }
+        return acc;
+      }, []);
+
+      res.json({ posts: groupedPosts });
     } catch (error) {
       console.error('Failed to fetch posts:', error);
       res.status(500).json({ error: "Failed to fetch posts" });
