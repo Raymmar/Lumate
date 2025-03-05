@@ -185,10 +185,11 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      className="outline-none focus:outline-none focus-visible:outline-none"
+      style={{ outline: 'none' }}
+      className="ring-0 focus:ring-0 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
     >
       <DialogTitle className="sr-only">Event Preview</DialogTitle>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full outline-none focus:outline-none">
         <div className="flex-1 overflow-y-auto pb-16">
           {event.coverUrl && (
             <div className="relative w-full aspect-video mb-4">
