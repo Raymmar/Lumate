@@ -1,0 +1,231 @@
+Based on the code you've shared, I can explain where the event attendees list comes from and how the number is calculated.
+
+The event attendees data comes from the server's API endpoint /api/admin/events/:eventId/attendees. This endpoint retrieves attendees who have RSVP'd to a specific event from the database.
+
+Looking at your code, specifically in the server routes:
+
+When a user views an event in the admin dashboard, the application makes an API request to fetch the attendees:
+
+The data is fetched via a query in EventPreview.tsx similar to:
+const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
+  queryKey: [`/api/admin/events/${event.api_id}/attendees`],
+  queryFn: async () => {
+    const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
+    if (!response.ok) throw new Error('Failed to fetch attendees');
+    return response.json();
+  },
+  enabled: !!event.api_id && !!user
+});
+On the server side in routes.ts, the corresponding endpoint handles this request:
+
+app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
+  // Authentication check
+  // ...
+  
+  const eventId = req.params.eventId;
+  
+  const result = await db
+    .select({
+      id: people.id,
+      userName: people.userName,
+      email: people.email,
+      avatarUrl: people.avatarUrl,
+      api_id: people.api_id,
+    })
+    .from(attendance)
+    .innerJoin(people, eq(attendance.userEmail, people.email))
+    .where(eq(attendance.eventApiId, eventId))
+    .orderBy(attendance.registeredAt);
+  res.json(result);
+});
+The attendee count is simply the length of this array of attendees: attendees.length
+
+The data is synced from Luma (an external event platform) via the /api/admin/events/:eventId/guests endpoint which fetches approved guests and stores them in your local database. This sync process updates the attendance table which is then used for displaying the attendees list.
+
+The total attendance statistics you see elsewhere in the application (like on the bulletin board) come from aggregated queries:
+
+storage.getTotalAttendeesCount() - counts all attendance records across all events
+storage.getPeopleCount() - counts unique people who have attended events
+Is there any specific part of this process you'd like me to explain in more detail?
+
+This same list exists in the public view as well. On the home page in the event preview. Is it pulling from the same place?
+
+RT
+
+raymmar
+Assistant
+8 minutes ago
+Yes, both the admin and public views of event attendees are pulling data from the same API endpoint. The event preview component in the public view (on the home page) uses the same endpoint as the admin dashboard: /api/admin/events/:eventId/attendees.
+
+Looking at the code in PublicEventPreview.tsx (rag_source_5), it makes the same API call:
+
+const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
+  queryKey: [`/api/admin/events/${event.api_id}/attendees`],
+  queryFn: async () => {
+    const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
+    if (!response.ok) throw new Error('Failed to fetch attendees');
+    return response.json();
+  },
+  enabled: !!event.api_id && !!user
+});
+And in the server's routes.ts (rag_source_0), this endpoint retrieves the attendees by querying the database to find people who have registered for the specified event:
+
+app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
+  // Authentication checks...
+  
+  const result = await db
+    .select({
+      id: people.id,
+      userName: people.userName,
+      email: people.email,
+      avatarUrl: people.avatarUrl,
+      api_id: people.api_id,
+    })
+    .from(attendance)
+    .innerJoin(people, eq(attendance.userEmail, people.email))
+    .where(eq(attendance.eventApiId, eventId))
+    .orderBy(attendance.registeredAt);
+  res.json(result);
+});
+This is an efficient approach since both views are displaying the same data - a list of people who have RSVP'd to a specific event.
+
+For some reason, when the event is sync'd in the back, I see a different confirmation count in the sync messages than I do in the list of attendees. Can you see anything in the code which would cause the list of attendees or the total event counts in our stats widget from not updating?
+
+I do not need you to write any code, just help me think through what we are looking at here and see if there is anything that might be stopping the process from updating the list or dashboard stats after the manual event sync.
+
+In a recent sync, I saw 109 confirmed sync. Then the list shows 107. And out stat widget did not update it is missing the 2 additional attendee records.
+
+Look through that workflow and help me understand it like you did with the last process. Agian, no new code needed just yet. We're simply thinking things through here
+
+RT
+
+raymmar
+Assistant
+6 minutes ago
+I can help you understand what might be causing the discrepancy between the sync message count and the actual attendee list count.
+
+Based on the code you've shared, here's what I'm seeing in the event sync workflow:
+
+The Event Sync Process
+When an event is synced, the system follows these steps:
+
+In EventPreview.tsx, when you click "Sync Attendees", it makes a request to /api/admin/events/:eventId/guests
+This endpoint in routes.ts does the following:
+Clears existing attendance records for that event
+Fetches approved guests from Luma API in batches
+For each approved guest, it calls storage.upsertAttendance()
+Updates the event's lastAttendanceSync timestamp
+Potential Causes for Discrepancy
+Looking at the code, I can identify a few potential issues:
+
+Filtering Difference: In the sync message, it may be counting all guests, but in the attendee display query, it's filtering:
+
+// In the endpoint that gets attendees
+const result = await db
+  .select({
+    id: people.id,
+    userName: people.userName,
+    email: people.email,
+    avatarUrl: people.avatarUrl,
+    api_id: people.api_id,
+  })
+  .from(attendance)
+  .innerJoin(people, eq(attendance.userEmail, people.email))
+  .where(eq(attendance.eventApiId, eventId))
+  .orderBy(attendance.registeredAt);
+This query will only display attendees who have a corresponding entry in the people table. If some guests don't have matching people records, they won't show up in the list.
+
+Missing Person Records: The upsertAttendance function tries to link attendance records to existing users and people:
+
+const [matchingUser] = await db.select().from(users).where(eq(users.email, data.userEmail.toLowerCase())).limit(1);
+const [matchingPerson] = await db.select().from(people).where(eq(people.email, data.userEmail.toLowerCase())).limit(1);
+If a person record doesn't exist for some guests, they may be stored in attendance but not linkable in the UI.
+
+Stats Widget Update: The stats widget appears to use:
+
+async getTotalAttendeesCount(): Promise<number> {
+  const result = await db.select({ count: sql`COUNT(*)` }).from(attendance);
+  return Number(result[0].count);
+}
+This function counts all records in the attendance table, but if the page isn't refreshed or the query cache isn't invalidated, it won't show updated values.
+
+How to Verify
+Check your server logs during a sync. You'll see:
+
+"Successfully processed X guests" messages showing how many were processed
+"Found matching records" logs that show if guests are being linked to existing people
+Possible error messages for failed operations
+The most likely reason for the discrepancy is the INNER JOIN in the attendee list query - it will only show attendees who also have records in the people table.
+
+What Could Be Happening
+When counting "confirmed sync", it's counting all attendance records, including ones without linked person records
+When displaying the list, it's only showing attendees with linked person records (due to the INNER JOIN)
+The stats widget might not be getting refreshed after the sync
+The missing attendee records could be because those attendees don't have corresponding entries in the people table yet, or because the React Query cache isn't being properly invalidated after the sync completes.
+
+All the people in our system come from Luma, and that updates once per hour. The only way they would be in an attendance record is if they have a people record. The attendance record cannot exist without a people record. So there would never be an instance of an attendee not having a people record.
+
+So when the process syncs, and counts 109, and we display 107, then there is something wrong there. What you said about invalidating the cache, or the inner join. Let's explore those a bit. Can you look at the files and and see what might be causing the discrepancy? How long are we caching this information? And when does it update?
+
+RT
+
+raymmar
+Assistant
+just now
+After reviewing the code, I can see several factors that could cause the discrepancy between the sync count (109) and the displayed attendee count (107):
+
+1. Database Query Discrepancy
+The attendee list endpoint uses an INNER JOIN with the people table:
+
+const result = await db
+  .select({
+    id: people.id,
+    userName: people.userName,
+    email: people.email,
+    avatarUrl: people.avatarUrl,
+    api_id: people.api_id,
+  })
+  .from(attendance)
+  .innerJoin(people, eq(attendance.userEmail, people.email))
+  .where(eq(attendance.eventApiId, eventId))
+  .orderBy(attendance.registeredAt);
+This INNER JOIN will only return records where the emails match exactly. If there are case differences or whitespace issues between the attendance and people records, some records might be excluded.
+
+2. React Query Caching
+The attendee list is fetched using React Query:
+
+const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
+  queryKey: [`/api/admin/events/${event.api_id}/attendees`],
+  queryFn: async () => {
+    const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
+    if (!response.ok) throw new Error('Failed to fetch attendees');
+    return response.json();
+  },
+  enabled: !!event.api_id && !!user
+});
+React Query maintains its own cache. The cache is only invalidated when:
+
+The component is unmounted and remounted
+The query key changes
+You explicitly call queryClient.invalidateQueries()
+When syncing attendees, I see there is an attempt to invalidate the cache:
+
+queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
+But this might not always work correctly, especially if the component rendering isn't updated.
+
+3. Sync Process vs Display Process
+During the sync process, there are two different operations:
+
+Sync process: Directly counts all records from Luma's API (109 confirmed)
+Display process: Queries the database with JOINs and filters (107 shown)
+4. Possible Solution
+To debug and fix this issue, I recommend:
+
+Check case sensitivity in the email matching. Make sure both attendance.userEmail and people.email are consistently normalized (both lowercase).
+Add logging to capture emails during sync vs display to identify which records aren't showing up.
+Consider using a LEFT JOIN instead of INNER JOIN if you want to show all attendance records.
+The most likely culprit is the INNER JOIN combined with email case sensitivity. The email case is handled inconsistently in different parts of the code:
+
+Sometimes emails are explicitly lowercased: userEmail: data.userEmail.toLowerCase()
+Other times they might be stored as-is
+Ideally, you should ensure all email addresses are consistently lowercase throughout the system.
