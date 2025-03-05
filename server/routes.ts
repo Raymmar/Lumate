@@ -1363,16 +1363,46 @@ export async function registerRoutes(app: Express) {
   app.get("/api/public/posts", async (_req, res) => {
     try {
       console.log('Fetching public posts...');
-      const posts = await storage.getPosts();
+      // Get posts with their tags
+      const postsWithTags = await db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          summary: posts.summary,
+          body: posts.body,
+          featuredImage: posts.featuredImage,
+          videoUrl: posts.videoUrl,
+          ctaLink: posts.ctaLink,
+          ctaLabel: posts.ctaLabel,
+          isPinned: posts.isPinned,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
+          creatorId: posts.creatorId,
+          tags_text: tags.text
+        })
+        .from(posts)
+        .leftJoin(postTags, eq(posts.id, postTags.postId))
+        .leftJoin(tags, eq(postTags.tagId, tags.id));
 
-      const sortedPosts = posts.sort((a, b) => {
-        if (a.isPinned && !b.isPinned) return -1;
-        if (!a.isPinned && b.isPinned) return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
+      console.log('Fetchingall posts from database...');
 
-      console.log(`Retrieved ${posts.length} public posts`);
-      res.json({ posts: sortedPosts });
+      // Group posts with their tags
+      const groupedPosts = postsWithTags.reduce((acc: any[], post) => {
+        const existingPost = acc.find(p => p.id === post.id);
+        if (existingPost) {
+          if (post.tags_text) {
+            existingPost.tags = [...existingPost.tags, post.tags_text];
+          }
+        } else {
+          acc.push({
+            ...post,
+            tags: post.tags_text ? [post.tags_text] : []
+          });
+        }
+        return acc;
+      }, []);
+
+      res.json({ posts: groupedPosts });
     } catch (error) {
       console.error('Failed to fetch public posts:', error);
       res.status(500).json({ error: "Failed to fetch posts" });
