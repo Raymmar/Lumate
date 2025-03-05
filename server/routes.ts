@@ -1104,178 +1104,207 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const eventId = req.params.eventId;
+      const { eventId } = req.params;
       if (!eventId) {
         return res.status(400).json({ error: "Missing event ID" });
       }
 
-      // Initialize SSE connection
       initSSE(res);
+      sendSSEUpdate(res, { 
+        type: 'status',
+        message: 'Starting attendance sync...',
+        progress: 0
+      });
 
-      let allGuests: any[] = [];
-      let hasMore = true;
-      let cursor = undefined;
-      let iterationCount = 0;
-      const MAX_ITERATIONS = 100;
-
-      // Fetch event details for progress messages
       const event = await storage.getEventByApiId(eventId);
       if (!event) {
-        sendSSEUpdate(res, {
-          type: 'error',
-          message: 'Event not found',
-          progress: 0
-        });
-        return res.end();
+        throw new Error('Event not found');
+      }
+
+      let cursor = null;
+      let page = 1;
+      let totalAttendees: any[] = [];
+
+      // Fetch all attendees with pagination
+      while (true) {
+        try {
+          const queryParams: Record<string, string> = {
+            event_api_id: eventId,
+            ...(cursor ? { cursor } : {})
+          };
+
+          const response = await lumaApiRequest('event/get-guests', queryParams);
+
+          if (!response.entries) {
+            break;
+          }
+
+          totalAttendees = totalAttendees.concat(response.entries);
+          sendSSEUpdate(res, {
+            type: 'status',
+            message: `Fetched page ${page} of attendees...`,
+            progress: 25,
+            data: {
+              total: totalAttendees.length,
+              success: 0,
+              failure: 0
+            }
+          });
+
+          if (!response.has_more || !response.next_cursor) {
+            break;
+          }
+
+          cursor = response.next_cursor;
+          page++;
+        } catch (error) {
+          console.error(`Failed to fetch page ${page}:`, error);
+          sendSSEUpdate(res, {
+            type: 'error',
+            message: `Failed to fetch page ${page}: ${error instanceof Error ? error.message : String(error)}`,
+            progress: 25
+          });
+          throw error;
+        }
       }
 
       sendSSEUpdate(res, {
         type: 'status',
-        message: `Starting attendance sync for event: ${event.title}`,
-        progress: 0
+        message: 'Processing attendees...',
+        progress: 50,
+        data: {
+          total: totalAttendees.length,
+          success: 0,
+          failure: 0
+        }
       });
 
-      try {
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Clearing existing attendance records...',
-          progress: 5
-        });
+      // Process attendees in batches
+      const results = await batchProcessAttendees(totalAttendees, eventId);
 
-        await storage.deleteAttendanceByEvent(eventId);
-
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: 'Successfully cleared existing attendance records',
-          progress: 10
-        });
-      } catch (error) {
-        sendSSEUpdate(res, {
-          type: 'error',
-          message: 'Failed to clear existing attendance records',
-          progress: 0
-        });
-        res.end();
-        return;
-      }
-
-      let totalProcessed = 0;
-      let successCount = 0;
-      let failureCount = 0;
-
-      while (hasMore && iterationCount < MAX_ITERATIONS) {
-        const params: Record<string, string> = { 
-          event_api_id: eventId 
-        };
-
-        if (cursor) {
-          params.pagination_cursor = cursor;
-        }
-
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: `Fetching guests batch ${iterationCount + 1}...`,
-          progress: 10 + (iterationCount * 2)
-        });
-
-        const response = await lumaApiRequest('event/get-guests', params);
-
-        if (response.entries) {
-          const approvedEntries = response.entries.filter((entry: any) => 
-            entry.guest.approval_status === 'approved'
-          );
-
-          for (const entry of approvedEntries) {
-            const guest = entry.guest;
-            totalProcessed++;
-
-            try {
-              await storage.upsertAttendance({
-                eventApiId: eventId,
-                userEmail: guest.email.toLowerCase(),
-                guestApiId: guest.api_id,
-                approvalStatus: guest.approval_status,
-                registeredAt: guest.registered_at
-              });
-
-              successCount++;
-              sendSSEUpdate(res, {
-                type: 'progress',
-                message: `Successfully processed ${guest.email}`,
-                data: {
-                  total: totalProcessed,
-                  success: successCount,
-                  failure: failureCount
-                },
-                progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
-              });
-            } catch (error) {
-              failureCount++;
-              sendSSEUpdate(res, {
-                type: 'error',
-                message: `Failed to process ${guest.email}: ${error instanceof Error ? error.message : String(error)}`,
-                data: {
-                  total: totalProcessed,
-                  success: successCount,
-                  failure: failureCount
-                },
-                progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
-              });
-            }
-          }
-
-          allGuests = allGuests.concat(approvedEntries);
-        }
-
-        hasMore = response.has_more;
-        cursor = response.next_cursor;
-        iterationCount++;
-
-        sendSSEUpdate(res, {
-          type: 'status',
-          message: `Processed ${totalProcessed} guests so far...`,
-          data: {
-            total: totalProcessed,
-            success: successCount,
-            failure: failureCount,
-            hasMore,
-            currentBatch: iterationCount
-          },
-          progress: Math.min(90, 10 + ((totalProcessed / (response.total || 1)) * 80))
-        });
-      }
-
-      if (iterationCount >= MAX_ITERATIONS) {
-        sendSSEUpdate(res, {
-          type: 'warning',
-          message: 'Reached maximum iteration limit while syncing guests',
-          progress: 95
-        });
-      }
-
-      await storage.updateEventAttendanceSync(eventId);
+      // Update event sync status
+      await storage.updateEventSyncStatus(eventId, {
+        lastAttendanceSync: new Date().toISOString(),
+        totalAttendees: results.success
+      });
 
       sendSSEUpdate(res, {
         type: 'complete',
-        message: 'Attendance sync completed',
+        message: 'Sync completed successfully',
+        progress: 100,
         data: {
-          total: totalProcessed,
-          success: successCount,
-          failure: failureCount,
-          totalGuests: allGuests.length
-        },
-        progress: 100
+          total: results.total,
+          success: results.success,
+          failure: results.failure
+        }
       });
 
       res.end();
     } catch (error) {
-      console.error('Failed to sync event guests:', error);
+      console.error('Failed to sync event attendees:', error);
       sendSSEUpdate(res, {
         type: 'error',
         message: error instanceof Error ? error.message : String(error),
         progress: 0
       });
       res.end();
+    }
+  });
+
+  async function batchProcessAttendees(attendees: any[], eventApiId: string) {
+    const batchSize = 50;
+    const results = {
+      total: attendees.length,
+      success: 0,
+      failure: 0,
+      processed: new Set<string>()
+    };
+
+    for (let i = 0; i < attendees.length; i += batchSize) {
+      const batch = attendees.slice(i, i + batchSize);
+
+      await Promise.all(batch.map(async (attendee) => {
+        try {
+          const normalizedEmail = attendee.email.toLowerCase();
+          if (results.processed.has(normalizedEmail)) {
+            return;
+          }
+
+          await storage.upsertAttendance({
+            eventApiId,
+            userEmail: normalizedEmail,
+            guestApiId: attendee.api_id,
+            approvalStatus: attendee.approval_status,
+            registeredAt: attendee.registered_at,
+          });
+
+          results.success++;
+          results.processed.add(normalizedEmail);
+        } catch (error) {
+          console.error('Failed to process attendee:', error);
+          results.failure++;
+        }
+      }));
+    }
+
+    return results;
+  }
+
+  app.get("/api/admin/people", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const searchQuery = (req.query.search as string || '').toLowerCase();
+      const offset = (page - 1) * limit;
+
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(people)
+        .where(
+          searchQuery
+            ? sql`(
+              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
+            )`
+            : sql`1=1`
+        )
+        .then(result => Number(result[0].count));
+
+      const peopleList = await db
+        .select()
+        .from(people)
+        .where(
+          searchQuery
+            ? sql`(
+              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
+            )`
+            : sql`1=1`
+        )
+        .orderBy(people.id)
+        .limit(limit)
+        .offset(offset);
+
+      res.json({
+        people: peopleList,
+        total: totalCount
+      });
+    } catch (error) {
+      console.error('Failed to fetch people:', error);
+      res.status(500).json({ error: "Failed to fetch people" });
     }
   });
 

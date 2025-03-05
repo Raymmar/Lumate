@@ -93,67 +93,56 @@ export function EventsTable() {
       }
 
       while (true) {
-        try {
-          const { done, value } = await reader.read();
-          if (done) break;
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          const chunk = decoder.decode(value);
-          const messages = chunk.split('\n\n').filter(Boolean);
+        const chunk = decoder.decode(value);
+        const messages = chunk.split('\n\n').filter(Boolean);
 
-          for (const message of messages) {
-            if (message.startsWith('data: ')) {
-              try {
-                const jsonStr = message.slice(6).trim();
-                if (!jsonStr) {
-                  console.warn('Empty SSE message received');
-                  continue;
-                }
+        for (const message of messages) {
+          if (message.startsWith('data: ')) {
+            try {
+              const jsonStr = message.slice(6).trim();
+              if (!jsonStr) continue;
 
-                let data;
-                try {
-                  data = JSON.parse(jsonStr);
-                } catch (jsonError) {
-                  console.warn('Invalid JSON received:', jsonStr);
-                  continue;
-                }
-
-                if (!data || typeof data.message !== 'string' || typeof data.progress !== 'number') {
-                  console.warn('Invalid data structure received:', data);
-                  continue;
-                }
-
-                setSyncProgress({
-                  message: data.message,
-                  progress: data.progress,
-                  data: data.data,
-                  type: data.type
-                });
-
-                if (data.type === 'complete') {
-                  setSyncingEvents(prev => prev.filter(id => id !== eventId));
-                  await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-                  toast({
-                    title: "Success",
-                    description: "Attendance sync completed successfully.",
-                  });
-                }
-              } catch (parseError) {
-                console.warn('Error processing SSE message:', parseError);
+              const data = JSON.parse(jsonStr);
+              if (!data || typeof data.message !== 'string' || typeof data.progress !== 'number') {
+                console.warn('Invalid data structure received:', data);
+                continue;
               }
+
+              setSyncProgress({
+                message: data.message,
+                progress: data.progress,
+                data: data.data,
+                type: data.type
+              });
+
+              if (data.type === 'complete') {
+                setSyncingEvents(prev => prev.filter(id => id !== eventId));
+                await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+                toast({
+                  title: "Success",
+                  description: `Sync completed. ${data.data.success} attendees processed successfully.`,
+                });
+              } else if (data.type === 'error') {
+                throw new Error(data.message);
+              }
+            } catch (parseError) {
+              console.error('Error processing SSE message:', parseError);
+              throw parseError;
             }
           }
-        } catch (readError) {
-          console.error('Error reading SSE stream:', readError);
-          break;
         }
       }
     } catch (error) {
       console.error('Error during sync:', error);
       toast({
         title: "Error",
-        description: "Failed to start sync process. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to sync attendees. Please try again.",
         variant: "destructive",
       });
+      setSyncingEvents(prev => prev.filter(id => id !== eventId));
     } finally {
       if (syncingEvents.includes(eventId)) {
         setSyncingEvents(prev => prev.filter(id => id !== eventId));
