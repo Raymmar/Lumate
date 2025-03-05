@@ -15,6 +15,7 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
 import { CacheService } from './services/CacheService';
+import { posts, tags, postTags } from "@shared/schema";
 
 interface Post {
   id: number;
@@ -263,6 +264,7 @@ export async function registerRoutes(app: Express) {
 
         console.log(`Returning sorted people from index ${start} to ${end -1}`);
         
+
         res.json({
           people: paginatedPeople,
           total: sortedPeople.length
@@ -1377,6 +1379,23 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/tags", async (_req, res) => {
+    try {
+      const result = await db
+        .select({
+          id: tags.id,
+          text: tags.text
+        })
+        .from(tags)
+        .orderBy(tags.text);
+
+      res.json({ tags: result });
+    } catch (error) {
+      console.error('Failed to fetch tags:', error);
+      res.status(500).json({ error: "Failed to fetch tags" });
+    }
+  });
+
   app.post("/api/admin/posts", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -1388,11 +1407,47 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const postData = req.body;
+      const { tags: tagList, ...postData } = req.body;
 
-      postData.creatorId = user.id;
+      // Create the post
+      const [post] = await db
+        .insert(posts)
+        .values({
+          ...postData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          creatorId: user.id
+        })
+        .returning();
 
-      const post = await storage.createPost(postData);
+      // Handle tags if provided
+      if (tagList && Array.isArray(tagList)) {
+        const sanitizedTags = [...new Set(tagList.map(tag => tag.toLowerCase().trim()))];
+
+        for (const tagText of sanitizedTags) {
+          // Find or create tag
+          let [existingTag] = await db
+            .select()
+            .from(tags)
+            .where(sql`LOWER(text) = LOWER(${tagText})`);
+
+          if (!existingTag) {
+            [existingTag] = await db
+              .insert(tags)
+              .values({ text: tagText })
+              .returning();
+          }
+
+          // Link tag to post
+          await db
+            .insert(postTags)
+            .values({
+              postId: post.id,
+              tagId: existingTag.id
+            })
+            .onConflictDoNothing();
+        }
+      }
 
       res.json(post);
     } catch (error) {

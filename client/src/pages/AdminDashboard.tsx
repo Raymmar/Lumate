@@ -33,7 +33,7 @@ export default function AdminDashboard() {
     queryKey: ["/api/admin/posts"]
   });
 
-  const handleCreatePost = async (data: InsertPost) => {
+  const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
     try {
       await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
