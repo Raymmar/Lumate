@@ -148,7 +148,16 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
 
 export default function EventList() {
   const { data, isLoading, error } = useQuery<EventsResponse>({
-    queryKey: ["/api/events"]
+    queryKey: ["/api/events"],
+    queryFn: async () => {
+      const response = await fetch('/api/events');
+      if (!response.ok) {
+        throw new Error('Failed to load events');
+      }
+      return response.json();
+    },
+    staleTime: 30000, // Cache for 30 seconds before considering stale
+    refetchOnWindowFocus: true // Refetch when window regains focus
   });
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 

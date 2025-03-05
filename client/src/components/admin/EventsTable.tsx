@@ -151,9 +151,10 @@ export function EventsTable() {
                   queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}`] }),
                   queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}/attendees`] }),
                   queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}/attendance`] }),
-                  queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
+                  queryClient.invalidateQueries({ queryKey: ["/api/events"] }), // Public events list
                   queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
-                  queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/stats`] })
+                  queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/stats`] }),
+                  queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }) // Public stats
                 ]);
 
                 toast({
@@ -324,9 +325,10 @@ export function EventsTable() {
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events"] }), // Public events list
         queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
-        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/stats`] })
+        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/stats`] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }) // Public stats
       ]);
 
       toast({
