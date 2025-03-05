@@ -30,24 +30,23 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
   });
   const queryClient = useQueryClient();
 
-  // Query to fetch attendees for this event
-  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
-    queryKey: [`/api/admin/events/${event.api_id}/attendees`],
+  // Query to fetch attendees and stats for this event
+  const { data: eventData = { attendees: [], stats: { total: 0 } }, isLoading: isLoadingAttendees } = useQuery({
+    queryKey: [`/api/admin/events/${event.api_id}/stats`],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);
-      if (!response.ok) throw new Error('Failed to fetch attendees');
+      const response = await fetch(`/api/admin/events/${event.api_id}/stats`);
+      if (!response.ok) throw new Error('Failed to fetch event stats');
       return response.json();
     },
-    enabled: !!event.api_id
+    enabled: !!event.api_id,
+    refetchInterval: isSyncing ? 1000 : false // Poll every second while syncing
   });
 
   const formatLastSyncTime = (dateStr: string | null | undefined) => {
     if (!dateStr) return "Never synced";
 
     try {
-      // First parse the date string, ensuring we interpret it as UTC
       const utcDate = new Date(dateStr + 'Z');
-
       return formatInTimeZone(
         utcDate,
         event.timezone || 'America/New_York',
@@ -65,49 +64,75 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
       onStartSync(event.api_id);
     }
 
-    fetch(`/api/admin/events/${event.api_id}/guests`)
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error('Failed to fetch attendees');
+    try {
+      // Start syncing process
+      const response = await fetch(`/api/admin/events/${event.api_id}/guests`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch attendees');
+      }
+
+      // Listen for Server-Sent Events
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        throw new Error('Failed to initialize stream reader');
+      }
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const messages = chunk.split('\n\n').filter(Boolean);
+
+        for (const message of messages) {
+          if (message.startsWith('data: ')) {
+            const data = JSON.parse(message.slice(6));
+            if (data.type === 'complete') {
+              // Update local state and invalidate queries
+              const now = new Date().toISOString();
+              setLocalSyncStatus({
+                isSynced: true,
+                lastSyncedAt: now
+              });
+
+              // Invalidate all relevant queries
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/stats`] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }),
+                queryClient.invalidateQueries({ queryKey: ["/api/events"] })
+              ]);
+
+              if (onSync) {
+                onSync(event.api_id);
+              }
+
+              toast({
+                title: "Success",
+                description: "Successfully synced attendees data",
+              });
+              break;
+            }
+          }
         }
-        const data = await response.json();
-
-        // Optimistically update local state
-        const now = new Date().toISOString();
-        setLocalSyncStatus({
-          isSynced: true,
-          lastSyncedAt: now
-        });
-
-        if (onSync) {
-          onSync(event.api_id);
-        }
-
-        toast({
-          title: "Success",
-          description: "Successfully synced attendees data",
-        });
-
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] });
-      })
-      .catch((error) => {
-        console.error('Error fetching attendees:', error);
-        toast({
-          title: "Error",
-          description: error instanceof Error ? error.message : "Failed to sync attendees",
-          variant: "destructive",
-        });
-      })
-      .finally(() => {
-        setIsSyncing(false);
+      }
+    } catch (error) {
+      console.error('Error during sync:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to sync attendees",
+        variant: "destructive",
       });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  // Derive sync status from attendees count and last sync time
-  const hasSyncedAttendees = attendees.length > 0;
-  const syncStatus = localSyncStatus.isSynced || hasSyncedAttendees;
+  // Get sync status
+  const syncStatus = localSyncStatus.isSynced || eventData.stats.total > 0;
   const lastSyncTime = localSyncStatus.lastSyncedAt || event.lastAttendanceSync;
 
   return (
@@ -225,7 +250,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Event Attendees</h3>
-              <Badge variant="secondary">{attendees.length} registered</Badge>
+              <Badge variant="secondary">{eventData.stats.total} registered</Badge>
             </div>
 
             {isLoadingAttendees ? (
@@ -234,9 +259,9 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                   <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
                 ))}
               </div>
-            ) : attendees.length > 0 ? (
+            ) : eventData.attendees?.length > 0 ? (
               <div className="space-y-2">
-                {attendees.map((person) => (
+                {eventData.attendees.map((person: Person) => (
                   <Link 
                     key={person.id} 
                     href={`/people/${person.api_id}`}
