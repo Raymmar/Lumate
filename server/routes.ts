@@ -942,7 +942,7 @@ export async function registerRoutes(app: Express) {
       });
 
       if (response.guest?.approval_status) {
-        await storage.upsertRsvpStatus({          userApiId: person.api_id,
+                await storage.upsertRsvpStatus({          userApiId: person.api_id,
           eventApiId: event_api_id as string,
           status: response.guest.approval_status
         });
@@ -2042,6 +2042,38 @@ export async function registerRoutes(app: Express) {
       if (!res.headersSent) {
         res.status(500).json({ error: "Failed to setup sync status stream" });
       }
+    }
+  });
+
+  app.delete("/api/admin/events/:eventId/attendance", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.eventId;
+
+      console.log('Clearing attendance for event:', eventId);
+
+      const updatedEvent = await storage.clearEventAttendance(eventId);
+
+      console.log('Successfully cleared attendance for event:', eventId);
+
+      res.json({
+        message: "Attendance cleared successfully",
+        event: updatedEvent
+      });
+    } catch (error) {
+      console.error('Failed to clear event attendance:', error);
+      res.status(500).json({ 
+        error: "Failed to clear event attendance",
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
