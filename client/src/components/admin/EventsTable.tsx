@@ -23,6 +23,7 @@ interface EventWithSync extends Event {
   isSynced: boolean;
   lastSyncedAt: string | null;
   lastAttendanceSync: string | null;
+  attendeeCount?: number; // Added attendeeCount to the interface
 }
 
 interface EventsResponse {
@@ -81,7 +82,8 @@ export function EventsTable() {
       setSelectedEvent(prev => prev ? {
         ...prev,
         isSynced: true,
-        lastAttendanceSync: new Date().toISOString()
+        lastAttendanceSync: new Date().toISOString(),
+        attendeeCount: 0 // Reset count as sync is starting
       } : null);
     }
 
@@ -95,12 +97,16 @@ export function EventsTable() {
             event.api_id === eventId ? {
               ...event,
               isSynced: true,
-              lastAttendanceSync: new Date().toISOString()
+              lastAttendanceSync: new Date().toISOString(),
+              attendeeCount: 0 // Reset count as sync is starting
             } : event
           )
         };
       }
     );
+
+    // Clear existing attendees from cache
+    queryClient.setQueryData([`/api/admin/events/${eventId}/attendees`], []);
 
     setSyncingEvents(prev => [...prev, eventId]);
     setSyncProgress({ message: "Starting sync...", progress: 0 });
@@ -161,6 +167,22 @@ export function EventsTable() {
                     ...prev,
                     attendeeCount: data.data.success
                   } : null);
+
+                  // Update the count in the events list too
+                  queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
+                    (oldData: EventsResponse | undefined) => {
+                      if (!oldData) return undefined;
+                      return {
+                        ...oldData,
+                        events: oldData.events.map(event =>
+                          event.api_id === eventId ? {
+                            ...event,
+                            attendeeCount: data.data.success
+                          } : event
+                        )
+                      };
+                    }
+                  );
                 }
 
                 if (data.type === 'complete') {
@@ -171,6 +193,7 @@ export function EventsTable() {
                     queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
                     queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}`] }),
                     queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}/attendance`] }),
+                    queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${eventId}/attendees`] }),
                     queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
                     queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] })
                   ]);
@@ -201,6 +224,71 @@ export function EventsTable() {
       if (syncingEvents.includes(eventId)) {
         setSyncingEvents(prev => prev.filter(id => id !== eventId));
       }
+    }
+  };
+
+  const handleClearAttendance = async (event: EventWithSync) => {
+    try {
+      // Optimistically update UI
+      if (selectedEvent && selectedEvent.api_id === event.api_id) {
+        setSelectedEvent(prev => prev ? {
+          ...prev,
+          isSynced: false,
+          lastAttendanceSync: null,
+          attendeeCount: 0
+        } : null);
+      }
+
+      // Optimistically update the events list
+      queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
+        (oldData: EventsResponse | undefined) => {
+          if (!oldData) return undefined;
+          return {
+            ...oldData,
+            events: oldData.events.map(e =>
+              e.api_id === event.api_id ? {
+                ...e,
+                isSynced: false,
+                lastAttendanceSync: null,
+                attendeeCount: 0
+              } : e
+            )
+          };
+        }
+      );
+
+      // Clear attendees list from cache
+      queryClient.setQueryData([`/api/admin/events/${event.api_id}/attendees`], []);
+
+      const response = await fetch(`/api/admin/events/${event.api_id}/attendance`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear attendance');
+      }
+
+      // Invalidate all relevant queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] })
+      ]);
+
+      toast({
+        title: "Success",
+        description: "Event attendance cleared successfully.",
+      });
+    } catch (error) {
+      console.error('Error clearing attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear attendance. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -272,82 +360,29 @@ export function EventsTable() {
         }
 
         return (
-          <Badge variant={isSynced ? "outline" : "secondary"}>
-            {isSynced ? (
-              <>
-                Synced
-                <span className="ml-1 text-xs text-muted-foreground">
-                  ({formatLastSyncTime(row.lastAttendanceSync, row.timezone)})
-                </span>
-              </>
-            ) : (
-              "Not synced"
+          <div className="space-y-1">
+            <Badge variant={isSynced ? "outline" : "secondary"}>
+              {isSynced ? (
+                <>
+                  Synced
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({formatLastSyncTime(row.lastAttendanceSync, row.timezone)})
+                  </span>
+                </>
+              ) : (
+                "Not synced"
+              )}
+            </Badge>
+            {row.attendeeCount !== undefined && row.attendeeCount > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {row.attendeeCount} attendee{row.attendeeCount === 1 ? '' : 's'}
+              </p>
             )}
-          </Badge>
+          </div>
         );
       },
     },
   ];
-
-  const handleClearAttendance = async (event: EventWithSync) => {
-    try {
-      // Optimistically update UI
-      if (selectedEvent && selectedEvent.api_id === event.api_id) {
-        setSelectedEvent(prev => prev ? {
-          ...prev,
-          isSynced: false,
-          lastAttendanceSync: null,
-          attendeeCount: 0
-        } : null);
-      }
-
-      // Optimistically update the events list
-      queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
-        (oldData: EventsResponse | undefined) => {
-          if (!oldData) return undefined;
-          return {
-            ...oldData,
-            events: oldData.events.map(e =>
-              e.api_id === event.api_id ? {
-                ...e,
-                isSynced: false,
-                lastAttendanceSync: null
-              } : e
-            )
-          };
-        }
-      );
-
-      const response = await fetch(`/api/admin/events/${event.api_id}/attendance`, {
-        method: 'DELETE'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to clear attendance');
-      }
-
-      // Invalidate all relevant queries
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] })
-      ]);
-
-      toast({
-        title: "Success",
-        description: "Event attendance cleared successfully.",
-      });
-    } catch (error) {
-      console.error('Error clearing attendance:', error);
-      toast({
-        title: "Error",
-        description: "Failed to clear attendance. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const actions = [
     {
