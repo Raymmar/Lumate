@@ -2,7 +2,7 @@ import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { users } from '@shared/schema';
+import { users, events } from '@shared/schema'; // Added 'events' import
 import { EventEmitter } from 'events';
 
 export class CacheService extends EventEmitter {
@@ -448,12 +448,27 @@ export class CacheService extends EventEmitter {
             full_address: eventData.geo_address_json.full_address,
           } : null;
 
+          // Calculate event stats before insert/update
+          const attendanceStats = await tx.execute(sql`
+            SELECT 
+              COUNT(DISTINCT user_email) as unique_attendees,
+              COUNT(*) as total_attendees
+            FROM attendance 
+            WHERE event_api_id = ${eventData.api_id}
+          `);
+
+          const stats = {
+            uniqueAttendees: attendanceStats.rows[0]?.unique_attendees || 0,
+            totalAttendees: attendanceStats.rows[0]?.total_attendees || 0,
+            lastSync: new Date().toISOString()
+          };
+
           // Use SQL template for better control over the insert/update
           const query = sql`
             INSERT INTO events (
               api_id, title, description, start_time, end_time,
               cover_url, url, timezone, location, visibility,
-              meeting_url, calendar_api_id, created_at
+              meeting_url, calendar_api_id, created_at, stats
             ) 
             VALUES (
               ${eventData.api_id}, 
@@ -468,7 +483,8 @@ export class CacheService extends EventEmitter {
               ${eventData.visibility || null}, 
               ${eventData.meeting_url || eventData.zoom_meeting_url || null}, 
               ${eventData.calendar_api_id || null}, 
-              ${eventData.created_at || null}
+              ${eventData.created_at || null},
+              ${JSON.stringify(stats)}::jsonb
             )
             ON CONFLICT (api_id) DO UPDATE SET
               title = EXCLUDED.title,
@@ -482,10 +498,23 @@ export class CacheService extends EventEmitter {
               visibility = EXCLUDED.visibility,
               meeting_url = EXCLUDED.meeting_url,
               calendar_api_id = EXCLUDED.calendar_api_id,
-              created_at = EXCLUDED.created_at
+              created_at = EXCLUDED.created_at,
+              stats = EXCLUDED.stats
           `;
 
           await tx.execute(query);
+
+          // Update global stats
+          await tx.execute(sql`
+            UPDATE settings 
+            SET value = jsonb_build_object(
+              'lastSync', to_jsonb(now()),
+              'totalEvents', (SELECT COUNT(*) FROM events),
+              'totalAttendees', (SELECT COUNT(*) FROM attendance),
+              'uniqueAttendees', (SELECT COUNT(DISTINCT user_email) FROM attendance)
+            )::text
+            WHERE key = 'global_stats'
+          `);
         }
       });
     } catch (error) {
@@ -569,14 +598,14 @@ export class CacheService extends EventEmitter {
   }
 
   async startCaching() {
-      this.logSync('Starting cache service...');
-      try {
-          await this.updateCache();
-          this.logSync('Initial cache update completed successfully');
-      } catch (error) {
-          this.logSync('Failed to start cache service:', error);
-          throw error;
-      }
+    this.logSync('Starting cache service...');
+    try {
+        await this.updateCache();
+        this.logSync('Initial cache update completed successfully');
+    } catch (error) {
+        this.logSync('Failed to start cache service:', error);
+        throw error;
+    }
   }
 
 

@@ -131,7 +131,13 @@ export function EventsTable() {
 
                 if (data.type === 'complete') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
-                  await queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
+                  // Invalidate all related queries to refresh data across the app
+                  await Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
+                    queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }),
+                    queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }),
+                    queryClient.invalidateQueries({ queryKey: ["/api/events"] })
+                  ]);
                   toast({
                     title: "Success",
                     description: "Attendance sync completed successfully.",
