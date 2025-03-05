@@ -140,7 +140,7 @@ export function PostPreview({
                 {/* Author and timestamp info */}
                 {post.createdAt && (
                   <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                    <span>Published by {post.creator?.name || 'Unknown'}</span>
+                    <span>Published by {post.creator?.displayName || post.creator?.email || 'Unknown'}</span>
                     <span>•</span>
                     <span>{timeAgo.format(new Date(post.createdAt))}</span>
                     {!readOnly && post?.isPinned && (

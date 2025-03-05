@@ -185,7 +185,11 @@ export type Tag = typeof tags.$inferSelect;
 export type InsertTag = z.infer<typeof insertTagSchema>;
 
 export type Post = typeof posts.$inferSelect & {
-  creator?: { id: number; name: string; };
+  creator?: { 
+    id: number; 
+    displayName: string | null;
+    email: string;
+  };
   tags?: string[];
 };
 export type InsertPost = z.infer<typeof insertPostSchema>;

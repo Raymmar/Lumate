@@ -947,8 +947,19 @@ export class PostgresStorage implements IStorage {
   }
 
   async getPosts(): Promise<Post[]> {
-    console.log('Fetchingall posts from database...');
-    const result = await db.select().from(posts).orderBy(posts.createdAt);
+    console.log('Fetching all posts from database...');
+    const result = await db
+      .select({
+        ...posts,
+        creator: {
+          id: users.id,
+          displayName: users.displayName,
+          email: users.email
+        }
+      })
+      .from(posts)
+      .leftJoin(users, eq(users.id, posts.creatorId))
+      .orderBy(posts.createdAt);
     console.log(`Found ${result.length} posts in database`);
     return result;
   }
