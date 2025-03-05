@@ -109,6 +109,7 @@ export interface IStorage {
   hasPermission(userId: number, resource: string, action: string): Promise<boolean>;
   getTopAttendees(limit?: number): Promise<Person[]>;
   getFeaturedEvent(): Promise<Event | null>;
+  clearEventAttendance(eventApiId: string): Promise<Event>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -967,7 +968,7 @@ export class PostgresStorage implements IStorage {
           creator_id: users.id,
           creator_display_name: users.displayName,
           tag_text: tags.text
-        })
+                })
         .from(posts)
         .leftJoin(users, eq(posts.creatorId, users.id))
         .leftJoin(postTags, eq(posts.id, postTags.postId))
@@ -1382,6 +1383,51 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  async clearEventAttendance(eventApiId: string): Promise<Event> {
+    try {
+      // First get all affected persons before deleting
+      const affectedPersons = await db
+        .select({ personId: attendance.personId })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventApiId))
+        .groupBy(attendance.personId);
+
+      console.log(`Found ${affectedPersons.length} persons affected by attendance deletion`);
+
+      // Delete the attendance records
+      await db
+        .delete(attendance)
+        .where(eq(attendance.eventApiId, eventApiId));
+
+      console.log('Successfully deleted attendance records for event:', eventApiId);
+
+      // Update stats for all affected persons
+      for (const { personId } of affectedPersons) {
+        if (personId) {
+          await this.updatePersonStats(personId);
+        }
+      }
+
+      // Update the event's sync status
+      const [updatedEvent] = await db
+        .update(events)
+        .set({
+          lastAttendanceSync: null
+        })
+        .where(eq(events.api_id, eventApiId))
+        .returning();
+
+      if (!updatedEvent) {
+        throw new Error(`Event with API ID ${eventApiId} not found`);
+      }
+
+      return updatedEvent;
+    } catch (error) {
+      console.error('Failed to clear event attendance:', error);
+      throw error;
+    }
+  }
+
 }
 
 export const storage = new PostgresStorage();

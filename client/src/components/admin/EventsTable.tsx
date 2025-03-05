@@ -86,12 +86,12 @@ export function EventsTable() {
     }
 
     // Optimistically update the events list
-    queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch], 
+    queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
       (oldData: EventsResponse | undefined) => {
         if (!oldData) return undefined;
         return {
           ...oldData,
-          events: oldData.events.map(event => 
+          events: oldData.events.map(event =>
             event.api_id === eventId ? {
               ...event,
               isSynced: true,
@@ -289,11 +289,77 @@ export function EventsTable() {
     },
   ];
 
+  const handleClearAttendance = async (event: EventWithSync) => {
+    try {
+      // Optimistically update UI
+      if (selectedEvent && selectedEvent.api_id === event.api_id) {
+        setSelectedEvent(prev => prev ? {
+          ...prev,
+          isSynced: false,
+          lastAttendanceSync: null,
+          attendeeCount: 0
+        } : null);
+      }
+
+      // Optimistically update the events list
+      queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch],
+        (oldData: EventsResponse | undefined) => {
+          if (!oldData) return undefined;
+          return {
+            ...oldData,
+            events: oldData.events.map(e =>
+              e.api_id === event.api_id ? {
+                ...e,
+                isSynced: false,
+                lastAttendanceSync: null
+              } : e
+            )
+          };
+        }
+      );
+
+      const response = await fetch(`/api/admin/events/${event.api_id}/attendance`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear attendance');
+      }
+
+      // Invalidate all relevant queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] })
+      ]);
+
+      toast({
+        title: "Success",
+        description: "Event attendance cleared successfully.",
+      });
+    } catch (error) {
+      console.error('Error clearing attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear attendance. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const actions = [
     {
       label: "View details",
       onClick: (event: EventWithSync) => {
         setSelectedEvent(event);
+      },
+    },
+    {
+      label: "Clear attendance",
+      onClick: (event: EventWithSync) => {
+        handleClearAttendance(event);
       },
     },
     {
