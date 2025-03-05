@@ -114,6 +114,63 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
     }
   };
 
+  const handleClearAttendance = async () => {
+    try {
+      // Optimistically update local state
+      setLocalSyncStatus({
+        isSynced: false,
+        lastSyncedAt: null
+      });
+
+      // Optimistically update the attendees list
+      queryClient.setQueryData([`/api/admin/events/${event.api_id}/attendees`],
+        () => ({ attendees: [], total: 0 })
+      );
+
+      const response = await fetch(`/api/admin/events/${event.api_id}/attendance`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to clear attendance');
+      }
+
+      // Invalidate all relevant queries to ensure data consistency
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
+        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/stats`] })
+      ]);
+
+      toast({
+        title: "Success",
+        description: "Event attendance cleared successfully.",
+      });
+    } catch (error) {
+      console.error('Error clearing attendance:', error);
+      toast({
+        title: "Error",
+        description: "Failed to clear attendance. Please try again.",
+        variant: "destructive",
+      });
+
+      // Revert optimistic updates on error
+      setLocalSyncStatus({
+        isSynced: !!event.lastAttendanceSync,
+        lastSyncedAt: event.lastAttendanceSync
+      });
+
+      // Revert the attendees list
+      await queryClient.invalidateQueries({ 
+        queryKey: [`/api/admin/events/${event.api_id}/attendees`] 
+      });
+    }
+  };
+
   const hasSyncedAttendees = attendees.length > 0;
   const syncStatus = localSyncStatus.isSynced || hasSyncedAttendees;
   const lastSyncTime = localSyncStatus.lastSyncedAt || event.lastAttendanceSync;
@@ -165,6 +222,15 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
               ) : (
                 "Sync Attendees"
               )}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleClearAttendance}
+              disabled={isSyncing || !hasSyncedAttendees}
+            >
+              Clear Attendance
             </Button>
 
             <div className="flex items-center justify-center">

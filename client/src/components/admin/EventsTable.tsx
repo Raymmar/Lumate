@@ -297,11 +297,17 @@ export function EventsTable() {
               e.api_id === event.api_id ? {
                 ...e,
                 isSynced: false,
-                lastAttendanceSync: null
+                lastAttendanceSync: null,
+                attendeeCount: 0
               } : e
             )
           };
         }
+      );
+
+      // Also optimistically update the attendees list
+      queryClient.setQueryData([`/api/admin/events/${event.api_id}/attendees`],
+        () => ({ attendees: [], total: 0 })
       );
 
       const response = await fetch(`/api/admin/events/${event.api_id}/attendance`, {
@@ -316,9 +322,11 @@ export function EventsTable() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendees`] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/attendance`] }),
         queryClient.invalidateQueries({ queryKey: ["/api/events"] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] })
+        queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/stats`] })
       ]);
 
       toast({
@@ -340,6 +348,11 @@ export function EventsTable() {
         });
         setSelectedEvent(currentEvent);
       }
+
+      // Revert the attendees list
+      await queryClient.invalidateQueries({ 
+        queryKey: [`/api/admin/events/${event.api_id}/attendees`] 
+      });
     } finally {
       setClearingEvents(prev => prev.filter(id => id !== event.api_id));
     }
