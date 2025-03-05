@@ -76,6 +76,32 @@ export function EventsTable() {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleStartSync = async (eventId: string) => {
+    // Optimistically update the selected event's sync status
+    if (selectedEvent && selectedEvent.api_id === eventId) {
+      setSelectedEvent(prev => prev ? {
+        ...prev,
+        isSynced: true,
+        lastAttendanceSync: new Date().toISOString()
+      } : null);
+    }
+
+    // Optimistically update the events list
+    queryClient.setQueryData(["/api/admin/events", currentPage, itemsPerPage, debouncedSearch], 
+      (oldData: EventsResponse | undefined) => {
+        if (!oldData) return undefined;
+        return {
+          ...oldData,
+          events: oldData.events.map(event => 
+            event.api_id === eventId ? {
+              ...event,
+              isSynced: true,
+              lastAttendanceSync: new Date().toISOString()
+            } : event
+          )
+        };
+      }
+    );
+
     setSyncingEvents(prev => [...prev, eventId]);
     setSyncProgress({ message: "Starting sync...", progress: 0 });
 
@@ -128,6 +154,14 @@ export function EventsTable() {
                   data: data.data,
                   type: data.type
                 });
+
+                // Update the UI with real-time sync data
+                if (data.data?.success && selectedEvent?.api_id === eventId) {
+                  setSelectedEvent(prev => prev ? {
+                    ...prev,
+                    attendeeCount: data.data.success
+                  } : null);
+                }
 
                 if (data.type === 'complete') {
                   setSyncingEvents(prev => prev.filter(id => id !== eventId));
