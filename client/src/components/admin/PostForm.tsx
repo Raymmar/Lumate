@@ -28,6 +28,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const queryClient = useQueryClient();
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
+  const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
   // Fetch existing tags
   const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
@@ -189,42 +190,46 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
                 value={currentTag}
                 onValueChange={setCurrentTag}
                 onKeyDown={handleAddTag}
-                className="border-0 focus:ring-0"
+                onFocus={() => setIsTagSearchFocused(true)}
+                onBlur={() => {
+                  // Small delay to allow clicking on suggestions
+                  setTimeout(() => setIsTagSearchFocused(false), 200);
+                }}
+                className="border-0 bg-muted/50 focus:ring-0 focus-visible:ring-0"
               />
-              <div className="relative">
-                {(currentTag || filteredTags.length > 0) && (
-                  <div className="absolute top-0 left-0 right-0 bg-popover border rounded-lg shadow-md">
-                    <CommandEmpty>
-                      {currentTag.trim() && (
-                        <button
-                          className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
-                          onClick={() => handleSelectTag(currentTag)}
-                        >
-                          Create tag "{currentTag}"
-                        </button>
-                      )}
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {filteredTags.map((tag) => (
-                        <CommandItem
-                          key={tag}
-                          value={tag}
-                          onSelect={handleSelectTag}
-                          className="flex items-center gap-2"
-                        >
-                          <Check
-                            className={cn(
-                              "h-4 w-4",
-                              tags.includes(tag.toLowerCase()) ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          {tag}
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </div>
-                )}
-              </div>
+              {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
+                <div className="absolute top-full left-0 right-0 bg-popover border rounded-lg shadow-md mt-1 z-50">
+                  <CommandEmpty>
+                    {currentTag.trim() && (
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
+                        onClick={() => handleSelectTag(currentTag)}
+                      >
+                        Create tag "{currentTag}"
+                      </button>
+                    )}
+                  </CommandEmpty>
+                  <CommandGroup>
+                    {filteredTags.map((tag) => (
+                      <CommandItem
+                        key={tag}
+                        value={tag}
+                        onSelect={handleSelectTag}
+                        className="flex items-center gap-2"
+                      >
+                        <Check
+                          className={cn(
+                            "h-4 w-4",
+                            tags.includes(tag.toLowerCase()) ? "opacity-100" : "opacity-0"
+                          )}
+                        />
+                        {tag}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </div>
+              )}
             </Command>
           </div>
         </div>
