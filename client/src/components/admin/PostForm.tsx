@@ -12,9 +12,12 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
-import { X } from "lucide-react";
+import { X, Check, ChevronsUpDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost & { tags?: string[] }) => Promise<void>;
@@ -26,11 +29,23 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
   const queryClient = useQueryClient();
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
+  const [open, setOpen] = useState(false);
 
   // Fetch existing tags
   const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
     queryKey: ["/api/tags"],
   });
+
+  // Get unique list of existing tag texts
+  const existingTagTexts = Array.from(new Set(existingTags?.tags.map(t => t.text) || []));
+
+  // Filter tags based on input
+  const filteredTags = currentTag === "" 
+    ? existingTagTexts 
+    : existingTagTexts.filter((tag) =>
+        tag.toLowerCase().includes(currentTag.toLowerCase()) &&
+        !tags.includes(tag.toLowerCase())
+      );
 
   // Extend the schema to add required validations
   const extendedPostSchema = insertPostSchema.extend({
@@ -72,14 +87,19 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
     }
   };
 
+  const handleSelectTag = (tag: string) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    if (!tags.includes(normalizedTag)) {
+      setTags([...tags, normalizedTag]);
+    }
+    setCurrentTag("");
+    setOpen(false);
+  };
+
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && currentTag.trim()) {
       e.preventDefault();
-      const normalizedTag = currentTag.trim().toLowerCase();
-      if (!tags.includes(normalizedTag)) {
-        setTags([...tags, normalizedTag]);
-      }
-      setCurrentTag("");
+      handleSelectTag(currentTag);
     }
   };
 
@@ -165,19 +185,56 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
               </Badge>
             ))}
           </div>
-          <Input
-            type="text"
-            placeholder="Add tags (press Enter)"
-            value={currentTag}
-            onChange={(e) => setCurrentTag(e.target.value)}
-            onKeyDown={handleAddTag}
-            className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
-          {existingTags?.tags && existingTags.tags.length > 0 && (
-            <div className="text-sm text-muted-foreground mt-1">
-              Existing tags: {existingTags.tags.map(tag => tag.text).join(", ")}
-            </div>
-          )}
+          <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={open}
+                className="w-full justify-between border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0 h-9"
+              >
+                {currentTag || "Select or create a tag..."}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput 
+                  placeholder="Search tags..."
+                  value={currentTag}
+                  onValueChange={setCurrentTag}
+                  onKeyDown={handleAddTag}
+                />
+                <CommandEmpty>
+                  {currentTag.trim() && (
+                    <button
+                      className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
+                      onClick={() => handleSelectTag(currentTag)}
+                    >
+                      Create tag "{currentTag}"
+                    </button>
+                  )}
+                </CommandEmpty>
+                <CommandGroup>
+                  {filteredTags.map((tag) => (
+                    <CommandItem
+                      key={tag}
+                      value={tag}
+                      onSelect={handleSelectTag}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          tags.includes(tag.toLowerCase()) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {tag}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="space-y-4 pt-4 border-t">
