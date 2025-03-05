@@ -938,8 +938,7 @@ export async function registerRoutes(app: Express) {
         eventId: event_api_id,
         userEmail: user.email,
         status: response.guest?.approval_status,
-        fullResponse: response
-      });
+        fullResponse: response      });
 
       if (response.guest?.approval_status) {
         await storage.upsertRsvpStatus({          userApiId: person.api_id,
@@ -1133,6 +1132,7 @@ export async function registerRoutes(app: Express) {
       let totalProcessed = 0;
       let successCount = 0;
       let failureCount = 0;
+      let totalApprovedGuests = 0;
 
       // Add delay between API calls to handle rate limiting
       const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -1153,14 +1153,30 @@ export async function registerRoutes(app: Express) {
           const response = await lumaApiRequest('event/get-guests', params);
 
           if (!response.entries) {
+            console.log('No entries found in response');
             break;
           }
 
-          const approvedEntries = response.entries.filter((entry: any) => 
-            entry.guest?.approval_status === 'approved'
-          );
+          // Filter for approved guests only
+          const approvedGuests = response.entries.filter((entry: any) => {
+            const isApproved = entry.guest?.approval_status === 'approved';
+            if (!isApproved) {
+              console.log('Skipping non-approved guest:', {
+                email: entry.guest?.email,
+                status: entry.guest?.approval_status
+              });
+            }
+            return isApproved;
+          });
 
-          for (const entry of approvedEntries) {
+          console.log('Processing batch:', {
+            totalGuests: response.entries.length,
+            approvedGuests: approvedGuests.length
+          });
+
+          totalApprovedGuests += approvedGuests.length;
+
+          for (const entry of approvedGuests) {
             const guest = entry.guest;
             totalProcessed++;
 
@@ -1169,26 +1185,30 @@ export async function registerRoutes(app: Express) {
                 eventApiId: eventId,
                 userEmail: guest.email.toLowerCase(),
                 guestApiId: guest.api_id,
-                approvalStatus: guest.approval_status,
+                approvalStatus: 'approved',
                 registeredAt: guest.registered_at
               });
 
               successCount++;
+              sendSSEUpdate(res, {
+                type: 'progress',
+                message: `Processing approved attendees (${successCount}/${totalApprovedGuests})...`,
+                data: {
+                  total: totalProcessed,
+                  success: successCount,
+                  failure: failureCount,
+                  approved: totalApprovedGuests
+                },
+                progress: Math.min(90, (successCount / totalApprovedGuests) * 90)
+              });
+
             } catch (error) {
-              console.error('Failed to process attendee:', error);
+              console.error('Failed to process attendee:', {
+                email: guest.email,
+                error: error instanceof Error ? error.message : String(error)
+              });
               failureCount++;
             }
-
-            sendSSEUpdate(res, {
-              type: 'progress',
-              message: `Processing attendees...`,
-              data: {
-                total: totalProcessed,
-                success: successCount,
-                failure: failureCount
-              },
-              progress: Math.min(90, (totalProcessed / (response.total || 1)) * 90)
-            });
           }
 
           hasMore = response.has_more && response.next_cursor;
@@ -1196,7 +1216,7 @@ export async function registerRoutes(app: Express) {
 
         } catch (error) {
           if (error instanceof Error && error.message.includes('rate limit')) {
-            // If we hit rate limit, wait longer before retrying
+            console.log('Rate limit hit, waiting before retry...');
             await delay(5000);
             continue;
           }
@@ -1205,21 +1225,23 @@ export async function registerRoutes(app: Express) {
       }
 
       // Update event sync status
-      const now = new Date().toISOString();
       await db.update(events)
         .set({ 
-          lastAttendanceSync: now,
-          updatedAt: now
+          lastAttendanceSync: new Date().toISOString()
         })
         .where(eq(events.api_id, eventId));
 
+      const summary = `Sync completed. Processed ${successCount} approved attendees out of ${totalApprovedGuests} total approved guests.`;
+      console.log(summary);
+
       sendSSEUpdate(res, {
         type: 'complete',
-        message: 'Sync completed successfully',
+        message: summary,
         data: {
           total: totalProcessed,
           success: successCount,
-          failure: failureCount
+          failure: failureCount,
+          approved: totalApprovedGuests
         },
         progress: 100
       });
