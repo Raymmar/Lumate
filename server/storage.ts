@@ -949,23 +949,7 @@ export class PostgresStorage implements IStorage {
   async getPosts(): Promise<Post[]> {
     console.log('Fetching all posts from database...');
     try {
-      // Debug query to check users
-      const allUsers = await db.select().from(users);
-      console.log('Available users:', allUsers.map(u => ({
-        id: u.id,
-        displayName: u.displayName,
-        email: u.email
-      })));
-
-      // Debug query to check posts
-      const allPosts = await db.select().from(posts);
-      console.log('All posts with creator IDs:', allPosts.map(p => ({
-        id: p.id,
-        title: p.title,
-        creatorId: p.creatorId
-      })));
-
-      // Main query with explicit column selection
+      // Get posts with both creators and tags
       const result = await db
         .select({
           id: posts.id,
@@ -975,48 +959,61 @@ export class PostgresStorage implements IStorage {
           featuredImage: posts.featuredImage,
           videoUrl: posts.videoUrl,
           ctaLink: posts.ctaLink,
-ctaLabel: posts.ctaLabel,
+          ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
           creatorId: posts.creatorId,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
           creator_id: users.id,
-          creator_display_name: users.displayName
+          creator_display_name: users.displayName,
+          tag_text: tags.text
         })
         .from(posts)
         .leftJoin(users, eq(posts.creatorId, users.id))
+        .leftJoin(postTags, eq(posts.id, postTags.postId))
+        .leftJoin(tags, eq(postTags.tagId, tags.id))
         .orderBy(posts.createdAt);
 
-      console.log('Raw join result:', JSON.stringify(result, null, 2));
+      // Group posts with their tags and creators
+      const groupedPosts = result.reduce((acc: any[], row) => {
+        const existingPost = acc.find(p => p.id === row.id);
+        if (existingPost) {
+          if (row.tag_text) {
+            existingPost.tags = [...new Set([...existingPost.tags, row.tag_text])];
+          }
+        } else {
+          acc.push({
+            id: row.id,
+            title: row.title,
+            summary: row.summary,
+            body: row.body,
+            featuredImage: row.featuredImage,
+            videoUrl: row.videoUrl,
+            ctaLink: row.ctaLink,
+            ctaLabel: row.ctaLabel,
+            isPinned: row.isPinned,
+            creatorId: row.creatorId,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+            creator: row.creator_id ? {
+              id: row.creator_id,
+              displayName: row.creator_display_name
+            } : undefined,
+            tags: row.tag_text ? [row.tag_text] : []
+          });
+        }
+        return acc;
+      }, []);
 
-      // Transform the result to match our Post type
-      const transformedPosts = result.map(row => ({
-        id: row.id,
-        title: row.title,
-        summary: row.summary,
-        body: row.body,
-        featuredImage: row.featuredImage,
-        videoUrl: row.videoUrl,
-        ctaLink: row.ctaLink,
-        ctaLabel: row.ctaLabel,
-        isPinned: row.isPinned,
-        creatorId: row.creatorId,
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-        creator: row.creator_id ? {
-          id: row.creator_id,
-          displayName: row.creator_display_name
-        } : undefined
-      }));
-
-      console.log('Final transformed posts:', transformedPosts.map(p => ({
+      console.log('Posts with creators and tags:', groupedPosts.map(p => ({
         id: p.id,
         title: p.title,
         creatorId: p.creatorId,
-        creator: p.creator
+        creator: p.creator,
+        tags: p.tags
       })));
 
-      return transformedPosts;
+      return groupedPosts;
     } catch (error) {
       console.error('Error fetching posts:', error);
       throw error;
