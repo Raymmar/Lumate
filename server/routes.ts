@@ -933,8 +933,7 @@ export async function registerRoutes(app: Express) {
 
       const user = await storage.getUser(req.session.userId);
       if (!user || !user.personId) {
-        return res.status(401).json({ error: "User not found" });
-      }
+        return res.status(401).json({ error: "User not found" });}
 
       const person = await storage.getPerson(user.personId);
       if (!person) {
@@ -2138,30 +2137,38 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const { displayName } = req.body;
-      if (!displayName) {
-        return res.status(400).json({ error: "Display name is required" });
-      }
+      const userData = updateUserProfileSchema.parse(req.body);
+      console.log('Updating user profile with data:', userData);
 
-      const user = await storage.updateUser(req.session.userId, { displayName });
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      console.log('Profile updated successfully:', {
-        userId: user.id,
-        displayName: user.displayName
+      const updatedUser = await storage.updateUser(req.session.userId, {
+        displayName: userData.displayName,
+        bio: userData.bio,
+        featuredImageUrl: userData.featuredImageUrl,
+        companyName: userData.companyName,
+        companyDescription: userData.companyDescription,
+        address: userData.address,
+        phoneNumber: userData.phoneNumber,
+        isPhonePublic: userData.isPhonePublic,
+        isEmailPublic: userData.isEmailPublic,
+        ctaText: userData.ctaText,
+        customLinks: userData.customLinks,
+        tags: userData.tags,
       });
 
-      return res.json({
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName,
-        isAdmin: user.isAdmin,
-        isVerified: user.isVerified
+      console.log('User profile updated successfully:', {
+        userId: updatedUser.id,
+        fields: Object.keys(userData)
       });
+
+      return res.json(updatedUser);
     } catch (error) {
       console.error('Failed to update profile:', error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          error: "Invalid profile data",
+          details: error.errors 
+        });
+      }
       res.status(500).json({ error: "Failed to update profile" });
     }
   });
