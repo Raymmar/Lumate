@@ -378,70 +378,32 @@ export type InsertFoundingMember = z.infer<typeof insertFoundingMemberSchema>;
 
 // Update user profile schema for frontend validation
 export const updateUserProfileSchema = z.object({
-  displayName: z.string()
-    .min(1, "Display name is required")
-    .max(255, "Display name must be less than 255 characters"),
-
+  displayName: z.string().min(1, "Display name is required"),
   featuredImageUrl: z.string()
     .transform(val => val === "" ? null : val)
-    .pipe(
-      z.string()
-        .url("Featured image URL must be a valid URL")
-        .nullable()
-        .or(z.literal(""))
-    ),
-
+    .pipe(z.string().url("Must be a valid URL").nullable()),
   bio: z.string()
-    .max(1000, "Bio must be less than 1000 characters")
     .transform(val => val === "" ? null : val)
     .nullable(),
-
   companyName: z.string()
-    .max(255, "Company name must be less than 255 characters")
     .transform(val => val === "" ? null : val)
     .nullable(),
-
   companyDescription: z.string()
-    .max(1000, "Company description must be less than 1000 characters")
     .transform(val => val === "" ? null : val)
     .nullable(),
-
   address: z.string()
-    .max(500, "Address must be less than 500 characters")
     .transform(val => val === "" ? null : val)
     .nullable(),
-
   phoneNumber: z.string()
-    .max(50, "Phone number must be less than 50 characters")
-    .regex(/^[+\d\s-()]*$/, "Invalid phone number format")
     .transform(val => val === "" ? null : val)
     .nullable(),
-
   isPhonePublic: z.boolean().default(false),
   isEmailPublic: z.boolean().default(false),
-
   ctaText: z.string()
-    .max(255, "Call to action text must be less than 255 characters")
     .transform(val => val === "" ? null : val)
     .nullable(),
-
-  customLinks: z.array(
-    z.object({
-      title: z.string().min(1, "Link title is required").max(255, "Link title must be less than 255 characters"),
-      url: z.string().url("Must be a valid URL"),
-      icon: z.string().optional()
-    })
-  )
-  .max(5, "Maximum 5 custom links allowed")
-  .default([]),
-
-  tags: z.array(
-    z.string()
-      .min(1, "Tag cannot be empty")
-      .max(50, "Tag must be less than 50 characters")
-  )
-  .max(10, "Maximum 10 tags allowed")
-  .default([])
+  customLinks: z.array(userCustomLink).max(5, "Maximum 5 custom links allowed").default([]),
+  tags: z.array(z.string()).default([])
 });
 
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
