@@ -12,8 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -33,6 +31,7 @@ export default function UserSettingsPage() {
     staleTime: 0 // Always fetch fresh data
   });
 
+  // Form state
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [featuredImageUrl, setFeaturedImageUrl] = useState("");
@@ -52,13 +51,20 @@ export default function UserSettingsPage() {
   useEffect(() => {
     if (user) {
       console.log('Setting form data from user:', user);
-      // Parse address if it's a string
-      const parsedAddress = user.address 
-        ? (typeof user.address === 'string' 
-          ? JSON.parse(user.address) 
-          : user.address)
-        : null;
 
+      // Parse address if it's a string
+      let parsedAddress: Location | null = null;
+      try {
+        if (user.address) {
+          parsedAddress = typeof user.address === 'string' 
+            ? JSON.parse(user.address) 
+            : user.address;
+        }
+      } catch (e) {
+        console.error('Error parsing address:', e);
+      }
+
+      // Set form values from user data
       setDisplayName(user.displayName || "");
       setBio(user.bio || "");
       setFeaturedImageUrl(user.featuredImageUrl || "");
@@ -69,6 +75,8 @@ export default function UserSettingsPage() {
       setIsPhonePublic(Boolean(user.isPhonePublic));
       setIsEmailPublic(Boolean(user.isEmailPublic));
       setCtaText(user.ctaText || "");
+
+      // Handle arrays with null checks
       setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
       setTags(Array.isArray(user.tags) ? user.tags : []);
     }
@@ -84,7 +92,11 @@ export default function UserSettingsPage() {
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          // Ensure address is stringified before sending
+          address: data.address ? JSON.stringify(data.address) : null
+        }),
       });
 
       if (!response.ok) {
@@ -109,40 +121,6 @@ export default function UserSettingsPage() {
       });
     },
   });
-
-  const handleAddCustomLink = () => {
-    if (customLinks.length >= 5) {
-      toast({
-        title: "Error",
-        description: "Maximum 5 custom links allowed",
-        variant: "destructive",
-      });
-      return;
-    }
-    setCustomLinks([...customLinks, { title: "", url: "" }]);
-  };
-
-  const handleRemoveCustomLink = (index: number) => {
-    setCustomLinks(customLinks.filter((_, i) => i !== index));
-  };
-
-  const updateCustomLink = (index: number, field: 'title' | 'url', value: string) => {
-    const newLinks = [...customLinks];
-    newLinks[index] = { ...newLinks[index], [field]: value };
-    setCustomLinks(newLinks);
-  };
-
-  const handleSelectTag = (tag: string) => {
-    const normalizedTag = tag.toLowerCase().trim();
-    if (!tags.includes(normalizedTag) && tags.length < 5) {
-      setTags([...tags, normalizedTag]);
-    }
-    setCurrentTag("");
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,7 +303,7 @@ export default function UserSettingsPage() {
                         {tag}
                         <button
                           type="button"
-                          onClick={() => handleRemoveTag(tag)}
+                          onClick={() => setTags(tags.filter(t => t !== tag))}
                           className="ml-1 hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
@@ -341,7 +319,10 @@ export default function UserSettingsPage() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && currentTag.trim()) {
                           e.preventDefault();
-                          handleSelectTag(currentTag);
+                          if (!tags.includes(currentTag.toLowerCase())) {
+                            setTags([...tags, currentTag.toLowerCase()]);
+                            setCurrentTag("");
+                          }
                         }
                       }}
                       className="border-0"
@@ -358,7 +339,7 @@ export default function UserSettingsPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={handleAddCustomLink}
+                    onClick={() => setCustomLinks([...customLinks, { title: "", url: "" }])}
                     disabled={customLinks.length >= 5}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -372,20 +353,28 @@ export default function UserSettingsPage() {
                         <Input
                           placeholder="Link Title"
                           value={link.title}
-                          onChange={(e) => updateCustomLink(index, 'title', e.target.value)}
+                          onChange={(e) => {
+                            const newLinks = [...customLinks];
+                            newLinks[index] = { ...link, title: e.target.value };
+                            setCustomLinks(newLinks);
+                          }}
                         />
                         <Input
                           placeholder="URL"
                           type="url"
                           value={link.url}
-                          onChange={(e) => updateCustomLink(index, 'url', e.target.value)}
+                          onChange={(e) => {
+                            const newLinks = [...customLinks];
+                            newLinks[index] = { ...link, url: e.target.value };
+                            setCustomLinks(newLinks);
+                          }}
                         />
                       </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleRemoveCustomLink(index)}
+                        onClick={() => setCustomLinks(customLinks.filter((_, i) => i !== index))}
                       >
                         <X className="h-4 w-4" />
                       </Button>
