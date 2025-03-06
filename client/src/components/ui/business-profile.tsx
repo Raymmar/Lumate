@@ -49,21 +49,8 @@ export function BusinessProfile({
         </div>
       )}
 
-      <CardHeader className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-semibold">{name}</h3>
-            {tags && tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {tags.map((tag, index) => (
-                  <Badge key={index} variant="secondary">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      <CardHeader className="pb-2">
+        <h3 className="text-xl font-semibold">{name}</h3>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -139,6 +126,18 @@ export function BusinessProfile({
             </Button>
           )}
         </div>
+
+        {tags && tags.length > 0 && (
+          <div className="pt-4 border-t">
+            <div className="flex flex-wrap gap-1">
+              {tags.map((tag, index) => (
+                <Badge key={index} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
