@@ -3,105 +3,53 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Building2,
   MapPin,
   Phone,
   Globe,
   Mail,
-  Calendar,
-  Linkedin,
-  Github,
-  Facebook,
-  Instagram,
-  X
+  Link as LinkIcon
 } from "lucide-react";
+import { Location, UserCustomLink } from "@shared/schema";
 
 export interface BusinessProfileProps {
   name: string;
-  description: string;
-  industry?: string;
-  imageUrl?: string;
-  address?: {
-    street: string;
-    city: string;
-    state: string;
-    zip: string;
-  };
-  phone?: string;
-  email?: string;
-  website?: string;
-  linkedin?: string;
-  github?: string;
-  twitter?: string;
-  facebook?: string;
-  instagram?: string;
-  consultationEnabled?: boolean;
-  consultationUrl?: string;
+  description?: string | null;
+  address?: Location | null;
+  phone?: string | null;
+  email?: string | null;
+  customLinks?: UserCustomLink[];
 }
 
-function generateGoogleMapsUrl(address: BusinessProfileProps['address']) {
-  if (!address) return '';
-  const query = encodeURIComponent(
-    `${address.street}, ${address.city}, ${address.state} ${address.zip}`
-  );
-  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+function generateGoogleMapsUrl(address: Location) {
+  if (!address?.formatted_address) return '';
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address.formatted_address)}`;
 }
 
 export function BusinessProfile({
   name,
   description,
-  industry,
-  imageUrl,
   address,
   phone,
   email,
-  website,
-  linkedin,
-  github,
-  twitter,
-  facebook,
-  instagram,
-  consultationEnabled = false,
-  consultationUrl = "#"
+  customLinks = []
 }: BusinessProfileProps) {
   return (
     <Card className="overflow-hidden">
-      {imageUrl && (
-        <div className="relative h-48 w-full">
-          <img
-            src={imageUrl}
-            alt={name}
-            className="h-full w-full object-cover"
-          />
-        </div>
-      )}
-
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-semibold">{name}</h3>
-            {industry && (
-              <Badge variant="secondary" className="mt-1">
-                {industry}
-              </Badge>
-            )}
           </div>
-          {consultationEnabled && (
-            <Button asChild>
-              <a href={consultationUrl}>
-                <Calendar className="mr-2 h-4 w-4" />
-                Book Consultation
-              </a>
-            </Button>
-          )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">{description}</p>
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
 
         <div className="space-y-2">
-          {address && (
+          {address?.formatted_address && (
             <Button 
               variant="secondary"
               className="w-full h-auto p-4 justify-start"
@@ -115,9 +63,8 @@ export function BusinessProfile({
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
                   <div className="text-left">
-                    <p className="font-medium">{address.street}</p>
                     <p className="text-sm text-muted-foreground">
-                      {address.city}, {address.state} {address.zip}
+                      {address.formatted_address}
                     </p>
                   </div>
                 </div>
@@ -125,70 +72,23 @@ export function BusinessProfile({
             </Button>
           )}
 
-          {linkedin && (
+          {customLinks.map((link, index) => (
             <Button
+              key={index}
               variant="secondary"
               className="w-full justify-start gap-2"
               asChild
             >
-              <a href={linkedin} target="_blank" rel="noopener noreferrer">
-                <Linkedin className="h-4 w-4" />
-                LinkedIn
+              <a href={link.url} target="_blank" rel="noopener noreferrer">
+                {link.icon ? (
+                  <span className="h-4 w-4">{link.icon}</span>
+                ) : (
+                  <LinkIcon className="h-4 w-4" />
+                )}
+                {link.title}
               </a>
             </Button>
-          )}
-
-          {github && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={github} target="_blank" rel="noopener noreferrer">
-                <Github className="h-4 w-4" />
-                GitHub
-              </a>
-            </Button>
-          )}
-
-          {twitter && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={twitter} target="_blank" rel="noopener noreferrer">
-                <X className="h-4 w-4" />
-                X
-              </a>
-            </Button>
-          )}
-
-          {facebook && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={facebook} target="_blank" rel="noopener noreferrer">
-                <Facebook className="h-4 w-4" />
-                Facebook
-              </a>
-            </Button>
-          )}
-
-          {instagram && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={instagram} target="_blank" rel="noopener noreferrer">
-                <Instagram className="h-4 w-4" />
-                Instagram
-              </a>
-            </Button>
-          )}
+          ))}
 
           {phone && (
             <Button
@@ -212,19 +112,6 @@ export function BusinessProfile({
               <a href={`mailto:${email}`}>
                 <Mail className="h-4 w-4" />
                 {email}
-              </a>
-            </Button>
-          )}
-
-          {website && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-2"
-              asChild
-            >
-              <a href={website} target="_blank" rel="noopener noreferrer">
-                <Globe className="h-4 w-4" />
-                Visit Website
               </a>
             </Button>
           )}

@@ -214,7 +214,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
         {/* Additional details for authenticated users */}
         <AuthGuard>
-          <MemberDetails />
+          <MemberDetails user={person?.user} />
         </AuthGuard>
       </div>
 
