@@ -55,7 +55,16 @@ export default function UserSettingsPage() {
       if (user.address) {
         const addressData = typeof user.address === 'string' 
           ? { address: user.address } 
-          : user.address;
+          : {
+              address: user.address.address || user.address.formatted_address,
+              city: user.address.city,
+              region: user.address.region,
+              country: user.address.country,
+              latitude: user.address.latitude,
+              longitude: user.address.longitude,
+              placeId: user.address.placeId,
+              formatted_address: user.address.formatted_address
+            };
         setAddress(addressData as Location);
       } else {
         setAddress(null);

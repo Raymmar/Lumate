@@ -41,7 +41,7 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
       types: ['address']
     },
     debounce: 300,
-    defaultValue: defaultValue?.address ?? '',
+    defaultValue: defaultValue?.formatted_address ?? defaultValue?.address ?? '',
     initOnMount: !isInitializing && isGoogleMapsLoaded(),
   });
 
