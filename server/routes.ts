@@ -1872,7 +1872,7 @@ export async function registerRoutes(app: Express) {
       const roleName = req.params.roleName;
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
-}
+      }
 
       console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
@@ -2129,6 +2129,43 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);
       res.status(500).json({ error: "Failed to fetch event attendees" });
+    }
+  });
+
+  app.patch("/api/auth/update-profile", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const updatedData = {
+        bio: req.body.bio,
+        companyName: req.body.companyName,
+        companyDescription: req.body.companyDescription,
+        address: req.body.address,
+        phoneNumber: req.body.phoneNumber,
+        customLinks: req.body.customLinks || [],
+        profileTags: req.body.profileTags || [],
+      };
+
+      console.log('Updating profile with data:', updatedData);
+
+      await db
+        .update(users)
+        .set(updatedData)
+        .where(eq(users.id, req.session.userId));
+
+      const updatedUser = await storage.getUser(req.session.userId);
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 

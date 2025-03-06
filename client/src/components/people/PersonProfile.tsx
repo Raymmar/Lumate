@@ -166,6 +166,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           customLinks: values.customLinks || [],
           profileTags: values.profileTags || []
         }),
+        credentials: 'include'
       });
       if (!response.ok) {
         const error = await response.json();
@@ -192,7 +193,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const onSubmit = async (values: z.infer<typeof insertUserSchema>) => {
     try {
-      // Log the form data before submission
       console.log('Submitting form data:', values);
       await updateProfileMutation.mutateAsync(values);
     } catch (error) {
@@ -330,11 +330,12 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 variant="outline"
                 onClick={isEditing ? form.handleSubmit(onSubmit) : () => setIsEditing(true)}
                 className="gap-2"
+                disabled={updateProfileMutation.isPending}
               >
                 {isEditing ? (
                   <>
                     <Check className="h-4 w-4" />
-                    Save Changes
+                    {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
                   </>
                 ) : (
                   <>
@@ -543,23 +544,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     })
                   )}
                 </div>
-
-                {isEditing && (
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={updateProfileMutation.isPending}
-                  >
-                    {updateProfileMutation.isPending ? (
-                      "Saving..."
-                    ) : (
-                      <>
-                        <Check className="h-4 w-4 mr-2" />
-                        Save Changes
-                      </>
-                    )}
-                  </Button>
-                )}
               </CardContent>
             </Card>
           </form>
