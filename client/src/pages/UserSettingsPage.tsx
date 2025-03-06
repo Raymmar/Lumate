@@ -22,7 +22,7 @@ import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 
 export default function UserSettingsPage() {
-  const { user: authUser, updateUser } = useAuth();
+  const { user: authUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
 
@@ -30,13 +30,7 @@ export default function UserSettingsPage() {
   const { data: user, isLoading } = useQuery<UpdateUserProfile>({
     queryKey: ['/api/auth/me'],
     enabled: !!authUser, // Only fetch if user is authenticated
-    staleTime: 0, // Always fetch fresh data
-    select: (data) => ({
-      ...data,
-      address: data.address ? (typeof data.address === 'string' ? JSON.parse(data.address) : data.address) : null,
-      customLinks: data.customLinks ?? [],
-      tags: data.tags ?? []
-    })
+    staleTime: 0 // Always fetch fresh data
   });
 
   const [displayName, setDisplayName] = useState("");
@@ -58,16 +52,23 @@ export default function UserSettingsPage() {
   useEffect(() => {
     if (user) {
       console.log('Setting form data from user:', user);
-      setDisplayName(user.displayName ?? "");
-      setBio(user.bio ?? "");
-      setFeaturedImageUrl(user.featuredImageUrl ?? "");
-      setCompanyName(user.companyName ?? "");
-      setCompanyDescription(user.companyDescription ?? "");
-      setAddress(user.address as Location | null);
-      setPhoneNumber(user.phoneNumber ?? "");
-      setIsPhonePublic(user.isPhonePublic ?? false);
-      setIsEmailPublic(user.isEmailPublic ?? false);
-      setCtaText(user.ctaText ?? "");
+      // Parse address if it's a string
+      const parsedAddress = user.address 
+        ? (typeof user.address === 'string' 
+          ? JSON.parse(user.address) 
+          : user.address)
+        : null;
+
+      setDisplayName(user.displayName || "");
+      setBio(user.bio || "");
+      setFeaturedImageUrl(user.featuredImageUrl || "");
+      setCompanyName(user.companyName || "");
+      setCompanyDescription(user.companyDescription || "");
+      setAddress(parsedAddress);
+      setPhoneNumber(user.phoneNumber || "");
+      setIsPhonePublic(Boolean(user.isPhonePublic));
+      setIsEmailPublic(Boolean(user.isEmailPublic));
+      setCtaText(user.ctaText || "");
       setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
       setTags(Array.isArray(user.tags) ? user.tags : []);
     }
@@ -76,8 +77,6 @@ export default function UserSettingsPage() {
   useEffect(() => {
     initGoogleMaps();
   }, []);
-
-  const isAdmin = Boolean(user?.isAdmin);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -96,7 +95,6 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      updateUser(data);
       queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
@@ -206,7 +204,7 @@ export default function UserSettingsPage() {
                 Update your profile information
               </CardDescription>
             </div>
-            {isAdmin && <AdminBadge />}
+            {user.isAdmin && <AdminBadge />}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
