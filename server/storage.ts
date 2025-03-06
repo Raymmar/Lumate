@@ -1459,9 +1459,11 @@ export class PostgresStorage implements IStorage {
         currentData: JSON.stringify(existingUser, null, 2)
       });
 
-      // Prepare update data
+      // Prepare update data with proper JSON handling
       const updateData = {
         ...data,
+        customLinks: data.customLinks ? JSON.stringify(data.customLinks) : existingUser.customLinks,
+        tags: data.tags ? JSON.stringify(data.tags) : existingUser.tags,
         updatedAt: new Date().toISOString()
       };
 
