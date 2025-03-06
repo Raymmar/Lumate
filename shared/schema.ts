@@ -184,31 +184,31 @@ export const rolePermissions = pgTable("role_permissions", {
   grantedAt: timestamp("granted_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertTagSchema = createInsertSchema(tags).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertTagSchema = createInsertSchema(tags).omit({
+  id: true,
+  createdAt: true
 }).transform((data) => ({
   ...data,
-  text: data.text.toLowerCase() 
+  text: data.text.toLowerCase()
 }));
 
-export const insertPostSchema = createInsertSchema(posts).omit({ 
-  id: true, 
-  createdAt: true, 
+export const insertPostSchema = createInsertSchema(posts).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
   creatorId: true
 });
 
-export const insertPostTagSchema = createInsertSchema(postTags).omit({ 
-  id: true 
+export const insertPostTagSchema = createInsertSchema(postTags).omit({
+  id: true
 });
 
 export type Tag = typeof tags.$inferSelect;
 export type InsertTag = z.infer<typeof insertTagSchema>;
 
 export type Post = typeof posts.$inferSelect & {
-  creator?: { 
-    id: number; 
+  creator?: {
+    id: number;
     displayName: string | null;
   };
   tags?: string[];
@@ -228,12 +228,12 @@ export type User = typeof users.$inferSelect & {
   permissions?: Permission[];
 };
 // Update insert schema
-export const insertUserSchema = createInsertSchema(users).omit({ 
-  id: true, 
-  isVerified: true, 
-  createdAt: true, 
-  updatedAt: true, 
-  isAdmin: true 
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  isVerified: true,
+  createdAt: true,
+  updatedAt: true,
+  isAdmin: true
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
@@ -340,25 +340,25 @@ export const foundingMembers = pgTable("founding_members", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
-export const insertTestimonialSchema = createInsertSchema(testimonials).omit({ 
+export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
   id: true,
   createdAt: true,
   displayOrder: true,
 });
 
-export const insertTimelineEventSchema = createInsertSchema(timelineEvents).omit({ 
+export const insertTimelineEventSchema = createInsertSchema(timelineEvents).omit({
   id: true,
   createdAt: true,
   displayOrder: true,
 });
 
-export const insertBoardMemberSchema = createInsertSchema(boardMembers).omit({ 
+export const insertBoardMemberSchema = createInsertSchema(boardMembers).omit({
   id: true,
   createdAt: true,
   displayOrder: true,
 });
 
-export const insertFoundingMemberSchema = createInsertSchema(foundingMembers).omit({ 
+export const insertFoundingMemberSchema = createInsertSchema(foundingMembers).omit({
   id: true,
   createdAt: true,
   displayOrder: true,
@@ -376,6 +376,20 @@ export type InsertBoardMember = z.infer<typeof insertBoardMemberSchema>;
 export type FoundingMember = typeof foundingMembers.$inferSelect;
 export type InsertFoundingMember = z.infer<typeof insertFoundingMemberSchema>;
 
+// Add type for location data
+export const locationSchema = z.object({
+  address: z.string().min(1, "Address is required"),
+  city: z.string().optional(),
+  region: z.string().optional(),
+  country: z.string().optional(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  placeId: z.string().optional(),
+  formatted_address: z.string().optional(),
+});
+
+export type Location = z.infer<typeof locationSchema>;
+
 // Update user profile schema for frontend validation
 export const updateUserProfileSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
@@ -391,9 +405,11 @@ export const updateUserProfileSchema = z.object({
   companyDescription: z.string()
     .transform(val => val === "" ? null : val)
     .nullable(),
-  address: z.string()
-    .transform(val => val === "" ? null : val)
-    .nullable(),
+  address: z.union([
+    locationSchema,
+    z.null(),
+    z.string().transform(val => val === "" ? null : val)
+  ]).nullable(),
   phoneNumber: z.string()
     .transform(val => val === "" ? null : val)
     .nullable(),
