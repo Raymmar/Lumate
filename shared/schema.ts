@@ -2,6 +2,15 @@ import { pgTable, text, serial, timestamp, varchar, json, boolean } from "drizzl
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Add type for custom links
+export const userCustomLink = z.object({
+  title: z.string().min(1, "Link title is required"),
+  url: z.string().url("Must be a valid URL"),
+  icon: z.string().optional(),
+});
+
+export type UserCustomLink = z.infer<typeof userCustomLink>;
+
 export const cacheMetadata = pgTable("cache_metadata", {
   id: serial("id").primaryKey(),
   key: varchar("key", { length: 255 }).notNull().unique(),
@@ -61,6 +70,7 @@ export const people = pgTable("people", {
   }),
 });
 
+// Update users table with new fields
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
@@ -69,6 +79,18 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
+  // New fields
+  featuredImageUrl: varchar("featured_image_url", { length: 255 }),
+  bio: text("bio"),
+  companyName: varchar("company_name", { length: 255 }),
+  companyDescription: text("company_description"),
+  address: text("address"),
+  phoneNumber: varchar("phone_number", { length: 50 }),
+  isPhonePublic: boolean("is_phone_public").notNull().default(false),
+  isEmailPublic: boolean("is_email_public").notNull().default(false),
+  ctaText: varchar("cta_text", { length: 255 }),
+  customLinks: json("custom_links").$type<UserCustomLink[]>().default([]),
+  tags: text("tags").array(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
@@ -199,7 +221,21 @@ export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true, isAdmin: true });
+// Update the User type
+export type User = typeof users.$inferSelect & {
+  api_id?: string;
+  roles?: Role[];
+  permissions?: Permission[];
+};
+// Update insert schema
+export const insertUserSchema = createInsertSchema(users).omit({ 
+  id: true, 
+  isVerified: true, 
+  createdAt: true, 
+  updatedAt: true, 
+  isAdmin: true 
+});
+export type InsertUser = z.infer<typeof insertUserSchema>;
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });
@@ -213,12 +249,7 @@ export type Person = typeof people.$inferSelect & {
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
-export type User = typeof users.$inferSelect & {
-  api_id?: string;
-  roles?: Role[];
-  permissions?: Permission[];
-};
-export type InsertUser = z.infer<typeof insertUserSchema>;
+
 export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type InsertVerificationToken = z.infer<typeof insertVerificationTokenSchema>;
 export type EventRsvpStatus = typeof eventRsvpStatus.$inferSelect;
@@ -344,3 +375,21 @@ export type InsertBoardMember = z.infer<typeof insertBoardMemberSchema>;
 
 export type FoundingMember = typeof foundingMembers.$inferSelect;
 export type InsertFoundingMember = z.infer<typeof insertFoundingMemberSchema>;
+
+// Update user profile schema for frontend validation
+export const updateUserProfileSchema = z.object({
+  displayName: z.string().min(1, "Display name is required"),
+  featuredImageUrl: z.string().url("Must be a valid URL").optional().nullable(),
+  bio: z.string().optional().nullable(),
+  companyName: z.string().optional().nullable(),
+  companyDescription: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  phoneNumber: z.string().optional().nullable(),
+  isPhonePublic: z.boolean().default(false),
+  isEmailPublic: z.boolean().default(false),
+  ctaText: z.string().optional().nullable(),
+  customLinks: z.array(userCustomLink).max(5, "Maximum 5 custom links allowed"),
+  tags: z.array(z.string()).default([])
+});
+
+export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
