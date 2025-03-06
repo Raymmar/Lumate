@@ -37,14 +37,11 @@ export default function UserSettingsPage() {
   const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
-  const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
   useEffect(() => {
-    // Initialize Google Maps when component mounts
     initGoogleMaps();
   }, []);
 
-  // Update form fields when user data changes
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || "");
@@ -153,7 +150,6 @@ export default function UserSettingsPage() {
     }
   };
 
-  // Show loading state while user data is being fetched
   if (!user) {
     return (
       <DashboardLayout>
@@ -166,19 +162,19 @@ export default function UserSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="py-6 max-w-2xl mx-auto space-y-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Profile Settings</CardTitle>
-              <CardDescription>
-                Update your profile information
-              </CardDescription>
+      <div className="container max-w-3xl mx-auto py-6">
+        <Card className="border-none shadow-none">
+          <CardHeader className="px-0 space-y-1">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl font-semibold">Profile Settings</CardTitle>
+              {isAdmin && <AdminBadge />}
             </div>
-            {isAdmin && <AdminBadge />}
+            <CardDescription>
+              Update your profile information and preferences
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <CardContent className="px-0">
+            <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information */}
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -188,6 +184,7 @@ export default function UserSettingsPage() {
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Enter your display name"
+                    className="bg-background"
                   />
                 </div>
 
@@ -198,7 +195,7 @@ export default function UserSettingsPage() {
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     placeholder="Tell us about yourself"
-                    className="min-h-[100px]"
+                    className="min-h-[100px] bg-background"
                   />
                 </div>
 
@@ -210,12 +207,13 @@ export default function UserSettingsPage() {
                     value={featuredImageUrl}
                     onChange={(e) => setFeaturedImageUrl(e.target.value)}
                     placeholder="https://..."
+                    className="bg-background"
                   />
                 </div>
               </div>
 
               {/* Company Information */}
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4">
                 <h3 className="text-lg font-medium">Company Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name</Label>
@@ -224,6 +222,7 @@ export default function UserSettingsPage() {
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="Enter your company name"
+                    className="bg-background"
                   />
                 </div>
 
@@ -234,13 +233,13 @@ export default function UserSettingsPage() {
                     value={companyDescription}
                     onChange={(e) => setCompanyDescription(e.target.value)}
                     placeholder="Describe your company"
-                    className="min-h-[100px]"
+                    className="min-h-[100px] bg-background"
                   />
                 </div>
               </div>
 
               {/* Contact Information */}
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4">
                 <h3 className="text-lg font-medium">Contact Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
@@ -260,6 +259,7 @@ export default function UserSettingsPage() {
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="Enter your phone number"
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2 pt-8">
@@ -273,8 +273,8 @@ export default function UserSettingsPage() {
 
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <Label>Email Visibility</Label>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <Label>Email</Label>
+                    <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
                   </div>
                   <div className="space-y-2">
                     <Switch
@@ -287,12 +287,17 @@ export default function UserSettingsPage() {
               </div>
 
               {/* Tags */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-lg font-medium">Tags</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Tags</Label>
+                  <span className="text-sm text-muted-foreground">
+                    {tags.length}/5 tags
+                  </span>
+                </div>
                 <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2 mb-2">
+                  <div className="flex flex-wrap gap-2 min-h-[2.5rem]">
                     {tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="gap-1">
+                      <Badge key={tag} variant="secondary" className="px-2 py-1 h-7">
                         {tag}
                         <button
                           type="button"
@@ -304,7 +309,7 @@ export default function UserSettingsPage() {
                       </Badge>
                     ))}
                   </div>
-                  <Command className="rounded-lg border">
+                  <Command className="rounded-md border bg-background">
                     <CommandInput
                       placeholder="Add tags..."
                       value={currentTag}
@@ -315,14 +320,14 @@ export default function UserSettingsPage() {
                           handleSelectTag(currentTag);
                         }
                       }}
-                      className="border-0"
+                      className="h-9"
                     />
                   </Command>
                 </div>
               </div>
 
               {/* Custom Links */}
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium">Custom Links</h3>
                   <Button
@@ -331,6 +336,7 @@ export default function UserSettingsPage() {
                     size="sm"
                     onClick={handleAddCustomLink}
                     disabled={customLinks.length >= 5}
+                    className="h-8"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Link
@@ -344,12 +350,14 @@ export default function UserSettingsPage() {
                           placeholder="Link Title"
                           value={link.title}
                           onChange={(e) => updateCustomLink(index, 'title', e.target.value)}
+                          className="bg-background"
                         />
                         <Input
                           placeholder="URL"
                           type="url"
                           value={link.url}
                           onChange={(e) => updateCustomLink(index, 'url', e.target.value)}
+                          className="bg-background"
                         />
                       </div>
                       <Button
@@ -357,6 +365,7 @@ export default function UserSettingsPage() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleRemoveCustomLink(index)}
+                        className="h-9 w-9"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -366,15 +375,16 @@ export default function UserSettingsPage() {
               </div>
 
               {/* Theme Selection */}
-              <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-4">
                 <h3 className="text-lg font-medium">Appearance</h3>
                 <div className="space-y-2">
                   <Label>Theme</Label>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
                       variant={theme === 'light' ? 'default' : 'outline'}
                       onClick={() => setTheme('light')}
+                      className="flex-1"
                     >
                       Light
                     </Button>
@@ -382,6 +392,7 @@ export default function UserSettingsPage() {
                       type="button"
                       variant={theme === 'dark' ? 'default' : 'outline'}
                       onClick={() => setTheme('dark')}
+                      className="flex-1"
                     >
                       Dark
                     </Button>
@@ -389,6 +400,7 @@ export default function UserSettingsPage() {
                       type="button"
                       variant={theme === 'system' ? 'default' : 'outline'}
                       onClick={() => setTheme('system')}
+                      className="flex-1"
                     >
                       System
                     </Button>
@@ -398,7 +410,7 @@ export default function UserSettingsPage() {
 
               <Button
                 type="submit"
-                className="w-full mt-6"
+                className="w-full"
                 disabled={updateProfileMutation.isPending}
               >
                 {updateProfileMutation.isPending ? (
