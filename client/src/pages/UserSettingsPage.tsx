@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -22,27 +22,42 @@ import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 
 export default function UserSettingsPage() {
-  const { user, updateUser } = useAuth();
+  const { user: authUser, updateUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const [displayName, setDisplayName] = useState(user?.displayName ?? "");
-  const [bio, setBio] = useState(user?.bio ?? "");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl ?? "");
-  const [companyName, setCompanyName] = useState(user?.companyName ?? "");
-  const [companyDescription, setCompanyDescription] = useState(user?.companyDescription ?? "");
-  const [address, setAddress] = useState<Location | null>(user?.address as Location | null);
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? "");
-  const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic ?? false);
-  const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic ?? false);
-  const [ctaText, setCtaText] = useState(user?.ctaText ?? "");
-  const [customLinks, setCustomLinks] = useState(user?.customLinks ?? []);
-  const [tags, setTags] = useState<string[]>(user?.tags ?? []);
+
+  // Fetch fresh user data from the server
+  const { data: user, isLoading } = useQuery<UpdateUserProfile>({
+    queryKey: ['/api/auth/me'],
+    enabled: !!authUser, // Only fetch if user is authenticated
+    staleTime: 0, // Always fetch fresh data
+    select: (data) => ({
+      ...data,
+      address: data.address ? (typeof data.address === 'string' ? JSON.parse(data.address) : data.address) : null,
+      customLinks: data.customLinks ?? [],
+      tags: data.tags ?? []
+    })
+  });
+
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [address, setAddress] = useState<Location | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isPhonePublic, setIsPhonePublic] = useState(false);
+  const [isEmailPublic, setIsEmailPublic] = useState(false);
+  const [ctaText, setCtaText] = useState("");
+  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
-  // Update state when user data changes
+  // Update form state when user data is loaded
   useEffect(() => {
     if (user) {
+      console.log('Setting form data from user:', user);
       setDisplayName(user.displayName ?? "");
       setBio(user.bio ?? "");
       setFeaturedImageUrl(user.featuredImageUrl ?? "");
@@ -53,13 +68,12 @@ export default function UserSettingsPage() {
       setIsPhonePublic(user.isPhonePublic ?? false);
       setIsEmailPublic(user.isEmailPublic ?? false);
       setCtaText(user.ctaText ?? "");
-      setCustomLinks(user.customLinks ?? []);
-      setTags(user.tags ?? []);
+      setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
+      setTags(Array.isArray(user.tags) ? user.tags : []);
     }
   }, [user]);
 
   useEffect(() => {
-    // Initialize Google Maps when component mounts
     initGoogleMaps();
   }, []);
 
@@ -67,10 +81,10 @@ export default function UserSettingsPage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
+      console.log('Submitting profile update:', data);
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -135,6 +149,21 @@ export default function UserSettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      console.log('Submitting form with data:', {
+        displayName,
+        bio,
+        featuredImageUrl,
+        companyName,
+        companyDescription,
+        address,
+        phoneNumber,
+        isPhonePublic,
+        isEmailPublic,
+        ctaText,
+        customLinks,
+        tags,
+      });
+
       await updateProfileMutation.mutateAsync({
         displayName,
         bio,
@@ -153,6 +182,16 @@ export default function UserSettingsPage() {
       console.error("Failed to update profile:", error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!user) return null;
 
