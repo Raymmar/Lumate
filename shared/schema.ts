@@ -379,16 +379,30 @@ export type InsertFoundingMember = z.infer<typeof insertFoundingMemberSchema>;
 // Update user profile schema for frontend validation
 export const updateUserProfileSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
-  featuredImageUrl: z.string().url("Must be a valid URL").optional().nullable(),
-  bio: z.string().optional().nullable(),
-  companyName: z.string().optional().nullable(),
-  companyDescription: z.string().optional().nullable(),
-  address: z.string().optional().nullable(),
-  phoneNumber: z.string().optional().nullable(),
+  featuredImageUrl: z.string()
+    .transform(val => val === "" ? null : val)
+    .pipe(z.string().url("Must be a valid URL").nullable()),
+  bio: z.string()
+    .transform(val => val === "" ? null : val)
+    .nullable(),
+  companyName: z.string()
+    .transform(val => val === "" ? null : val)
+    .nullable(),
+  companyDescription: z.string()
+    .transform(val => val === "" ? null : val)
+    .nullable(),
+  address: z.string()
+    .transform(val => val === "" ? null : val)
+    .nullable(),
+  phoneNumber: z.string()
+    .transform(val => val === "" ? null : val)
+    .nullable(),
   isPhonePublic: z.boolean().default(false),
   isEmailPublic: z.boolean().default(false),
-  ctaText: z.string().optional().nullable(),
-  customLinks: z.array(userCustomLink).max(5, "Maximum 5 custom links allowed"),
+  ctaText: z.string()
+    .transform(val => val === "" ? null : val)
+    .nullable(),
+  customLinks: z.array(userCustomLink).max(5, "Maximum 5 custom links allowed").default([]),
   tags: z.array(z.string()).default([])
 });
 

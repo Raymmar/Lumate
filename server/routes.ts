@@ -934,7 +934,6 @@ export async function registerRoutes(app: Express) {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-
       const { event_api_id } = req.query;
       if (!event_api_id) {
         return res.status(400).json({ error: "Missing event_api_id" });
@@ -942,7 +941,8 @@ export async function registerRoutes(app: Express) {
 
       const user = await storage.getUser(req.session.userId);
       if (!user || !user.personId) {
-        return res.status(401).json({ error: "User not found" });}
+        return res.status(401).json({ error: "User not found" });
+      }
 
       const person = await storage.getPerson(user.personId);
       if (!person) {
@@ -1878,14 +1878,15 @@ export async function registerRoutes(app: Express) {
 
       const userId = parseInt(req.params.userId);
       const roleName = req.params.roleName;
+
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
 
-      console.log(`Updating roles foruser ${userId} to role ${roleName} by admin ${req.session.userId}`);
+      console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
       const role = await storage.getRoleByName(roleName);
-      if(!role) {
+      if (!role) {
         return res.status(404).json({ error: "Role not found" });
       }
 
@@ -1906,41 +1907,110 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
+  app.patch("/api/auth/update-profile", async (req, res) => {
     try {
+      console.log('🔵 Profile Update: Starting request processing', {
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        timestamp: new Date().toISOString()
+      });
+
       if (!req.session.userId) {
+        console.log('🔴 Profile Update: Authentication failed - No user ID in session');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const currentUser = await storage.getUser(req.session.userId);
-      if (!currentUser?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      const userId = parseInt(req.params.id);
-      const { isAdmin } = req.body;
-
-      if (typeof isAdmin !== 'boolean') {
-        return res.status(400).json({ error: "isAdmin must be a boolean" });
-      }
-
-      console.log(`Updating admin status for user ${userId} to ${isAdmin} by admin ${req.session.userId}`);
-
-      const updatedUser = await storage.updateUserAdminStatus(userId, isAdmin);
-      console.log(`Admin status for user ${userId} updated successfully. New status: ${updatedUser.isAdmin}`);
-
-      res.json({
-        user: {
-          id: updatedUser.id,
-          email: updatedUser.email,
-          displayName: updatedUser.displayName,
-          isVerified: updatedUser.isVerified,
-          isAdmin: updatedUser.isAdmin
-        }
+      console.log('🟡 Profile Update: Processing request body', {
+        userId: req.session.userId,
+        requestBody: JSON.stringify(req.body, null, 2),
+        bodyKeys: Object.keys(req.body)
       });
+
+      try {
+        // Attempt to validate the incoming data
+        const validationResult = updateUserProfileSchema.safeParse(req.body);
+
+        if (!validationResult.success) {
+          console.error('🔴 Profile Update: Validation failed', {
+            userId: req.session.userId,
+            errors: validationResult.error.errors.map(err => ({
+              path: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            })),
+            receivedData: req.body
+          });
+
+          return res.status(400).json({ 
+            error: "Invalid profile data",
+            details: validationResult.error.errors
+          });
+        }
+
+        const userData = validationResult.data;
+        console.log('🟢 Profile Update: Validation successful', {
+          userId: req.session.userId,
+          validatedFields: Object.keys(userData),
+          validatedData: JSON.stringify(userData, null, 2)
+        });
+
+        // Attempt to update the user
+        const updatedUser = await storage.updateUser(req.session.userId, {
+          displayName: userData.displayName,
+          bio: userData.bio ?? null,
+          featuredImageUrl: userData.featuredImageUrl ?? null,
+          companyName: userData.companyName ?? null,
+          companyDescription: userData.companyDescription ?? null,
+          address: userData.address ?? null,
+          phoneNumber: userData.phoneNumber ?? null,
+          isPhonePublic: userData.isPhonePublic ?? false,
+          isEmailPublic: userData.isEmailPublic ?? false,
+          ctaText: userData.ctaText ?? null,
+          customLinks: userData.customLinks ?? [],
+          tags: userData.tags ?? []
+        });
+
+        console.log('🟢 Profile Update: Database update successful', {
+          userId: updatedUser.id,
+          updatedFields: Object.keys(updatedUser),
+          result: JSON.stringify(updatedUser, null, 2)
+        });
+
+        return res.json(updatedUser);
+      } catch (processingError) {
+        console.error('🔴 Profile Update: Processing error', {
+          userId: req.session.userId,
+          error: {
+            name: processingError.name,
+            message: processingError.message,
+            stack: processingError.stack,
+            ...(processingError instanceof z.ZodError && {
+              zodErrors: processingError.errors
+            })
+          },
+          requestBody: JSON.stringify(req.body, null, 2)
+        });
+        throw processingError;
+      }
     } catch (error) {
-      console.error('Failed to update user admin status:', error);
-      res.status(500).json({ error: "Failed to update user admin status" });
+      console.error('🔴 Profile Update: Unhandled error', {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        },
+        userId: req.session?.userId,
+        requestBody: JSON.stringify(req.body, null, 2),
+        timestamp: new Date().toISOString()
+      });
+
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        message: error.message
+      });
     }
   });
 
@@ -2142,63 +2212,411 @@ export async function registerRoutes(app: Express) {
 
   app.patch("/api/auth/update-profile", async (req, res) => {
     try {
+      console.log('🔵 Profile Update: Starting request processing', {
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        timestamp: new Date().toISOString()
+      });
+
       if (!req.session.userId) {
-        console.log('Update profile failed: No authenticated user');
+        console.log('🔴 Profile Update: Authentication failed - No user ID in session');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      console.log('Received profile update request:', {
+      console.log('🟡 Profile Update: Processing request body', {
         userId: req.session.userId,
-        requestBody: req.body
+        requestBody: JSON.stringify(req.body, null, 2),
+        bodyKeys: Object.keys(req.body)
       });
 
-      const userData = updateUserProfileSchema.parse(req.body);
-      console.log('Validated profile update data:', {
-        userId: req.session.userId,
-        fields: Object.keys(userData),
-        data: userData
-      });
+      try {
+        // Attempt to validate the incoming data
+        const validationResult = updateUserProfileSchema.safeParse(req.body);
 
-      const updatedUser = await storage.updateUser(req.session.userId, {
-        displayName: userData.displayName,
-        bio: userData.bio,
-        featuredImageUrl: userData.featuredImageUrl,
-        companyName: userData.companyName,
-        companyDescription: userData.companyDescription,
-        address: userData.address,
-        phoneNumber: userData.phoneNumber,
-        isPhonePublic: userData.isPhonePublic,
-        isEmailPublic: userData.isEmailPublic,
-        ctaText: userData.ctaText,
-        customLinks: userData.customLinks,
-        tags: userData.tags,
-      });
+        if (!validationResult.success) {
+          console.error('🔴 Profile Update: Validation failed', {
+            userId: req.session.userId,
+            errors: validationResult.error.errors.map(err => ({
+              path: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            })),
+            receivedData: req.body
+          });
 
-      console.log('Profile update successful:', {
-        userId: updatedUser.id,
-        updatedFields: Object.keys(userData),
-        result: updatedUser
-      });
+          return res.status(400).json({ 
+            error: "Invalid profile data",
+            details: validationResult.error.errors
+          });
+        }
 
-      return res.json(updatedUser);
+        const userData = validationResult.data;
+        console.log('🟢 Profile Update: Validation successful', {
+          userId: req.session.userId,
+          validatedFields: Object.keys(userData),
+          validatedData: JSON.stringify(userData, null, 2)
+        });
+
+        // Attempt to update the user
+        const updatedUser = await storage.updateUser(req.session.userId, {
+          displayName: userData.displayName,
+          bio: userData.bio ?? null,
+          featuredImageUrl: userData.featuredImageUrl ?? null,
+          companyName: userData.companyName ?? null,
+          companyDescription: userData.companyDescription ?? null,
+          address: userData.address ?? null,
+          phoneNumber: userData.phoneNumber ?? null,
+          isPhonePublic: userData.isPhonePublic ?? false,
+          isEmailPublic: userData.isEmailPublic ?? false,
+          ctaText: userData.ctaText ?? null,
+          customLinks: userData.customLinks ?? [],
+          tags: userData.tags ?? []
+        });
+
+        console.log('🟢 Profile Update: Database update successful', {
+          userId: updatedUser.id,
+          updatedFields: Object.keys(updatedUser),
+          result: JSON.stringify(updatedUser, null, 2)
+        });
+
+        return res.json(updatedUser);
+      } catch (processingError) {
+        console.error('🔴 Profile Update: Processing error', {
+          userId: req.session.userId,
+          error: {
+            name: processingError.name,
+            message: processingError.message,
+            stack: processingError.stack,
+            ...(processingError instanceof z.ZodError && {
+              zodErrors: processingError.errors
+            })
+          },
+          requestBody: JSON.stringify(req.body, null, 2)
+        });
+        throw processingError;
+      }
     } catch (error) {
-      console.error('Profile update failed:', {
-        error: error instanceof Error ? {
+      console.error('🔴 Profile Update: Unhandled error', {
+        error: {
           name: error.name,
           message: error.message,
           stack: error.stack
-        } : error,
+        },
         userId: req.session?.userId,
-        body: req.body
+        requestBody: JSON.stringify(req.body, null, 2),
+        timestamp: new Date().toISOString()
       });
 
-      if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          error: "Invalid profile data",
-          details: error.errors 
-        });
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        message: error.message
+      });
+    }
+  });
+
+  app.get("/api/admin/events/:id/sync-status", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
       }
-      res.status(500).json({ error: "Failed to update profile" });
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.id;
+
+      // Set up SSE connection
+      initSSE(res);
+
+      // Send initial status
+      sendSSEUpdate(res, { 
+        type: 'status',
+        message: 'Starting attendance sync...',
+        progress: 0
+      });
+
+      try {
+        const event = await storage.getEventByApiId(eventId);
+        if (!event) {
+          sendSSEUpdate(res, {
+            type: 'error',
+            message: 'Event not found',
+            progress: 0
+          });
+          return res.end();
+        }
+
+        // Clear existing attendance records
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Clearing existing attendance records...',
+          progress: 10
+        });
+
+        await storage.deleteAttendanceByEvent(eventId);
+
+        // Fetch guests from Luma API
+        sendSSEUpdate(res, {
+          type: 'status',
+          message: 'Fetching guest list from event platform...',
+          progress: 20
+        });
+
+        let cursor = null;
+        let totalGuests = 0;
+        let processedGuests = 0;
+        let iteration = 0;
+
+        do {
+          iteration++;
+          const params: Record<string, string> = { event_api_id: eventId };
+          if (cursor) {
+            params.cursor = cursor;
+          }
+
+          const response = await lumaApiRequest('event/get-guests', params);
+
+          if (response.entries) {
+            for (const guest of response.entries) {
+              processedGuests++;
+              if (guest.approval_status === 'approved') {
+                await storage.upsertAttendance({
+                  eventApiId: eventId,
+                  userEmail: guest.email,
+                  guestApiId: guest.guest_id,
+                  approvalStatus: guest.approval_status,
+                  registeredAt: guest.registered_at,
+                  lastSyncedAt: new Date().toISOString()
+                });
+              }
+
+              // Calculate progress percentage (20-90%)
+              const progress = 20 + Math.floor((processedGuests / (totalGuests || response.entries.length)) * 70);
+
+              sendSSEUpdate(res, {
+                type: 'progress',
+                message: `Processing guest ${processedGuests}: ${guest.email}`,
+                progress,
+                data: {
+                  processedGuests,
+                  totalGuests: totalGuests || response.entries.length,
+                  currentEmail: guest.email,
+                  status: guest.approval_status
+                }
+              });
+            }
+
+            totalGuests = Math.max(totalGuests, processedGuests);
+            cursor = response.next_cursor;
+          }
+        } while (cursor);
+
+        // Update event sync timestamp
+        await storage.updateEventAttendanceSync(eventId);
+
+        sendSSEUpdate(res, {
+          type: 'complete',
+          message: 'Attendance sync completed successfully',
+          progress: 100,
+          data: {
+            totalGuests: processedGuests,
+            iterations: iteration
+          }
+        });
+
+        res.end();
+      } catch (error) {
+        console.error('Error during attendance sync:', error);
+        sendSSEUpdate(res, {
+          type: 'error',
+          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          progress: 0
+        });
+        res.end();
+      }
+    } catch (error) {
+      console.error('Failed to setup sync status stream:', error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Failed to setup sync status stream" });
+      }
+    }
+  });
+
+  app.delete("/api/admin/events/:eventId/attendance", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.eventId;
+
+      console.log('Clearing attendance for event:', eventId);
+
+      const updatedEvent = await storage.clearEventAttendance(eventId);
+
+      console.log('Successfully cleared attendance for event:', eventId);
+
+      res.json({
+        message: "Attendance cleared successfully",
+        event: updatedEvent
+      });
+    } catch (error) {
+      console.error('Failed to clear event attendance:', error);
+      res.status(500).json({ 
+        error: "Failed to clear event attendance",
+        message: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.get("/api/events/:id/attendees", async (req, res) => {
+    try {
+      const eventId = req.params.id;
+
+      // First get all attendees with their details
+      const attendeesList = await db
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          userName: people.userName,
+          email: people.email,
+          avatarUrl: people.avatarUrl
+        })
+        .from(attendance)
+        .leftJoin(people, eq(attendance.personId, people.id))
+        .where(eq(attendance.eventApiId, eventId))
+        .orderBy(sql`registered_at DESC`);
+
+      // Get total count including those without profiles
+      const totalCount = await db
+        .select({ count: sql`count(*)` })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventId));
+
+      res.json({
+        attendees: attendeesList,
+        total: Number(totalCount[0]?.count || 0)
+      });
+    } catch (error) {
+      console.error('Failed to fetch event attendees:', error);
+      res.status(500).json({ error: "Failed to fetch event attendees" });
+    }
+  });
+
+  app.patch("/api/auth/update-profile", async (req, res) => {
+    try {
+      console.log('🔵 Profile Update: Starting request processing', {
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!req.session.userId) {
+        console.log('🔴 Profile Update: Authentication failed - No user ID in session');
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      console.log('🟡 Profile Update: Processing request body', {
+        userId: req.session.userId,
+        requestBody: JSON.stringify(req.body, null, 2),
+        bodyKeys: Object.keys(req.body)
+      });
+
+      try {
+        // Attempt to validate the incoming data
+        const validationResult = updateUserProfileSchema.safeParse(req.body);
+
+        if (!validationResult.success) {
+          console.error('🔴 Profile Update: Validation failed', {
+            userId: req.session.userId,
+            errors: validationResult.error.errors.map(err => ({
+              path: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            })),
+            receivedData: req.body
+          });
+
+          return res.status(400).json({ 
+            error: "Invalid profile data",
+            details: validationResult.error.errors
+          });
+        }
+
+        const userData = validationResult.data;
+        console.log('🟢 Profile Update: Validation successful', {
+          userId: req.session.userId,
+          validatedFields: Object.keys(userData),
+          validatedData: JSON.stringify(userData, null, 2)
+        });
+
+        // Attempt to update the user
+        const updatedUser = await storage.updateUser(req.session.userId, {
+          displayName: userData.displayName,
+          bio: userData.bio ?? null,
+          featuredImageUrl: userData.featuredImageUrl ?? null,
+          companyName: userData.companyName ?? null,
+          companyDescription: userData.companyDescription ?? null,
+          address: userData.address ?? null,
+          phoneNumber: userData.phoneNumber ?? null,
+          isPhonePublic: userData.isPhonePublic ?? false,
+          isEmailPublic: userData.isEmailPublic ?? false,
+          ctaText: userData.ctaText ?? null,
+          customLinks: userData.customLinks ?? [],
+          tags: userData.tags ?? []
+        });
+
+        console.log('🟢 Profile Update: Database update successful', {
+          userId: updatedUser.id,
+          updatedFields: Object.keys(updatedUser),
+          result: JSON.stringify(updatedUser, null, 2)
+        });
+
+        return res.json(updatedUser);
+      } catch (processingError) {
+        console.error('🔴 Profile Update: Processing error', {
+          userId: req.session.userId,
+          error: {
+            name: processingError.name,
+            message: processingError.message,
+            stack: processingError.stack,
+            ...(processingError instanceof z.ZodError && {
+              zodErrors: processingError.errors
+            })
+          },
+          requestBody: JSON.stringify(req.body, null, 2)
+        });
+        throw processingError;
+      }
+    } catch (error) {
+      console.error('🔴 Profile Update: Unhandled error', {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        },
+        userId: req.session?.userId,
+        requestBody: JSON.stringify(req.body, null, 2),
+        timestamp: new Date().toISOString()
+      });
+
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        message: error.message
+      });
     }
   });
 

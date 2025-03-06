@@ -1435,55 +1435,75 @@ export class PostgresStorage implements IStorage {
 
   async updateUser(userId: number, data: Partial<User>): Promise<User> {
     try {
-      console.log('Starting user update operation:', {
+      console.log('🔵 Storage: Starting user update operation', {
         userId,
         updateFields: Object.keys(data),
-        updateData: data
+        updateData: JSON.stringify(data, null, 2),
+        timestamp: new Date().toISOString()
       });
 
       // First verify the user exists
       const existingUser = await this.getUser(userId);
       if (!existingUser) {
-        console.error('Update failed: User not found:', userId);
+        console.error('🔴 Storage: Update failed - User not found', {
+          userId,
+          timestamp: new Date().toISOString()
+        });
         throw new Error(`User with ID ${userId} not found`);
       }
 
-      console.log('Found existing user:', {
+      console.log('🟡 Storage: Found existing user', {
         userId: existingUser.id,
         email: existingUser.email,
-        currentFields: Object.keys(existingUser)
+        currentFields: Object.keys(existingUser),
+        currentData: JSON.stringify(existingUser, null, 2)
+      });
+
+      // Prepare update data
+      const updateData = {
+        ...data,
+        updatedAt: new Date().toISOString()
+      };
+
+      console.log('🟡 Storage: Preparing database update', {
+        userId,
+        updateFields: Object.keys(updateData),
+        updateData: JSON.stringify(updateData, null, 2)
       });
 
       const [updatedUser] = await db
         .update(users)
-        .set({
-          ...data,
-          updatedAt: new Date().toISOString()
-        })
+        .set(updateData)
         .where(eq(users.id, userId))
         .returning();
 
       if (!updatedUser) {
-        console.error('Update failed: No user returned after update');
+        console.error('🔴 Storage: Update failed - No user returned after update', {
+          userId,
+          updateData: JSON.stringify(updateData, null, 2),
+          timestamp: new Date().toISOString()
+        });
         throw new Error(`Failed to update user ${userId}`);
       }
 
-      console.log('Successfully updated user:', {
+      console.log('🟢 Storage: Successfully updated user', {
         userId: updatedUser.id,
-        updatedFields: Object.keys(data),
-        result: updatedUser
+        updatedFields: Object.keys(updateData),
+        result: JSON.stringify(updatedUser, null, 2),
+        timestamp: new Date().toISOString()
       });
 
       return updatedUser;
     } catch (error) {
-      console.error('Failed to update user:', {
+      console.error('🔴 Storage: Failed to update user', {
         userId,
-        error: error instanceof Error ? {
+        error: {
           name: error.name,
           message: error.message,
           stack: error.stack
-        } : error,
-        updateData: data
+        },
+        updateData: JSON.stringify(data, null, 2),
+        timestamp: new Date().toISOString()
       });
       throw error;
     }
