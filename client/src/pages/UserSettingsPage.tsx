@@ -47,23 +47,18 @@ export default function UserSettingsPage() {
           }),
         });
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          throw new Error("Server response was not JSON");
-        }
-
         const data = await response.json();
         if (!response.ok) {
-          throw new Error(data.error || "Failed to update profile");
+          throw new Error(data.error || 'Failed to update profile');
         }
 
         return data;
       } catch (error) {
-        console.error("Failed to update profile:", error);
+        console.error('Failed to update profile:', error);
         if (error instanceof Error) {
           throw error;
         }
-        throw new Error("Failed to update profile");
+        throw new Error('Failed to update profile');
       }
     },
     onSuccess: (data) => {
@@ -132,8 +127,9 @@ export default function UserSettingsPage() {
                   <p className="text-sm text-destructive">{error}</p>
                 )}
               </div>
-              <Button
-                type="submit"
+              <Button 
+                type="submit" 
+                className="w-full"
                 disabled={updateProfileMutation.isPending || !displayName.trim()}
               >
                 {updateProfileMutation.isPending ? (
