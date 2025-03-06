@@ -527,21 +527,23 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                       </Button>
                     </div>
                   ) : (
-                    person.user?.customLinks?.map((link, index) => {
-                      const Icon = LucideIcons[link.icon as keyof typeof LucideIcons] || LucideIcons.Link;
-                      return (
-                        <a
-                          key={index}
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <Icon className="h-4 w-4" />
-                          <span>{link.name}</span>
-                        </a>
-                      );
-                    })
+                    <div className="grid gap-2">
+                      {person.user?.customLinks?.map((link, index) => {
+                        const Icon = LucideIcons[link.icon as keyof typeof LucideIcons] || LucideIcons.Link;
+                        return (
+                          <a
+                            key={index}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{link.name}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </CardContent>
