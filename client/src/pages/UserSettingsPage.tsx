@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Check } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -25,20 +25,38 @@ export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [bio, setBio] = useState(user?.bio || "");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl || "");
-  const [companyName, setCompanyName] = useState(user?.companyName || "");
-  const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || "");
+  const [displayName, setDisplayName] = useState(user?.displayName ?? "");
+  const [bio, setBio] = useState(user?.bio ?? "");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl ?? "");
+  const [companyName, setCompanyName] = useState(user?.companyName ?? "");
+  const [companyDescription, setCompanyDescription] = useState(user?.companyDescription ?? "");
   const [address, setAddress] = useState<Location | null>(user?.address as Location | null);
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
-  const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic || false);
-  const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic || false);
-  const [ctaText, setCtaText] = useState(user?.ctaText || "");
-  const [customLinks, setCustomLinks] = useState(user?.customLinks || []);
-  const [tags, setTags] = useState<string[]>(user?.tags || []);
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber ?? "");
+  const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic ?? false);
+  const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic ?? false);
+  const [ctaText, setCtaText] = useState(user?.ctaText ?? "");
+  const [customLinks, setCustomLinks] = useState(user?.customLinks ?? []);
+  const [tags, setTags] = useState<string[]>(user?.tags ?? []);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
+
+  // Update state when user data changes
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName ?? "");
+      setBio(user.bio ?? "");
+      setFeaturedImageUrl(user.featuredImageUrl ?? "");
+      setCompanyName(user.companyName ?? "");
+      setCompanyDescription(user.companyDescription ?? "");
+      setAddress(user.address as Location | null);
+      setPhoneNumber(user.phoneNumber ?? "");
+      setIsPhonePublic(user.isPhonePublic ?? false);
+      setIsEmailPublic(user.isEmailPublic ?? false);
+      setCtaText(user.ctaText ?? "");
+      setCustomLinks(user.customLinks ?? []);
+      setTags(user.tags ?? []);
+    }
+  }, [user]);
 
   useEffect(() => {
     // Initialize Google Maps when component mounts
