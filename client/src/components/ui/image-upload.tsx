@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { UploadCloud, Image as ImageIcon } from "lucide-react";
 
@@ -14,6 +14,7 @@ interface ImageUploadProps {
 
 export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUploadProps) {
   const [imageUrl, setImageUrl] = useState(defaultValue || '');
+  const [isUnsplashOpen, setIsUnsplashOpen] = useState(false);
 
   const handleUrlChange = (url: string) => {
     setImageUrl(url);
@@ -23,6 +24,7 @@ export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUpl
   const handleUnsplashSelect = (url: string) => {
     setImageUrl(url);
     onImageSelect(url);
+    setIsUnsplashOpen(false);
   };
 
   return (
@@ -30,20 +32,15 @@ export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUpl
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label>Featured Image</Label>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8">
-                <ImageIcon className="h-4 w-4 mr-2" />
-                Choose from Unsplash
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl h-[600px]">
-              <DialogHeader>
-                <DialogTitle>Choose an Image from Unsplash</DialogTitle>
-              </DialogHeader>
-              <UnsplashPicker onSelect={handleUnsplashSelect} />
-            </DialogContent>
-          </Dialog>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8"
+            onClick={() => setIsUnsplashOpen(true)}
+          >
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Upload
+          </Button>
         </div>
         <div className="flex gap-2">
           <Input
@@ -72,6 +69,15 @@ export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUpl
           </div>
         )}
       </div>
+
+      <Dialog open={isUnsplashOpen} onOpenChange={setIsUnsplashOpen}>
+        <DialogContent className="max-w-3xl h-[600px]">
+          <DialogHeader>
+            <DialogTitle>Choose an Image from Unsplash</DialogTitle>
+          </DialogHeader>
+          <UnsplashPicker onSelect={handleUnsplashSelect} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
