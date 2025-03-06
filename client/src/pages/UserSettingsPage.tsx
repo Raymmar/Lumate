@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Sun, Moon, Monitor } from "lucide-react";
 
 export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
@@ -53,8 +55,8 @@ export default function UserSettingsPage() {
 
       // Parse address from user data
       if (user.address) {
-        const addressData = typeof user.address === 'string' 
-          ? { address: user.address } 
+        const addressData = typeof user.address === 'string'
+          ? { address: user.address }
           : {
               address: user.address.address || user.address.formatted_address,
               city: user.address.city,
@@ -200,34 +202,29 @@ export default function UserSettingsPage() {
       <div className="container max-w-3xl mx-auto py-6">
         {/* Theme Selection */}
         <div className="mb-6">
-          <div className="space-y-2">
+          <div className="flex items-center justify-between mb-2">
             <Label>Theme</Label>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant={theme === 'light' ? 'default' : 'outline'}
-                onClick={() => setTheme('light')}
-                className="flex-1"
-              >
-                Light
-              </Button>
-              <Button
-                type="button"
-                variant={theme === 'dark' ? 'default' : 'outline'}
-                onClick={() => setTheme('dark')}
-                className="flex-1"
-              >
-                Dark
-              </Button>
-              <Button
-                type="button"
-                variant={theme === 'system' ? 'default' : 'outline'}
-                onClick={() => setTheme('system')}
-                className="flex-1"
-              >
-                System
-              </Button>
-            </div>
+            <ToggleGroup
+              type="single"
+              value={theme}
+              onValueChange={(value) => {
+                if (value) setTheme(value as "light" | "dark" | "system");
+              }}
+              className="bg-background border rounded-md"
+            >
+              <ToggleGroupItem value="light" size="sm" className="px-3">
+                <Sun className="h-4 w-4" />
+                <span className="sr-only">Light</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="dark" size="sm" className="px-3">
+                <Moon className="h-4 w-4" />
+                <span className="sr-only">Dark</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="system" size="sm" className="px-3">
+                <Monitor className="h-4 w-4" />
+                <span className="sr-only">System</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </div>
 
