@@ -21,7 +21,9 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     address: typeof user.address === 'object' ? user.address : undefined,
     phone: user.isPhonePublic ? user.phoneNumber : undefined,
     email: user.isEmailPublic ? user.email : undefined,
-    customLinks: user.customLinks?.filter(link => link.url && link.title) || []
+    customLinks: user.customLinks?.filter(link => link.url && link.title) || [],
+    featuredImageUrl: user.featuredImageUrl,
+    tags: user.tags
   };
 
   console.log('MemberDetails - Prepared business data:', businessData); // Debug log

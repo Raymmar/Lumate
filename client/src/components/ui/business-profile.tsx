@@ -18,6 +18,8 @@ export interface BusinessProfileProps {
   phone?: string | null;
   email?: string | null;
   customLinks?: UserCustomLink[];
+  featuredImageUrl?: string | null;
+  tags?: string[] | null;
 }
 
 function generateGoogleMapsUrl(address: Location) {
@@ -31,14 +33,35 @@ export function BusinessProfile({
   address,
   phone,
   email,
-  customLinks = []
+  customLinks = [],
+  featuredImageUrl,
+  tags = []
 }: BusinessProfileProps) {
   return (
     <Card className="overflow-hidden">
+      {featuredImageUrl && (
+        <div className="relative h-48 w-full">
+          <img
+            src={featuredImageUrl}
+            alt={name}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      )}
+
       <CardHeader className="space-y-2">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-xl font-semibold">{name}</h3>
+            {tags && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {tags.map((tag, index) => (
+                  <Badge key={index} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>

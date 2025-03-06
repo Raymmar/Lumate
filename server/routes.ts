@@ -342,7 +342,9 @@ export async function registerRoutes(app: Express) {
           phoneNumber: users.phoneNumber,
           isPhonePublic: users.isPhonePublic,
           isEmailPublic: users.isEmailPublic,
-          customLinks: users.customLinks
+          customLinks: users.customLinks,
+          featuredImageUrl: users.featuredImageUrl,
+          tags: users.tags
         })
         .from(users)
         .where(sql`LOWER(email) = LOWER(${person.email})`)
@@ -364,7 +366,9 @@ export async function registerRoutes(app: Express) {
           companyDescription: user[0].companyDescription,
           hasAddress: !!user[0].address,
           hasPhone: !!user[0].phoneNumber,
-          hasCustomLinks: Array.isArray(user[0].customLinks) && user[0].customLinks.length > 0
+          hasCustomLinks: Array.isArray(user[0].customLinks) && user[0].customLinks.length > 0,
+          hasFeaturedImage: !!user[0].featuredImageUrl,
+          hasTags: Array.isArray(user[0].tags) && user[0].tags.length > 0
         } : null
       });
 
