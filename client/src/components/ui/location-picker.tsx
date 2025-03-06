@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import usePlacesAutocomplete, {
   getGeocode,
   getLatLng,
@@ -20,7 +20,6 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
   const [isInitializing, setIsInitializing] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Initialize Google Maps
   useEffect(() => {
     const init = async () => {
       await initGoogleMaps();
@@ -41,11 +40,20 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
       types: ['address']
     },
     debounce: 300,
-    defaultValue: defaultValue?.formatted_address ?? defaultValue?.address ?? '',
+    defaultValue: '',
     initOnMount: !isInitializing && isGoogleMapsLoaded(),
   });
 
-  const handleSelect = useCallback(async (address: string) => {
+  // Set initial value from defaultValue when component mounts or defaultValue changes
+  useEffect(() => {
+    if (defaultValue) {
+      // Prefer formatted_address over address
+      const displayAddress = defaultValue.formatted_address || defaultValue.address;
+      setValue(displayAddress, false);
+    }
+  }, [defaultValue, setValue]);
+
+  const handleSelect = async (address: string) => {
     setValue(address, false);
     clearSuggestions();
     setIsOpen(false);
@@ -57,7 +65,7 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
       // Parse address components
       const addressComponents = results[0].address_components;
       const location: Location = {
-        address: address,
+        address: results[0].formatted_address,
         city: addressComponents.find((c: any) => c.types.includes("locality"))?.long_name,
         region: addressComponents.find((c: any) => c.types.includes("administrative_area_level_1"))?.long_name,
         country: addressComponents.find((c: any) => c.types.includes("country"))?.long_name,
@@ -71,7 +79,7 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     } catch (error) {
       console.error("Error selecting location:", error);
     }
-  }, [setValue, clearSuggestions, onLocationSelect]);
+  };
 
   const handleClear = () => {
     setValue("");
