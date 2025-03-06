@@ -12,13 +12,13 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { apiRequest } from "@/lib/api";
 
 interface UpdateProfileResponse {
   id: number;
   email: string;
   displayName: string;
   isAdmin: boolean;
+  isVerified: boolean;
 }
 
 export default function UserSettingsPage() {
@@ -31,10 +31,20 @@ export default function UserSettingsPage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (newDisplayName: string) => {
-      const response = await apiRequest<UpdateProfileResponse>("/api/auth/update-profile", "PATCH", {
-        displayName: newDisplayName,
+      const response = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify({ displayName: newDisplayName }),
       });
-      return response;
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update profile");
+      }
+
+      const data: UpdateProfileResponse = await response.json();
+      return data;
     },
     onSuccess: (data) => {
       // Update the user in auth context
@@ -57,7 +67,12 @@ export default function UserSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateProfileMutation.mutateAsync(displayName);
+    try {
+      await updateProfileMutation.mutateAsync(displayName);
+    } catch (error) {
+      // Error is handled in mutation's onError
+      console.error("Failed to update profile:", error);
+    }
   };
 
   if (!user) return null;

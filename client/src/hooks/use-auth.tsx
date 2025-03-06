@@ -10,6 +10,7 @@ type AuthContextType = {
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
   logoutMutation: ReturnType<typeof useLogoutMutation>;
+  updateUser: (userData: User) => void; // Add the updateUser function type
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -107,6 +108,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loginMutation.mutateAsync({ email, password });
   };
 
+  // Add the updateUser function implementation
+  const updateUser = (userData: User) => {
+    queryClient.setQueryData(["/api/auth/me"], userData);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -115,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
         login,
         logoutMutation,
+        updateUser, // Include the updateUser function in the context
       }}
     >
       {children}
