@@ -10,7 +10,6 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -44,7 +43,6 @@ export default function UserSettingsPage() {
     initGoogleMaps();
   }, []);
 
-  // Update form fields when user data changes
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || "");
@@ -80,8 +78,6 @@ export default function UserSettingsPage() {
       setTags(user.tags || []);
     }
   }, [user]);
-
-  const isAdmin = Boolean(user?.isAdmin);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -200,39 +196,31 @@ export default function UserSettingsPage() {
   return (
     <DashboardLayout>
       <div className="container max-w-3xl mx-auto py-6">
-        {/* Theme Selection */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <Label>Theme</Label>
-            <ToggleGroup
-              type="single"
-              value={theme}
-              onValueChange={(value) => {
-                if (value) setTheme(value as "light" | "dark" | "system");
-              }}
-              className="bg-background border rounded-md"
-            >
-              <ToggleGroupItem value="light" size="sm" className="px-3">
-                <Sun className="h-4 w-4" />
-                <span className="sr-only">Light</span>
-              </ToggleGroupItem>
-              <ToggleGroupItem value="dark" size="sm" className="px-3">
-                <Moon className="h-4 w-4" />
-                <span className="sr-only">Dark</span>
-              </ToggleGroupItem>
-              <ToggleGroupItem value="system" size="sm" className="px-3">
-                <Monitor className="h-4 w-4" />
-                <span className="sr-only">System</span>
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        </div>
-
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 space-y-1">
             <div className="flex items-center justify-between">
               <CardTitle className="text-2xl font-semibold">Profile Settings</CardTitle>
-              {isAdmin && <AdminBadge />}
+              <ToggleGroup
+                type="single"
+                value={theme}
+                onValueChange={(value) => {
+                  if (value) setTheme(value as "light" | "dark" | "system");
+                }}
+                className="bg-background border rounded-md"
+              >
+                <ToggleGroupItem value="light" size="sm" className="px-3">
+                  <Sun className="h-4 w-4" />
+                  <span className="sr-only">Light</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="dark" size="sm" className="px-3">
+                  <Moon className="h-4 w-4" />
+                  <span className="sr-only">Dark</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="system" size="sm" className="px-3">
+                  <Monitor className="h-4 w-4" />
+                  <span className="sr-only">System</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
             <CardDescription>
               Update your profile information and preferences
