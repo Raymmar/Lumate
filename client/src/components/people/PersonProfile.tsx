@@ -212,6 +212,14 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   useEffect(() => {
     if (person?.user && isEditing) {
       console.log('Resetting form with person data:', person.user);
+      const userCustomLinks = person.user.customLinks || [];
+      const userProfileTags = person.user.profileTags || [];
+
+      console.log('Setting form values:', {
+        customLinks: userCustomLinks,
+        profileTags: userProfileTags
+      });
+
       form.reset({
         email: person.user.email || "",
         displayName: person.user.displayName || "",
@@ -220,11 +228,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         companyDescription: person.user.companyDescription || "",
         address: person.user.address || "",
         phoneNumber: person.user.phoneNumber || "",
-        customLinks: person.user.customLinks || [],
-        profileTags: person.user.profileTags || [],
+        customLinks: userCustomLinks,
+        profileTags: userProfileTags,
       });
     }
-  }, [person?.user, isEditing, form.reset]);
+  }, [person?.user, isEditing, form]);
 
   if (error) {
     return (
@@ -393,8 +401,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 {/* Tags Section */}
                 <div className="space-y-2">
                   <h3 className="font-medium">Tags</h3>
+                  {/* Updated Tags Section */}
                   <div className="flex flex-wrap gap-2 mb-2">
-                    {form.watch("profileTags")?.map(tag => (
+                    {(person.user?.profileTags || []).map(tag => (
                       <Badge key={tag} variant="secondary" className="gap-1">
                         {tag}
                         {isEditing && (
@@ -471,6 +480,25 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 {/* Links Section */}
                 <div className="space-y-2">
                   <h3 className="font-medium">Links</h3>
+                  {!isEditing && (
+                    <div className="grid gap-2">
+                      {(person.user?.customLinks || []).map((link, index) => {
+                        const Icon = LucideIcons[link.icon as keyof typeof LucideIcons] || LucideIcons.Link;
+                        return (
+                          <a
+                            key={index}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
+                          >
+                            <Icon className="h-4 w-4" />
+                            <span>{link.name}</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  )}
                   {isEditing ? (
                     <div className="space-y-2">
                       {form.watch("customLinks")?.map((link, index) => (
@@ -536,23 +564,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid gap-2">
-                      {person.user?.customLinks?.map((link, index) => {
-                        const Icon = LucideIcons[link.icon as keyof typeof LucideIcons] || LucideIcons.Link;
-                        return (
-                          <a
-                            key={index}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors duration-200"
-                          >
-                            <Icon className="h-4 w-4" />
-                            <span>{link.name}</span>
-                          </a>
-                        );
-                      })}
-                    </div>
+                    <></>
                   )}
                 </div>
               </CardContent>
