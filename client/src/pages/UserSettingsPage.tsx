@@ -200,7 +200,7 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 space-y-1">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">Profile Settings</CardTitle>
+              <CardTitle className="text-2xl font-semibold">{user.displayName || "Settings"}</CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
@@ -231,17 +231,6 @@ export default function UserSettingsPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information */}
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Enter your display name"
-                    className="bg-background"
-                  />
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio</Label>
                   <Textarea
