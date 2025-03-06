@@ -163,6 +163,39 @@ export default function UserSettingsPage() {
   return (
     <DashboardLayout>
       <div className="container max-w-3xl mx-auto py-6">
+        {/* Theme Selection */}
+        <div className="mb-6">
+          <div className="space-y-2">
+            <Label>Theme</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={theme === 'light' ? 'default' : 'outline'}
+                onClick={() => setTheme('light')}
+                className="flex-1"
+              >
+                Light
+              </Button>
+              <Button
+                type="button"
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                onClick={() => setTheme('dark')}
+                className="flex-1"
+              >
+                Dark
+              </Button>
+              <Button
+                type="button"
+                variant={theme === 'system' ? 'default' : 'outline'}
+                onClick={() => setTheme('system')}
+                className="flex-1"
+              >
+                System
+              </Button>
+            </div>
+          </div>
+        </div>
+
         <Card className="border-none shadow-none">
           <CardHeader className="px-0 space-y-1">
             <div className="flex items-center justify-between">
@@ -371,40 +404,6 @@ export default function UserSettingsPage() {
                       </Button>
                     </div>
                   ))}
-                </div>
-              </div>
-
-              {/* Theme Selection */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Appearance</h3>
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant={theme === 'light' ? 'default' : 'outline'}
-                      onClick={() => setTheme('light')}
-                      className="flex-1"
-                    >
-                      Light
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={theme === 'dark' ? 'default' : 'outline'}
-                      onClick={() => setTheme('dark')}
-                      className="flex-1"
-                    >
-                      Dark
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={theme === 'system' ? 'default' : 'outline'}
-                      onClick={() => setTheme('system')}
-                      className="flex-1"
-                    >
-                      System
-                    </Button>
-                  </div>
                 </div>
               </div>
 
