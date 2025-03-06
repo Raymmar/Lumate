@@ -161,7 +161,11 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       const response = await fetch('/api/auth/update-profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          customLinks: values.customLinks || [],
+          profileTags: values.profileTags || []
+        }),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -188,15 +192,15 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const onSubmit = async (values: z.infer<typeof insertUserSchema>) => {
     try {
+      // Log the form data before submission
+      console.log('Submitting form data:', values);
       await updateProfileMutation.mutateAsync(values);
-      // After successful mutation and profile refresh, exit edit mode
-      setIsEditing(false);
     } catch (error) {
       console.error('Failed to update profile:', error);
     }
   };
 
-  // Reset form when person data changes or edit mode is enabled
+  // Effect to reset form when editing starts or person data changes
   useEffect(() => {
     if (person?.user && isEditing) {
       console.log('Resetting form with person data:', person.user);
@@ -212,7 +216,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         profileTags: person.user.profileTags || [],
       });
     }
-  }, [person, isEditing]);
+  }, [person, isEditing, form]);
 
   if (error) {
     return (
@@ -542,8 +546,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 </div>
 
                 {isEditing && (
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     className="w-full"
                     disabled={updateProfileMutation.isPending}
                   >
