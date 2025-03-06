@@ -15,9 +15,27 @@ import { useTheme } from "@/hooks/use-theme";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { type UpdateUserProfile, type Location } from "@shared/schema";
+import { type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
+
+interface UserProfile {
+  id: number;
+  email: string;
+  displayName: string;
+  bio?: string;
+  featuredImageUrl?: string;
+  companyName?: string;
+  companyDescription?: string;
+  address?: string | Location;
+  phoneNumber?: string;
+  isPhonePublic?: boolean;
+  isEmailPublic?: boolean;
+  ctaText?: string;
+  customLinks?: Array<{ title: string; url: string }>;
+  tags?: string[];
+  isAdmin?: boolean;
+}
 
 export default function UserSettingsPage() {
   const { user: authUser } = useAuth();
@@ -25,10 +43,10 @@ export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
 
   // Fetch fresh user data from the server
-  const { data: user, isLoading } = useQuery<UpdateUserProfile>({
-    queryKey: ['/api/auth/profile'],  // Changed endpoint to get full profile
+  const { data: user, isLoading } = useQuery<UserProfile>({
+    queryKey: ['/api/auth/profile'],
     enabled: !!authUser, // Only fetch if user is authenticated
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0 // Always fetch fresh data
   });
 
   // Form state
@@ -118,7 +136,7 @@ export default function UserSettingsPage() {
   }, []);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: UpdateUserProfile) => {
+    mutationFn: async (data: UserProfile) => {
       console.log('Submitting profile update:', data);
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
@@ -173,7 +191,7 @@ export default function UserSettingsPage() {
 
       console.log('Form submission data:', formData);
 
-      await updateProfileMutation.mutateAsync(formData);
+      await updateProfileMutation.mutateAsync(formData as UserProfile);
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
@@ -301,7 +319,7 @@ export default function UserSettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Label>Email Visibility</Label>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
                   <div className="space-y-2">
                     <Switch
