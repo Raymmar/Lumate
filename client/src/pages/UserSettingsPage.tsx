@@ -18,6 +18,7 @@ export default function UserSettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [error, setError] = useState("");
 
   // Update displayName when user data changes
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function UserSettingsPage() {
 
         return data;
       } catch (error) {
+        console.error("Failed to update profile:", error);
         if (error instanceof Error) {
           throw error;
         }
@@ -73,8 +75,11 @@ export default function UserSettingsPage() {
         title: "Success",
         description: "Profile updated successfully",
       });
+      setError(""); // Clear any previous errors
     },
     onError: (error: Error) => {
+      console.error("Update profile error:", error);
+      setError(error.message);
       toast({
         title: "Error",
         description: error.message,
@@ -85,6 +90,7 @@ export default function UserSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
     await updateProfileMutation.mutateAsync(displayName);
   };
 
@@ -122,6 +128,9 @@ export default function UserSettingsPage() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Enter your display name"
                 />
+                {error && (
+                  <p className="text-sm text-destructive">{error}</p>
+                )}
               </div>
               <Button
                 type="submit"
