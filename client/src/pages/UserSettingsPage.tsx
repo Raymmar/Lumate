@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,8 +17,9 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { UpdateUserProfile } from "@shared/schema";
+import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
+import { initGoogleMaps } from "@/lib/google-maps";
 
 export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
@@ -29,7 +30,7 @@ export default function UserSettingsPage() {
   const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl || "");
   const [companyName, setCompanyName] = useState(user?.companyName || "");
   const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || "");
-  const [address, setAddress] = useState(user?.address || null);
+  const [address, setAddress] = useState<Location | null>(user?.address as Location | null);
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic || false);
   const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic || false);
@@ -38,6 +39,11 @@ export default function UserSettingsPage() {
   const [tags, setTags] = useState<string[]>(user?.tags || []);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
+
+  useEffect(() => {
+    // Initialize Google Maps when component mounts
+    initGoogleMaps();
+  }, []);
 
   const isAdmin = Boolean(user?.isAdmin);
 
@@ -242,7 +248,7 @@ export default function UserSettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Label>Email Visibility</Label>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="space-y-2">
                     <Switch

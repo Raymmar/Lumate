@@ -3,45 +3,20 @@ import usePlacesAutocomplete, {
   getGeocode,
   getLatLng,
 } from "use-places-autocomplete";
-import { Input } from './input';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./command";
 import { Button } from './button';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { initGoogleMaps } from '@/lib/google-maps';
-import { Loader2 } from 'lucide-react';
+import { type Location } from "@shared/schema";
 
 interface LocationPickerProps {
-  defaultValue?: {
-    address: string;
-    city?: string;
-    region?: string;
-    country?: string;
-    latitude?: string;
-    longitude?: string;
-    placeId?: string;
-    formatted_address?: string;
-  } | null;
-  onLocationSelect: (location: {
-    address: string;
-    city?: string;
-    region?: string;
-    country?: string;
-    latitude?: string;
-    longitude?: string;
-    placeId?: string;
-    formatted_address?: string;
-  } | null) => void;
+  defaultValue?: Location | null;
+  onLocationSelect: (location: Location | null) => void;
   className?: string;
 }
 
 export function LocationPicker({ defaultValue, onLocationSelect, className }: LocationPickerProps) {
-  const [isReady, setIsReady] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    initGoogleMaps().then(() => setIsReady(true));
-  }, []);
 
   const {
     ready,
@@ -52,16 +27,8 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
   } = usePlacesAutocomplete({
     requestOptions: { componentRestrictions: { country: 'us' } },
     debounce: 300,
-    defaultValue: defaultValue?.address,
-    initOnMount: false, // Don't initialize until Google Maps is ready
+    defaultValue: defaultValue?.address ?? '',
   });
-
-  useEffect(() => {
-    if (isReady) {
-      // Initialize Places Autocomplete after Google Maps is ready
-      usePlacesAutocomplete.init();
-    }
-  }, [isReady]);
 
   const handleSelect = useCallback(async (address: string) => {
     setValue(address, false);
@@ -74,11 +41,11 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
 
       // Parse address components
       const addressComponents = results[0].address_components;
-      const location = {
+      const location: Location = {
         address: address,
-        city: addressComponents.find(c => c.types.includes("locality"))?.long_name,
-        region: addressComponents.find(c => c.types.includes("administrative_area_level_1"))?.long_name,
-        country: addressComponents.find(c => c.types.includes("country"))?.long_name,
+        city: addressComponents.find((c: any) => c.types.includes("locality"))?.long_name,
+        region: addressComponents.find((c: any) => c.types.includes("administrative_area_level_1"))?.long_name,
+        country: addressComponents.find((c: any) => c.types.includes("country"))?.long_name,
         latitude: lat.toString(),
         longitude: lng.toString(),
         placeId: results[0].place_id,
@@ -97,7 +64,7 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     onLocationSelect(null);
   };
 
-  if (!isReady || !ready) {
+  if (!ready) {
     return (
       <div className="flex items-center justify-center p-4">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
