@@ -8,6 +8,7 @@ import { Button } from './button';
 import { X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type Location } from "@shared/schema";
+import { initGoogleMaps, isGoogleMapsLoaded } from "@/lib/google-maps";
 
 interface LocationPickerProps {
   defaultValue?: Location | null;
@@ -16,18 +17,32 @@ interface LocationPickerProps {
 }
 
 export function LocationPicker({ defaultValue, onLocationSelect, className }: LocationPickerProps) {
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
+
+  // Initialize Google Maps
+  useEffect(() => {
+    const init = async () => {
+      await initGoogleMaps();
+      setIsInitializing(false);
+    };
+    init();
+  }, []);
 
   const {
     ready,
     value,
-    setValue,
     suggestions: { status, data },
+    setValue,
     clearSuggestions,
   } = usePlacesAutocomplete({
-    requestOptions: { componentRestrictions: { country: 'us' } },
+    requestOptions: { 
+      componentRestrictions: { country: 'us' },
+      types: ['address']
+    },
     debounce: 300,
     defaultValue: defaultValue?.address ?? '',
+    initOnMount: !isInitializing && isGoogleMapsLoaded(),
   });
 
   const handleSelect = useCallback(async (address: string) => {
@@ -64,7 +79,7 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     onLocationSelect(null);
   };
 
-  if (!ready) {
+  if (isInitializing || !ready) {
     return (
       <div className="flex items-center justify-center p-4">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -77,12 +92,13 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
       <div className="relative">
         <Command className="rounded-lg border overflow-visible">
           <CommandInput
-            placeholder="Search for an address..."
+            placeholder="Enter your address..."
             value={value}
             onValueChange={(value) => {
               setValue(value);
               setIsOpen(true);
             }}
+            onFocus={() => setIsOpen(true)}
             className="border-0"
           />
           {value && (
