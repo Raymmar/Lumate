@@ -69,10 +69,13 @@ export default function UserSettingsPage() {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Update profile error response:', error);
         throw new Error(error.error || "Failed to update profile");
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('Update profile success:', data);
+      return data;
     },
     onSuccess: (data) => {
       updateUser(data);
@@ -83,7 +86,7 @@ export default function UserSettingsPage() {
       });
     },
     onError: (error: Error) => {
-      console.error('Profile update error:', error);
+      console.error('Update profile mutation error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -97,11 +100,28 @@ export default function UserSettingsPage() {
       console.log('Form submitted with values:', values);
       await updateProfileMutation.mutateAsync(values);
     } catch (error) {
-      console.error("Failed to update profile:", error);
+      console.error("Form submission error:", error);
     }
   };
 
   if (!user) return null;
+
+  const handleAddCustomLink = () => {
+    const currentLinks = form.getValues("customLinks") || [];
+    if (currentLinks.length >= 5) {
+      toast({
+        title: "Error",
+        description: "Maximum 5 custom links allowed",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    form.setValue("customLinks", [
+      ...currentLinks,
+      { url: "", icon: "", name: "" }
+    ]);
+  };
 
   return (
     <DashboardLayout>
@@ -117,6 +137,7 @@ export default function UserSettingsPage() {
                 {isAdmin && <AdminBadge />}
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Basic Info */}
                 <FormField
                   control={form.control}
                   name="displayName"
@@ -159,6 +180,7 @@ export default function UserSettingsPage() {
                   )}
                 />
 
+                {/* Company Info */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -189,6 +211,7 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
+                {/* Tags */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -238,6 +261,7 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
+                {/* Contact Info */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -254,6 +278,7 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
+                {/* Call to Action */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -284,6 +309,78 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
+                {/* Custom Links */}
+                <div className="space-y-4">
+                  <Label>Custom Links (max 5)</Label>
+                  <FormField
+                    control={form.control}
+                    name="customLinks"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <div className="space-y-4">
+                            {field.value?.map((link, index) => (
+                              <div key={index} className="flex gap-2">
+                                <Input
+                                  placeholder="Link Name"
+                                  value={link.name}
+                                  onChange={(e) => {
+                                    const newLinks = [...field.value];
+                                    newLinks[index] = { ...link, name: e.target.value };
+                                    field.onChange(newLinks);
+                                  }}
+                                />
+                                <Input
+                                  placeholder="Icon"
+                                  value={link.icon}
+                                  onChange={(e) => {
+                                    const newLinks = [...field.value];
+                                    newLinks[index] = { ...link, icon: e.target.value };
+                                    field.onChange(newLinks);
+                                  }}
+                                />
+                                <Input
+                                  type="url"
+                                  placeholder="URL"
+                                  value={link.url}
+                                  onChange={(e) => {
+                                    const newLinks = [...field.value];
+                                    newLinks[index] = { ...link, url: e.target.value };
+                                    field.onChange(newLinks);
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const newLinks = field.value.filter((_, i) => i !== index);
+                                    field.onChange(newLinks);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                            {(field.value?.length || 0) < 5 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleAddCustomLink}
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Custom Link
+                              </Button>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Privacy Settings */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}

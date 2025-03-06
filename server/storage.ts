@@ -53,7 +53,34 @@ export interface IStorage {
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
   updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
-  updateUser(userId: number, data: { displayName?: string }): Promise<User>;
+  updateUser(userId: number, data: Partial<{
+    displayName: string;
+    bio: string;
+    companyName: string;
+    companyDescription: string;
+    featuredImageUrl: string;
+    phoneNumber: string;
+    tags: string[];
+    ctaLink: string;
+    ctaText: string;
+    customLinks: Array<{
+      url: string;
+      icon: string;
+      name: string;
+    }>;
+    displayEmail: boolean;
+    displayPhone: boolean;
+    address: {
+      street?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+      postalCode?: string;
+      latitude?: number;
+      longitude?: number;
+      placeId?: string;
+    };
+  }>): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -1433,7 +1460,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateUser(userId: number, data: { displayName?: string }): Promise<User> {
+  async updateUser(userId: number, data: Partial<User>): Promise<User> {
     try {
       console.log('Updating user profile:', { userId, ...data });
 
@@ -1452,7 +1479,7 @@ export class PostgresStorage implements IStorage {
 
       console.log('Successfully updated user profile:', {
         userId: updatedUser.id,
-        displayName: updatedUser.displayName
+        updatedFields: Object.keys(data)
       });
 
       return updatedUser;

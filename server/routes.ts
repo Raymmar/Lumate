@@ -1874,7 +1874,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
 
-      console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
+      console.log(`Updating roles for user ${userId} to role` ${roleName} by admin ${req.session.userId}`);
 
       const role = await storage.getRoleByName(roleName);
       if(!role) {
@@ -2138,19 +2138,30 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "Not authenticated" });
       }
 
-      const { displayName } = req.body;
-      if (!displayName) {
-        return res.status(400).json({ error: "Display name is required" });
+      console.log('Received profile update request:', {
+        userId: req.session.userId,
+        body: req.body,
+      });
+
+      // Validate the request body
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        console.error('Validation error:', result.error.errors);
+        return res.status(400).json({ 
+          error: "Invalid input", 
+          details: result.error.errors 
+        });
       }
 
-      const user = await storage.updateUser(req.session.userId, { displayName });
+      const user = await storage.updateUser(req.session.userId, result.data);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
       console.log('Profile updated successfully:', {
         userId: user.id,
-        displayName: user.displayName
+        displayName: user.displayName,
+        updatedFields: Object.keys(req.body)
       });
 
       return res.json({
@@ -2158,11 +2169,26 @@ export async function registerRoutes(app: Express) {
         email: user.email,
         displayName: user.displayName,
         isAdmin: user.isAdmin,
-        isVerified: user.isVerified
+        isVerified: user.isVerified,
+        bio: user.bio,
+        companyName: user.companyName,
+        companyDescription: user.companyDescription,
+        featuredImageUrl: user.featuredImageUrl,
+        phoneNumber: user.phoneNumber,
+        tags: user.tags,
+        ctaLink: user.ctaLink,
+        ctaText: user.ctaText,
+        customLinks: user.customLinks,
+        displayEmail: user.displayEmail,
+        displayPhone: user.displayPhone,
+        address: user.address
       });
     } catch (error) {
       console.error('Failed to update profile:', error);
-      res.status(500).json({ error: "Failed to update profile" });
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        details: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

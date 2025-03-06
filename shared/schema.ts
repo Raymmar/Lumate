@@ -239,11 +239,16 @@ export const insertUserSchema = createInsertSchema(users).omit({
   companyDescription: z.string().max(1000, "Company description must not exceed 1000 characters").optional(),
   tags: z.array(z.string()).max(3, "Maximum 3 tags allowed").optional(),
   phoneNumber: z.string().regex(/^\+?[\d\s-()]+$/, "Invalid phone number format").optional(),
+  featuredImageUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  ctaLink: z.string().url("Invalid URL").optional().or(z.literal("")),
+  ctaText: z.string().max(100, "Call to action text must not exceed 100 characters").optional(),
   customLinks: z.array(z.object({
-    url: z.string().url("Invalid URL"),
+    url: z.string().url("Invalid URL").optional().or(z.literal("")),
     icon: z.string(),
     name: z.string().max(50, "Link name must not exceed 50 characters")
   })).max(5, "Maximum 5 custom links allowed").optional(),
+  displayEmail: z.boolean().optional(),
+  displayPhone: z.boolean().optional(),
 });
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
