@@ -20,6 +20,7 @@ import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Sun, Moon, Monitor } from "lucide-react";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
@@ -195,7 +196,7 @@ export default function UserSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-3xl mx-auto py-6">
+      <div className="container max-w-3xl mx-auto pt-3 pb-6">
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 space-y-1">
             <div className="flex items-center justify-between">
@@ -252,17 +253,10 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="featuredImageUrl">Featured Image URL</Label>
-                  <Input
-                    id="featuredImageUrl"
-                    type="url"
-                    value={featuredImageUrl}
-                    onChange={(e) => setFeaturedImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="bg-background"
-                  />
-                </div>
+                <ImageUpload
+                  onImageSelect={setFeaturedImageUrl}
+                  defaultValue={featuredImageUrl}
+                />
               </div>
 
               {/* Company Information */}
