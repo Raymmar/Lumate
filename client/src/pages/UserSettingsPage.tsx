@@ -41,12 +41,17 @@ export default function UserSettingsPage() {
   const { user: authUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch fresh user data from the server
-  const { data: user, isLoading } = useQuery<UserProfile>({
+  const { data: user, isLoading, error: queryError } = useQuery<UserProfile>({
     queryKey: ['/api/auth/profile'],
     enabled: !!authUser, // Only fetch if user is authenticated
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0, // Always fetch fresh data
+    onError: (error) => {
+      console.error('Error fetching user profile:', error);
+      setError('Failed to load user profile');
+    }
   });
 
   // Form state
@@ -67,67 +72,72 @@ export default function UserSettingsPage() {
 
   // Update form state when user data is loaded
   useEffect(() => {
-    if (user) {
-      console.log('Raw user data from query:', user);
+    try {
+      if (user) {
+        console.log('Raw user data from query:', user);
 
-      // Parse address if it's a string
-      let parsedAddress: Location | null = null;
-      try {
-        if (user.address) {
-          parsedAddress = typeof user.address === 'string' 
-            ? JSON.parse(user.address) 
-            : user.address;
-          console.log('Parsed address:', parsedAddress);
+        // Parse address if it's a string
+        let parsedAddress: Location | null = null;
+        try {
+          if (user.address) {
+            parsedAddress = typeof user.address === 'string' 
+              ? JSON.parse(user.address) 
+              : user.address;
+            console.log('Parsed address:', parsedAddress);
+          }
+        } catch (e) {
+          console.error('Error parsing address:', e);
         }
-      } catch (e) {
-        console.error('Error parsing address:', e);
+
+        // Log current state before update
+        console.log('Current form state before update:', {
+          displayName,
+          bio,
+          featuredImageUrl,
+          companyName,
+          companyDescription,
+          address,
+          phoneNumber,
+          isPhonePublic,
+          isEmailPublic,
+          ctaText,
+          customLinks,
+          tags
+        });
+
+        // Set form values from user data
+        setDisplayName(user.displayName ?? "");
+        setBio(user.bio ?? "");
+        setFeaturedImageUrl(user.featuredImageUrl ?? "");
+        setCompanyName(user.companyName ?? "");
+        setCompanyDescription(user.companyDescription ?? "");
+        setAddress(parsedAddress);
+        setPhoneNumber(user.phoneNumber ?? "");
+        setIsPhonePublic(user.isPhonePublic ?? false);
+        setIsEmailPublic(user.isEmailPublic ?? false);
+        setCtaText(user.ctaText ?? "");
+        setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
+        setTags(Array.isArray(user.tags) ? user.tags : []);
+
+        // Log state updates
+        console.log('Setting form state to:', {
+          displayName: user.displayName ?? "",
+          bio: user.bio ?? "",
+          featuredImageUrl: user.featuredImageUrl ?? "",
+          companyName: user.companyName ?? "",
+          companyDescription: user.companyDescription ?? "",
+          address: parsedAddress,
+          phoneNumber: user.phoneNumber ?? "",
+          isPhonePublic: user.isPhonePublic ?? false,
+          isEmailPublic: user.isEmailPublic ?? false,
+          ctaText: user.ctaText ?? "",
+          customLinks: Array.isArray(user.customLinks) ? user.customLinks : [],
+          tags: Array.isArray(user.tags) ? user.tags : []
+        });
       }
-
-      // Log current state before update
-      console.log('Current form state before update:', {
-        displayName,
-        bio,
-        featuredImageUrl,
-        companyName,
-        companyDescription,
-        address,
-        phoneNumber,
-        isPhonePublic,
-        isEmailPublic,
-        ctaText,
-        customLinks,
-        tags
-      });
-
-      // Set form values from user data
-      setDisplayName(user.displayName ?? "");
-      setBio(user.bio ?? "");
-      setFeaturedImageUrl(user.featuredImageUrl ?? "");
-      setCompanyName(user.companyName ?? "");
-      setCompanyDescription(user.companyDescription ?? "");
-      setAddress(parsedAddress);
-      setPhoneNumber(user.phoneNumber ?? "");
-      setIsPhonePublic(user.isPhonePublic ?? false);
-      setIsEmailPublic(user.isEmailPublic ?? false);
-      setCtaText(user.ctaText ?? "");
-      setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
-      setTags(Array.isArray(user.tags) ? user.tags : []);
-
-      // Log state updates
-      console.log('Setting form state to:', {
-        displayName: user.displayName ?? "",
-        bio: user.bio ?? "",
-        featuredImageUrl: user.featuredImageUrl ?? "",
-        companyName: user.companyName ?? "",
-        companyDescription: user.companyDescription ?? "",
-        address: parsedAddress,
-        phoneNumber: user.phoneNumber ?? "",
-        isPhonePublic: user.isPhonePublic ?? false,
-        isEmailPublic: user.isEmailPublic ?? false,
-        ctaText: user.ctaText ?? "",
-        customLinks: Array.isArray(user.customLinks) ? user.customLinks : [],
-        tags: Array.isArray(user.tags) ? user.tags : []
-      });
+    } catch (error) {
+      console.error('Error updating form state:', error);
+      setError('Failed to update form with user data');
     }
   }, [user]);
 
@@ -136,24 +146,29 @@ export default function UserSettingsPage() {
   }, []);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: UserProfile) => {
+    mutationFn: async (data: Partial<UserProfile>) => {
       console.log('Submitting profile update:', data);
-      const response = await fetch("/api/auth/update-profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          // Ensure address is stringified before sending
-          address: data.address ? JSON.stringify(data.address) : null
-        }),
-      });
+      try {
+        const response = await fetch("/api/auth/update-profile", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...data,
+            // Ensure address is stringified before sending
+            address: data.address ? JSON.stringify(data.address) : null
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update profile");
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Failed to update profile");
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error('Mutation error:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/profile"], data);
@@ -163,6 +178,7 @@ export default function UserSettingsPage() {
       });
     },
     onError: (error: Error) => {
+      console.error('Profile update error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -173,6 +189,7 @@ export default function UserSettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     try {
       const formData = {
         displayName,
@@ -191,9 +208,10 @@ export default function UserSettingsPage() {
 
       console.log('Form submission data:', formData);
 
-      await updateProfileMutation.mutateAsync(formData as UserProfile);
+      await updateProfileMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Failed to update profile:", error);
+      setError('Failed to update profile');
     }
   };
 
@@ -202,6 +220,19 @@ export default function UserSettingsPage() {
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
           <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error || queryError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <div className="text-center space-y-4">
+            <p className="text-destructive">Error: {error || 'Failed to load profile'}</p>
+            <Button onClick={() => window.location.reload()}>Retry</Button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -220,7 +251,7 @@ export default function UserSettingsPage() {
                 Update your profile information
               </CardDescription>
             </div>
-            {user.isAdmin && <AdminBadge />}
+            {Boolean(user?.isAdmin) && <AdminBadge />}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -319,7 +350,7 @@ export default function UserSettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Label>Email Visibility</Label>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="space-y-2">
                     <Switch
