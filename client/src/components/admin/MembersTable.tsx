@@ -85,6 +85,10 @@ export function MembersTable() {
     setSelectedMember(member);
   };
 
+  const handleNavigation = (member: User & { person?: Person | null }) => {
+    setSelectedMember(member);
+  };
+
   const handlePreviousPage = () => {
     if (currentPage > 1) setCurrentPage(prev => prev - 1);
   };
@@ -148,7 +152,13 @@ export function MembersTable() {
       </div>
 
       <PreviewSidebar open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
-        {selectedMember && <MemberPreview member={selectedMember} />}
+        {selectedMember && (
+          <MemberPreview 
+            member={selectedMember} 
+            members={users}
+            onNavigate={handleNavigation}
+          />
+        )}
       </PreviewSidebar>
     </div>
   );

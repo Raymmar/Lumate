@@ -4,12 +4,17 @@ import { DataTable } from "./DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { PreviewSidebar } from "./PreviewSidebar";
+import { PostPreview } from "./PostPreview";
+import { useState } from "react";
 
 interface PostsTableProps {
   onSelect: (post: Post) => void;
 }
 
 export function PostsTable({ onSelect }: PostsTableProps) {
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
   const { data, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/admin/posts"],
     queryFn: async () => {
@@ -55,12 +60,37 @@ export function PostsTable({ onSelect }: PostsTableProps) {
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   ) || [];
 
+  const handlePostSelect = (post: Post) => {
+    setSelectedPost(post);
+    onSelect(post);
+  };
+
+  const handleNavigate = (post: Post) => {
+    setSelectedPost(post);
+    onSelect(post);
+  };
+
   return (
-    <DataTable 
-      columns={columns}
-      data={sortedPosts}
-      isLoading={isLoading}
-      onRowClick={onSelect}
-    />
+    <div>
+      <DataTable 
+        columns={columns}
+        data={sortedPosts}
+        onRowClick={handlePostSelect}
+      />
+
+      <PreviewSidebar 
+        open={!!selectedPost} 
+        onOpenChange={(open) => !open && setSelectedPost(null)}
+      >
+        {selectedPost && (
+          <PostPreview 
+            post={selectedPost}
+            posts={sortedPosts}
+            onNavigate={handleNavigate}
+            onClose={() => setSelectedPost(null)}
+          />
+        )}
+      </PreviewSidebar>
+    </div>
   );
 }

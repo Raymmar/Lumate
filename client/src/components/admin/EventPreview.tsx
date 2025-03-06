@@ -1,6 +1,6 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, RefreshCw } from "lucide-react";
+import { Calendar, MapPin, Users, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -19,9 +19,11 @@ interface EventPreviewProps {
   };
   onSync?: (eventId: string) => void;
   onStartSync?: (eventId: string) => void;
+  onNavigate?: (event: Event) => void;
+  events?: Event[];
 }
 
-export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) {
+export function EventPreview({ event, onSync, onStartSync, onNavigate, events = [] }: EventPreviewProps) {
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [localSyncStatus, setLocalSyncStatus] = useState({
@@ -29,6 +31,11 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
     lastSyncedAt: event.lastAttendanceSync
   });
   const queryClient = useQueryClient();
+
+  // Find current event index and determine if we have prev/next
+  const currentIndex = events.findIndex(e => e.id === event.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < events.length - 1;
 
   const { data: attendanceData = { attendees: [], total: 0 }, isLoading: isLoadingAttendees } = useQuery({
     queryKey: [`/api/admin/events/${event.api_id}/attendees`],
@@ -40,8 +47,12 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
     enabled: !!event.api_id
   });
 
-  const attendees = attendanceData.attendees;
-  const attendeeCount = attendanceData.total;
+  // Sort attendees by name
+  const sortedAttendees = [...(attendanceData.attendees || [])].sort((a, b) => {
+    const nameA = (a.userName || '').toLowerCase();
+    const nameB = (b.userName || '').toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
 
   const formatLastSyncTime = (dateStr: string | null | undefined) => {
     if (!dateStr) return "Never synced";
@@ -176,7 +187,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
   const lastSyncTime = localSyncStatus.lastSyncedAt || event.lastAttendanceSync;
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="flex flex-col h-full overflow-y-auto relative">
       {event.coverUrl && (
         <div className="relative w-full aspect-video mb-4">
           <img
@@ -298,7 +309,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Event Attendees</h3>
-              <Badge variant="secondary">{attendeeCount} registered</Badge>
+              <Badge variant="secondary">{attendanceData.total} registered</Badge>
             </div>
 
             {isLoadingAttendees ? (
@@ -307,9 +318,9 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                   <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
                 ))}
               </div>
-            ) : attendees.length > 0 ? (
+            ) : sortedAttendees.length > 0 ? (
               <div className="space-y-2">
-                {attendees.map((person) => (
+                {sortedAttendees.map((person) => (
                   <Link 
                     key={person.id} 
                     href={`/people/${person.api_id}`}
@@ -320,7 +331,7 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
                         <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
                       ) : (
                         <AvatarFallback>
-                          {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                          {person.userName?.split(" ").map((n: string) => n[0]).join("") || "?"}
                         </AvatarFallback>
                       )}
                     </Avatar>
@@ -336,6 +347,30 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
             )}
           </CardContent>
         </Card>
+
+        {/* Navigation Section - Fixed to bottom */}
+        {events.length > 1 && onNavigate && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+            <div className="flex justify-between items-center">
+              <Button
+                variant="ghost"
+                disabled={!hasPrevious}
+                onClick={() => onNavigate(events[currentIndex - 1])}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={!hasNext}
+                onClick={() => onNavigate(events[currentIndex + 1])}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
