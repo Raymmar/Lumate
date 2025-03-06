@@ -231,10 +231,6 @@ export default function UserSettingsPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information */}
               <div className="space-y-4">
-                <ImageUpload
-                  onImageSelect={setFeaturedImageUrl}
-                  defaultValue={featuredImageUrl}
-                />
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input
@@ -261,6 +257,10 @@ export default function UserSettingsPage() {
               {/* Company Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Company Information</h3>
+                <ImageUpload
+                  onImageSelect={setFeaturedImageUrl}
+                  defaultValue={featuredImageUrl}
+                />
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name</Label>
                   <Input
@@ -284,9 +284,8 @@ export default function UserSettingsPage() {
                 </div>
               </div>
 
-              {/* Contact Information */}
+              {/* Contact Section (without heading) */}
               <div className="space-y-4">
-                <h3 className="text-lg font-medium">Contact Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
                   <LocationPicker
