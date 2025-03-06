@@ -53,7 +53,7 @@ export interface IStorage {
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
   updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
-  updateUser(userId: number, data: { displayName?: string }): Promise<User>;
+  updateUser(userId: number, data: Partial<User>): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -1433,10 +1433,8 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateUser(userId: number, data: { displayName?: string }): Promise<User> {
+  async updateUser(userId: number, data: Partial<User>): Promise<User> {
     try {
-      console.log('Updating user profile:', { userId, ...data });
-
       const [updatedUser] = await db
         .update(users)
         .set({
@@ -1450,9 +1448,9 @@ export class PostgresStorage implements IStorage {
         throw new Error(`User with ID ${userId} not found`);
       }
 
-      console.log('Successfully updated user profile:', {
-        userId: updatedUser.id,
-        displayName: updatedUser.displayName
+      console.log('Successfully updated user:', {
+        id: updatedUser.id,
+        fields: Object.keys(data)
       });
 
       return updatedUser;
