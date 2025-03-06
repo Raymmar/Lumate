@@ -26,22 +26,22 @@ export default function UserSettingsPage() {
 
   // Fetch fresh user data from the server
   const { data: user, isLoading } = useQuery<UpdateUserProfile>({
-    queryKey: ['/api/auth/me'],
+    queryKey: ['/api/auth/profile'],  // Changed endpoint to get full profile
     enabled: !!authUser, // Only fetch if user is authenticated
     staleTime: 0, // Always fetch fresh data
   });
 
   // Form state
-  const [displayName, setDisplayName] = useState<string>("");
-  const [bio, setBio] = useState<string>("");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>("");
-  const [companyName, setCompanyName] = useState<string>("");
-  const [companyDescription, setCompanyDescription] = useState<string>("");
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
   const [address, setAddress] = useState<Location | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [isPhonePublic, setIsPhonePublic] = useState<boolean>(false);
-  const [isEmailPublic, setIsEmailPublic] = useState<boolean>(false);
-  const [ctaText, setCtaText] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isPhonePublic, setIsPhonePublic] = useState(false);
+  const [isEmailPublic, setIsEmailPublic] = useState(false);
+  const [ctaText, setCtaText] = useState("");
   const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
@@ -82,31 +82,31 @@ export default function UserSettingsPage() {
       });
 
       // Set form values from user data
-      setDisplayName(user.displayName || "");
-      setBio(user.bio || "");
-      setFeaturedImageUrl(user.featuredImageUrl || "");
-      setCompanyName(user.companyName || "");
-      setCompanyDescription(user.companyDescription || "");
+      setDisplayName(user.displayName ?? "");
+      setBio(user.bio ?? "");
+      setFeaturedImageUrl(user.featuredImageUrl ?? "");
+      setCompanyName(user.companyName ?? "");
+      setCompanyDescription(user.companyDescription ?? "");
       setAddress(parsedAddress);
-      setPhoneNumber(user.phoneNumber || "");
-      setIsPhonePublic(Boolean(user.isPhonePublic));
-      setIsEmailPublic(Boolean(user.isEmailPublic));
-      setCtaText(user.ctaText || "");
+      setPhoneNumber(user.phoneNumber ?? "");
+      setIsPhonePublic(user.isPhonePublic ?? false);
+      setIsEmailPublic(user.isEmailPublic ?? false);
+      setCtaText(user.ctaText ?? "");
       setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
       setTags(Array.isArray(user.tags) ? user.tags : []);
 
       // Log state updates
       console.log('Setting form state to:', {
-        displayName: user.displayName || "",
-        bio: user.bio || "",
-        featuredImageUrl: user.featuredImageUrl || "",
-        companyName: user.companyName || "",
-        companyDescription: user.companyDescription || "",
+        displayName: user.displayName ?? "",
+        bio: user.bio ?? "",
+        featuredImageUrl: user.featuredImageUrl ?? "",
+        companyName: user.companyName ?? "",
+        companyDescription: user.companyDescription ?? "",
         address: parsedAddress,
-        phoneNumber: user.phoneNumber || "",
-        isPhonePublic: Boolean(user.isPhonePublic),
-        isEmailPublic: Boolean(user.isEmailPublic),
-        ctaText: user.ctaText || "",
+        phoneNumber: user.phoneNumber ?? "",
+        isPhonePublic: user.isPhonePublic ?? false,
+        isEmailPublic: user.isEmailPublic ?? false,
+        ctaText: user.ctaText ?? "",
         customLinks: Array.isArray(user.customLinks) ? user.customLinks : [],
         tags: Array.isArray(user.tags) ? user.tags : []
       });
@@ -138,7 +138,7 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/me"], data);
+      queryClient.setQueryData(["/api/auth/profile"], data);
       toast({
         title: "Success",
         description: "Profile updated successfully",
