@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
@@ -35,31 +35,9 @@ export default function UserSettingsPage() {
         throw new Error("Display name cannot be empty");
       }
 
-      try {
-        const response = await fetch("/api/auth/update-profile", {
-          method: "PATCH",
-          headers: { 
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-          },
-          body: JSON.stringify({ 
-            displayName: newDisplayName.trim() 
-          }),
-        });
-
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to update profile');
-        }
-
-        return data;
-      } catch (error) {
-        console.error('Failed to update profile:', error);
-        if (error instanceof Error) {
-          throw error;
-        }
-        throw new Error('Failed to update profile');
-      }
+      return apiRequest('/api/auth/update-profile', 'PATCH', {
+        displayName: newDisplayName.trim()
+      });
     },
     onSuccess: (data) => {
       // Update both the auth/me cache and refetch to ensure everything is in sync
