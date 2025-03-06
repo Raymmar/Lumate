@@ -38,17 +38,6 @@ interface StatsCardProps {
   description?: string;
 }
 
-interface Event {
-  id: number;
-  api_id: string;
-  title: string;
-  description: string | null;
-  startTime: string;
-  endTime: string;
-  coverUrl: string | null;
-  url: string | null;
-}
-
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
   return (
     <div className="flex items-center gap-3">
@@ -79,6 +68,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const form = useForm({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
+      email: "",
+      displayName: "",
       bio: "",
       companyName: "",
       companyDescription: "",
@@ -107,7 +98,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
+  const { data: events, isLoading: eventsLoading } = useQuery({
     queryKey: ['/api/people', personId, 'events'],
     queryFn: async () => {
       const response = await fetch(`/api/people/${personId}/events`);
@@ -195,13 +186,23 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     },
   });
 
-  const onSubmit = (values: z.infer<typeof insertUserSchema>) => {
-    updateProfileMutation.mutate(values);
+  const onSubmit = async (values: z.infer<typeof insertUserSchema>) => {
+    try {
+      await updateProfileMutation.mutateAsync(values);
+      // After successful mutation and profile refresh, exit edit mode
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
   };
 
+  // Reset form when person data changes or edit mode is enabled
   useEffect(() => {
-    if (person?.user) {
+    if (person?.user && isEditing) {
+      console.log('Resetting form with person data:', person.user);
       form.reset({
+        email: person.user.email || "",
+        displayName: person.user.displayName || "",
         bio: person.user.bio || "",
         companyName: person.user.companyName || "",
         companyDescription: person.user.companyDescription || "",
@@ -211,7 +212,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         profileTags: person.user.profileTags || [],
       });
     }
-  }, [person]);
+  }, [person, isEditing]);
 
   if (error) {
     return (
@@ -367,7 +368,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <Card>
               <CardContent className="py-4 pt-4 space-y-4">
                 {renderEditableSection("About", "bio", true)}
