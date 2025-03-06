@@ -936,8 +936,8 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
-      const person= await storage.getPerson(user.personId);
-      if(!person) {
+      const person = await storage.getPerson(user.personId);
+      if (!person) {
         return res.status(401).json({ error: "Associated person not found" });
       }
 
@@ -1872,7 +1872,7 @@ export async function registerRoutes(app: Express) {
       const roleName = req.params.roleName;
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
-      }
+}
 
       console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
@@ -2129,45 +2129,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);
       res.status(500).json({ error: "Failed to fetch event attendees" });
-    }
-  });
-
-  app.patch("/api/auth/update-profile", async (req, res) => {
-    try {
-      console.log('Route: Received profile update request');
-
-      if (!req.session.userId) {
-        console.log('Route: Update failed - not authenticated');
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      console.log('Route: Request body:', req.body);
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user) {
-        console.log('Route: Update failed - user not found');
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const updatedData = {
-        bio: req.body.bio,
-        companyName: req.body.companyName,
-        companyDescription: req.body.companyDescription,
-        address: req.body.address,
-        phoneNumber: req.body.phoneNumber,
-        customLinks: req.body.customLinks,
-        profileTags: req.body.profileTags,
-      };
-
-      console.log('Route: Prepared update data:', updatedData);
-
-      const updatedUser = await storage.updateUser(req.session.userId, updatedData);
-      console.log('Route: Successfully updated user:', updatedUser);
-
-      res.json(updatedUser);
-    } catch (error) {
-      console.error('Route: Failed to update profile:', error);
-      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 
