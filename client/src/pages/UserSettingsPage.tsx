@@ -5,14 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Check } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
@@ -25,18 +24,18 @@ export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
-  const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [bio, setBio] = useState(user?.bio || "");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl || "");
-  const [companyName, setCompanyName] = useState(user?.companyName || "");
-  const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || "");
-  const [address, setAddress] = useState<Location | null>(user?.address as Location | null);
-  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
-  const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic || false);
-  const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic || false);
-  const [ctaText, setCtaText] = useState(user?.ctaText || "");
-  const [customLinks, setCustomLinks] = useState(user?.customLinks || []);
-  const [tags, setTags] = useState<string[]>(user?.tags || []);
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
+  const [companyName, setCompanyName] = useState("");
+  const [companyDescription, setCompanyDescription] = useState("");
+  const [address, setAddress] = useState<Location | null>(null);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [isPhonePublic, setIsPhonePublic] = useState(false);
+  const [isEmailPublic, setIsEmailPublic] = useState(false);
+  const [ctaText, setCtaText] = useState("");
+  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
@@ -44,6 +43,24 @@ export default function UserSettingsPage() {
     // Initialize Google Maps when component mounts
     initGoogleMaps();
   }, []);
+
+  // Update form fields when user data changes
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || "");
+      setBio(user.bio || "");
+      setFeaturedImageUrl(user.featuredImageUrl || "");
+      setCompanyName(user.companyName || "");
+      setCompanyDescription(user.companyDescription || "");
+      setAddress(user.address as Location | null);
+      setPhoneNumber(user.phoneNumber || "");
+      setIsPhonePublic(user.isPhonePublic || false);
+      setIsEmailPublic(user.isEmailPublic || false);
+      setCtaText(user.ctaText || "");
+      setCustomLinks(user.customLinks || []);
+      setTags(user.tags || []);
+    }
+  }, [user]);
 
   const isAdmin = Boolean(user?.isAdmin);
 
@@ -136,7 +153,16 @@ export default function UserSettingsPage() {
     }
   };
 
-  if (!user) return null;
+  // Show loading state while user data is being fetched
+  if (!user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -343,17 +369,30 @@ export default function UserSettingsPage() {
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-lg font-medium">Appearance</h3>
                 <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Theme</Label>
+                  <div className="flex items-center space-x-4">
+                    <Button
+                      type="button"
+                      variant={theme === 'light' ? 'default' : 'outline'}
+                      onClick={() => setTheme('light')}
+                    >
+                      Light
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={theme === 'dark' ? 'default' : 'outline'}
+                      onClick={() => setTheme('dark')}
+                    >
+                      Dark
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={theme === 'system' ? 'default' : 'outline'}
+                      onClick={() => setTheme('system')}
+                    >
+                      System
+                    </Button>
+                  </div>
                 </div>
               </div>
 
