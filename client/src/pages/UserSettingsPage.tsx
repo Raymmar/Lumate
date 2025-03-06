@@ -18,6 +18,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { UpdateUserProfile } from "@shared/schema";
+import { LocationPicker } from "@/components/ui/location-picker";
 
 export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
@@ -28,7 +29,7 @@ export default function UserSettingsPage() {
   const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl || "");
   const [companyName, setCompanyName] = useState(user?.companyName || "");
   const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || "");
-  const [address, setAddress] = useState(user?.address || "");
+  const [address, setAddress] = useState(user?.address || null);
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
   const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic || false);
   const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic || false);
@@ -211,11 +212,10 @@ export default function UserSettingsPage() {
                 <h3 className="text-lg font-medium">Contact Information</h3>
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
-                  <Textarea
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Enter your address"
+                  <LocationPicker
+                    defaultValue={address}
+                    onLocationSelect={setAddress}
+                    className="w-full"
                   />
                 </div>
 
