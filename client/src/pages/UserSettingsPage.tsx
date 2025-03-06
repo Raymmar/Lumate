@@ -295,7 +295,7 @@ export default function UserSettingsPage() {
                   <LocationPicker
                     defaultValue={address}
                     onLocationSelect={setAddress}
-                    className="w-full"
+                    className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-background [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
                   />
                 </div>
 
