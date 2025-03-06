@@ -69,32 +69,6 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
-  // New fields
-  featuredImageUrl: varchar("featured_image_url", { length: 255 }),
-  bio: text("bio"),
-  companyName: varchar("company_name", { length: 255 }),
-  companyDescription: text("company_description"),
-  tags: text("tags").array(),
-  address: json("address").$type<{
-    street?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-    postalCode?: string;
-    latitude?: number;
-    longitude?: number;
-    placeId?: string;
-  }>(),
-  phoneNumber: varchar("phone_number", { length: 50 }),
-  ctaLink: varchar("cta_link", { length: 255 }),
-  ctaText: varchar("cta_text", { length: 255 }),
-  customLinks: json("custom_links").$type<Array<{
-    url: string;
-    icon: string;
-    name: string;
-  }>>().default([]),
-  displayEmail: boolean("display_email").notNull().default(false),
-  displayPhone: boolean("display_phone").notNull().default(false),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
@@ -225,31 +199,7 @@ export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
-export const insertUserSchema = createInsertSchema(users).omit({ 
-  id: true, 
-  isVerified: true, 
-  createdAt: true, 
-  updatedAt: true, 
-  isAdmin: true,
-  customLinks: true,
-  tags: true
-}).extend({
-  bio: z.string().max(1000, "Bio must not exceed 1000 characters").optional(),
-  companyName: z.string().max(255, "Company name must not exceed 255 characters").optional(),
-  companyDescription: z.string().max(1000, "Company description must not exceed 1000 characters").optional(),
-  tags: z.array(z.string()).max(3, "Maximum 3 tags allowed").optional(),
-  phoneNumber: z.string().regex(/^\+?[\d\s-()]+$/, "Invalid phone number format").optional(),
-  featuredImageUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
-  ctaLink: z.string().url("Invalid URL").optional().or(z.literal("")),
-  ctaText: z.string().max(100, "Call to action text must not exceed 100 characters").optional(),
-  customLinks: z.array(z.object({
-    url: z.string().url("Invalid URL").optional().or(z.literal("")),
-    icon: z.string(),
-    name: z.string().max(50, "Link name must not exceed 50 characters")
-  })).max(5, "Maximum 5 custom links allowed").optional(),
-  displayEmail: z.boolean().optional(),
-  displayPhone: z.boolean().optional(),
-});
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true, isAdmin: true });
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });
