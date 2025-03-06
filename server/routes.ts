@@ -1872,12 +1872,12 @@ export async function registerRoutes(app: Express) {
       const roleName = req.params.roleName;
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
-}
+      }
 
       console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
       const role = await storage.getRoleByName(roleName);
-      if (!role) {
+      if(!role) {
         return res.status(404).json({ error: "Role not found" });
       }
 
@@ -2129,6 +2129,40 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch event attendees:', error);
       res.status(500).json({ error: "Failed to fetch event attendees" });
+    }
+  });
+
+  app.patch("/api/auth/update-profile", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { displayName } = req.body;
+      if (!displayName) {
+        return res.status(400).json({ error: "Display name is required" });
+      }
+
+      const user = await storage.updateUser(req.session.userId, { displayName });
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      console.log('Profile updated successfully:', {
+        userId: user.id,
+        displayName: user.displayName
+      });
+
+      return res.json({
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        isAdmin: user.isAdmin,
+        isVerified: user.isVerified
+      });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 

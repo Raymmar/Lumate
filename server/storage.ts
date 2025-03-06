@@ -53,6 +53,7 @@ export interface IStorage {
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
   verifyUser(userId: number): Promise<User>;
   updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
+  updateUser(userId: number, data: { displayName?: string }): Promise<User>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -1428,6 +1429,35 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get future events:', error);
+      throw error;
+    }
+  }
+
+  async updateUser(userId: number, data: { displayName?: string }): Promise<User> {
+    try {
+      console.log('Updating user profile:', { userId, ...data });
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({
+          ...data,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      console.log('Successfully updated user profile:', {
+        userId: updatedUser.id,
+        displayName: updatedUser.displayName
+      });
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update user:', error);
       throw error;
     }
   }
