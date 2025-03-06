@@ -11,7 +11,6 @@ import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
-import { useTheme } from "@/hooks/use-theme";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -40,7 +39,6 @@ interface UserProfile {
 export default function UserSettingsPage() {
   const { user: authUser } = useAuth();
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
   const [error, setError] = useState<string | null>(null);
 
   // Fetch fresh user data from the server
@@ -70,6 +68,10 @@ export default function UserSettingsPage() {
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
+  useEffect(() => {
+    initGoogleMaps();
+  }, []);
+
   // Update form state when user data is loaded
   useEffect(() => {
     try {
@@ -89,22 +91,6 @@ export default function UserSettingsPage() {
           console.error('Error parsing address:', e);
         }
 
-        // Log current state before update
-        console.log('Current form state before update:', {
-          displayName,
-          bio,
-          featuredImageUrl,
-          companyName,
-          companyDescription,
-          address,
-          phoneNumber,
-          isPhonePublic,
-          isEmailPublic,
-          ctaText,
-          customLinks,
-          tags
-        });
-
         // Set form values from user data
         setDisplayName(user.displayName ?? "");
         setBio(user.bio ?? "");
@@ -120,7 +106,7 @@ export default function UserSettingsPage() {
         setTags(Array.isArray(user.tags) ? user.tags : []);
 
         // Log state updates
-        console.log('Setting form state to:', {
+        console.log('State updated with user data:', {
           displayName: user.displayName ?? "",
           bio: user.bio ?? "",
           featuredImageUrl: user.featuredImageUrl ?? "",
@@ -140,10 +126,6 @@ export default function UserSettingsPage() {
       setError('Failed to update form with user data');
     }
   }, [user]);
-
-  useEffect(() => {
-    initGoogleMaps();
-  }, []);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: Partial<UserProfile>) => {
@@ -171,7 +153,7 @@ export default function UserSettingsPage() {
       }
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/profile"], data);
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/profile'] });
       toast({
         title: "Success",
         description: "Profile updated successfully",
@@ -257,6 +239,13 @@ export default function UserSettingsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Basic Information */}
               <div className="space-y-4">
+                {/* Read-only email field */}
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">Email cannot be changed as it's linked to your account</p>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input
@@ -350,7 +339,7 @@ export default function UserSettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Label>Email Visibility</Label>
-                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                    <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
                   <div className="space-y-2">
                     <Switch
