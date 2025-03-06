@@ -293,13 +293,16 @@ export default function UserSettingsPage() {
                 </div>
               </div>
 
-              {/* Tags */}
+              {/* Tags Section */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-lg font-medium">Tags</h3>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2 mb-2">
                     {tags.map(tag => (
-                      <Badge key={tag} variant="secondary" className="gap-1">
+                      <div
+                        key={tag}
+                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-secondary rounded-full"
+                      >
                         {tag}
                         <button
                           type="button"
@@ -308,7 +311,7 @@ export default function UserSettingsPage() {
                         >
                           <X className="h-3 w-3" />
                         </button>
-                      </Badge>
+                      </div>
                     ))}
                   </div>
                   <Command className="rounded-lg border">
@@ -383,26 +386,8 @@ export default function UserSettingsPage() {
                 </div>
               </div>
 
-              {/* Theme Selection */}
-              <div className="space-y-4 pt-4 border-t">
-                <h3 className="text-lg font-medium">Appearance</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="theme">Theme</Label>
-                  <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a theme" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="light">Light</SelectItem>
-                      <SelectItem value="dark">Dark</SelectItem>
-                      <SelectItem value="system">System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Button
-                type="submit"
+              <Button 
+                type="submit" 
                 className="w-full mt-6"
                 disabled={updateProfileMutation.isPending}
               >
