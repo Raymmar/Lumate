@@ -32,18 +32,18 @@ export default function UserSettingsPage() {
   });
 
   // Form state
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [companyDescription, setCompanyDescription] = useState("");
+  const [displayName, setDisplayName] = useState<string>(user?.displayName || "");
+  const [bio, setBio] = useState<string>(user?.bio || "");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>(user?.featuredImageUrl || "");
+  const [companyName, setCompanyName] = useState<string>(user?.companyName || "");
+  const [companyDescription, setCompanyDescription] = useState<string>(user?.companyDescription || "");
   const [address, setAddress] = useState<Location | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [isPhonePublic, setIsPhonePublic] = useState(false);
-  const [isEmailPublic, setIsEmailPublic] = useState(false);
-  const [ctaText, setCtaText] = useState("");
-  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const [phoneNumber, setPhoneNumber] = useState<string>(user?.phoneNumber || "");
+  const [isPhonePublic, setIsPhonePublic] = useState<boolean>(Boolean(user?.isPhonePublic));
+  const [isEmailPublic, setIsEmailPublic] = useState<boolean>(Boolean(user?.isEmailPublic));
+  const [ctaText, setCtaText] = useState<string>(user?.ctaText || "");
+  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>(user?.customLinks || []);
+  const [tags, setTags] = useState<string[]>(user?.tags || []);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
@@ -75,8 +75,6 @@ export default function UserSettingsPage() {
       setIsPhonePublic(Boolean(user.isPhonePublic));
       setIsEmailPublic(Boolean(user.isEmailPublic));
       setCtaText(user.ctaText || "");
-
-      // Handle arrays with null checks
       setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
       setTags(Array.isArray(user.tags) ? user.tags : []);
     }
