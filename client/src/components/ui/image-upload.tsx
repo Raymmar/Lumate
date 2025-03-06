@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
-import { UploadCloud, Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, X } from 'lucide-react';
 
 interface ImageUploadProps {
   onImageSelect: (url: string) => void;
@@ -33,13 +33,14 @@ export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUpl
         <div className="flex items-center justify-between">
           <Label>Featured Image</Label>
           <Button 
+            type="button"
             variant="outline" 
             size="sm" 
-            className="h-8"
             onClick={() => setIsUnsplashOpen(true)}
+            className="h-8"
           >
             <ImageIcon className="h-4 w-4 mr-2" />
-            Upload
+            Choose Image
           </Button>
         </div>
         <div className="flex gap-2">
@@ -47,7 +48,7 @@ export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUpl
             type="url"
             value={imageUrl}
             onChange={(e) => handleUrlChange(e.target.value)}
-            placeholder="Enter image URL or choose from Unsplash"
+            placeholder="Enter image URL"
             className="bg-background flex-1"
           />
           <Button
@@ -73,7 +74,7 @@ export function ImageUpload({ onImageSelect, defaultValue, className }: ImageUpl
       <Dialog open={isUnsplashOpen} onOpenChange={setIsUnsplashOpen}>
         <DialogContent className="max-w-3xl h-[600px]">
           <DialogHeader>
-            <DialogTitle>Choose an Image from Unsplash</DialogTitle>
+            <DialogTitle>Choose an Image</DialogTitle>
           </DialogHeader>
           <UnsplashPicker onSelect={handleUnsplashSelect} />
         </DialogContent>
