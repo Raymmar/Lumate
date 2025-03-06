@@ -5,7 +5,16 @@ import { sql } from "drizzle-orm";
 import { db } from "./db";
 import uploadRouter from './routes/upload';
 import unsplashRouter from './routes/unsplash';
-import { insertUserSchema, people, updatePasswordSchema, users, roles as rolesTable, permissions as permissionsTable, rolePermissions as rolePermissionsTable } from "@shared/schema";
+import { 
+  insertUserSchema, 
+  people, 
+  updatePasswordSchema, 
+  users, 
+  roles as rolesTable, 
+  permissions as permissionsTable, 
+  rolePermissions as rolePermissionsTable,
+  updateUserProfileSchema 
+} from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
@@ -1873,7 +1882,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid user ID" });
       }
 
-      console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
+      console.log(`Updating roles foruser ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
       const role = await storage.getRoleByName(roleName);
       if(!role) {
@@ -2134,11 +2143,21 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/auth/update-profile", async (req, res) => {
     try {
       if (!req.session.userId) {
+        console.log('Update profile failed: No authenticated user');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
+      console.log('Received profile update request:', {
+        userId: req.session.userId,
+        requestBody: req.body
+      });
+
       const userData = updateUserProfileSchema.parse(req.body);
-      console.log('Updating user profile with data:', userData);
+      console.log('Validated profile update data:', {
+        userId: req.session.userId,
+        fields: Object.keys(userData),
+        data: userData
+      });
 
       const updatedUser = await storage.updateUser(req.session.userId, {
         displayName: userData.displayName,
@@ -2155,14 +2174,24 @@ export async function registerRoutes(app: Express) {
         tags: userData.tags,
       });
 
-      console.log('User profile updated successfully:', {
+      console.log('Profile update successful:', {
         userId: updatedUser.id,
-        fields: Object.keys(userData)
+        updatedFields: Object.keys(userData),
+        result: updatedUser
       });
 
       return res.json(updatedUser);
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error('Profile update failed:', {
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        userId: req.session?.userId,
+        body: req.body
+      });
+
       if (error instanceof ZodError) {
         return res.status(400).json({ 
           error: "Invalid profile data",

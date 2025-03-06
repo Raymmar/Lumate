@@ -1435,6 +1435,25 @@ export class PostgresStorage implements IStorage {
 
   async updateUser(userId: number, data: Partial<User>): Promise<User> {
     try {
+      console.log('Starting user update operation:', {
+        userId,
+        updateFields: Object.keys(data),
+        updateData: data
+      });
+
+      // First verify the user exists
+      const existingUser = await this.getUser(userId);
+      if (!existingUser) {
+        console.error('Update failed: User not found:', userId);
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      console.log('Found existing user:', {
+        userId: existingUser.id,
+        email: existingUser.email,
+        currentFields: Object.keys(existingUser)
+      });
+
       const [updatedUser] = await db
         .update(users)
         .set({
@@ -1445,17 +1464,27 @@ export class PostgresStorage implements IStorage {
         .returning();
 
       if (!updatedUser) {
-        throw new Error(`User with ID ${userId} not found`);
+        console.error('Update failed: No user returned after update');
+        throw new Error(`Failed to update user ${userId}`);
       }
 
       console.log('Successfully updated user:', {
-        id: updatedUser.id,
-        fields: Object.keys(data)
+        userId: updatedUser.id,
+        updatedFields: Object.keys(data),
+        result: updatedUser
       });
 
       return updatedUser;
     } catch (error) {
-      console.error('Failed to update user:', error);
+      console.error('Failed to update user:', {
+        userId,
+        error: error instanceof Error ? {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        } : error,
+        updateData: data
+      });
       throw error;
     }
   }
