@@ -51,10 +51,30 @@ interface Person {
     customLinks: Array<{ name: string; url: string; icon: string }>;
     profileTags: string[];
     isAdmin: boolean;
+    eventCount: number;
+    communityCount: number;
   }
 }
 
-// ... [Keep the StatsCard interface and component unchanged]
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+}
+
+function StatsCard({ title, value, icon }: StatsCardProps) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-primary/5 rounded-md">
+        {icon}
+      </div>
+      <div>
+        <p className="text-xs text-muted-foreground">{title}</p>
+        <p className="text-lg font-semibold text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function PersonProfile({ personId }: PersonProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -79,6 +99,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
+  // Main person query
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people', personId],
     queryFn: async () => {
@@ -91,7 +112,40 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  // ... [Keep other query hooks unchanged]
+  // Get unique list of existing tags from all users
+  const { data: existingTags, isLoading: tagsLoading, error: tagsError } = useQuery<{ tags: string[] }>({
+    queryKey: ["/api/tags/profile"],
+    queryFn: async () => {
+      const response = await fetch('/api/tags/profile');
+      if (!response.ok) throw new Error('Failed to fetch tags');
+      return response.json();
+    }
+  });
+
+  // Filter tags based on input
+  const existingTagTexts = Array.from(new Set(existingTags?.tags || []));
+  const filteredTags = currentTag === ""
+    ? existingTagTexts
+    : existingTagTexts.filter((tag) =>
+        tag.toLowerCase().includes(currentTag.toLowerCase()) &&
+        !form.watch("profileTags")?.includes(tag.toLowerCase())
+      );
+
+  const handleSelectTag = (tag: string) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    const currentTags = form.watch("profileTags") || [];
+
+    if (!currentTags.includes(normalizedTag) && currentTags.length < 5) {
+      form.setValue("profileTags", [...currentTags, normalizedTag]);
+    } else if (currentTags.length >= 5) {
+      toast({
+        title: "Tag limit reached",
+        description: "Maximum of 5 tags allowed per profile",
+        variant: "destructive"
+      });
+    }
+    setCurrentTag("");
+  };
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: z.infer<typeof insertUserSchema>) => {
@@ -155,7 +209,27 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   }, [person?.user, isEditing, form]);
 
-  // ... [Keep error and loading handlers unchanged]
+  if (personError) {
+    return (
+      <div className="rounded-lg border bg-destructive/10 p-3">
+        <p className="text-xs text-destructive">Failed to load person details</p>
+      </div>
+    );
+  }
+
+  if (personLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-12 rounded-full" />
+        <Skeleton className="h-8 w-[200px]" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  }
+
+  if (!person) {
+    return <div>Person not found</div>;
+  }
 
   const renderEditableSection = (
     title: string,
@@ -264,12 +338,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             <ClaimProfileDialog
               personId={personId}
               trigger={
-                <Button
-                  variant={isClaimed ? "outline" : "default"}
-                  className={isClaimed ? "cursor-default" : ""}
-                  disabled={isClaimed}
-                >
-                  {isClaimed ? "Profile Claimed" : "Claim Profile"}
+                <Button variant="outline">
+                  Claim Profile
                 </Button>
               }
             />
@@ -482,39 +552,16 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           <CardContent className="space-y-4 pt-4">
             <div className="space-y-4">
               <StatsCard
-                title="First Seen"
-                value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
+                title="Events"
+                value={person?.user?.eventCount || 0}
                 icon={<CalendarDays className="h-4 w-4 text-foreground" />}
               />
               <StatsCard
-                title="Events Attended"
-                value={events?.length || 0}
+                title="Community"
+                value={person?.user?.communityCount || 0}
                 icon={<Users className="h-4 w-4 text-foreground" />}
               />
             </div>
-
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : !events?.length ? (
-              <p className="text-sm text-muted-foreground">No events attended yet.</p>
-            ) : (
-              <div className="space-y-1">
-                {events.map((event) => (
-                  <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
-                    <div>
-                      <p className="text-sm font-medium">{event.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>
