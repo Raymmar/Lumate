@@ -12,30 +12,34 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
+import { apiRequest } from "@/lib/api";
+
+interface UpdateProfileResponse {
+  id: number;
+  email: string;
+  displayName: string;
+  isAdmin: boolean;
+}
 
 export default function UserSettingsPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
 
-  const isAdmin = Boolean(user?.isAdmin); // Explicitly convert to boolean
+  const isAdmin = Boolean(user?.isAdmin);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (newDisplayName: string) => {
-      const response = await fetch("/api/auth/update-profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: newDisplayName }),
+      const response = await apiRequest<UpdateProfileResponse>("/api/auth/update-profile", "PATCH", {
+        displayName: newDisplayName,
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update profile");
-      }
-      return response.json();
+      return response;
     },
     onSuccess: (data) => {
+      // Update the user in auth context
+      updateUser(data);
+      // Update the cached user data
       queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
