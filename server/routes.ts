@@ -877,6 +877,122 @@ export async function registerRoutes(app: Express) {
       }
     }
   });
+  app.patch("/api/auth/update-profile", async (req, res) => {
+    try {
+      console.log('🔵 Profile Update: Starting request processing', {
+        sessionId: req.session?.id,
+        userId: req.session?.userId,
+        method: req.method,
+        path: req.path,
+        headers: req.headers,
+        timestamp: new Date().toISOString()
+      });
+
+      if (!req.session.userId) {
+        console.log('🔴 Profile Update: Authentication failed - No user ID in session');
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      console.log('🟡 Profile Update: Processing request body', {
+        userId: req.session.userId,
+        requestBody: JSON.stringify(req.body, null, 2),
+        bodyKeys: Object.keys(req.body)
+      });
+
+      try {
+        // Log the address field specifically
+        console.log('🔍 Address field debug:', {
+          rawAddress: req.body.address,
+          type: typeof req.body.address,
+          length: req.body.address?.length
+        });
+
+        const validationResult = updateUserProfileSchema.safeParse(req.body);
+
+        if (!validationResult.success) {
+          console.error('🔴 Profile Update: Validation failed', {
+            userId: req.session.userId,
+            errors: validationResult.error.errors.map(err => ({
+              path: err.path.join('.'),
+              message: err.message,
+              code: err.code
+            })),
+            receivedData: req.body
+          });
+
+          return res.status(400).json({ 
+            error: "Invalid profile data",
+            details: validationResult.error.errors
+          });
+        }
+
+        const userData = validationResult.data;
+        console.log('🟢 Profile Update: Validation successful', {
+          userId: req.session.userId,
+          validatedFields: Object.keys(userData),
+          validatedData: JSON.stringify(userData, null, 2),
+          addressField: {
+            raw: userData.address,
+            type: typeof userData.address
+          }
+        });
+
+        const updatedUser = await storage.updateUser(req.session.userId, {
+          displayName: userData.displayName,
+          bio: userData.bio ?? null,
+          featuredImageUrl: userData.featuredImageUrl ?? null,
+          companyName: userData.companyName ?? null,
+          companyDescription: userData.companyDescription ?? null,
+          address: userData.address ?? null,
+          phoneNumber: userData.phoneNumber ?? null,
+          isPhonePublic: userData.isPhonePublic ?? false,
+          isEmailPublic: userData.isEmailPublic ?? false,
+          ctaText: userData.ctaText ?? null,
+          customLinks: userData.customLinks ?? [],
+          tags: userData.tags ?? []
+        });
+
+        console.log('🟢 Profile Update: Database update successful', {
+          userId: updatedUser.id,
+          updatedFields: Object.keys(updatedUser),
+          result: JSON.stringify(updatedUser, null, 2)
+        });
+
+        return res.json(updatedUser);
+      } catch (processingError) {
+        console.error('🔴 Profile Update: Processing error', {
+          userId: req.session.userId,
+          error: {
+            name: processingError.name,
+            message: processingError.message,
+            stack: processingError.stack,
+            ...(processingError instanceof z.ZodError && {
+              zodErrors: processingError.errors
+            })
+          },
+          requestBody: JSON.stringify(req.body, null, 2)
+        });
+        throw processingError;
+      }
+    } catch (error) {
+      console.error('🔴 Profile Update: Unhandled error', {
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack
+        },
+        userId: req.session?.userId,
+        requestBody: JSON.stringify(req.body, null, 2),
+        timestamp: new Date().toISOString()
+      });
+
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        message: error.message
+      });
+    }
+  });
+
 
   app.get("/api/public/stats", async (_req, res) => {
     try {
