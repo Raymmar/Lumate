@@ -937,7 +937,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const person= await storage.getPerson(user.personId);
-      if (!person) {
+      if(!person) {
         return res.status(401).json({ error: "Associated person not found" });
       }
 
@@ -2134,17 +2134,20 @@ export async function registerRoutes(app: Express) {
 
   app.patch("/api/auth/update-profile", async (req, res) => {
     try {
+      console.log('Route: Received profile update request');
+
       if (!req.session.userId) {
+        console.log('Route: Update failed - not authenticated');
         return res.status(401).json({ error: "Not authenticated" });
       }
 
+      console.log('Route: Request body:', req.body);
+
       const user = await storage.getUser(req.session.userId);
       if (!user) {
+        console.log('Route: Update failed - user not found');
         return res.status(404).json({ error: "User not found" });
       }
-
-      // Log the incoming data for debugging
-      console.log('Profile update request body:', req.body);
 
       const updatedData = {
         bio: req.body.bio,
@@ -2152,18 +2155,18 @@ export async function registerRoutes(app: Express) {
         companyDescription: req.body.companyDescription,
         address: req.body.address,
         phoneNumber: req.body.phoneNumber,
-        customLinks: Array.isArray(req.body.customLinks) ? req.body.customLinks : [],
-        profileTags: Array.isArray(req.body.profileTags) ? req.body.profileTags : []
+        customLinks: req.body.customLinks,
+        profileTags: req.body.profileTags,
       };
 
-      console.log('Processing update with data:', updatedData);
+      console.log('Route: Prepared update data:', updatedData);
 
       const updatedUser = await storage.updateUser(req.session.userId, updatedData);
-      console.log('Profile updated successfully:', updatedUser);
+      console.log('Route: Successfully updated user:', updatedUser);
 
       res.json(updatedUser);
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error('Route: Failed to update profile:', error);
       res.status(500).json({ error: "Failed to update profile" });
     }
   });

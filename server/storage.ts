@@ -968,7 +968,7 @@ export class PostgresStorage implements IStorage {
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
           creator_id: users.id,
-          creator_display_name: users.displayName,
+          creator_displayName: users.displayName,
           tag_text: tags.text
                 })
         .from(posts)
@@ -1435,28 +1435,54 @@ export class PostgresStorage implements IStorage {
 
   async updateUser(userId: number, userData: Partial<User>): Promise<User> {
     try {
-      console.log('Updating user:', userId, 'with data:', userData);
+      console.log('Storage: Starting user update for ID:', userId);
+      console.log('Storage: Input data:', userData);
 
+      // First, get current user data to preserve existing values
+      const currentUser = await this.getUser(userId);
+      if (!currentUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      // Prepare the data for update, handling JSON fields carefully
+      const dataToUpdate = {
+        ...userData,
+        updatedAt: new Date().toISOString(),
+        // Preserve existing arrays if new ones aren't provided
+        customLinks: userData.customLinks !== undefined 
+          ? JSON.stringify(userData.customLinks)
+          : currentUser.customLinks,
+        profileTags: userData.profileTags !== undefined
+          ? JSON.stringify(userData.profileTags)
+          : currentUser.profileTags
+      };
+
+      console.log('Storage: Prepared data for database update:', dataToUpdate);
+
+      // Execute the update
       const [updatedUser] = await db
         .update(users)
-        .set({
-          ...userData,
-          updatedAt: new Date().toISOString(),
-          // Ensure proper JSON serialization for array fields
-          customLinks: userData.customLinks ? JSON.stringify(userData.customLinks) : undefined,
-          profileTags: userData.profileTags ? JSON.stringify(userData.profileTags) : undefined,
-        })
+        .set(dataToUpdate)
         .where(eq(users.id, userId))
         .returning();
 
       if (!updatedUser) {
-        throw new Error(`User with ID ${userId} not found`);
+        throw new Error(`Failed to update user ${userId}`);
       }
 
-      console.log('Successfully updated user:', updatedUser);
-      return updatedUser;
+      console.log('Storage: Raw updated user from database:', updatedUser);
+
+      // Parse JSON strings back to arrays for response
+      const processedUser = {
+        ...updatedUser,
+        customLinks: updatedUser.customLinks ? JSON.parse(updatedUser.customLinks as string) : [],
+        profileTags: updatedUser.profileTags ? JSON.parse(updatedUser.profileTags as string) : []
+      };
+
+      console.log('Storage: Final processed user data:', processedUser);
+      return processedUser;
     } catch (error) {
-      console.error('Failed to update user:', error);
+      console.error('Storage: Failed to update user:', error);
       throw error;
     }
   }

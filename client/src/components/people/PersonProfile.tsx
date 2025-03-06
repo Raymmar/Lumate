@@ -158,6 +158,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: z.infer<typeof insertUserSchema>) => {
+      console.log('Starting profile update mutation with values:', values);
+
       const response = await fetch('/api/auth/update-profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -168,13 +170,19 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         }),
         credentials: 'include'
       });
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('Profile update failed:', error);
         throw new Error(error.error || 'Failed to update profile');
       }
-      return response.json();
+
+      const data = await response.json();
+      console.log('Profile update successful:', data);
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Profile update mutation succeeded:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
       toast({
         title: "Success",
@@ -183,6 +191,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       setIsEditing(false);
     },
     onError: (error: Error) => {
+      console.error('Profile update mutation failed:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -193,10 +202,10 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const onSubmit = async (values: z.infer<typeof insertUserSchema>) => {
     try {
-      console.log('Submitting form data:', values);
+      console.log('Form submission started with values:', values);
       await updateProfileMutation.mutateAsync(values);
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      console.error('Form submission failed:', error);
     }
   };
 
