@@ -22,6 +22,10 @@ import { useForm } from "react-hook-form";
 import { insertUserSchema } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { IconPicker } from "@/components/ui/icon-picker";
+import * as LucideIcons from "lucide-react";
 
 interface PersonProfileProps {
   personId: string;
@@ -66,6 +70,8 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 
 export default function PersonProfile({ personId }: PersonProfileProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [currentTag, setCurrentTag] = useState("");
+  const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -119,6 +125,42 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
+  // Get unique list of existing tags from all users
+  const { data: existingTags } = useQuery<{ tags: string[] }>({
+    queryKey: ["/api/tags/profile"],
+  });
+
+  // Get unique list of existing tag texts
+  const existingTagTexts = Array.from(new Set(existingTags?.tags || []));
+
+  // Filter tags based on input
+  const filteredTags = currentTag === ""
+    ? existingTagTexts
+    : existingTagTexts.filter((tag) =>
+        tag.toLowerCase().includes(currentTag.toLowerCase()) &&
+        !form.watch("profileTags")?.includes(tag.toLowerCase())
+      );
+
+  const handleSelectTag = (tag: string) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    const currentTags = form.watch("profileTags") || [];
+
+    if (!currentTags.includes(normalizedTag) && currentTags.length < 5) {
+      form.setValue("profileTags", [...currentTags, normalizedTag]);
+    } else if (currentTags.length >= 5) {
+      toast({
+        title: "Tag limit reached",
+        description: "Maximum of 5 tags allowed per profile",
+        variant: "destructive"
+      });
+    }
+    setCurrentTag("");
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    const currentTags = form.watch("profileTags") || [];
+    form.setValue("profileTags", currentTags.filter(tag => tag !== tagToRemove));
+  };
 
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
@@ -334,30 +376,122 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                 {renderEditableSection("Address", "address")}
                 {renderEditableSection("Phone Number", "phoneNumber")}
 
+                {/* Tags Section */}
+                <div className="space-y-2">
+                  <h3 className="font-medium">Tags</h3>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {form.watch("profileTags")?.map(tag => (
+                      <Badge key={tag} variant="secondary" className="gap-1">
+                        {tag}
+                        {isEditing && (
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
+                    ))}
+                  </div>
+                  {isEditing && (
+                    <div className="relative">
+                      <Command className="rounded-lg overflow-visible border-0">
+                        <CommandInput
+                          placeholder="Search tags or create new ones..."
+                          value={currentTag}
+                          onValueChange={setCurrentTag}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && currentTag.trim()) {
+                              e.preventDefault();
+                              handleSelectTag(currentTag);
+                            }
+                          }}
+                          onFocus={() => setIsTagSearchFocused(true)}
+                          onBlur={() => {
+                            setTimeout(() => setIsTagSearchFocused(false), 200);
+                          }}
+                          className="border-0 focus:ring-0 focus-visible:ring-0"
+                        />
+                        {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
+                          <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50">
+                            <CommandEmpty>
+                              {currentTag.trim() && (
+                                <button
+                                  type="button"
+                                  className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent"
+                                  onClick={() => handleSelectTag(currentTag)}
+                                >
+                                  Create tag "{currentTag}"
+                                </button>
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {filteredTags.map((tag) => (
+                                <CommandItem
+                                  key={tag}
+                                  value={tag}
+                                  onSelect={handleSelectTag}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Check
+                                    className={cn(
+                                      "h-4 w-4",
+                                      form.watch("profileTags")?.includes(tag.toLowerCase())
+                                        ? "opacity-100"
+                                        : "opacity-0"
+                                    )}
+                                  />
+                                  {tag}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </div>
+                        )}
+                      </Command>
+                    </div>
+                  )}
+                </div>
+
+                {/* Links Section */}
                 <div className="space-y-2">
                   <h3 className="font-medium">Links</h3>
                   {isEditing ? (
                     <div className="space-y-2">
                       {form.watch("customLinks")?.map((link, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            placeholder="Link name"
-                            value={link.name}
-                            onChange={(e) => {
-                              const links = [...(form.watch("customLinks") || [])];
-                              links[index] = { ...links[index], name: e.target.value };
-                              form.setValue("customLinks", links);
-                            }}
-                          />
-                          <Input
-                            placeholder="URL"
-                            value={link.url}
-                            onChange={(e) => {
-                              const links = [...(form.watch("customLinks") || [])];
-                              links[index] = { ...links[index], url: e.target.value };
-                              form.setValue("customLinks", links);
-                            }}
-                          />
+                        <div key={index} className="grid grid-cols-[1fr,1fr,auto] gap-2 items-start">
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Link name"
+                              value={link.name}
+                              onChange={(e) => {
+                                const links = [...(form.watch("customLinks") || [])];
+                                links[index] = { ...links[index], name: e.target.value };
+                                form.setValue("customLinks", links);
+                              }}
+                            />
+                            <Input
+                              placeholder="URL"
+                              value={link.url}
+                              onChange={(e) => {
+                                const links = [...(form.watch("customLinks") || [])];
+                                links[index] = { ...links[index], url: e.target.value };
+                                form.setValue("customLinks", links);
+                              }}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm text-muted-foreground">Icon</label>
+                            <IconPicker
+                              value={link.icon}
+                              onChange={(icon) => {
+                                const links = [...(form.watch("customLinks") || [])];
+                                links[index] = { ...links[index], icon };
+                                form.setValue("customLinks", links);
+                              }}
+                            />
+                          </div>
                           <Button
                             type="button"
                             variant="ghost"
@@ -388,39 +522,21 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                       </Button>
                     </div>
                   ) : (
-                    person.user?.customLinks?.map((link, index) => (
-                      <a
-                        key={index}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-primary hover:underline"
-                      >
-                        <span>{link.name}</span>
-                      </a>
-                    ))
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="font-medium">Tags</h3>
-                  {isEditing ? (
-                    <Input
-                      placeholder="Enter tags separated by commas"
-                      value={form.watch("profileTags")?.join(", ")}
-                      onChange={(e) => {
-                        const tags = e.target.value.split(",").map(tag => tag.trim()).filter(Boolean);
-                        form.setValue("profileTags", tags);
-                      }}
-                    />
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {person.user?.profileTags?.map((tag, index) => (
-                        <Badge key={index} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    person.user?.customLinks?.map((link, index) => {
+                      const Icon = LucideIcons[link.icon as keyof typeof LucideIcons] || LucideIcons.Link;
+                      return (
+                        <a
+                          key={index}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{link.name}</span>
+                        </a>
+                      );
+                    })
                   )}
                 </div>
 
