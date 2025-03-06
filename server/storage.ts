@@ -1432,28 +1432,6 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateUserDisplayName(userId: number, displayName: string): Promise<User> {
-    try {
-      const [updatedUser] = await db
-        .update(users)
-        .set({ 
-          displayName: displayName.trim(),
-          updatedAt: new Date().toISOString()
-        })
-        .where(eq(users.id, userId))
-        .returning();
-
-      if (!updatedUser) {
-        throw new Error(`User with ID ${userId} not found`);
-      }
-
-      return updatedUser;
-    } catch (error) {
-      console.error('Failed to update user display name:', error);
-      throw error;
-    }
-  }
-
 }
 
 export const storage = new PostgresStorage();

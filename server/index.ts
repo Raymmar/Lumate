@@ -6,16 +6,14 @@ import connectPg from 'connect-pg-simple';
 import unsplashRoutes from './routes/unsplash';
 
 const app = express();
-
-// Enhanced session configuration
-const PostgresStore = connectPg(session);
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Important: Configure body parsing middleware first
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session handling
+const PostgresStore = connectPg(session);
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Enhanced session configuration
 app.use(session({
   store: new PostgresStore({
     conObject: {
@@ -91,10 +89,10 @@ app.use((req, res, next) => {
   console.log('Ensuring database tables exist...');
   await ensureTablesExist();
 
-  // Register API routes before static file serving
+  // Register routes first
   await registerRoutes(app);
 
-  // Then set up Vite in development or static file serving in production
+  // Then set up Vite in development
   if (app.get("env") === "development") {
     await setupVite(app);
   } else {

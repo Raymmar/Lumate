@@ -1,68 +1,59 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Update displayName when user data changes
-  useEffect(() => {
-    if (user?.displayName) {
-      setDisplayName(user.displayName);
-    }
-  }, [user?.displayName]);
+  const isAdmin = Boolean(user?.isAdmin); // Explicitly convert to boolean
 
-  const isAdmin = Boolean(user?.isAdmin);
+  const updateProfileMutation = useMutation({
+    mutationFn: async (newDisplayName: string) => {
+      const response = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: newDisplayName }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update profile");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/auth/me"], data);
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!displayName.trim()) {
-      toast({
-        title: "Error",
-        description: "Display name cannot be empty",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUpdating(true);
-    try {
-      const data = await apiRequest('/api/auth/update-profile', 'PATCH', {
-        displayName: displayName.trim()
-      });
-
-      // Update both the auth/me cache and refetch to ensure everything is in sync
-      queryClient.setQueryData(["/api/auth/me"], data);
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
-      toast({
-        title: "Success",
-        description: "Profile updated successfully"
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUpdating(false);
-    }
+    await updateProfileMutation.mutateAsync(displayName);
   };
 
   if (!user) return null;
@@ -100,12 +91,11 @@ export default function UserSettingsPage() {
                   placeholder="Enter your display name"
                 />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isUpdating || !displayName.trim()}
+              <Button
+                type="submit"
+                disabled={updateProfileMutation.isPending}
               >
-                {isUpdating ? (
+                {updateProfileMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...

@@ -160,45 +160,6 @@ export async function registerRoutes(app: Express) {
   app.use('/api/upload', uploadRouter);
   app.use('/api/unsplash', unsplashRouter);
 
-  app.patch("/api/auth/update-profile", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const { displayName } = req.body;
-      if (!displayName || typeof displayName !== 'string') {
-        return res.status(400).json({ error: "Invalid display name" });
-      }
-
-      const user = await storage.updateUserDisplayName(req.session.userId, displayName.trim());
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      let api_id = null;
-      if (user.personId) {
-        const person = await storage.getPerson(user.personId);
-        if (person) {
-          api_id = person.api_id;
-        }
-      }
-
-      return res.json({
-        id: user.id,
-        email: user.email,
-        displayName: user.displayName,
-        isVerified: user.isVerified,
-        isAdmin: user.isAdmin,
-        personId: user.personId,
-        api_id
-      });
-    } catch (error) {
-      console.error('Failed to update profile:', error);
-      res.status(500).json({ error: "Failed to update profile" });
-    }
-  });
-
   app.get("/api/events", async (_req, res) => {
     try {
       console.log('Fetching events from storage...');
@@ -935,9 +896,9 @@ export async function registerRoutes(app: Express) {
 
       const user = await storage.getUser(req.session.userId);
       if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });      }
+        return res.status(403).json({ error: "Not authorized" });
+      }
 
-```typescript
       const [eventCount, peopleCount, userCount, totalAttendeesCount] = await Promise.all([
         storage.getEventCount(),
         storage.getPeopleCount(),
@@ -1879,7 +1840,7 @@ export async function registerRoutes(app: Express) {
           action: permissionsTable.action
         })
         .from(rolePermissionsTable)
-        .innerJoin(permissionsTable, eq(permissionsTableTable.id, rolePermissionsTable.permissionId))
+        .innerJoin(permissionsTable, eq(permissionsTable.id, rolePermissionsTable.permissionId))
         .where(eq(rolePermissionsTable.roleId, roleId));
 
       console.log('Updated permissions after removal:', {
@@ -1911,7 +1872,7 @@ export async function registerRoutes(app: Express) {
       const roleName = req.params.roleName;
       if (isNaN(userId)) {
         return res.status(400).json({ error: "Invalid user ID" });
-      }
+}
 
       console.log(`Updating roles for user ${userId} to role ${roleName} by admin ${req.session.userId}`);
 
