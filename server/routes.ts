@@ -695,6 +695,48 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to get user info" });
     }
   });
+  
+  app.patch("/api/auth/update-profile", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { displayName } = req.body;
+      
+      if (!displayName) {
+        return res.status(400).json({ error: "Display name is required" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const updatedUser = await storage.updateUser(user.id, { displayName });
+
+      let api_id = null;
+      if (updatedUser.personId) {
+        const person = await storage.getPerson(updatedUser.personId);
+        if (person) {
+          api_id = person.api_id;
+        }
+      }
+
+      return res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        displayName: updatedUser.displayName,
+        isVerified: updatedUser.isVerified,
+        isAdmin: updatedUser.isAdmin,
+        personId: updatedUser.personId,
+        api_id
+      });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
 
   app.post("/api/auth/login", async (req, res) => {
     try {
