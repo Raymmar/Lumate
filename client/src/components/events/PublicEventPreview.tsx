@@ -18,11 +18,6 @@ import StarterKit from '@tiptap/starter-kit';
 import { AuthGuard } from "@/components/AuthGuard";
 import { DialogTitle } from "@/components/ui/dialog";
 
-interface AttendanceData {
-  attendees: Person[];
-  total: number;
-}
-
 interface PublicEventPreviewProps {
   event: Event;
   onClose: () => void;
@@ -80,7 +75,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
 
   // Query to fetch attendees for this event
-  const { data: attendanceData = { attendees: [], total: 0 }, isLoading: isLoadingAttendees } = useQuery<AttendanceData>({
+  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
     queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
       const response = await fetch(`/api/events/${event.api_id}/attendees`);
@@ -89,13 +84,6 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
     },
     enabled: !!event.api_id,
     staleTime: 30000
-  });
-
-  // Sort attendees by name
-  const sortedAttendees = [...(attendanceData.attendees || [])].sort((a, b) => {
-    const nameA = (a.userName || '').toLowerCase();
-    const nameB = (b.userName || '').toLowerCase();
-    return nameA.localeCompare(nameB);
   });
 
   // Query to check if user is RSVP'd
@@ -370,7 +358,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold">Event Attendees</h3>
-                  <Badge variant="secondary">{attendanceData.total} registered</Badge>
+                  <Badge variant="secondary">{attendees?.total || 0} registered</Badge>
                 </div>
 
                 {isLoadingAttendees ? (
@@ -379,22 +367,21 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                       <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
                     ))}
                   </div>
-                ) : sortedAttendees.length > 0 ? (
+                ) : attendees?.attendees?.length > 0 ? (
                   <div className="space-y-2">
-                    {sortedAttendees.map((person: Person) => (
+                    {attendees.attendees.map((person) => (
                       <Link
                         key={person.id}
                         href={`/people/${person.api_id}`}
                         className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                       >
                         <Avatar className="h-8 w-8">
-                          {person.avatarUrl ? (
+                          {person.avatarUrl && (
                             <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                          ) : (
-                            <AvatarFallback>
-                              {person.userName?.split(" ").map((n: string) => n[0]).join("") || "?"}
-                            </AvatarFallback>
                           )}
+                          <AvatarFallback>
+                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                          </AvatarFallback>
                         </Avatar>
                         <div>
                           <p className="font-medium">{person.userName || "Anonymous"}</p>

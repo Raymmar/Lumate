@@ -36,6 +36,7 @@ export function PeopleTable() {
       const data = await response.json();
       return data as PeopleResponse;
     },
+    keepPreviousData: true,
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
@@ -68,10 +69,6 @@ export function PeopleTable() {
   ];
 
   const onRowClick = (person: Person) => {
-    setSelectedPerson(person);
-  };
-
-  const handleNavigation = (person: Person) => {
     setSelectedPerson(person);
   };
 
@@ -141,11 +138,7 @@ export function PeopleTable() {
         onOpenChange={() => setSelectedPerson(null)}
       >
         {selectedPerson && (
-          <PersonPreview 
-            person={selectedPerson}
-            people={people}
-            onNavigate={handleNavigation}
-          />
+          <PersonPreview person={selectedPerson} />
         )}
       </PreviewSidebar>
     </div>

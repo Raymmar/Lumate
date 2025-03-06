@@ -244,24 +244,7 @@ export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Person = typeof people.$inferSelect & {
   isAdmin?: boolean;
-  user?: {
-    id: number;
-    email: string;
-    displayName: string | null;
-    isVerified: boolean;
-    isAdmin: boolean;
-    bio: string | null;
-    featuredImageUrl: string | null;
-    companyName: string | null;
-    companyDescription: string | null;
-    address: string | null;
-    phoneNumber: string | null;
-    isPhonePublic: boolean;
-    isEmailPublic: boolean;
-    ctaText: string | null;
-    customLinks: UserCustomLink[];
-    tags: string[];
-  } | null;
+  user?: User | null;
 };
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;

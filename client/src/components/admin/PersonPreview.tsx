@@ -9,26 +9,19 @@ import {
 } from "@/components/ui/card";
 import { format } from "date-fns";
 import { LinkedUser } from "./LinkedUser";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PersonPreviewProps {
   person: Person;
-  onNavigate?: (person: Person) => void;
-  people?: Person[];
 }
 
-export function PersonPreview({ person, onNavigate, people = [] }: PersonPreviewProps) {
+export function PersonPreview({ person }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
 
-  // Find current person index and determine if we have prev/next
-  const currentIndex = people.findIndex(p => p.id === person.id);
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex < people.length - 1;
+  console.log('PersonPreview - Received person data:', person); // Debug log
 
   return (
-    <div className="space-y-6 relative h-full pb-16">
+    <div className="space-y-6">
       <div className="flex items-center space-x-4">
         <Avatar className="h-16 w-16">
           {person.avatarUrl ? (
@@ -112,30 +105,6 @@ export function PersonPreview({ person, onNavigate, people = [] }: PersonPreview
           <LinkedUser user={person.user} />
         </CardContent>
       </Card>
-
-      {/* Navigation Section - Fixed to bottom */}
-      {people.length > 1 && onNavigate && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
-          <div className="flex justify-between items-center">
-            <Button
-              variant="ghost"
-              disabled={!hasPrevious}
-              onClick={() => onNavigate(people[currentIndex - 1])}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            <Button
-              variant="ghost"
-              disabled={!hasNext}
-              onClick={() => onNavigate(people[currentIndex + 1])}
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
