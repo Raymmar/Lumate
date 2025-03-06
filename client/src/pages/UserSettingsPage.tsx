@@ -59,6 +59,7 @@ export default function UserSettingsPage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: FormValues) => {
+      console.log('Submitting form values:', values);
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -82,6 +83,7 @@ export default function UserSettingsPage() {
       });
     },
     onError: (error: Error) => {
+      console.error('Profile update error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -92,6 +94,7 @@ export default function UserSettingsPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
+      console.log('Form submitted with values:', values);
       await updateProfileMutation.mutateAsync(values);
     } catch (error) {
       console.error("Failed to update profile:", error);
@@ -121,7 +124,7 @@ export default function UserSettingsPage() {
                     <FormItem>
                       <FormLabel>Display Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -135,7 +138,7 @@ export default function UserSettingsPage() {
                     <FormItem>
                       <FormLabel>Bio</FormLabel>
                       <FormControl>
-                        <Textarea {...field} />
+                        <Textarea {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -149,7 +152,7 @@ export default function UserSettingsPage() {
                     <FormItem>
                       <FormLabel>Featured Image URL</FormLabel>
                       <FormControl>
-                        <Input {...field} type="url" />
+                        <Input {...field} type="url" value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -164,7 +167,7 @@ export default function UserSettingsPage() {
                       <FormItem>
                         <FormLabel>Company Name</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -178,7 +181,7 @@ export default function UserSettingsPage() {
                       <FormItem>
                         <FormLabel>Company Description</FormLabel>
                         <FormControl>
-                          <Textarea {...field} />
+                          <Textarea {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -243,7 +246,7 @@ export default function UserSettingsPage() {
                       <FormItem>
                         <FormLabel>Phone Number</FormLabel>
                         <FormControl>
-                          <Input {...field} type="tel" />
+                          <Input {...field} type="tel" value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -259,7 +262,7 @@ export default function UserSettingsPage() {
                       <FormItem>
                         <FormLabel>Call to Action Link</FormLabel>
                         <FormControl>
-                          <Input {...field} type="url" />
+                          <Input {...field} type="url" value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -273,7 +276,7 @@ export default function UserSettingsPage() {
                       <FormItem>
                         <FormLabel>Call to Action Text</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input {...field} value={field.value || ''} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
