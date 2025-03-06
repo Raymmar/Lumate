@@ -128,7 +128,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isAdmin = Boolean(user?.isAdmin);
   const isOwnProfile = user?.api_id === person?.api_id;
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
-  const isProfileAdmin = Boolean(person.isAdmin);
+  const isProfileAdmin = person.user?.isAdmin || false;
 
   // Mock data for badges - This should eventually come from the API
   const userBadges = [
@@ -174,7 +174,16 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             </div>
           </div>
 
-          {!user && (
+          {user ? (
+            isOwnProfile ? (
+              <Button
+                variant="outline"
+                onClick={() => window.location.href = "/settings"}
+              >
+                Edit Profile
+              </Button>
+            ) : null
+          ) : (
             <ClaimProfileDialog
               personId={personId}
               trigger={
@@ -190,7 +199,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        {/* Badges Section - Always visible */}
+        {/* Badges Section */}
         <div className="flex flex-wrap gap-2">
           {userBadges.map((badge, index) => (
             <ProfileBadge
@@ -201,13 +210,73 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           ))}
         </div>
 
-        {/* Bio/About Section - Always visible */}
+        {/* Profile Information */}
         <Card>
-          <CardContent className="py-4 pt-4">
-            {person.bio ? (
-              <p className="text-sm text-muted-foreground">{person.bio}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">No bio available</p>
+          <CardContent className="py-4 pt-4 space-y-4">
+            {/* Bio */}
+            {person.user?.bio && (
+              <div className="space-y-2">
+                <h3 className="font-medium">About</h3>
+                <p className="text-sm text-muted-foreground">{person.user.bio}</p>
+              </div>
+            )}
+
+            {/* Company Information */}
+            {(person.user?.companyName || person.user?.companyDescription) && (
+              <div className="space-y-2">
+                <h3 className="font-medium">Company</h3>
+                {person.user.companyName && (
+                  <p className="text-sm font-medium">{person.user.companyName}</p>
+                )}
+                {person.user.companyDescription && (
+                  <p className="text-sm text-muted-foreground">{person.user.companyDescription}</p>
+                )}
+              </div>
+            )}
+
+            {/* Contact Information */}
+            {(person.user?.phoneNumber || person.user?.address) && (
+              <div className="space-y-2">
+                <h3 className="font-medium">Contact</h3>
+                {person.user.phoneNumber && (
+                  <p className="text-sm text-muted-foreground">{person.user.phoneNumber}</p>
+                )}
+                {person.user.address && (
+                  <p className="text-sm text-muted-foreground">{person.user.address}</p>
+                )}
+              </div>
+            )}
+
+            {/* Custom Links */}
+            {person.user?.customLinks && person.user.customLinks.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="font-medium">Links</h3>
+                <div className="space-y-2">
+                  {person.user.customLinks.map((link, index) => (
+                    <a
+                      key={index}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      {/* You can import specific icons based on the icon name stored in the database */}
+                      <span>{link.name}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Profile Tags */}
+            {person.user?.profileTags && person.user.profileTags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {person.user.profileTags.map((tag, index) => (
+                  <Badge key={index} variant="secondary">
+                    {tag}
+                  </Badge>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>

@@ -69,6 +69,17 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
+  bio: text("bio"),
+  companyName: varchar("company_name", { length: 255 }),
+  companyDescription: text("company_description"),
+  address: varchar("address", { length: 500 }),
+  phoneNumber: varchar("phone_number", { length: 50 }),
+  customLinks: json("custom_links").$type<Array<{
+    url: string;
+    icon: string;
+    name: string;
+  }>>().default([]),
+  profileTags: json("profile_tags").$type<string[]>().default([]),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
@@ -199,7 +210,22 @@ export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, isVerified: true, createdAt: true, updatedAt: true, isAdmin: true });
+export const insertUserSchema = createInsertSchema(users).omit({ 
+  id: true, 
+  isVerified: true, 
+  createdAt: true, 
+  updatedAt: true, 
+  isAdmin: true,
+  customLinks: true,
+  profileTags: true
+}).extend({
+  customLinks: z.array(z.object({
+    url: z.string().url("Invalid URL"),
+    icon: z.string(),
+    name: z.string().min(1, "Link name is required")
+  })).optional(),
+  profileTags: z.array(z.string()).optional()
+});
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });
@@ -217,6 +243,12 @@ export type User = typeof users.$inferSelect & {
   api_id?: string;
   roles?: Role[];
   permissions?: Permission[];
+  customLinks?: Array<{
+    url: string;
+    icon: string;
+    name: string;
+  }>;
+  profileTags?: string[];
 };
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
