@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import usePlacesAutocomplete, {
   getGeocode,
   getLatLng,
@@ -8,6 +8,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Button } from './button';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { initGoogleMaps } from '@/lib/google-maps';
+import { Loader2 } from 'lucide-react';
 
 interface LocationPickerProps {
   defaultValue?: {
@@ -34,7 +36,12 @@ interface LocationPickerProps {
 }
 
 export function LocationPicker({ defaultValue, onLocationSelect, className }: LocationPickerProps) {
+  const [isReady, setIsReady] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    initGoogleMaps().then(() => setIsReady(true));
+  }, []);
 
   const {
     ready,
@@ -46,7 +53,15 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     requestOptions: { componentRestrictions: { country: 'us' } },
     debounce: 300,
     defaultValue: defaultValue?.address,
+    initOnMount: false, // Don't initialize until Google Maps is ready
   });
+
+  useEffect(() => {
+    if (isReady) {
+      // Initialize Places Autocomplete after Google Maps is ready
+      usePlacesAutocomplete.init();
+    }
+  }, [isReady]);
 
   const handleSelect = useCallback(async (address: string) => {
     setValue(address, false);
@@ -74,13 +89,21 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     } catch (error) {
       console.error("Error selecting location:", error);
     }
-  }, []);
+  }, [setValue, clearSuggestions, onLocationSelect]);
 
   const handleClear = () => {
     setValue("");
     clearSuggestions();
     onLocationSelect(null);
   };
+
+  if (!isReady || !ready) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -93,7 +116,6 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
               setValue(value);
               setIsOpen(true);
             }}
-            disabled={!ready}
             className="border-0"
           />
           {value && (
