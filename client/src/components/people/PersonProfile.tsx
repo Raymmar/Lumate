@@ -206,8 +206,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         {/* Bio/About Section - Always visible */}
         <Card>
           <CardContent className="py-4 pt-4">
-            {person.bio ? (
-              <p className="text-sm text-muted-foreground">{person.bio}</p>
+            {person.user?.bio ? (
+              <p className="text-sm text-muted-foreground">{person.user.bio}</p>
             ) : (
               <p className="text-sm text-muted-foreground">No bio available</p>
             )}
