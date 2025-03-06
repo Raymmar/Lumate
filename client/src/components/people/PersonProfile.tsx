@@ -6,9 +6,9 @@ import { Person } from '@/components/people/PeopleDirectory';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuthStore } from "@/hooks/use-auth"; // Assuming useAuthStore is the corrected hook
 import { useToast } from "@/hooks/use-toast";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
 import { Star, Code, Heart, CalendarDays, Users, Mail } from 'lucide-react';
@@ -60,7 +60,7 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 export default function PersonProfile({ personId }: PersonProfileProps) {
   const [email, setEmail] = useState('');
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user } = useAuthStore(); // Use useAuthStore here
   const queryClient = useQueryClient();
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
@@ -101,6 +101,33 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
+  // Update the subscription logic to use useAuthStore
+  useEffect(() => {
+    let isMounted = true;
+
+    // Subscribe to auth user changes
+    const unsubscribe = useAuthStore.subscribe(() => {
+      if (isMounted) {
+        try {
+          // Invalidate queries when the user profile is updated
+          queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        } catch (error) {
+          console.error('Error invalidating queries:', error);
+          toast({
+            title: "Error",
+            description: "Failed to refresh profile data",
+            variant: "destructive"
+          });
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [queryClient, personId, toast]);
 
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
