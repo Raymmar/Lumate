@@ -55,7 +55,14 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
     queryFn: async () => {
       const response = await fetch(`/api/events/${event.api_id}/attendees`);
       if (!response.ok) throw new Error('Failed to fetch attendees');
-      return response.json();
+      const data = await response.json();
+      // Filter out anonymous attendees for public display
+      if (data.attendees) {
+        data.attendees = data.attendees.filter((person: any) => 
+          person.userName && person.userName.toLowerCase() !== "anonymous"
+        );
+      }
+      return data;
     },
     staleTime: 30000
   });
