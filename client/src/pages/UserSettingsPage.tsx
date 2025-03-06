@@ -20,7 +20,7 @@ import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Sun, Moon, Monitor } from "lucide-react";
-import { ImageUpload } from "@/components/bulletin/ImageUpload";
+import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 
 export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
@@ -257,10 +257,14 @@ export default function UserSettingsPage() {
               {/* Company Information */}
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Company Information</h3>
-                <ImageUpload
-                  onImageSelect={setFeaturedImageUrl}
-                  defaultValue={featuredImageUrl}
-                />
+                <div className="space-y-2">
+                  <Label>Featured Image</Label>
+                  <UnsplashPicker
+                    value={featuredImageUrl}
+                    onChange={setFeaturedImageUrl}
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="companyName">Company Name</Label>
                   <Input
