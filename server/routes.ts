@@ -331,7 +331,19 @@ export async function registerRoutes(app: Express) {
 
       // Fetch the associated user data if it exists
       const user = await db
-        .select()
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          isAdmin: users.isAdmin,
+          companyName: users.companyName,
+          companyDescription: users.companyDescription,
+          address: users.address,
+          phoneNumber: users.phoneNumber,
+          isPhonePublic: users.isPhonePublic,
+          isEmailPublic: users.isEmailPublic,
+          customLinks: users.customLinks
+        })
         .from(users)
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
@@ -348,7 +360,11 @@ export async function registerRoutes(app: Express) {
         userData: user[0] ? {
           id: user[0].id,
           email: user[0].email,
-          companyName: user[0].companyName
+          companyName: user[0].companyName,
+          companyDescription: user[0].companyDescription,
+          hasAddress: !!user[0].address,
+          hasPhone: !!user[0].phoneNumber,
+          hasCustomLinks: Array.isArray(user[0].customLinks) && user[0].customLinks.length > 0
         } : null
       });
 
