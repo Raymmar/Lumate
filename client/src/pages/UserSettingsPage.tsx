@@ -42,6 +42,7 @@ export default function UserSettingsPage() {
     initGoogleMaps();
   }, []);
 
+  // Update form fields when user data changes
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName || "");
@@ -49,7 +50,17 @@ export default function UserSettingsPage() {
       setFeaturedImageUrl(user.featuredImageUrl || "");
       setCompanyName(user.companyName || "");
       setCompanyDescription(user.companyDescription || "");
-      setAddress(user.address as Location | null);
+
+      // Parse address from user data
+      if (user.address) {
+        const addressData = typeof user.address === 'string' 
+          ? { address: user.address } 
+          : user.address;
+        setAddress(addressData as Location);
+      } else {
+        setAddress(null);
+      }
+
       setPhoneNumber(user.phoneNumber || "");
       setIsPhonePublic(user.isPhonePublic || false);
       setIsEmailPublic(user.isEmailPublic || false);
@@ -63,11 +74,26 @@ export default function UserSettingsPage() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
+      // Format address data for submission
+      const formattedData = {
+        ...data,
+        address: data.address ? {
+          address: data.address.address,
+          city: data.address.city,
+          region: data.address.region,
+          country: data.address.country,
+          latitude: data.address.latitude,
+          longitude: data.address.longitude,
+          placeId: data.address.placeId,
+          formatted_address: data.address.formatted_address,
+        } : null
+      };
+
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify(formattedData),
       });
 
       if (!response.ok) {
@@ -197,7 +223,7 @@ export default function UserSettingsPage() {
         </div>
 
         <Card className="border-none shadow-none">
-          <CardHeader className="px-0 space-y-1">
+          <CardHeader className="px-6 space-y-1">
             <div className="flex items-center justify-between">
               <CardTitle className="text-2xl font-semibold">Profile Settings</CardTitle>
               {isAdmin && <AdminBadge />}
@@ -206,7 +232,7 @@ export default function UserSettingsPage() {
               Update your profile information and preferences
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-0">
+          <CardContent className="px-6">
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information */}
               <div className="space-y-4">
