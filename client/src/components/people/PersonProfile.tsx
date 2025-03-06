@@ -329,13 +329,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             isOwnProfile ? (
               <Button
                 variant="outline"
-                onClick={() => setIsEditing(!isEditing)}
+                onClick={isEditing ? form.handleSubmit(onSubmit) : () => setIsEditing(true)}
                 className="gap-2"
               >
                 {isEditing ? (
                   <>
-                    <X className="h-4 w-4" />
-                    Cancel
+                    <Check className="h-4 w-4" />
+                    Save Changes
                   </>
                 ) : (
                   <>
