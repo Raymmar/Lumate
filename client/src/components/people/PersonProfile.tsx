@@ -8,13 +8,20 @@ import { Button } from '@/components/ui/button';
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
-import { Star, Code, Heart, CalendarDays, Users, Mail } from 'lucide-react';
+import { Star, Code, Heart, CalendarDays, Users, Edit2, Plus, X, Check, Trash } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { insertUserSchema } from "@shared/schema";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 interface PersonProfileProps {
   personId: string;
@@ -58,10 +65,23 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 }
 
 export default function PersonProfile({ personId }: PersonProfileProps) {
-  const [email, setEmail] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+
+  const form = useForm({
+    resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      bio: "",
+      companyName: "",
+      companyDescription: "",
+      address: "",
+      phoneNumber: "",
+      customLinks: [],
+      profileTags: [],
+    }
+  });
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people', personId],
@@ -103,6 +123,54 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async (values: z.infer<typeof insertUserSchema>) => {
+      const response = await fetch('/api/auth/update-profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update profile');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/people', personId] });
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+      setIsEditing(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (values: z.infer<typeof insertUserSchema>) => {
+    updateProfileMutation.mutate(values);
+  };
+
+  useEffect(() => {
+    if (person?.user) {
+      form.reset({
+        bio: person.user.bio || "",
+        companyName: person.user.companyName || "",
+        companyDescription: person.user.companyDescription || "",
+        address: person.user.address || "",
+        phoneNumber: person.user.phoneNumber || "",
+        customLinks: person.user.customLinks || [],
+        profileTags: person.user.profileTags || [],
+      });
+    }
+  }, [person]);
+
   if (error) {
     return (
       <div className="rounded-lg border bg-destructive/10 p-3">
@@ -130,12 +198,48 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const isClaimed = userStatus?.isClaimed || isOwnProfile;
   const isProfileAdmin = person.user?.isAdmin || false;
 
-  // Mock data for badges - This should eventually come from the API
   const userBadges = [
     { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
     { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
   ];
+
+  const renderEditableSection = (
+    title: string,
+    fieldName: keyof z.infer<typeof insertUserSchema>,
+    isTextArea = false
+  ) => {
+    const value = form.watch(fieldName);
+
+    if (!isEditing) {
+      return value ? (
+        <div className="space-y-2">
+          <h3 className="font-medium">{title}</h3>
+          <p className="text-sm text-muted-foreground">{value}</p>
+        </div>
+      ) : null;
+    }
+
+    return (
+      <FormField
+        control={form.control}
+        name={fieldName}
+        render={({ field }) => (
+          <FormItem className="space-y-2">
+            <FormLabel>{title}</FormLabel>
+            <FormControl>
+              {isTextArea ? (
+                <Textarea {...field} placeholder={`Enter your ${title.toLowerCase()}`} />
+              ) : (
+                <Input {...field} placeholder={`Enter your ${title.toLowerCase()}`} />
+              )}
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    );
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -178,9 +282,20 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             isOwnProfile ? (
               <Button
                 variant="outline"
-                onClick={() => window.location.href = "/settings"}
+                onClick={() => setIsEditing(!isEditing)}
+                className="gap-2"
               >
-                Edit Profile
+                {isEditing ? (
+                  <>
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <Edit2 className="h-4 w-4" />
+                    Edit Profile
+                  </>
+                )}
               </Button>
             ) : null
           ) : (
@@ -199,7 +314,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           )}
         </div>
 
-        {/* Badges Section */}
         <div className="flex flex-wrap gap-2">
           {userBadges.map((badge, index) => (
             <ProfileBadge
@@ -210,78 +324,127 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           ))}
         </div>
 
-        {/* Profile Information */}
-        <Card>
-          <CardContent className="py-4 pt-4 space-y-4">
-            {/* Bio */}
-            {person.user?.bio && (
-              <div className="space-y-2">
-                <h3 className="font-medium">About</h3>
-                <p className="text-sm text-muted-foreground">{person.user.bio}</p>
-              </div>
-            )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <Card>
+              <CardContent className="py-4 pt-4 space-y-4">
+                {renderEditableSection("About", "bio", true)}
+                {renderEditableSection("Company", "companyName")}
+                {renderEditableSection("Company Description", "companyDescription", true)}
+                {renderEditableSection("Address", "address")}
+                {renderEditableSection("Phone Number", "phoneNumber")}
 
-            {/* Company Information */}
-            {(person.user?.companyName || person.user?.companyDescription) && (
-              <div className="space-y-2">
-                <h3 className="font-medium">Company</h3>
-                {person.user.companyName && (
-                  <p className="text-sm font-medium">{person.user.companyName}</p>
-                )}
-                {person.user.companyDescription && (
-                  <p className="text-sm text-muted-foreground">{person.user.companyDescription}</p>
-                )}
-              </div>
-            )}
-
-            {/* Contact Information */}
-            {(person.user?.phoneNumber || person.user?.address) && (
-              <div className="space-y-2">
-                <h3 className="font-medium">Contact</h3>
-                {person.user.phoneNumber && (
-                  <p className="text-sm text-muted-foreground">{person.user.phoneNumber}</p>
-                )}
-                {person.user.address && (
-                  <p className="text-sm text-muted-foreground">{person.user.address}</p>
-                )}
-              </div>
-            )}
-
-            {/* Custom Links */}
-            {person.user?.customLinks && person.user.customLinks.length > 0 && (
-              <div className="space-y-2">
-                <h3 className="font-medium">Links</h3>
                 <div className="space-y-2">
-                  {person.user.customLinks.map((link, index) => (
-                    <a
-                      key={index}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      {/* You can import specific icons based on the icon name stored in the database */}
-                      <span>{link.name}</span>
-                    </a>
-                  ))}
+                  <h3 className="font-medium">Links</h3>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      {form.watch("customLinks")?.map((link, index) => (
+                        <div key={index} className="flex gap-2">
+                          <Input
+                            placeholder="Link name"
+                            value={link.name}
+                            onChange={(e) => {
+                              const links = [...(form.watch("customLinks") || [])];
+                              links[index] = { ...links[index], name: e.target.value };
+                              form.setValue("customLinks", links);
+                            }}
+                          />
+                          <Input
+                            placeholder="URL"
+                            value={link.url}
+                            onChange={(e) => {
+                              const links = [...(form.watch("customLinks") || [])];
+                              links[index] = { ...links[index], url: e.target.value };
+                              form.setValue("customLinks", links);
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              const links = form.watch("customLinks")?.filter((_, i) => i !== index);
+                              form.setValue("customLinks", links);
+                            }}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          const links = [...(form.watch("customLinks") || [])];
+                          if (links.length < 5) {
+                            links.push({ name: "", url: "", icon: "link" });
+                            form.setValue("customLinks", links);
+                          }
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Link
+                      </Button>
+                    </div>
+                  ) : (
+                    person.user?.customLinks?.map((link, index) => (
+                      <a
+                        key={index}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-primary hover:underline"
+                      >
+                        <span>{link.name}</span>
+                      </a>
+                    ))
+                  )}
                 </div>
-              </div>
-            )}
 
-            {/* Profile Tags */}
-            {person.user?.profileTags && person.user.profileTags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {person.user.profileTags.map((tag, index) => (
-                  <Badge key={index} variant="secondary">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                <div className="space-y-2">
+                  <h3 className="font-medium">Tags</h3>
+                  {isEditing ? (
+                    <Input
+                      placeholder="Enter tags separated by commas"
+                      value={form.watch("profileTags")?.join(", ")}
+                      onChange={(e) => {
+                        const tags = e.target.value.split(",").map(tag => tag.trim()).filter(Boolean);
+                        form.setValue("profileTags", tags);
+                      }}
+                    />
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {person.user?.profileTags?.map((tag, index) => (
+                        <Badge key={index} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-        {/* Additional details for authenticated users */}
+                {isEditing && (
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={updateProfileMutation.isPending}
+                  >
+                    {updateProfileMutation.isPending ? (
+                      "Saving..."
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </form>
+        </Form>
+
         <AuthGuard>
           <MemberDetails />
         </AuthGuard>
