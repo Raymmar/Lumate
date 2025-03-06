@@ -695,9 +695,21 @@ export async function registerRoutes(app: Express) {
         email: user.email,
         displayName: user.displayName,
         isVerified: user.isVerified,
-        isAdmin: user.isAdmin, 
+        isAdmin: user.isAdmin,
         personId: user.personId,
-        api_id
+        api_id,
+        // Add all profile fields
+        bio: user.bio,
+        featuredImageUrl: user.featuredImageUrl,
+        companyName: user.companyName,
+        companyDescription: user.companyDescription,
+        address: user.address,
+        phoneNumber: user.phoneNumber,
+        isPhonePublic: user.isPhonePublic,
+        isEmailPublic: user.isEmailPublic,
+        ctaText: user.ctaText,
+        customLinks: user.customLinks || [],
+        tags: user.tags || []
       });
     } catch (error) {
       console.error('Failed to get user info:', error);
