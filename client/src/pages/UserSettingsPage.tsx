@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -18,7 +17,7 @@ export default function UserSettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
-  const [error, setError] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Update displayName when user data changes
   useEffect(() => {
@@ -29,42 +28,41 @@ export default function UserSettingsPage() {
 
   const isAdmin = Boolean(user?.isAdmin);
 
-  const updateProfileMutation = useMutation({
-    mutationFn: async (newDisplayName: string) => {
-      if (!newDisplayName.trim()) {
-        throw new Error("Display name cannot be empty");
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      return apiRequest('/api/auth/update-profile', 'PATCH', {
-        displayName: newDisplayName.trim()
+    if (!displayName.trim()) {
+      toast({
+        title: "Error",
+        description: "Display name cannot be empty",
+        variant: "destructive"
       });
-    },
-    onSuccess: (data) => {
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const data = await apiRequest('/api/auth/update-profile', 'PATCH', {
+        displayName: displayName.trim()
+      });
+
       // Update both the auth/me cache and refetch to ensure everything is in sync
       queryClient.setQueryData(["/api/auth/me"], data);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
       toast({
         title: "Success",
-        description: "Profile updated successfully",
+        description: "Profile updated successfully"
       });
-      setError(""); // Clear any previous errors
-    },
-    onError: (error: Error) => {
-      console.error("Update profile error:", error);
-      setError(error.message);
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
-        variant: "destructive",
+        description: "Failed to update profile",
+        variant: "destructive"
       });
-    },
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(""); // Clear previous errors
-    await updateProfileMutation.mutateAsync(displayName);
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   if (!user) return null;
@@ -101,16 +99,13 @@ export default function UserSettingsPage() {
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Enter your display name"
                 />
-                {error && (
-                  <p className="text-sm text-destructive">{error}</p>
-                )}
               </div>
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={updateProfileMutation.isPending || !displayName.trim()}
+                disabled={isUpdating || !displayName.trim()}
               >
-                {updateProfileMutation.isPending ? (
+                {isUpdating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving...
