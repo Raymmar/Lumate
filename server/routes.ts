@@ -329,7 +329,30 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      res.json(person);
+      // Fetch the associated user data if it exists
+      const user = await db
+        .select()
+        .from(users)
+        .where(sql`LOWER(email) = LOWER(${person.email})`)
+        .limit(1);
+
+      // Attach the user data to the person object
+      const personWithUser = {
+        ...person,
+        user: user[0] || null
+      };
+
+      console.log('API Response - Person with user data:', {
+        personId,
+        hasUser: !!user[0],
+        userData: user[0] ? {
+          id: user[0].id,
+          email: user[0].email,
+          companyName: user[0].companyName
+        } : null
+      });
+
+      res.json(personWithUser);
     } catch (error) {
       console.error('Failed to fetch person:', error);
       res.status(500).json({ error: "Failed to fetch person" });
