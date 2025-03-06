@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,15 +20,27 @@ export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState(user?.displayName || "");
 
-  const isAdmin = Boolean(user?.isAdmin); // Explicitly convert to boolean
+  // Update displayName when user data changes
+  useEffect(() => {
+    if (user?.displayName) {
+      setDisplayName(user.displayName);
+    }
+  }, [user?.displayName]);
+
+  const isAdmin = Boolean(user?.isAdmin);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (newDisplayName: string) => {
+      if (!newDisplayName.trim()) {
+        throw new Error("Display name cannot be empty");
+      }
+
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: newDisplayName }),
+        body: JSON.stringify({ displayName: newDisplayName.trim() }),
       });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to update profile");
@@ -36,7 +48,10 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Update both the auth/me cache and refetch to ensure everything is in sync
       queryClient.setQueryData(["/api/auth/me"], data);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
       toast({
         title: "Success",
         description: "Profile updated successfully",
@@ -93,7 +108,7 @@ export default function UserSettingsPage() {
               </div>
               <Button
                 type="submit"
-                disabled={updateProfileMutation.isPending}
+                disabled={updateProfileMutation.isPending || !displayName.trim()}
               >
                 {updateProfileMutation.isPending ? (
                   <>
