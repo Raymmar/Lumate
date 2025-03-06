@@ -20,7 +20,7 @@ import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Sun, Moon, Monitor } from "lucide-react";
-import { ImageUpload } from "@/components/ui/image-upload";
+import { ImageUpload } from "@/components/bulletin/ImageUpload";
 
 export default function UserSettingsPage() {
   const { user, updateUser } = useAuth();
@@ -231,6 +231,10 @@ export default function UserSettingsPage() {
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Basic Information */}
               <div className="space-y-4">
+                <ImageUpload
+                  onImageSelect={setFeaturedImageUrl}
+                  defaultValue={featuredImageUrl}
+                />
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input
@@ -252,11 +256,6 @@ export default function UserSettingsPage() {
                     className="min-h-[100px] bg-background"
                   />
                 </div>
-
-                <ImageUpload
-                  onImageSelect={setFeaturedImageUrl}
-                  defaultValue={featuredImageUrl}
-                />
               </div>
 
               {/* Company Information */}
