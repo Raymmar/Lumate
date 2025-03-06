@@ -1,14 +1,13 @@
-import { useState, useRef, useCallback } from 'react';
-import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+import { useState, useCallback } from 'react';
 import usePlacesAutocomplete, {
   getGeocode,
   getLatLng,
 } from "use-places-autocomplete";
 import { Input } from './input';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "./command";
 import { Button } from './button';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-const libraries: ("places")[] = ["places"];
 
 interface LocationPickerProps {
   defaultValue?: {
@@ -35,15 +34,7 @@ interface LocationPickerProps {
 }
 
 export function LocationPicker({ defaultValue, onLocationSelect, className }: LocationPickerProps) {
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
-
-  const [selected, setSelected] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   const {
     ready,
@@ -60,11 +51,11 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
   const handleSelect = useCallback(async (address: string) => {
     setValue(address, false);
     clearSuggestions();
+    setIsOpen(false);
 
     try {
       const results = await getGeocode({ address });
       const { lat, lng } = await getLatLng(results[0]);
-      setSelected({ lat, lng });
 
       // Parse address components
       const addressComponents = results[0].address_components;
@@ -85,63 +76,56 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     }
   }, []);
 
-  const mapRef = useRef<google.maps.Map>();
-  const center = useRef({ lat: 27.3364, lng: -82.5307 }); // Default to Sarasota
-
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map;
-  }, []);
-
-  if (!isLoaded) return <div>Loading...</div>;
+  const handleClear = () => {
+    setValue("");
+    clearSuggestions();
+    onLocationSelect(null);
+  };
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn("space-y-2", className)}>
       <div className="relative">
-        <Input
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          disabled={!ready}
-          placeholder="Search for a location..."
-          className="w-full"
-        />
-        {status === "OK" && (
-          <ul className="absolute z-10 w-full bg-white border rounded-md shadow-lg mt-1">
-            {data.map(({ place_id, description }) => (
-              <li
-                key={place_id}
-                className="p-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => handleSelect(description)}
-              >
-                {description}
-              </li>
-            ))}
-          </ul>
-        )}
+        <Command className="rounded-lg border overflow-visible">
+          <CommandInput
+            placeholder="Search for an address..."
+            value={value}
+            onValueChange={(value) => {
+              setValue(value);
+              setIsOpen(true);
+            }}
+            disabled={!ready}
+            className="border-0"
+          />
+          {value && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full"
+              onClick={handleClear}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+          {isOpen && status === "OK" && (
+            <div className="absolute top-full left-0 right-0 mt-1 rounded-md border bg-popover shadow-md z-50">
+              <CommandEmpty>No results found.</CommandEmpty>
+              <CommandGroup>
+                {data.map(({ place_id, description }) => (
+                  <CommandItem
+                    key={place_id}
+                    value={description}
+                    onSelect={() => handleSelect(description)}
+                    className="cursor-pointer"
+                  >
+                    {description}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </div>
+          )}
+        </Command>
       </div>
-
-      <div className="h-[300px] w-full rounded-md overflow-hidden">
-        <GoogleMap
-          zoom={selected ? 15 : 11}
-          center={selected || center.current}
-          mapContainerClassName="w-full h-full"
-          onLoad={onMapLoad}
-        >
-          {selected && <Marker position={selected} />}
-        </GoogleMap>
-      </div>
-
-      {value && (
-        <Button
-          variant="outline"
-          onClick={() => {
-            setValue("");
-            setSelected(null);
-            onLocationSelect(null);
-          }}
-        >
-          Clear Location
-        </Button>
-      )}
     </div>
   );
 }
