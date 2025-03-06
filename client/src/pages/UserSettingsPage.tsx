@@ -12,7 +12,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useTheme } from "@/hooks/use-theme";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
@@ -35,17 +34,35 @@ export default function UserSettingsPage() {
         throw new Error("Display name cannot be empty");
       }
 
-      const response = await fetch("/api/auth/update-profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName: newDisplayName.trim() }),
-      });
+      try {
+        const response = await fetch("/api/auth/update-profile", {
+          method: "PATCH",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ 
+            displayName: newDisplayName.trim() 
+          }),
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update profile");
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Server response was not JSON");
+        }
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to update profile");
+        }
+
+        return data;
+      } catch (error) {
+        if (error instanceof Error) {
+          throw error;
+        }
+        throw new Error("Failed to update profile");
       }
-      return response.json();
     },
     onSuccess: (data) => {
       // Update both the auth/me cache and refetch to ensure everything is in sync
