@@ -68,7 +68,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     queryFn: async () => {
       const response = await fetch(`/api/people/${personId}`);
       if (!response.ok) throw new Error('Failed to fetch person details');
-      return response.json();
+      const data = await response.json();
+      console.log('Person data fetched:', data); // Debug log
+      return data;
     }
   });
 
@@ -259,6 +261,12 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
       </div>
+      {person?.user && (
+        <div className="hidden">
+          {/* This div is hidden but will show in React DevTools */}
+          <pre>{JSON.stringify({ user: person.user }, null, 2)}</pre>
+        </div>
+      )}
     </div>
   );
 }

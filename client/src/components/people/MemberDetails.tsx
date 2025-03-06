@@ -7,8 +7,11 @@ interface MemberDetailsProps {
 }
 
 export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
+  console.log('MemberDetails - Received user data:', user); // Debug log
+
   // Only render if there's company information
   if (!user?.companyName) {
+    console.log('MemberDetails - No company name found, not rendering'); // Debug log
     return null;
   }
 
@@ -20,6 +23,8 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     email: user.isEmailPublic ? user.email : undefined,
     customLinks: user.customLinks?.filter(link => link.url && link.title) || []
   };
+
+  console.log('MemberDetails - Prepared business data:', businessData); // Debug log
 
   return (
     <div className="space-y-4">
