@@ -200,7 +200,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   };
 
-  // Effect to reset form when editing starts or person data changes
   useEffect(() => {
     if (person?.user && isEditing) {
       console.log('Resetting form with person data:', person.user);
@@ -216,7 +215,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         profileTags: person.user.profileTags || [],
       });
     }
-  }, [person, isEditing, form]);
+  }, [person?.user, isEditing, form.reset]);
 
   if (error) {
     return (
