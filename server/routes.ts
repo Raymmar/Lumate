@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
-      const person = await storage.getPerson(user.personId);
+      const person= await storage.getPerson(user.personId);
       if (!person) {
         return res.status(401).json({ error: "Associated person not found" });
       }
@@ -2143,24 +2143,23 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "User not found" });
       }
 
+      // Log the incoming data for debugging
+      console.log('Profile update request body:', req.body);
+
       const updatedData = {
         bio: req.body.bio,
         companyName: req.body.companyName,
         companyDescription: req.body.companyDescription,
         address: req.body.address,
         phoneNumber: req.body.phoneNumber,
-        customLinks: req.body.customLinks || [],
-        profileTags: req.body.profileTags || [],
+        customLinks: Array.isArray(req.body.customLinks) ? req.body.customLinks : [],
+        profileTags: Array.isArray(req.body.profileTags) ? req.body.profileTags : []
       };
 
-      console.log('Updating profile with data:', updatedData);
+      console.log('Processing update with data:', updatedData);
 
-      await db
-        .update(users)
-        .set(updatedData)
-        .where(eq(users.id, req.session.userId));
-
-      const updatedUser = await storage.getUser(req.session.userId);
+      const updatedUser = await storage.updateUser(req.session.userId, updatedData);
+      console.log('Profile updated successfully:', updatedUser);
 
       res.json(updatedUser);
     } catch (error) {
