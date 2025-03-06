@@ -28,29 +28,29 @@ export default function UserSettingsPage() {
   const { data: user, isLoading } = useQuery<UpdateUserProfile>({
     queryKey: ['/api/auth/me'],
     enabled: !!authUser, // Only fetch if user is authenticated
-    staleTime: 0 // Always fetch fresh data
+    staleTime: 0, // Always fetch fresh data
   });
 
   // Form state
-  const [displayName, setDisplayName] = useState<string>(user?.displayName || "");
-  const [bio, setBio] = useState<string>(user?.bio || "");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>(user?.featuredImageUrl || "");
-  const [companyName, setCompanyName] = useState<string>(user?.companyName || "");
-  const [companyDescription, setCompanyDescription] = useState<string>(user?.companyDescription || "");
+  const [displayName, setDisplayName] = useState<string>("");
+  const [bio, setBio] = useState<string>("");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>("");
+  const [companyName, setCompanyName] = useState<string>("");
+  const [companyDescription, setCompanyDescription] = useState<string>("");
   const [address, setAddress] = useState<Location | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState<string>(user?.phoneNumber || "");
-  const [isPhonePublic, setIsPhonePublic] = useState<boolean>(Boolean(user?.isPhonePublic));
-  const [isEmailPublic, setIsEmailPublic] = useState<boolean>(Boolean(user?.isEmailPublic));
-  const [ctaText, setCtaText] = useState<string>(user?.ctaText || "");
-  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>(user?.customLinks || []);
-  const [tags, setTags] = useState<string[]>(user?.tags || []);
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [isPhonePublic, setIsPhonePublic] = useState<boolean>(false);
+  const [isEmailPublic, setIsEmailPublic] = useState<boolean>(false);
+  const [ctaText, setCtaText] = useState<string>("");
+  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
   // Update form state when user data is loaded
   useEffect(() => {
     if (user) {
-      console.log('Setting form data from user:', user);
+      console.log('Raw user data from query:', user);
 
       // Parse address if it's a string
       let parsedAddress: Location | null = null;
@@ -59,10 +59,27 @@ export default function UserSettingsPage() {
           parsedAddress = typeof user.address === 'string' 
             ? JSON.parse(user.address) 
             : user.address;
+          console.log('Parsed address:', parsedAddress);
         }
       } catch (e) {
         console.error('Error parsing address:', e);
       }
+
+      // Log current state before update
+      console.log('Current form state before update:', {
+        displayName,
+        bio,
+        featuredImageUrl,
+        companyName,
+        companyDescription,
+        address,
+        phoneNumber,
+        isPhonePublic,
+        isEmailPublic,
+        ctaText,
+        customLinks,
+        tags
+      });
 
       // Set form values from user data
       setDisplayName(user.displayName || "");
@@ -77,6 +94,22 @@ export default function UserSettingsPage() {
       setCtaText(user.ctaText || "");
       setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
       setTags(Array.isArray(user.tags) ? user.tags : []);
+
+      // Log state updates
+      console.log('Setting form state to:', {
+        displayName: user.displayName || "",
+        bio: user.bio || "",
+        featuredImageUrl: user.featuredImageUrl || "",
+        companyName: user.companyName || "",
+        companyDescription: user.companyDescription || "",
+        address: parsedAddress,
+        phoneNumber: user.phoneNumber || "",
+        isPhonePublic: Boolean(user.isPhonePublic),
+        isEmailPublic: Boolean(user.isEmailPublic),
+        ctaText: user.ctaText || "",
+        customLinks: Array.isArray(user.customLinks) ? user.customLinks : [],
+        tags: Array.isArray(user.tags) ? user.tags : []
+      });
     }
   }, [user]);
 
@@ -123,7 +156,7 @@ export default function UserSettingsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      console.log('Submitting form with data:', {
+      const formData = {
         displayName,
         bio,
         featuredImageUrl,
@@ -136,22 +169,11 @@ export default function UserSettingsPage() {
         ctaText,
         customLinks,
         tags,
-      });
+      };
 
-      await updateProfileMutation.mutateAsync({
-        displayName,
-        bio,
-        featuredImageUrl,
-        companyName,
-        companyDescription,
-        address,
-        phoneNumber,
-        isPhonePublic,
-        isEmailPublic,
-        ctaText,
-        customLinks,
-        tags,
-      });
+      console.log('Form submission data:', formData);
+
+      await updateProfileMutation.mutateAsync(formData);
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
