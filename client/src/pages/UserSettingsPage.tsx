@@ -5,162 +5,73 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { Loader2, Plus, X, Check } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { AdminBadge } from "@/components/AdminBadge";
+import { useTheme } from "@/hooks/use-theme";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { type Location } from "@shared/schema";
+import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 
-interface UserProfile {
-  id: number;
-  email: string;
-  displayName: string;
-  bio?: string;
-  featuredImageUrl?: string;
-  companyName?: string;
-  companyDescription?: string;
-  address?: string | Location;
-  phoneNumber?: string;
-  isPhonePublic?: boolean;
-  isEmailPublic?: boolean;
-  ctaText?: string;
-  customLinks?: Array<{ title: string; url: string }>;
-  tags?: string[];
-  isAdmin?: boolean;
-}
-
 export default function UserSettingsPage() {
-  const { user: authUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch fresh user data from the server
-  const { data: user, isLoading, error: queryError } = useQuery<UserProfile>({
-    queryKey: ['/api/auth/profile'],
-    enabled: !!authUser, // Only fetch if user is authenticated
-    staleTime: 0, // Always fetch fresh data
-    onError: (error) => {
-      console.error('Error fetching user profile:', error);
-      setError('Failed to load user profile');
-    }
-  });
-
-  // Form state
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [featuredImageUrl, setFeaturedImageUrl] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [companyDescription, setCompanyDescription] = useState("");
-  const [address, setAddress] = useState<Location | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [isPhonePublic, setIsPhonePublic] = useState(false);
-  const [isEmailPublic, setIsEmailPublic] = useState(false);
-  const [ctaText, setCtaText] = useState("");
-  const [customLinks, setCustomLinks] = useState<Array<{ title: string; url: string }>>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const { theme, setTheme } = useTheme();
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [bio, setBio] = useState(user?.bio || "");
+  const [featuredImageUrl, setFeaturedImageUrl] = useState(user?.featuredImageUrl || "");
+  const [companyName, setCompanyName] = useState(user?.companyName || "");
+  const [companyDescription, setCompanyDescription] = useState(user?.companyDescription || "");
+  const [address, setAddress] = useState<Location | null>(user?.address as Location | null);
+  const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || "");
+  const [isPhonePublic, setIsPhonePublic] = useState(user?.isPhonePublic || false);
+  const [isEmailPublic, setIsEmailPublic] = useState(user?.isEmailPublic || false);
+  const [ctaText, setCtaText] = useState(user?.ctaText || "");
+  const [customLinks, setCustomLinks] = useState(user?.customLinks || []);
+  const [tags, setTags] = useState<string[]>(user?.tags || []);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
   useEffect(() => {
+    // Initialize Google Maps when component mounts
     initGoogleMaps();
   }, []);
 
-  // Update form state when user data is loaded
-  useEffect(() => {
-    try {
-      if (user) {
-        console.log('Raw user data from query:', user);
-
-        // Parse address if it's a string
-        let parsedAddress: Location | null = null;
-        try {
-          if (user.address) {
-            parsedAddress = typeof user.address === 'string' 
-              ? JSON.parse(user.address) 
-              : user.address;
-            console.log('Parsed address:', parsedAddress);
-          }
-        } catch (e) {
-          console.error('Error parsing address:', e);
-        }
-
-        // Set form values from user data
-        setDisplayName(user.displayName ?? "");
-        setBio(user.bio ?? "");
-        setFeaturedImageUrl(user.featuredImageUrl ?? "");
-        setCompanyName(user.companyName ?? "");
-        setCompanyDescription(user.companyDescription ?? "");
-        setAddress(parsedAddress);
-        setPhoneNumber(user.phoneNumber ?? "");
-        setIsPhonePublic(user.isPhonePublic ?? false);
-        setIsEmailPublic(user.isEmailPublic ?? false);
-        setCtaText(user.ctaText ?? "");
-        setCustomLinks(Array.isArray(user.customLinks) ? user.customLinks : []);
-        setTags(Array.isArray(user.tags) ? user.tags : []);
-
-        // Log state updates
-        console.log('State updated with user data:', {
-          displayName: user.displayName ?? "",
-          bio: user.bio ?? "",
-          featuredImageUrl: user.featuredImageUrl ?? "",
-          companyName: user.companyName ?? "",
-          companyDescription: user.companyDescription ?? "",
-          address: parsedAddress,
-          phoneNumber: user.phoneNumber ?? "",
-          isPhonePublic: user.isPhonePublic ?? false,
-          isEmailPublic: user.isEmailPublic ?? false,
-          ctaText: user.ctaText ?? "",
-          customLinks: Array.isArray(user.customLinks) ? user.customLinks : [],
-          tags: Array.isArray(user.tags) ? user.tags : []
-        });
-      }
-    } catch (error) {
-      console.error('Error updating form state:', error);
-      setError('Failed to update form with user data');
-    }
-  }, [user]);
+  const isAdmin = Boolean(user?.isAdmin);
 
   const updateProfileMutation = useMutation({
-    mutationFn: async (data: Partial<UserProfile>) => {
-      console.log('Submitting profile update:', data);
-      try {
-        const response = await fetch("/api/auth/update-profile", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...data,
-            // Ensure address is stringified before sending
-            address: data.address ? JSON.stringify(data.address) : null
-          }),
-        });
+    mutationFn: async (data: UpdateUserProfile) => {
+      const response = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || "Failed to update profile");
-        }
-
-        return response.json();
-      } catch (error) {
-        console.error('Mutation error:', error);
-        throw error;
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update profile");
       }
+
+      return response.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/profile'] });
+      updateUser(data);
+      queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
         description: "Profile updated successfully",
       });
     },
     onError: (error: Error) => {
-      console.error('Profile update error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -169,11 +80,44 @@ export default function UserSettingsPage() {
     },
   });
 
+  const handleAddCustomLink = () => {
+    if (customLinks.length >= 5) {
+      toast({
+        title: "Error",
+        description: "Maximum 5 custom links allowed",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCustomLinks([...customLinks, { title: "", url: "" }]);
+  };
+
+  const handleRemoveCustomLink = (index: number) => {
+    setCustomLinks(customLinks.filter((_, i) => i !== index));
+  };
+
+  const updateCustomLink = (index: number, field: 'title' | 'url', value: string) => {
+    const newLinks = [...customLinks];
+    newLinks[index] = { ...newLinks[index], [field]: value };
+    setCustomLinks(newLinks);
+  };
+
+  const handleSelectTag = (tag: string) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    if (!tags.includes(normalizedTag) && tags.length < 5) {
+      setTags([...tags, normalizedTag]);
+    }
+    setCurrentTag("");
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     try {
-      const formData = {
+      await updateProfileMutation.mutateAsync({
         displayName,
         bio,
         featuredImageUrl,
@@ -186,39 +130,11 @@ export default function UserSettingsPage() {
         ctaText,
         customLinks,
         tags,
-      };
-
-      console.log('Form submission data:', formData);
-
-      await updateProfileMutation.mutateAsync(formData);
+      });
     } catch (error) {
       console.error("Failed to update profile:", error);
-      setError('Failed to update profile');
     }
   };
-
-  if (isLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  if (error || queryError) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <div className="text-center space-y-4">
-            <p className="text-destructive">Error: {error || 'Failed to load profile'}</p>
-            <Button onClick={() => window.location.reload()}>Retry</Button>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   if (!user) return null;
 
@@ -233,19 +149,12 @@ export default function UserSettingsPage() {
                 Update your profile information
               </CardDescription>
             </div>
-            {Boolean(user?.isAdmin) && <AdminBadge />}
+            {isAdmin && <AdminBadge />}
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Basic Information */}
               <div className="space-y-4">
-                {/* Read-only email field */}
-                <div className="space-y-2">
-                  <Label>Email Address</Label>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
-                  <p className="text-xs text-muted-foreground">Email cannot be changed as it's linked to your account</p>
-                </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Display Name</Label>
                   <Input
@@ -339,7 +248,7 @@ export default function UserSettingsPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
                     <Label>Email Visibility</Label>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
                   </div>
                   <div className="space-y-2">
                     <Switch
@@ -351,25 +260,22 @@ export default function UserSettingsPage() {
                 </div>
               </div>
 
-              {/* Tags Section */}
+              {/* Tags */}
               <div className="space-y-4 pt-4 border-t">
                 <h3 className="text-lg font-medium">Tags</h3>
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2 mb-2">
                     {tags.map(tag => (
-                      <div
-                        key={tag}
-                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium bg-secondary rounded-full"
-                      >
+                      <Badge key={tag} variant="secondary" className="gap-1">
                         {tag}
                         <button
                           type="button"
-                          onClick={() => setTags(tags.filter(t => t !== tag))}
+                          onClick={() => handleRemoveTag(tag)}
                           className="ml-1 hover:text-destructive"
                         >
                           <X className="h-3 w-3" />
                         </button>
-                      </div>
+                      </Badge>
                     ))}
                   </div>
                   <Command className="rounded-lg border">
@@ -380,10 +286,7 @@ export default function UserSettingsPage() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && currentTag.trim()) {
                           e.preventDefault();
-                          if (!tags.includes(currentTag.toLowerCase())) {
-                            setTags([...tags, currentTag.toLowerCase()]);
-                            setCurrentTag("");
-                          }
+                          handleSelectTag(currentTag);
                         }
                       }}
                       className="border-0"
@@ -400,7 +303,7 @@ export default function UserSettingsPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setCustomLinks([...customLinks, { title: "", url: "" }])}
+                    onClick={handleAddCustomLink}
                     disabled={customLinks.length >= 5}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -414,28 +317,20 @@ export default function UserSettingsPage() {
                         <Input
                           placeholder="Link Title"
                           value={link.title}
-                          onChange={(e) => {
-                            const newLinks = [...customLinks];
-                            newLinks[index] = { ...link, title: e.target.value };
-                            setCustomLinks(newLinks);
-                          }}
+                          onChange={(e) => updateCustomLink(index, 'title', e.target.value)}
                         />
                         <Input
                           placeholder="URL"
                           type="url"
                           value={link.url}
-                          onChange={(e) => {
-                            const newLinks = [...customLinks];
-                            newLinks[index] = { ...link, url: e.target.value };
-                            setCustomLinks(newLinks);
-                          }}
+                          onChange={(e) => updateCustomLink(index, 'url', e.target.value)}
                         />
                       </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => setCustomLinks(customLinks.filter((_, i) => i !== index))}
+                        onClick={() => handleRemoveCustomLink(index)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -444,8 +339,26 @@ export default function UserSettingsPage() {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
+              {/* Theme Selection */}
+              <div className="space-y-4 pt-4 border-t">
+                <h3 className="text-lg font-medium">Appearance</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="theme">Theme</Label>
+                  <Select value={theme} onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a theme" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">Light</SelectItem>
+                      <SelectItem value="dark">Dark</SelectItem>
+                      <SelectItem value="system">System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
                 className="w-full mt-6"
                 disabled={updateProfileMutation.isPending}
               >
