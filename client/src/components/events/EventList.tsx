@@ -11,6 +11,7 @@ import { PublicEventPreview } from "./PublicEventPreview";
 import { useState } from "react";
 import { Event } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface EventsResponse {
   events: Event[];
@@ -49,7 +50,6 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
     enabled: !!user
   });
 
-  // Add query for attendees
   const { data: attendeesData, isLoading: isAttendeesLoading } = useQuery({
     queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
@@ -149,13 +149,27 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
             </div>
 
             <div className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
               {isAttendeesLoading ? (
-                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20" />
               ) : (
-                <Badge variant="secondary" className="text-xs">
-                  {attendeesData?.total || 0} attending
-                </Badge>
+                <div className="flex items-center gap-1">
+                  <div className="flex -space-x-2">
+                    {attendeesData?.attendees?.slice(0, 3).map((person) => (
+                      <Avatar key={person.id} className="h-5 w-5 border-2 border-background">
+                        {person.avatarUrl ? (
+                          <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                        ) : (
+                          <AvatarFallback className="text-[10px]">
+                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                    ))}
+                  </div>
+                  <span className="text-xs ml-1">
+                    {attendeesData?.total || 0} attending
+                  </span>
+                </div>
               )}
             </div>
 
@@ -181,8 +195,8 @@ export default function EventList() {
       }
       return response.json();
     },
-    staleTime: 30000, // Cache for 30 seconds before considering stale
-    refetchOnWindowFocus: true // Refetch when window regains focus
+    staleTime: 30000, 
+    refetchOnWindowFocus: true 
   });
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
