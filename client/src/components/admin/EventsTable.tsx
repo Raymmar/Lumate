@@ -403,6 +403,10 @@ export function EventsTable() {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
+  const handleNavigate = (event: EventWithSync) => {
+    setSelectedEvent(event);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -464,6 +468,8 @@ export function EventsTable() {
         {selectedEvent && (
           <EventPreview
             event={selectedEvent}
+            events={events}
+            onNavigate={handleNavigate}
             onSync={handleStartSync}
             onStartSync={handleStartSync}
           />

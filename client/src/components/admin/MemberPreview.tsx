@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,9 +22,11 @@ import { RelatedPeople } from "./RelatedPeople";
 
 interface MemberPreviewProps {
   member: User & { roles?: Role[]; person?: Person | null };
+  members?: (User & { roles?: Role[]; person?: Person | null })[];
+  onNavigate?: (member: User & { roles?: Role[]; person?: Person | null }) => void;
 }
 
-export function MemberPreview({ member }: MemberPreviewProps) {
+export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const initials =
@@ -31,6 +35,11 @@ export function MemberPreview({ member }: MemberPreviewProps) {
       .map((n) => n[0])
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
+
+  // Find current member index and determine if we have prev/next
+  const currentIndex = members.findIndex(m => m.id === member.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < members.length - 1;
 
   const handleAdminToggle = async (checked: boolean) => {
     try {
@@ -80,6 +89,12 @@ export function MemberPreview({ member }: MemberPreviewProps) {
         description: "Failed to update user roles",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleNavigate = (nextMember: User & { roles?: Role[]; person?: Person | null }) => {
+    if (onNavigate) {
+      onNavigate(nextMember);
     }
   };
 
@@ -155,6 +170,30 @@ export function MemberPreview({ member }: MemberPreviewProps) {
           <RelatedPeople person={member.person} />
         </CardContent>
       </Card>
+
+      {/* Navigation Section - Fixed to bottom */}
+      {members.length > 1 && onNavigate && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
+          <div className="flex justify-between items-center">
+            <Button
+              variant="ghost"
+              disabled={!hasPrevious}
+              onClick={() => handleNavigate(members[currentIndex - 1])}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!hasNext}
+              onClick={() => handleNavigate(members[currentIndex + 1])}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

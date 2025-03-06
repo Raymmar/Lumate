@@ -7,18 +7,31 @@ import {
   CardHeader,
   CardContent
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { LinkedUser } from "./LinkedUser";
 
 interface PersonPreviewProps {
   person: Person;
+  people?: Person[];
+  onNavigate?: (person: Person) => void;
 }
 
-export function PersonPreview({ person }: PersonPreviewProps) {
+export function PersonPreview({ person, people = [], onNavigate }: PersonPreviewProps) {
   const { toast } = useToast();
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
 
-  console.log('PersonPreview - Received person data:', person); // Debug log
+  // Find current person index and determine if we have prev/next
+  const currentIndex = people.findIndex(p => p.id === person.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < people.length - 1;
+
+  const handleNavigate = (nextPerson: Person) => {
+    if (onNavigate) {
+      onNavigate(nextPerson);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -105,6 +118,30 @@ export function PersonPreview({ person }: PersonPreviewProps) {
           <LinkedUser user={person.user} />
         </CardContent>
       </Card>
+
+      {/* Navigation Section - Fixed to bottom */}
+      {people.length > 1 && onNavigate && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
+          <div className="flex justify-between items-center">
+            <Button
+              variant="ghost"
+              disabled={!hasPrevious}
+              onClick={() => handleNavigate(people[currentIndex - 1])}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!hasNext}
+              onClick={() => handleNavigate(people[currentIndex + 1])}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

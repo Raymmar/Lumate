@@ -23,7 +23,7 @@ export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300); // Reduced debounce time
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching } = useQuery({
@@ -36,8 +36,6 @@ export function PeopleTable() {
       const data = await response.json();
       return data as PeopleResponse;
     },
-    keepPreviousData: true,
-    staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 
@@ -78,6 +76,10 @@ export function PeopleTable() {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+  };
+
+  const handleNavigate = (person: Person) => {
+    setSelectedPerson(person);
   };
 
   return (
@@ -138,7 +140,11 @@ export function PeopleTable() {
         onOpenChange={() => setSelectedPerson(null)}
       >
         {selectedPerson && (
-          <PersonPreview person={selectedPerson} />
+          <PersonPreview 
+            person={selectedPerson}
+            people={people}
+            onNavigate={handleNavigate}
+          />
         )}
       </PreviewSidebar>
     </div>

@@ -93,6 +93,10 @@ export function MembersTable() {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
+  const handleNavigate = (member: User & { person?: Person | null }) => {
+    setSelectedMember(member);
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -148,7 +152,13 @@ export function MembersTable() {
       </div>
 
       <PreviewSidebar open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
-        {selectedMember && <MemberPreview member={selectedMember} />}
+        {selectedMember && (
+          <MemberPreview 
+            member={selectedMember} 
+            members={users}
+            onNavigate={handleNavigate}
+          />
+        )}
       </PreviewSidebar>
     </div>
   );

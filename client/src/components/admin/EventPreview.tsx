@@ -1,6 +1,6 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, RefreshCw } from "lucide-react";
+import { Calendar, MapPin, Users, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -17,11 +17,21 @@ interface EventPreviewProps {
     lastSyncedAt?: string | null;
     lastAttendanceSync?: string | null;
   };
+  events?: (Event & { 
+    isSynced?: boolean; 
+    lastSyncedAt?: string | null;
+    lastAttendanceSync?: string | null;
+  })[];
   onSync?: (eventId: string) => void;
   onStartSync?: (eventId: string) => void;
+  onNavigate?: (event: Event & { 
+    isSynced?: boolean; 
+    lastSyncedAt?: string | null;
+    lastAttendanceSync?: string | null;
+  }) => void;
 }
 
-export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) {
+export function EventPreview({ event, events = [], onSync, onStartSync, onNavigate }: EventPreviewProps) {
   const { toast } = useToast();
   const [isSyncing, setIsSyncing] = useState(false);
   const [localSyncStatus, setLocalSyncStatus] = useState({
@@ -174,6 +184,21 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
   const hasSyncedAttendees = attendees.length > 0;
   const syncStatus = localSyncStatus.isSynced || hasSyncedAttendees;
   const lastSyncTime = localSyncStatus.lastSyncedAt || event.lastAttendanceSync;
+
+  // Find current event index and determine if we have prev/next
+  const currentIndex = events.findIndex(e => e.id === event.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < events.length - 1;
+
+  const handleNavigate = (nextEvent: Event & { 
+    isSynced?: boolean; 
+    lastSyncedAt?: string | null;
+    lastAttendanceSync?: string | null;
+  }) => {
+    if (onNavigate) {
+      onNavigate(nextEvent);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto">
@@ -337,6 +362,30 @@ export function EventPreview({ event, onSync, onStartSync }: EventPreviewProps) 
           </CardContent>
         </Card>
       </div>
+
+      {/* Add Navigation Section - Fixed to bottom */}
+      {events.length > 1 && onNavigate && (
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
+          <div className="flex justify-between items-center">
+            <Button
+              variant="ghost"
+              disabled={!hasPrevious}
+              onClick={() => handleNavigate(events[currentIndex - 1])}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!hasNext}
+              onClick={() => handleNavigate(events[currentIndex + 1])}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
