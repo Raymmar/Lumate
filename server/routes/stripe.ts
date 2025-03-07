@@ -38,19 +38,14 @@ router.post('/create-checkout-session', async (req, res) => {
     }
 
     if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          userId: user.id.toString(),
-        },
-      });
+      const customer = await StripeService.createCustomer(user.email, user.id);
       await storage.setStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
     }
 
-    // Always use the production URL in deployment
+    // Always use the production URL
     const baseUrl = 'https://lumate.replit.app';
-    console.log('Using base URL for checkout:', baseUrl);
+    console.log('Using base URL:', baseUrl);
 
     const session = await stripe.checkout.sessions.create({
       customer: user.stripeCustomerId,
@@ -200,8 +195,21 @@ router.get('/session-status', async (req, res) => {
 
     console.log('📦 Retrieving session:', sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription']
+      expand: ['subscription', 'payment_intent']
     });
+
+    console.log('Session data:', {
+      id: session.id,
+      paymentStatus: session.payment_status,
+      status: session.status,
+      hasSubscription: !!session.subscription,
+      customerId: session.customer
+    });
+
+    if (session.payment_status !== 'paid') {
+      console.warn('⚠️ Payment not completed:', session.payment_status);
+      return res.json({ status: 'pending' });
+    }
 
     if (!session.subscription) {
       console.warn('⚠️ No subscription found in session');
@@ -209,7 +217,7 @@ router.get('/session-status', async (req, res) => {
     }
 
     const subscription = session.subscription as Stripe.Subscription;
-    const customerId = subscription.customer as string;
+    const customerId = session.customer as string;
 
     // Update user subscription status
     const user = await storage.getUserByStripeCustomerId(customerId);
