@@ -105,53 +105,17 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  // Check if the current user has an active subscription
-  const { data: subscriptionStatus } = useQuery({
-    queryKey: ['/api/subscription/status'],
+  // Instead of checking current user's subscription, check the viewed person's subscription
+  const { data: profileSubscriptionStatus } = useQuery({
+    queryKey: ['/api/subscription/status', personId],
     queryFn: async () => {
-      const response = await fetch('/api/subscription/status');
+      const response = await fetch(`/api/subscription/status/${personId}`);
       if (!response.ok) throw new Error('Failed to fetch subscription status');
       return response.json();
     },
-    enabled: !!user,
   });
 
-  const hasActiveSubscription = subscriptionStatus?.status === 'active';
-
-  const startSubscription = async () => {
-    try {
-      console.log('Starting subscription process...');
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({}) // No need to send priceId, using environment variable on backend
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Subscription creation failed:', error);
-        throw new Error(error.message || 'Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      if (!url) {
-        throw new Error('No checkout URL received');
-      }
-
-      console.log('Redirecting to Stripe checkout:', url);
-      window.location.href = url;
-    } catch (error) {
-      console.error('Subscription error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start subscription process. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  const hasActiveSubscription = profileSubscriptionStatus?.status === 'active';
 
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
@@ -265,28 +229,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Protected content section */}
-        {user ? (
-          hasActiveSubscription ? (
-            <AuthGuard>
-              <MemberDetails user={person?.user} />
-            </AuthGuard>
-          ) : (
-            <Card>
-              <CardContent className="py-8">
-                <div className="text-center space-y-4">
-                  <h3 className="text-lg font-semibold">Premium Content</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Subscribe to access detailed member information and connect with professionals.
-                  </p>
-                  <Button onClick={startSubscription}>
-                    Subscribe Now
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        ) : (
+        {/* Show Member Details if the person has an active subscription */}
+        {hasActiveSubscription && (
           <AuthGuard>
             <MemberDetails user={person?.user} />
           </AuthGuard>
