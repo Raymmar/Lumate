@@ -6,7 +6,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
+  apiVersion: '2025-02-24.acacia'
 });
 
 export class StripeService {
@@ -70,10 +70,9 @@ export class StripeService {
     try {
       console.log('Creating checkout session with:', { customerId, userId });
 
-      // Use environment variables with fallbacks for success/cancel URLs
-      const baseUrl = process.env.APP_URL || process.env.REPL_SLUG 
-        ? `https://${process.env.REPL_SLUG}.repl.co` 
-        : 'http://localhost:3000';
+      // Get the base URL from environment variables
+      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 
+                     (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : 'http://localhost:3000');
 
       console.log('Creating session with base URL:', baseUrl);
 
@@ -81,7 +80,7 @@ export class StripeService {
         customer: customerId,
         line_items: [
           {
-            price: 'price_1Qs63DCM3nBpAbtwkRVcXEmS', // Use the exact price ID
+            price: priceId,
             quantity: 1,
           },
         ],

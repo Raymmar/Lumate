@@ -8,15 +8,11 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Raw body handling for Stripe webhooks
-app.use((req, res, next) => {
-  if (req.path === '/api/stripe/webhook') {
-    express.raw({ type: 'application/json' })(req, res, next);
-  } else {
-    express.json()(req, res, next);
-  }
-});
+// Raw body handling for Stripe webhooks must come before JSON middleware
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
+// Regular JSON parsing for all other routes
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session handling
