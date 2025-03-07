@@ -20,9 +20,7 @@ export class StripeService {
         },
       });
 
-      // Update user with Stripe customer ID
-      await storage.setStripeCustomerId(userId, customer.id);
-
+      console.log('Successfully created Stripe customer:', customer.id);
       return customer;
     } catch (error) {
       console.error('Error creating Stripe customer:', error);
@@ -68,21 +66,16 @@ export class StripeService {
 
   static async createCheckoutSession(customerId: string, priceId: string, userId: number, couponId?: string) {
     try {
+      if (!customerId || customerId === 'NULL') {
+        throw new Error('Invalid customer ID');
+      }
+
       console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });
 
-      // Get the base URL with production URL as default
-      const isProd = process.env.NODE_ENV === 'production';
-      const baseUrl = isProd 
+      const baseUrl = process.env.NODE_ENV === 'production'
         ? 'https://lumate.replit.app'
         : (process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000');
 
-      console.log('Using base URL for Stripe redirects:', baseUrl);
-
-      if (!priceId || !priceId.startsWith('price_')) {
-        throw new Error(`Invalid price ID format: ${priceId}. Price ID should start with 'price_'`);
-      }
-
-      // Create session configuration
       const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         line_items: [
@@ -97,11 +90,9 @@ export class StripeService {
         metadata: {
           userId: userId.toString(),
         },
-        // Enable promotion code input field
         allow_promotion_codes: true,
       };
 
-      // Add coupon if provided programmatically
       if (couponId) {
         sessionConfig.discounts = [{
           coupon: couponId,
@@ -112,10 +103,7 @@ export class StripeService {
 
       console.log('Successfully created checkout session:', {
         sessionId: session.id,
-        url: session.url,
-        successUrl: session.success_url,
-        cancelUrl: session.cancel_url,
-        hasCoupon: !!couponId
+        url: session.url
       });
 
       return session;

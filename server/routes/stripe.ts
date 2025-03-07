@@ -27,19 +27,27 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Create Stripe customer if not exists
-    if (!user.stripeCustomerId) {
+    // Create Stripe customer if not exists or if it's NULL
+    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
+      console.log('Creating new Stripe customer for user:', user.email);
       const customer = await StripeService.createCustomer(user.email, user.id);
       await storage.setStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
+      console.log('Created new Stripe customer:', customer.id);
     }
 
+    console.log('Creating checkout session with customer:', user.stripeCustomerId);
     const session = await StripeService.createCheckoutSession(
       user.stripeCustomerId,
       process.env.STRIPE_PRICE_ID,
       user.id,
       couponId
     );
+
+    console.log('Checkout session created:', {
+      sessionId: session.id,
+      url: session.url
+    });
 
     res.json({ url: session.url });
   } catch (error: any) {
