@@ -181,6 +181,8 @@ router.post('/webhook', async (req: Request, res) => {
         }
         break;
       }
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
 
     console.log('✅ Webhook processed successfully');
@@ -192,6 +194,15 @@ router.post('/webhook', async (req: Request, res) => {
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+});
+
+// Simple test endpoint for webhook verification
+router.post('/webhook-test', async (req, res) => {
+  console.log('🔔 Test webhook received:', {
+    headers: req.headers,
+    body: req.body
+  });
+  res.json({ received: true });
 });
 
 // Status check endpoint

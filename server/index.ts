@@ -8,15 +8,8 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Raw body handling for Stripe webhooks must come first
-app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), (req, res, next) => {
-  console.log('🔔 Webhook Request Details:', {
-    contentType: req.headers['content-type'],
-    hasSignature: !!req.headers['stripe-signature'],
-    bodyLength: req.body?.length || 0
-  });
-  next();
-});
+// Mount API routes - Stripe routes first to ensure webhook handling
+app.use('/api/stripe', stripeRoutes);
 
 // Regular body parsing for everything else
 app.use(express.json());
@@ -51,8 +44,7 @@ app.use(session({
   const { ensureTablesExist } = await import('./db');
   await ensureTablesExist();
 
-  // Mount API routes - Stripe routes first to ensure webhook handling
-  app.use('/api/stripe', stripeRoutes);
+  // Mount remaining API routes
   app.use('/api/unsplash', unsplashRoutes);
   await registerRoutes(app);
 
