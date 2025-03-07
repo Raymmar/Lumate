@@ -70,9 +70,11 @@ export class StripeService {
     try {
       console.log('Creating checkout session with:', { customerId, priceId, userId });
 
-      // Get the base URL from environment variables
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 
-                     (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : 'http://localhost:3000');
+      // Get the base URL with production URL as default
+      const isProd = process.env.NODE_ENV === 'production';
+      const baseUrl = isProd 
+        ? 'https://lumate.replit.app'
+        : (process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000');
 
       console.log('Using base URL for Stripe redirects:', baseUrl);
 
