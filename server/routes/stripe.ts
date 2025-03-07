@@ -51,22 +51,39 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Configure webhook raw body handling
+// Configure webhook raw body handling - must be before any other middleware
 router.use('/webhook', express.raw({ type: 'application/json' }));
 
 // Enhanced webhook handler with detailed logging
 router.post('/webhook', async (req: Request, res) => {
-  const sig = req.headers['stripe-signature'];
-  console.log('🔔 Webhook received:', {
-    type: req.headers['content-type'],
-    signature: !!sig,
-    bodyLength: req.body?.length || 0
+  console.log('🔔 Incoming webhook request:', {
+    method: req.method,
+    path: req.path,
+    contentType: req.headers['content-type'],
+    contentLength: req.headers['content-length'],
+    stripeSignatureHeader: req.headers['stripe-signature']?.substring(0, 10) + '...' // Log partial signature for debugging
   });
+
+  const sig = req.headers['stripe-signature'];
 
   try {
     if (!sig) {
-      throw new Error('No Stripe signature found');
+      console.error('❌ No Stripe signature in request headers');
+      return res.status(400).json({ error: 'No Stripe signature found' });
     }
+
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('❌ No webhook secret configured');
+      return res.status(500).json({ error: 'Webhook secret not configured' });
+    }
+
+    // Log request body characteristics without exposing sensitive data
+    console.log('📦 Request body info:', {
+      type: typeof req.body,
+      isBuffer: Buffer.isBuffer(req.body),
+      length: req.body?.length,
+      hasContent: !!req.body
+    });
 
     // Verify webhook signature
     let event: Stripe.Event;
@@ -74,8 +91,9 @@ router.post('/webhook', async (req: Request, res) => {
       event = stripe.webhooks.constructEvent(
         req.body,
         sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
+        process.env.STRIPE_WEBHOOK_SECRET
       );
+      console.log('✅ Webhook signature verified for event:', event.type);
     } catch (err) {
       console.error('⚠️ Webhook signature verification failed:', err);
       return res.status(400).json({ error: 'Webhook signature verification failed' });
@@ -174,9 +192,10 @@ router.post('/webhook', async (req: Request, res) => {
       }
     }
 
+    console.log('✅ Webhook processed successfully');
     res.json({ received: true });
   } catch (error) {
-    console.error('❌ Webhook error:', error);
+    console.error('❌ Webhook processing error:', error);
     return res.status(400).json({
       error: 'Webhook error',
       details: error instanceof Error ? error.message : 'Unknown error'
