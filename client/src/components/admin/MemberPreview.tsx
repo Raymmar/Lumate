@@ -99,82 +99,85 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center space-x-4">
-        <Avatar className="h-16 w-16">
-          <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-        </Avatar>
-        <div>
-          <h2 className="text-2xl font-bold">
-            {member.displayName || "No display name"}
-          </h2>
-          <p className="text-sm text-muted-foreground">{member.email}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Badge variant={member.isVerified ? "default" : "secondary"}>
-          {member.isVerified ? "Verified" : "Pending"}
-        </Badge>
-        {member.isAdmin && <Badge variant="default">Admin</Badge>}
-        {roles.map((role) => (
-          <Badge key={role.id} variant="outline">
-            {role.name}
-          </Badge>
-        ))}
-      </div>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="font-medium">Member Information</h3>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex justify-between py-1">
-            <span className="text-muted-foreground">Member since</span>
-            <span>{format(new Date(member.createdAt), "PPP")}</span>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto space-y-6 pb-16">
+        <div className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+            </Avatar>
+            <div>
+              <h2 className="text-2xl font-bold">
+                {member.displayName || "No display name"}
+              </h2>
+              <p className="text-sm text-muted-foreground">{member.email}</p>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            <Switch
-              id="admin-mode"
-              checked={member.isAdmin}
-              onCheckedChange={handleAdminToggle}
-            />
-            <Label htmlFor="admin-mode">Admin privileges</Label>
+            <Badge variant={member.isVerified ? "default" : "secondary"}>
+              {member.isVerified ? "Verified" : "Pending"}
+            </Badge>
+            {member.isAdmin && <Badge variant="default">Admin</Badge>}
+            {roles.map((role) => (
+              <Badge key={role.id} variant="outline">
+                {role.name}
+              </Badge>
+            ))}
           </div>
 
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select
-              onValueChange={handleRoleChange}
-              defaultValue={roles[0]?.name || "User"}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="User">User</SelectItem>
-                <SelectItem value="Moderator">Moderator</SelectItem>
-                <SelectItem value="Sponsor">Sponsor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader className="pb-3">
+              <h3 className="font-medium">Member Information</h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">Member since</span>
+                <span>{format(new Date(member.createdAt), "PPP")}</span>
+              </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <h3 className="font-medium">Linked Luma Profile</h3>
-        </CardHeader>
-        <CardContent>
-          <RelatedPeople person={member.person} />
-        </CardContent>
-      </Card>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="admin-mode"
+                  checked={member.isAdmin}
+                  onCheckedChange={handleAdminToggle}
+                />
+                <Label htmlFor="admin-mode">Admin privileges</Label>
+              </div>
 
-      {/* Navigation Section - Fixed to bottom */}
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select
+                  onValueChange={handleRoleChange}
+                  defaultValue={roles[0]?.name || "User"}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="User">User</SelectItem>
+                    <SelectItem value="Moderator">Moderator</SelectItem>
+                    <SelectItem value="Sponsor">Sponsor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <h3 className="font-medium">Linked Luma Profile</h3>
+            </CardHeader>
+            <CardContent>
+              <RelatedPeople person={member.person} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {members.length > 1 && onNavigate && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
-          <div className="flex justify-between items-center max-w-[400px] mx-auto">
+        <div className="border-t bg-background py-4">
+          <div className="flex justify-between items-center px-4">
             <Button
               variant="ghost"
               disabled={!hasPrevious}

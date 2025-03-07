@@ -126,13 +126,11 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
 
   const handleClearAttendance = async () => {
     try {
-      // Optimistically update local state
       setLocalSyncStatus({
         isSynced: false,
         lastSyncedAt: null
       });
 
-      // Optimistically update the attendees list
       queryClient.setQueryData([`/api/admin/events/${event.api_id}/attendees`],
         () => ({ attendees: [], total: 0 })
       );
@@ -145,7 +143,6 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
         throw new Error('Failed to clear attendance');
       }
 
-      // Invalidate all relevant queries to ensure data consistency
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] }),
         queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}`] }),
@@ -168,13 +165,11 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
         variant: "destructive",
       });
 
-      // Revert optimistic updates on error
       setLocalSyncStatus({
         isSynced: !!event.lastAttendanceSync,
         lastSyncedAt: event.lastAttendanceSync
       });
 
-      // Revert the attendees list
       await queryClient.invalidateQueries({ 
         queryKey: [`/api/admin/events/${event.api_id}/attendees`] 
       });
@@ -185,7 +180,6 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
   const syncStatus = localSyncStatus.isSynced || hasSyncedAttendees;
   const lastSyncTime = localSyncStatus.lastSyncedAt || event.lastAttendanceSync;
 
-  // Find current event index and determine if we have prev/next
   const currentIndex = events.findIndex(e => e.id === event.id);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < events.length - 1;
@@ -201,172 +195,173 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
   };
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
-      {event.coverUrl && (
-        <div className="relative w-full aspect-video mb-4">
-          <img
-            src={event.coverUrl}
-            alt={event.title}
-            className="w-full h-full object-cover rounded-lg"
-          />
-          <div className="absolute bottom-4 left-4 flex gap-2">
-            {event.url && (
-              <Button 
-                variant="default" 
-                className="bg-black hover:bg-black/90 text-white"
-                onClick={() => event.url && window.open(event.url, '_blank')}
-              >
-                Manage event
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
-          {event.description && (
-            <p className="text-muted-foreground line-clamp-2 mb-4">{event.description}</p>
-          )}
-
-          <div className="space-y-2">
-            <Button
-              variant="default"
-              className="w-full bg-black hover:bg-black/90 text-white"
-              onClick={handleSyncAttendees}
-              disabled={isSyncing}
-            >
-              {isSyncing ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Syncing Attendees...
-                </>
-              ) : syncStatus ? (
-                "Re-sync Attendees"
-              ) : (
-                "Sync Attendees"
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto space-y-6 pb-16">
+        {event.coverUrl && (
+          <div className="relative w-full aspect-video mb-4">
+            <img
+              src={event.coverUrl}
+              alt={event.title}
+              className="w-full h-full object-cover rounded-lg"
+            />
+            <div className="absolute bottom-4 left-4 flex gap-2">
+              {event.url && (
+                <Button 
+                  variant="default" 
+                  className="bg-black hover:bg-black/90 text-white"
+                  onClick={() => event.url && window.open(event.url, '_blank')}
+                >
+                  Manage event
+                </Button>
               )}
-            </Button>
-
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleClearAttendance}
-              disabled={isSyncing || !hasSyncedAttendees}
-            >
-              Clear Attendance
-            </Button>
-
-            <div className="flex items-center justify-center">
-              <Badge variant={syncStatus ? "outline" : "secondary"}>
-                {syncStatus ? (
-                  <>
-                    Synced
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      ({formatLastSyncTime(lastSyncTime)})
-                    </span>
-                  </>
-                ) : (
-                  "Not synced"
-                )}
-              </Badge>
             </div>
           </div>
-        </div>
+        )}
 
-        <Card>
-          <CardContent className="p-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
-              <div>
-                <p className="font-medium">
-                  {formatInTimeZone(
-                    new Date(event.startTime + 'Z'),
-                    event.timezone || 'America/New_York',
-                    'EEEE, MMMM d, yyyy'
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
+            {event.description && (
+              <p className="text-muted-foreground line-clamp-2 mb-4">{event.description}</p>
+            )}
+
+            <div className="space-y-2">
+              <Button
+                variant="default"
+                className="w-full bg-black hover:bg-black/90 text-white"
+                onClick={handleSyncAttendees}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing Attendees...
+                  </>
+                ) : syncStatus ? (
+                  "Re-sync Attendees"
+                ) : (
+                  "Sync Attendees"
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleClearAttendance}
+                disabled={isSyncing || !hasSyncedAttendees}
+              >
+                Clear Attendance
+              </Button>
+
+              <div className="flex items-center justify-center">
+                <Badge variant={syncStatus ? "outline" : "secondary"}>
+                  {syncStatus ? (
+                    <>
+                      Synced
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ({formatLastSyncTime(lastSyncTime)})
+                      </span>
+                    </>
+                  ) : (
+                    "Not synced"
                   )}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
-                  {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
-                  {event.timezone && ` (${event.timezone})`}
-                </p>
+                </Badge>
               </div>
             </div>
+          </div>
 
-            {event.location && (
+          <Card>
+            <CardContent className="p-6 space-y-4">
               <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
                 <div>
-                  {event.location.full_address && (
-                    <p className="font-medium">{event.location.full_address}</p>
-                  )}
-                  {event.location.city && (
-                    <p className="text-sm text-muted-foreground">
-                      {[
-                        event.location.city,
-                        event.location.region,
-                        event.location.country,
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </p>
-                  )}
+                  <p className="font-medium">
+                    {formatInTimeZone(
+                      new Date(event.startTime + 'Z'),
+                      event.timezone || 'America/New_York',
+                      'EEEE, MMMM d, yyyy'
+                    )}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
+                    {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
+                    {event.timezone && ` (${event.timezone})`}
+                  </p>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Event Attendees</h3>
-              <Badge variant="secondary">{attendeeCount} registered</Badge>
-            </div>
+              {event.location && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                  <div>
+                    {event.location.full_address && (
+                      <p className="font-medium">{event.location.full_address}</p>
+                    )}
+                    {event.location.city && (
+                      <p className="text-sm text-muted-foreground">
+                        {[
+                          event.location.city,
+                          event.location.region,
+                          event.location.country,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-            {isLoadingAttendees ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
-                ))}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Event Attendees</h3>
+                <Badge variant="secondary">{attendeeCount} registered</Badge>
               </div>
-            ) : attendees.length > 0 ? (
-              <div className="space-y-2">
-                {attendees.map((person) => (
-                  <Link 
-                    key={person.id} 
-                    href={`/people/${person.api_id}`}
-                    className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                  >
-                    <Avatar className="h-8 w-8">
-                      {person.avatarUrl ? (
-                        <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                      ) : (
-                        <AvatarFallback>
-                          {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div>
-                      <p className="font-medium">{person.userName || "Anonymous"}</p>
-                      <p className="text-xs text-muted-foreground">{person.email}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No attendees found</p>
-            )}
-          </CardContent>
-        </Card>
+
+              {isLoadingAttendees ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
+                  ))}
+                </div>
+              ) : attendees.length > 0 ? (
+                <div className="space-y-2">
+                  {attendees.map((person) => (
+                    <Link 
+                      key={person.id} 
+                      href={`/people/${person.api_id}`}
+                      className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                    >
+                      <Avatar className="h-8 w-8">
+                        {person.avatarUrl ? (
+                          <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                        ) : (
+                          <AvatarFallback>
+                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{person.userName || "Anonymous"}</p>
+                        <p className="text-xs text-muted-foreground">{person.email}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No attendees found</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Add Navigation Section - Fixed to bottom */}
       {events.length > 1 && onNavigate && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
-          <div className="flex justify-between items-center max-w-[400px] mx-auto">
+        <div className="border-t bg-background py-4">
+          <div className="flex justify-between items-center px-4">
             <Button
               variant="ghost"
               disabled={!hasPrevious}
