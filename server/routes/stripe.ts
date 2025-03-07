@@ -11,8 +11,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
-    console.log("⭐️ Creating checkout session");
-
     if (!process.env.STRIPE_PRICE_ID) {
       throw new Error('Stripe price ID is not configured');
     }
@@ -47,22 +45,17 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Webhook handler
+// Simplified webhook handler - focus on subscription completion
 router.post('/webhook', async (req, res) => {
   try {
-    console.log('🔔 Webhook Request Details:', {
-      contentType: req.headers['content-type'],
-      hasSignature: !!req.headers['stripe-signature'],
-      bodyType: typeof req.body,
-      rawBody: req.body ? req.body.toString() : 'No body'
-    });
-
     const sig = req.headers['stripe-signature'];
+
     if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-      console.error('❌ Missing webhook signature or secret');
+      console.error('Missing webhook signature or secret');
       return res.status(400).send('Missing signature or secret');
     }
 
+    // Verify webhook signature
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(
@@ -70,58 +63,44 @@ router.post('/webhook', async (req, res) => {
         sig,
         process.env.STRIPE_WEBHOOK_SECRET
       );
-      console.log('✅ Webhook signature verified for event:', event.type);
+      console.log('Webhook signature verified:', event.type);
     } catch (err: any) {
-      console.error('❌ Webhook signature verification failed:', err.message);
+      console.error('Webhook signature verification failed:', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    // Log the full event data for debugging
-    console.log('📦 Full webhook event:', JSON.stringify(event, null, 2));
-
+    // Handle checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      console.log('💳 Processing checkout completion:', {
-        sessionId: session.id,
-        customerId: session.customer,
-        subscriptionId: session.subscription
-      });
+      console.log('Processing completed checkout:', session.id);
 
       if (session.subscription) {
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
         const customerId = subscription.customer as string;
 
-        console.log('🔍 Looking up user for customer:', customerId);
         const user = await storage.getUserByStripeCustomerId(customerId);
-
         if (!user) {
-          console.error('❌ No user found for customer:', customerId);
-          return res.status(400).json({ error: 'No user found for customer' });
+          console.error('No user found for customer:', customerId);
+          return res.status(400).json({ error: 'No user found' });
         }
 
-        console.log('✨ Updating subscription for user:', {
-          userId: user.id,
-          subscriptionId: subscription.id,
-          status: subscription.status
-        });
-
-        const updatedUser = await storage.updateUserSubscription(
+        await storage.updateUserSubscription(
           user.id,
           subscription.id,
           subscription.status
         );
 
-        console.log('✅ Successfully updated user subscription:', {
-          userId: updatedUser.id,
-          subscriptionId: updatedUser.subscriptionId,
-          status: updatedUser.subscriptionStatus
+        console.log('Updated subscription for user:', {
+          userId: user.id,
+          subscriptionId: subscription.id,
+          status: subscription.status
         });
       }
     }
 
     res.json({ received: true });
   } catch (error) {
-    console.error('❌ Webhook processing error:', error);
+    console.error('Webhook processing error:', error);
     return res.status(500).json({ error: 'Webhook processing failed' });
   }
 });

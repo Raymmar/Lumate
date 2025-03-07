@@ -9,7 +9,16 @@ import stripeRoutes from './routes/stripe';
 const app = express();
 
 // Raw body handling for Stripe webhooks
-app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), (req, res, next) => {
+  console.log('🔄 Stripe webhook request received:', {
+    path: req.path,
+    method: req.method,
+    contentType: req.headers['content-type'],
+    hasSignature: !!req.headers['stripe-signature'],
+    bodyLength: req.body?.length || 0
+  });
+  next();
+});
 
 // Regular body parsing for everything else
 app.use(express.json());
@@ -44,7 +53,7 @@ app.use(session({
   const { ensureTablesExist } = await import('./db');
   await ensureTablesExist();
 
-  // Mount API routes
+  // Mount API routes - Stripe routes first to ensure webhook handling
   app.use('/api/stripe', stripeRoutes);
   app.use('/api/unsplash', unsplashRoutes);
   await registerRoutes(app);
@@ -69,6 +78,6 @@ app.use(session({
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
-    console.log(`serving on port ${port}`);
+    console.log(`Server running on port ${port}`);
   });
 })();
