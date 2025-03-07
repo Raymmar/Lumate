@@ -278,7 +278,7 @@ export default function UserSettingsPage() {
                           Upgrade your account to unlock additional premium profile features including company details,
                           location, contact information, and custom links.
                         </p>
-                        <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90">
+                        <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black">
                           Upgrade to Premium
                         </Button>
                       </div>
