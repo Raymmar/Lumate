@@ -8,15 +8,11 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Raw body handling for Stripe webhooks must come before ANY other middleware
-app.use((req, res, next) => {
-  if (req.originalUrl === '/api/stripe/webhook') {
-    express.raw({ type: 'application/json' })(req, res, next);
-  } else {
-    express.json()(req, res, next);
-  }
-});
+// Raw body handling for Stripe webhooks
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
+// Regular body parsing for everything else
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session handling
@@ -46,30 +42,24 @@ app.use(session({
 (async () => {
   // First ensure database tables exist
   const { ensureTablesExist } = await import('./db');
-
-  console.log('Ensuring database tables exist...');
   await ensureTablesExist();
 
-  // Mount API routes before static file serving or Vite middleware
-  app.use('/api/stripe', stripeRoutes);  // Stripe routes first to ensure webhook handling
+  // Mount API routes
+  app.use('/api/stripe', stripeRoutes);
   app.use('/api/unsplash', unsplashRoutes);
-
-  // Register other routes
   await registerRoutes(app);
 
-  // Then set up Vite in development or serve static files in production
+  // Set up Vite or serve static files
   if (app.get("env") === "development") {
     await setupVite(app);
   } else {
     serveStatic(app);
   }
 
-  // Error handling middleware
+  // Error handling
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
     console.error('Server error:', err);
-    res.status(status).json({ message });
+    res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
   });
 
   // Start server
