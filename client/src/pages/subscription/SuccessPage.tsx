@@ -13,16 +13,27 @@ export default function SubscriptionSuccessPage() {
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
-      const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to verify payment status');
+      try {
+        const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
+        console.log('📦 Session verification response:', {
+          status: response.status,
+          ok: response.ok
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ Session verification failed:', errorData);
+          throw new Error(errorData.message || 'Failed to verify payment status');
+        }
+
+        const data = await response.json();
+        console.log('✅ Session verification data:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ Session verification error:', error);
+        throw error;
       }
-
-      const data = await response.json();
-      console.log('📦 Session verification response:', data);
-      return data;
     },
     enabled: !!sessionId,
     retry: 3,
@@ -41,34 +52,15 @@ export default function SubscriptionSuccessPage() {
     }
   }, [sessionStatus, setLocation]);
 
-  if (!sessionId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md p-6">
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-            <h1 className="text-2xl font-bold mt-4">Invalid Session</h1>
-            <p className="text-muted-foreground mt-2">
-              No session ID found. Please try the subscription process again.
-            </p>
-            <Button onClick={() => setLocation('/settings')} className="mt-4">
-              Return to Settings
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md p-6">
         {isLoading ? (
           <div className="text-center py-8">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-4 text-lg">Verifying payment...</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Please wait while we confirm your subscription
+              Session: {sessionId}
             </p>
           </div>
         ) : error ? (
@@ -92,10 +84,16 @@ export default function SubscriptionSuccessPage() {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-yellow-500" />
-            <h1 className="text-2xl font-bold mt-4">Confirming Payment</h1>
+            <Loader2 className="h-12 w-12 text-yellow-500 mx-auto animate-spin" />
+            <h1 className="text-2xl font-bold mt-4">Processing Payment</h1>
             <p className="text-muted-foreground mt-2">
-              {sessionStatus?.debug?.paymentStatus || 'Processing payment...'}
+              Status: {sessionStatus?.status || 'checking'}<br />
+              {sessionStatus?.debug && (
+                <span className="text-sm">
+                  Payment Status: {sessionStatus.debug.paymentStatus}<br />
+                  Session Status: {sessionStatus.debug.sessionStatus}
+                </span>
+              )}
             </p>
           </div>
         )}
