@@ -8,12 +8,12 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Regular JSON parsing for non-webhook routes
+// Raw body handling for Stripe webhooks must come before ANY other middleware
 app.use((req, res, next) => {
-  if (req.path !== '/api/stripe/webhook') {
-    express.json()(req, res, next);
+  if (req.originalUrl === '/api/stripe/webhook') {
+    express.raw({ type: 'application/json' })(req, res, next);
   } else {
-    next();
+    express.json()(req, res, next);
   }
 });
 

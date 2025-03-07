@@ -56,7 +56,9 @@ export class StripeService {
 
   static async getSubscriptionStatus(subscriptionId: string) {
     try {
+      console.log('Fetching subscription status for:', subscriptionId);
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      console.log('Retrieved subscription status:', subscription.status);
       return subscription.status;
     } catch (error) {
       console.error('Error fetching subscription status:', error);
@@ -75,6 +77,8 @@ export class StripeService {
       const baseUrl = process.env.NODE_ENV === 'production'
         ? 'https://lumate.replit.app'
         : (process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000');
+
+      console.log('Using base URL:', baseUrl);
 
       const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
@@ -103,7 +107,10 @@ export class StripeService {
 
       console.log('Successfully created checkout session:', {
         sessionId: session.id,
-        url: session.url
+        url: session.url,
+        customerId,
+        successUrl: session.success_url,
+        cancelUrl: session.cancel_url
       });
 
       return session;
