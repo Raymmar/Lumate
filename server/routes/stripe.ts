@@ -162,21 +162,50 @@ router.get('/session-status', async (req, res) => {
   try {
     const sessionId = req.query.session_id as string;
     if (!sessionId) {
+      console.log('❌ No session ID provided');
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
+    console.log('🔍 Verifying session:', sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    // If we have a session and it's paid, consider it complete
-    if (session.payment_status === 'paid') {
-      return res.json({
-        status: 'complete'
-      });
+    console.log('Session details:', {
+      id: session.id,
+      status: session.status,
+      paymentStatus: session.payment_status,
+      customerId: session.customer,
+      subscriptionId: session.subscription
+    });
+
+    // If the session is complete and paid, update subscription in our database
+    if (session.payment_status === 'paid' && session.subscription) {
+      console.log('💳 Payment confirmed, updating subscription');
+
+      const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+      const customerId = session.customer as string;
+
+      // Find and update user subscription
+      const user = await storage.getUserByStripeCustomerId(customerId);
+      if (user) {
+        console.log('👤 Updating subscription for user:', user.id);
+        await storage.updateUserSubscription(
+          user.id,
+          subscription.id,
+          subscription.status
+        );
+        console.log('✅ User subscription updated successfully');
+      } else {
+        console.warn('⚠️ No user found for customer:', customerId);
+      }
+
+      return res.json({ status: 'complete' });
     }
 
+    console.log('⏳ Payment status:', session.payment_status);
     return res.json({ status: 'pending' });
+
   } catch (error) {
-    console.error('❌ Error checking session status:', error);
+    console.error('❌ Error verifying session:', error);
     return res.status(500).json({ error: 'Failed to verify session status' });
   }
 });
