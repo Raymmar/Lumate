@@ -10,6 +10,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
+    console.log("⭐️ Creating checkout session");
+
     if (!process.env.STRIPE_PRICE_ID) {
       throw new Error('Stripe price ID is not configured');
     }
@@ -24,7 +26,16 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Determine the base URL for redirects
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://lumate.replit.app'
+      : 'http://localhost:5000';
+
+    console.log('Using base URL for redirects:', baseUrl);
+
+    // Create or use existing Stripe customer
     if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
+      console.log('Creating new Stripe customer for user:', user.email);
       const customer = await stripe.customers.create({
         email: user.email,
         metadata: {
@@ -33,7 +44,15 @@ router.post('/create-checkout-session', async (req, res) => {
       });
       await storage.setStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
+      console.log('Created new Stripe customer:', customer.id);
     }
+
+    console.log('Creating checkout session with:', {
+      customerId: user.stripeCustomerId,
+      priceId: process.env.STRIPE_PRICE_ID,
+      successUrl: `${baseUrl}/subscription/success`,
+      cancelUrl: `${baseUrl}/subscription/cancel`
+    });
 
     const session = await stripe.checkout.sessions.create({
       customer: user.stripeCustomerId,
@@ -44,11 +63,16 @@ router.post('/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/cancel`,
+      success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/subscription/cancel`,
       metadata: {
         userId: user.id.toString(),
       },
+    });
+
+    console.log('Checkout session created successfully:', {
+      sessionId: session.id,
+      url: session.url
     });
 
     res.json({ url: session.url });
