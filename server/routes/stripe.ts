@@ -12,6 +12,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 router.post('/create-checkout-session', async (req, res) => {
   try {
     if (!process.env.STRIPE_PRICE_ID) {
+      console.error('Missing STRIPE_PRICE_ID environment variable');
       throw new Error('Stripe price ID is not configured');
     }
 
@@ -27,13 +28,19 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('Creating checkout session for user:', { userId, email: user.email });
+    console.log('Creating checkout session for user:', { 
+      userId, 
+      email: user.email,
+      stripeCustomerId: user.stripeCustomerId || 'none'
+    });
 
     // Create Stripe customer if not exists
     if (!user.stripeCustomerId) {
+      console.log('No Stripe customer ID found, creating new customer');
       const customer = await StripeService.createCustomer(user.email, user.id);
       await storage.setStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
+      console.log('Created new Stripe customer:', customer.id);
     }
 
     const session = await StripeService.createCheckoutSession(
@@ -42,13 +49,19 @@ router.post('/create-checkout-session', async (req, res) => {
       user.id
     );
 
+    console.log('Successfully created checkout session:', {
+      sessionId: session.id,
+      url: session.url
+    });
+
     res.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
     const errorMessage = error.message || 'Failed to create checkout session';
     res.status(500).json({ 
       error: 'Failed to create checkout session', 
-      message: errorMessage
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -71,12 +84,21 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 
   try {
+    console.log('Processing webhook event:', event.type);
+
     switch (event.type) {
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
+
+        console.log('Processing subscription event:', {
+          type: event.type,
+          customerId,
+          subscriptionId: subscription.id,
+          status: subscription.status
+        });
 
         const user = await storage.getUserByStripeCustomerId(customerId);
         if (!user) {
@@ -89,6 +111,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           subscription.id,
           subscription.status
         );
+
+        console.log('Successfully updated user subscription:', {
+          userId: user.id,
+          subscriptionId: subscription.id,
+          status: subscription.status
+        });
         break;
       }
     }
