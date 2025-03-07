@@ -8,6 +8,41 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16'
 });
 
+// Create checkout session
+router.post('/create-checkout-session', async (req, res) => {
+  try {
+    const { priceId } = req.body;
+    const userId = req.session?.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Create Stripe customer if not exists
+    if (!user.stripeCustomerId) {
+      const customer = await StripeService.createCustomer(user.email, user.id);
+      await storage.setStripeCustomerId(user.id, customer.id);
+      user.stripeCustomerId = customer.id;
+    }
+
+    const session = await StripeService.createCheckoutSession(
+      user.stripeCustomerId,
+      process.env.STRIPE_PRICE_ID!, // Use environment variable directly
+      user.id
+    );
+
+    res.json({ url: session.url });
+  } catch (error: any) {
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: 'Failed to create checkout session', message: error.message });
+  }
+});
+
 // Stripe webhook handler
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -52,40 +87,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   } catch (err: any) {
     console.error('Error processing webhook:', err);
     res.status(500).send(`Webhook Error: ${err.message}`);
-  }
-});
-
-// Create checkout session
-router.post('/create-checkout-session', async (req, res) => {
-  try {
-    const { priceId } = req.body;
-    const userId = req.session?.userId;
-
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // Create Stripe customer if not exists
-    if (!user.stripeCustomerId) {
-      const customer = await StripeService.createCustomer(user.email, user.id);
-      user.stripeCustomerId = customer.id;
-    }
-
-    const session = await StripeService.createCheckoutSession(
-      user.stripeCustomerId,
-      priceId,
-      user.id
-    );
-
-    res.json({ url: session.url });
-  } catch (error) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
   }
 });
 

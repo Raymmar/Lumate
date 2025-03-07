@@ -125,15 +125,12 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          priceId: import.meta.env.VITE_STRIPE_PRICE_ID || 'price_default', // Use environment variable
-          successUrl: `${window.location.origin}/subscription/success`,
-          cancelUrl: `${window.location.origin}/subscription/cancel`,
-        }),
+        body: JSON.stringify({}) // No need to send priceId, using environment variable on backend
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create checkout session');
       }
 
       const { url } = await response.json();
