@@ -6,6 +6,19 @@ import connectPg from 'connect-pg-simple';
 import unsplashRoutes from './routes/unsplash';
 import stripeRoutes from './routes/stripe';
 
+// Validate required environment variables
+const requiredEnvVars = [
+  'DATABASE_URL',
+  'SESSION_SECRET',
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET'
+];
+
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
+
 const app = express();
 
 // Raw body handling for Stripe webhooks must come first
@@ -33,7 +46,7 @@ app.use(session({
     },
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -47,36 +60,41 @@ app.use(session({
 }));
 
 (async () => {
-  // First ensure database tables exist
-  const { ensureTablesExist } = await import('./db');
-  await ensureTablesExist();
+  try {
+    // First ensure database tables exist
+    const { ensureTablesExist } = await import('./db');
+    await ensureTablesExist();
 
-  // Mount API routes - Stripe routes first to ensure webhook handling
-  app.use('/api/stripe', stripeRoutes);
-  app.use('/api/unsplash', unsplashRoutes);
-  await registerRoutes(app);
+    // Mount API routes - Stripe routes first to ensure webhook handling
+    app.use('/api/stripe', stripeRoutes);
+    app.use('/api/unsplash', unsplashRoutes);
+    await registerRoutes(app);
 
-  // Set up Vite or serve static files
-  if (app.get("env") === "development") {
-    await setupVite(app);
-  } else {
-    serveStatic(app);
+    // Set up Vite or serve static files
+    if (app.get("env") === "development") {
+      await setupVite(app);
+    } else {
+      serveStatic(app);
+    }
+
+    // Error handling
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error('Server error:', err);
+      res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
+    });
+
+    // Get port from environment or use default
+    const port = process.env.PORT || 5000;
+
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`Server running on port ${port}`);
+      console.log('Environment:', app.get('env'));
+      console.log('Database URL configured:', !!process.env.DATABASE_URL);
+      console.log('Session secret configured:', !!process.env.SESSION_SECRET);
+      console.log('Stripe webhook path:', '/api/stripe/webhook');
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
   }
-
-  // Error handling
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    console.error('Server error:', err);
-    res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
-  });
-
-  // Start server
-  const port = 5000;
-  app.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    console.log(`Server running on port ${port}`);
-    console.log(`For local webhook testing, use: http://localhost:${port}/api/stripe/webhook`);
-  });
 })();
