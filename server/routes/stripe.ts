@@ -53,8 +53,8 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Stripe webhook handler
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// Stripe webhook handler - register both paths for compatibility
+const webhookHandler = async (req: express.Request, res: express.Response) => {
   const sig = req.headers['stripe-signature'];
 
   let event: Stripe.Event;
@@ -163,6 +163,10 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     });
     res.status(500).send(`Webhook Error: ${err.message}`);
   }
-});
+};
+
+// Register both webhook paths
+router.post('/webhook', express.raw({ type: 'application/json' }), webhookHandler);
+router.post('/', express.raw({ type: 'application/json' }), webhookHandler);
 
 export default router;

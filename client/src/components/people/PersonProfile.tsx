@@ -279,9 +279,21 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                   <p className="text-sm text-muted-foreground">
                     Subscribe to access detailed member information and connect with professionals.
                   </p>
-                  <Button onClick={startSubscription}>
-                    Subscribe Now
-                  </Button>
+                  <div className="space-y-2">
+                    <Button onClick={startSubscription}>
+                      Subscribe Now
+                    </Button>
+                    {process.env.STRIPE_TEST_MODE === 'true' && (
+                      <div className="mt-4 p-4 bg-yellow-50 rounded-md">
+                        <p className="text-sm font-medium text-yellow-800">Test Mode Active</p>
+                        <p className="text-xs text-yellow-600 mt-1">
+                          Use test card: 4242 4242 4242 4242<br />
+                          Any future date for expiry<br />
+                          Any 3 digits for CVC
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
