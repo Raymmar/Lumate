@@ -1,8 +1,12 @@
 import Stripe from 'stripe';
 import { storage } from '../storage';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia'
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY must be defined');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16'
 });
 
 export class StripeService {
@@ -16,9 +20,7 @@ export class StripeService {
       });
 
       // Update user with Stripe customer ID
-      await storage.updateUser(userId, {
-        stripeCustomerId: customer.id,
-      });
+      await storage.setStripeCustomerId(userId, customer.id);
 
       return customer;
     } catch (error) {

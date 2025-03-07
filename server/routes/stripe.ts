@@ -5,7 +5,7 @@ import { StripeService } from '../services/stripe';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia'
+  apiVersion: '2023-10-16'
 });
 
 // Stripe webhook handler
@@ -39,10 +39,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           return res.status(400).send('No user found');
         }
 
-        await storage.updateUser(user.id, {
-          subscriptionStatus: subscription.status,
-          subscriptionId: subscription.id,
-        });
+        await storage.updateUserSubscription(
+          user.id,
+          subscription.id,
+          subscription.status
+        );
         break;
       }
     }
@@ -64,7 +65,7 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    const user = await storage.getUser(userId);
+    const user = await storage.getUserById(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
