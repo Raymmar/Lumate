@@ -15,98 +15,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia'
 });
 
-// Add proper debug logging at the top of the file
+// Add proper debug logging
 router.use((req, res, next) => {
   const startTime = Date.now();
-  console.log('🔄 Stripe route request received:', {
-    timestamp: new Date().toISOString(),
+  console.log('🔄 Stripe route request:', {
     method: req.method,
     path: req.path,
-    query: req.query,
     sessionId: req.query.session_id
   });
-
-  // Add response logging
-  res.on('finish', () => {
-    const duration = Date.now() - startTime;
-    console.log('🔄 Stripe route response sent:', {
-      timestamp: new Date().toISOString(),
-      method: req.method,
-      path: req.path,
-      statusCode: res.statusCode,
-      duration: `${duration}ms`
-    });
-  });
-
   next();
 });
 
-// Simple ping endpoint for testing
-router.get('/ping', (req, res) => {
-  console.log('🏓 Stripe routes ping received');
-  res.json({ status: 'ok' });
-});
-
-// Create checkout session
-router.post('/create-checkout-session', async (req, res) => {
-  try {
-    if (!process.env.STRIPE_PRICE_ID) {
-      throw new Error('Stripe price ID is not configured');
-    }
-
-    const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
-      const customer = await StripeService.createCustomer(user.email, user.id);
-      await storage.setStripeCustomerId(user.id, customer.id);
-      user.stripeCustomerId = customer.id;
-    }
-
-    // Always use the production URL
-    const baseUrl = 'https://lumate.replit.app';
-    console.log('Using base URL:', baseUrl);
-
-    const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId,
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/subscription/cancel`,
-      metadata: {
-        userId: user.id.toString(),
-      },
-      allow_promotion_codes: true,
-    });
-
-    res.json({ url: session.url });
-  } catch (error: any) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
-  }
-});
-
-// Webhook handler
+// Webhook handler - This must be first to handle raw body
 router.post('/webhook', async (req, res) => {
-  console.log('🔔 Webhook received:', {
-    type: req.headers['content-type'],
-    signature: !!req.headers['stripe-signature'],
-    url: req.originalUrl,
-    body: JSON.stringify(req.body)
-  });
-
   try {
     const event = stripe.webhooks.constructEvent(
       req.body,
@@ -114,39 +35,37 @@ router.post('/webhook', async (req, res) => {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log('📦 Webhook event:', event.type, JSON.stringify(event.data.object));
+    console.log('📦 Webhook event:', event.type);
 
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log('💳 Processing completed checkout session:', session.id);
 
-        if (session.subscription && session.customer) {
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        // Immediately retrieve subscription details
+        if (session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(
+            session.subscription as string,
+            { expand: ['customer'] }
+          );
+
           const customerId = subscription.customer as string;
-
-          console.log('🔍 Looking up user for customer:', customerId);
           const user = await storage.getUserByStripeCustomerId(customerId);
 
           if (!user) {
-            console.error('❌ No user found for customer:', customerId);
             throw new Error(`No user found for customer: ${customerId}`);
           }
 
-          console.log('✏️ Updating subscription for user:', user.id);
           await storage.updateUserSubscription(
             user.id,
             subscription.id,
             subscription.status
           );
 
-          console.log('✅ Subscription updated:', {
+          console.log('✅ Updated subscription:', {
             userId: user.id,
             subscriptionId: subscription.id,
             status: subscription.status
           });
-        } else {
-          console.warn('⚠️ Session missing subscription or customer:', session.id);
         }
         break;
       }
@@ -156,22 +75,13 @@ router.post('/webhook', async (req, res) => {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        console.log('🔄 Processing subscription change:', subscription.id);
         const user = await storage.getUserByStripeCustomerId(customerId);
-
         if (user) {
           await storage.updateUserSubscription(
             user.id,
             subscription.id,
             subscription.status
           );
-          console.log('✅ Subscription status updated:', {
-            userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
-          });
-        } else {
-          console.warn('⚠️ No user found for subscription update:', customerId);
         }
         break;
       }
@@ -184,81 +94,46 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
-// Verify checkout session status
+// Simple session verification endpoint
 router.get('/session-status', async (req, res) => {
-  const startTime = Date.now();
-  console.log('🔍 Session verification request received:', {
-    timestamp: new Date().toISOString(),
-    sessionId: req.query.session_id,
-    hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-    stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7)
-  });
-
   try {
     const sessionId = req.query.session_id as string;
     if (!sessionId) {
-      console.log('❌ No session ID provided');
-      return res.status(400).json({ error: 'Session ID is required' });
+      return res.status(400).json({ error: 'Session ID required' });
     }
 
-    console.log('📦 Retrieving session from Stripe:', sessionId);
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription', 'payment_intent']
-    });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const subscription = session.subscription as Stripe.Subscription;
+    // For subscriptions, we need to check both session and subscription status
+    if (session.mode === 'subscription' && session.subscription) {
+      const subscription = await stripe.subscriptions.retrieve(
+        session.subscription as string
+      );
 
-    const responseTime = Date.now() - startTime;
-    console.log('✅ Session verification completed:', {
-      duration: `${responseTime}ms`,
-      sessionId: session.id,
-      status: session.status,
-      paymentStatus: session.payment_status,
-      hasSubscription: !!subscription,
-      subscriptionStatus: subscription?.status
-    });
-
-    if (session.payment_status === 'paid' && 
-        subscription?.status === 'active') {
-      console.log('💳 Payment confirmed and subscription active');
-      return res.json({ 
-        status: 'complete',
-        debug: {
-          sessionStatus: session.status,
+      return res.json({
+        status: session.payment_status === 'paid' && subscription.status === 'active' 
+          ? 'complete' 
+          : 'pending',
+        session: {
           paymentStatus: session.payment_status,
           subscriptionStatus: subscription.status
         }
       });
     }
 
-    console.log('⏳ Payment or subscription pending:', {
-      paymentStatus: session.payment_status,
-      subscriptionStatus: subscription?.status
-    });
+    // For non-subscription payments
     return res.json({
-      status: 'pending',
-      debug: {
-        sessionStatus: session.status,
-        paymentStatus: session.payment_status,
-        subscriptionStatus: subscription?.status
+      status: session.payment_status === 'paid' ? 'complete' : 'pending',
+      session: {
+        paymentStatus: session.payment_status
       }
     });
 
   } catch (error: any) {
-    const responseTime = Date.now() - startTime;
-    console.error('❌ Session verification failed:', {
-      duration: `${responseTime}ms`,
-      error: error.message,
-      type: error.type,
-      code: error.code,
-      decline_code: error.decline_code,
-      stack: error.stack
-    });
-
-    return res.status(500).json({
-      error: 'Failed to verify session status',
-      message: error.message,
-      type: error.type
+    console.error('Session verification error:', error);
+    res.status(500).json({ 
+      error: 'Failed to verify session',
+      message: error.message 
     });
   }
 });
