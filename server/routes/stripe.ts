@@ -113,6 +113,18 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     console.log('Processing webhook event:', event.type);
 
     switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Processing checkout.session.completed:', {
+          sessionId: session.id,
+          customerId: session.customer,
+          subscriptionId: session.subscription,
+          paymentStatus: session.payment_status
+        });
+
+        // The subscription will be activated by the customer.subscription.created event
+        break;
+      }
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
