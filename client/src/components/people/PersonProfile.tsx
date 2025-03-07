@@ -168,30 +168,31 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
             <div>
               <h1 className="text-2xl font-bold flex items-center gap-2">
                 {person.userName || "Anonymous"}
-                {person.role && (
-                  <Badge variant="secondary" className="ml-2">
-                    {person.role}
-                  </Badge>
-                )}
-                {isProfileAdmin && <AdminBadge />}
+                <div className="flex items-center gap-2">
+                  {isProfileAdmin && <AdminBadge />}
+                  {person.role && (
+                    <Badge variant="secondary">
+                      {person.role}
+                    </Badge>
+                  )}
+                  {userBadges.map((badge, index) => (
+                    <ProfileBadge
+                      key={index}
+                      name={badge.name}
+                      icon={badge.icon}
+                    />
+                  ))}
+                </div>
               </h1>
               <div className="flex items-center gap-2">
-                <AuthGuard>
-                  <p className="text-muted-foreground">{person.email}</p>
-                </AuthGuard>
+                {/* Email removed from here */}
               </div>
             </div>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {userBadges.map((badge, index) => (
-            <ProfileBadge
-              key={index}
-              name={badge.name}
-              icon={badge.icon}
-            />
-          ))}
+          {/* Badges moved to h1 */}
         </div>
 
         <Card>
