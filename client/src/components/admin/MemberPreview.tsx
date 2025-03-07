@@ -173,8 +173,8 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
       {/* Navigation Section - Fixed to bottom */}
       {members.length > 1 && onNavigate && (
-        <div className="sticky bottom-0 inset-x-0 -mx-6 mt-6 border-t bg-background">
-          <div className="px-6 py-4 flex justify-between items-center">
+        <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
+          <div className="flex justify-between items-center">
             <Button
               variant="ghost"
               disabled={!hasPrevious}
