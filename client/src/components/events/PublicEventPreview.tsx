@@ -17,6 +17,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { AuthGuard } from "@/components/AuthGuard";
 import { DialogTitle } from "@/components/ui/dialog";
+import { formatUsernameForUrl } from "@/lib/utils";
 
 interface PublicEventPreviewProps {
   event: Event;
@@ -376,25 +377,28 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                   </div>
                 ) : attendees?.attendees?.length > 0 ? (
                   <div className="space-y-2">
-                    {attendees.attendees.map((person) => (
-                      <Link
-                        key={person.id}
-                        href={`/people/${person.api_id}`}
-                        className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                      >
-                        <Avatar className="h-8 w-8">
-                          {person.avatarUrl && (
-                            <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                          )}
-                          <AvatarFallback>
-                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{person.userName || "Anonymous"}</p>
-                        </div>
-                      </Link>
-                    ))}
+                    {attendees.attendees.map((person) => {
+                      const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
+                      return (
+                        <Link
+                          key={person.id}
+                          href={profilePath}
+                          className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                        >
+                          <Avatar className="h-8 w-8">
+                            {person.avatarUrl && (
+                              <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                            )}
+                            <AvatarFallback>
+                              {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{person.userName || "Anonymous"}</p>
+                          </div>
+                        </Link>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>

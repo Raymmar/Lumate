@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Event } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatUsernameForUrl } from "@/lib/utils";
 
 interface EventsResponse {
   events: Event[];
@@ -58,7 +59,7 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
       const data = await response.json();
       // Filter out anonymous attendees for public display
       if (data.attendees) {
-        data.attendees = data.attendees.filter((person: any) => 
+        data.attendees = data.attendees.filter((person: any) =>
           person.userName && person.userName.toLowerCase() !== "anonymous"
         );
       }
@@ -112,7 +113,7 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
   };
 
   return (
-    <div 
+    <div
       onClick={() => onSelect(event)}
       className="cursor-pointer"
     >
@@ -134,8 +135,8 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
 
           <div className="absolute bottom-2 left-2 flex gap-2">
             <AuthGuard>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="text-xs"
                 variant={rsvpStatus?.isGoing ? "outline" : "default"}
                 onClick={handleRSVP}
@@ -202,8 +203,8 @@ export default function EventList() {
       }
       return response.json();
     },
-    staleTime: 30000, 
-    refetchOnWindowFocus: true 
+    staleTime: 30000,
+    refetchOnWindowFocus: true
   });
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
@@ -242,8 +243,8 @@ export default function EventList() {
           <Skeleton className="h-[88px]" />
         </div>
       ) : upcomingEvent ? (
-        <EventCard 
-          event={upcomingEvent} 
+        <EventCard
+          event={upcomingEvent}
           onSelect={(event) => setSelectedEvent(event)}
         />
       ) : (

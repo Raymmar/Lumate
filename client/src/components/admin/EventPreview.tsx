@@ -10,6 +10,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Person } from "@/components/people/PeopleDirectory";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { formatUsernameForUrl } from "@/lib/utils";
 
 interface EventPreviewProps {
   event: Event & { 
@@ -329,27 +330,30 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
                 </div>
               ) : attendees.length > 0 ? (
                 <div className="space-y-2">
-                  {attendees.map((person) => (
-                    <Link 
-                      key={person.id} 
-                      href={`/people/${person.api_id}`}
-                      className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                    >
-                      <Avatar className="h-8 w-8">
-                        {person.avatarUrl ? (
-                          <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                        ) : (
-                          <AvatarFallback>
-                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                          </AvatarFallback>
-                        )}
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{person.userName || "Anonymous"}</p>
-                        <p className="text-xs text-muted-foreground">{person.email}</p>
-                      </div>
-                    </Link>
-                  ))}
+                  {attendees.map((person) => {
+                    const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
+                    return (
+                      <Link 
+                        key={person.id} 
+                        href={profilePath}
+                        className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                      >
+                        <Avatar className="h-8 w-8">
+                          {person.avatarUrl ? (
+                            <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                          ) : (
+                            <AvatarFallback>
+                              {person.userName?.split(" ").map((n: string) => n[0]).join("") || "?"}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{person.userName || "Anonymous"}</p>
+                          <p className="text-xs text-muted-foreground">{person.email}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">No attendees found</p>
