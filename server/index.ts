@@ -8,7 +8,7 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Raw body handling for Stripe webhooks
+// Raw body handling for Stripe webhooks must come first
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), (req, res, next) => {
   console.log('🔄 Stripe webhook request received:', {
     path: req.path,
