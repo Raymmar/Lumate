@@ -120,6 +120,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
   const startSubscription = async () => {
     try {
+      console.log('Starting subscription process...');
       const response = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: {
@@ -130,6 +131,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Subscription creation failed:', error);
         throw new Error(error.message || 'Failed to create checkout session');
       }
 
@@ -138,6 +140,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         throw new Error('No checkout URL received');
       }
 
+      console.log('Redirecting to Stripe checkout:', url);
       // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error) {

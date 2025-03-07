@@ -6,7 +6,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 if (!process.env.STRIPE_PRICE_ID) {
-  console.warn('Warning: STRIPE_PRICE_ID not set. Please set this for production use.');
+  throw new Error('STRIPE_PRICE_ID must be defined');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -16,6 +16,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 export class StripeService {
   static async createCustomer(email: string, userId: number) {
     try {
+      console.log('Creating Stripe customer for:', email);
       const customer = await stripe.customers.create({
         email,
         metadata: {
@@ -71,16 +72,28 @@ export class StripeService {
 
   static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
+      console.log('Creating checkout session with:', { customerId, priceId, userId });
+
+      // Verify price exists before creating session
+      try {
+        await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID!);
+      } catch (error) {
+        console.error('Invalid price ID:', process.env.STRIPE_PRICE_ID);
+        throw new Error('Invalid price configuration');
+      }
+
       // Use environment variables with fallbacks for success/cancel URLs
       const baseUrl = process.env.APP_URL || process.env.REPL_SLUG 
         ? `https://${process.env.REPL_SLUG}.repl.co` 
         : 'http://localhost:3000';
 
+      console.log('Creating session with base URL:', baseUrl);
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [
           {
-            price: priceId,
+            price: process.env.STRIPE_PRICE_ID,
             quantity: 1,
           },
         ],
@@ -92,6 +105,7 @@ export class StripeService {
         },
       });
 
+      console.log('Successfully created checkout session:', session.id);
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);

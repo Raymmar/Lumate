@@ -11,17 +11,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
-    const { priceId } = req.body;
-    const userId = req.session?.userId;
+    if (!process.env.STRIPE_PRICE_ID) {
+      throw new Error('Stripe price ID is not configured');
+    }
 
+    const userId = req.session?.userId;
     if (!userId) {
+      console.log('Unauthorized attempt to create checkout session - no userId in session');
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
     const user = await storage.getUserById(userId);
     if (!user) {
+      console.log('User not found:', userId);
       return res.status(404).json({ error: 'User not found' });
     }
+
+    console.log('Creating checkout session for user:', { userId, email: user.email });
 
     // Create Stripe customer if not exists
     if (!user.stripeCustomerId) {
@@ -32,14 +38,18 @@ router.post('/create-checkout-session', async (req, res) => {
 
     const session = await StripeService.createCheckoutSession(
       user.stripeCustomerId,
-      process.env.STRIPE_PRICE_ID!, // Use environment variable directly
+      process.env.STRIPE_PRICE_ID,
       user.id
     );
 
     res.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session', message: error.message });
+    const errorMessage = error.message || 'Failed to create checkout session';
+    res.status(500).json({ 
+      error: 'Failed to create checkout session', 
+      message: errorMessage
+    });
   }
 });
 
