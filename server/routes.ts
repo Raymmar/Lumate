@@ -472,7 +472,7 @@ export async function registerRoutes(app: Express) {
         user: user[0] || null
       };
 
-      console.log('API Response - Person with user data:', {
+      console.log('API Response - Person found:', {
         username: normalizedUsername,
         personId: person.id,
         hasUser: !!user[0]

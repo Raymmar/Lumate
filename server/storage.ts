@@ -967,7 +967,7 @@ export class PostgresStorage implements IStorage {
           body: posts.body,
           featuredImage: posts.featuredImage,
           videoUrl: posts.videoUrl,
-          ctaLink: posts.ctaLink,
+ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
           creatorId: posts.creatorId,
@@ -1576,9 +1576,9 @@ export class PostgresStorage implements IStorage {
   }
   async getPersonByUsername(username: string): Promise<Person | null> {
     try {
-      console.log('Looking up person by username:', username);
+      console.log('Looking up person by normalized username:', username);
 
-      // First try exact match with userName (camelCase as per schema)
+      // Try an exact match with userName first
       let result = await db
         .select({
           ...people,
@@ -1591,7 +1591,7 @@ export class PostgresStorage implements IStorage {
 
       if (result.length === 0) {
         console.log('No exact match found, trying case-insensitive match');
-        // Try case-insensitive match with userName
+        // Try case-insensitive match
         result = await db
           .select({
             ...people,
