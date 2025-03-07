@@ -189,4 +189,52 @@ router.get('/subscription/status', async (req, res) => {
   }
 });
 
+// Verify checkout session status
+router.get('/session-status', async (req, res) => {
+  console.log('🔍 Checking session status');
+  try {
+    const sessionId = req.query.session_id as string;
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required' });
+    }
+
+    console.log('📦 Retrieving session:', sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription']
+    });
+
+    if (!session.subscription) {
+      console.warn('⚠️ No subscription found in session');
+      return res.json({ status: 'pending' });
+    }
+
+    const subscription = session.subscription as Stripe.Subscription;
+    const customerId = subscription.customer as string;
+
+    // Update user subscription status
+    const user = await storage.getUserByStripeCustomerId(customerId);
+    if (user) {
+      console.log('✏️ Updating subscription for user:', user.id);
+      await storage.updateUserSubscription(
+        user.id,
+        subscription.id,
+        subscription.status
+      );
+      console.log('✅ Subscription status updated:', {
+        userId: user.id,
+        subscriptionId: subscription.id,
+        status: subscription.status
+      });
+    }
+
+    return res.json({
+      status: 'complete',
+      subscriptionStatus: subscription.status
+    });
+  } catch (error) {
+    console.error('❌ Error checking session status:', error);
+    return res.status(500).json({ error: 'Failed to verify session status' });
+  }
+});
+
 export default router;

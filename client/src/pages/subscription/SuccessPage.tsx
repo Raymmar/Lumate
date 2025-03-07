@@ -9,27 +9,27 @@ export default function SubscriptionSuccessPage() {
   const [location, setLocation] = useLocation();
   const sessionId = new URLSearchParams(location.split('?')[1]).get('session_id');
 
-  // Query subscription status
-  const { data: subscriptionStatus, isLoading } = useQuery({
-    queryKey: ['/api/stripe/subscription/status'],
+  // Query the checkout session status
+  const { data: sessionStatus, isLoading, error } = useQuery({
+    queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
-      const response = await fetch('/api/stripe/subscription/status');
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
+      if (!response.ok) throw new Error('Failed to verify payment status');
       return response.json();
     },
-    // Only start querying once we have a session ID
     enabled: !!sessionId,
+    retry: 3,
   });
 
   useEffect(() => {
-    // If subscription is active, wait a moment then redirect to settings
-    if (subscriptionStatus?.status === 'active') {
+    // If payment is confirmed, redirect to settings after a short delay
+    if (sessionStatus?.status === 'complete') {
       const timer = setTimeout(() => {
         setLocation('/settings');
       }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [subscriptionStatus, setLocation]);
+  }, [sessionStatus, setLocation]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -37,28 +37,36 @@ export default function SubscriptionSuccessPage() {
         {isLoading ? (
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="mt-4 text-lg">Confirming your subscription...</p>
+            <p className="mt-4 text-lg">Verifying your payment...</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Just a moment while we verify your payment
+              Just a moment while we confirm your subscription
             </p>
           </div>
-        ) : subscriptionStatus?.status === 'active' ? (
+        ) : error ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
+            <h1 className="text-2xl font-bold mt-4">Verification Failed</h1>
+            <p className="text-muted-foreground mt-2">
+              We couldn't verify your payment status. Please contact support if this persists.
+            </p>
+            <Button onClick={() => setLocation('/settings')} className="mt-4">
+              Return to Settings
+            </Button>
+          </div>
+        ) : sessionStatus?.status === 'complete' ? (
           <div className="text-center py-8">
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-            <h1 className="text-2xl font-bold mt-4">Subscription Activated!</h1>
+            <h1 className="text-2xl font-bold mt-4">Payment Successful!</h1>
             <p className="text-muted-foreground mt-2">
-              Your premium account is now active. You'll be redirected to your settings page shortly.
-            </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              Thank you for subscribing to our premium features.
+              Your premium subscription has been activated. You'll be redirected shortly.
             </p>
           </div>
         ) : (
           <div className="text-center py-8">
             <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto" />
-            <h1 className="text-2xl font-bold mt-4">Verification in Progress</h1>
+            <h1 className="text-2xl font-bold mt-4">Payment Processing</h1>
             <p className="text-muted-foreground mt-2">
-              We're still processing your subscription. Please check back in a few moments.
+              Your payment is still being processed. Please wait a moment.
             </p>
             <Button onClick={() => setLocation('/settings')} className="mt-4">
               Return to Settings
