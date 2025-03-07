@@ -6,8 +6,11 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY must be defined');
 }
 
+// Initialize Stripe with production configuration
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia'
+  apiVersion: '2025-02-24.acacia',
+  // Ensure we're using production URL
+  host: 'api.stripe.com'
 });
 
 export class StripeService {
@@ -77,13 +80,13 @@ export class StripeService {
     }
   }
 
-  static async createCheckoutSession(customerId: string, priceId: string, userId: number, couponId?: string) {
+  static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
       if (!customerId || customerId === 'NULL') {
         throw new Error('Invalid customer ID');
       }
 
-      console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });
+      console.log('Creating checkout session with:', { customerId, priceId, userId });
 
       const baseUrl = process.env.NODE_ENV === 'production'
         ? 'https://lumate.replit.app'
@@ -91,7 +94,7 @@ export class StripeService {
 
       console.log('Using base URL:', baseUrl);
 
-      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+      const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [
           {
@@ -106,15 +109,7 @@ export class StripeService {
           userId: userId.toString(),
         },
         allow_promotion_codes: true,
-      };
-
-      if (couponId) {
-        sessionConfig.discounts = [{
-          coupon: couponId,
-        }];
-      }
-
-      const session = await stripe.checkout.sessions.create(sessionConfig);
+      });
 
       console.log('Successfully created checkout session:', {
         sessionId: session.id,

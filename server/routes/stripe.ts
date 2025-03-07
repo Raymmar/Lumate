@@ -53,25 +53,7 @@ router.post('/create-checkout-session', async (req, res) => {
 
 // IMPORTANT: Configure webhook raw body handling before any other middleware
 // This ensures we get the raw body for signature verification
-router.use('/webhook', 
-  express.raw({ type: 'application/json' }), 
-  (req, res, next) => {
-    // Log detailed request info for debugging
-    console.log('🔔 Webhook request details:', {
-      method: req.method,
-      path: req.path,
-      headers: {
-        'content-type': req.headers['content-type'],
-        'content-length': req.headers['content-length'],
-        'stripe-signature': req.headers['stripe-signature']?.substring(0, 10) + '...'
-      },
-      bodyType: typeof req.body,
-      bodyIsBuffer: Buffer.isBuffer(req.body),
-      bodyLength: req.body?.length
-    });
-    next();
-  }
-);
+router.use('/webhook', express.raw({type: 'application/json'}));
 
 // Enhanced webhook handler
 router.post('/webhook', async (req: Request, res) => {
