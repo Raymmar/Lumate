@@ -159,56 +159,18 @@ router.post('/webhook', async (req, res) => {
 
 // Verify checkout session status
 router.get('/session-status', async (req, res) => {
-  console.log('🔍 Checking session status');
   try {
     const sessionId = req.query.session_id as string;
     if (!sessionId) {
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    console.log('📦 Retrieving session:', sessionId);
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription', 'payment_intent']
-    });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    console.log('Session data:', {
-      id: session.id,
-      paymentStatus: session.payment_status,
-      status: session.status,
-      hasSubscription: !!session.subscription,
-      customerId: session.customer
-    });
-
-    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-    const customerId = session.customer as string;
-
-    console.log('Subscription data:', {
-      id: subscription.id,
-      status: subscription.status,
-      customerId: subscription.customer
-    });
-
-    // Update user subscription status
-    const user = await storage.getUserByStripeCustomerId(customerId);
-    if (user) {
-      console.log('✏️ Updating subscription for user:', user.id);
-      await storage.updateUserSubscription(
-        user.id,
-        subscription.id,
-        subscription.status
-      );
-      console.log('✅ Subscription status updated:', {
-        userId: user.id,
-        subscriptionId: subscription.id,
-        status: subscription.status
-      });
-    }
-
-    // If payment is successful and we have subscription info, mark as complete
-    if (session.payment_status === 'paid' && session.subscription) {
+    // If we have a session and it's paid, consider it complete
+    if (session.payment_status === 'paid') {
       return res.json({
-        status: 'complete',
-        subscriptionStatus: subscription.status
+        status: 'complete'
       });
     }
 
