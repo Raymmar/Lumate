@@ -71,7 +71,7 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Stripe webhook handler
+// Stripe webhook handler - uses raw body parser
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   console.log('Received webhook request at:', new Date().toISOString());
   console.log('Webhook Headers:', {

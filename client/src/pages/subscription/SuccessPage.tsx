@@ -11,9 +11,9 @@ export default function SubscriptionSuccessPage() {
 
   // Query subscription status
   const { data: subscriptionStatus, isLoading } = useQuery({
-    queryKey: ['/api/subscription/status'],
+    queryKey: ['/api/stripe/subscription/status'],
     queryFn: async () => {
-      const response = await fetch('/api/subscription/status');
+      const response = await fetch('/api/stripe/subscription/status');
       if (!response.ok) throw new Error('Failed to fetch subscription status');
       return response.json();
     },

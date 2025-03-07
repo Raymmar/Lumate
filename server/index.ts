@@ -8,19 +8,24 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Raw body handling for Stripe webhooks must come before JSON middleware
-// Update the webhook path to match Stripe configuration
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req: Request, res: Response, next: NextFunction) => {
-  console.log('Received webhook request at:', new Date().toISOString());
-  console.log('Webhook Headers:', {
-    'stripe-signature': req.headers['stripe-signature'] ? 'Present' : 'Missing',
-    'content-type': req.headers['content-type'],
-  });
-  next();
+// Raw body handling for Stripe webhooks must come before ANY other middleware
+app.use((req, res, next) => {
+  if (req.path === '/api/stripe/webhook') {
+    express.raw({ type: 'application/json' })(req, res, next);
+  } else {
+    next();
+  }
 });
 
-// Regular JSON parsing for all other routes
-app.use(express.json());
+// Regular JSON parsing for non-webhook routes
+app.use((req, res, next) => {
+  if (req.path !== '/api/stripe/webhook') {
+    express.json()(req, res, next);
+  } else {
+    next();
+  }
+});
+
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session handling
@@ -62,10 +67,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mount routes
-app.use('/api/unsplash', unsplashRoutes);
-app.use('/api/stripe', stripeRoutes);
-
 // Request logging middleware with timing
 app.use((req, res, next) => {
   const start = Date.now();
@@ -104,10 +105,14 @@ app.use((req, res, next) => {
   console.log('Ensuring database tables exist...');
   await ensureTablesExist();
 
-  // Register routes first
+  // Mount API routes before static file serving or Vite middleware
+  app.use('/api/stripe', stripeRoutes);  // Stripe routes first to ensure webhook handling
+  app.use('/api/unsplash', unsplashRoutes);
+
+  // Register other routes
   await registerRoutes(app);
 
-  // Then set up Vite in development
+  // Then set up Vite in development or serve static files in production
   if (app.get("env") === "development") {
     await setupVite(app);
   } else {
