@@ -1,64 +1,41 @@
 import Stripe from 'stripe';
 import { storage } from '../storage';
-import type { User } from '@shared/schema';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY must be defined');
 }
 
-// Initialize Stripe with production configuration
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia',
-  // Ensure we're using production URL
-  host: 'api.stripe.com'
+  apiVersion: '2025-02-24.acacia'
 });
 
 export class StripeService {
-  static async getOrCreateCustomer(user: User): Promise<string> {
+  static async createCustomer(email: string, userId: number) {
     try {
-      if (user.stripeCustomerId && user.stripeCustomerId !== 'NULL') {
-        // Verify the customer exists
-        try {
-          await stripe.customers.retrieve(user.stripeCustomerId);
-          return user.stripeCustomerId;
-        } catch (error) {
-          console.log('Invalid customer ID, creating new customer');
-        }
-      }
-
-      // Create new customer
+      console.log('Creating Stripe customer for:', email);
       const customer = await stripe.customers.create({
-        email: user.email,
+        email,
         metadata: {
-          userId: user.id.toString(),
+          userId: userId.toString(),
         },
       });
 
-      await storage.setStripeCustomerId(user.id, customer.id);
-      return customer.id;
+      console.log('Successfully created Stripe customer:', customer.id);
+      return customer;
     } catch (error) {
-      console.error('Error in getOrCreateCustomer:', error);
+      console.error('Error creating Stripe customer:', error);
       throw error;
     }
   }
 
   static async createSubscription(customerId: string, priceId: string) {
     try {
-      console.log('Creating subscription:', { customerId, priceId });
-
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
         payment_behavior: 'default_incomplete',
         payment_settings: { save_default_payment_method: 'on_subscription' },
         expand: ['latest_invoice.payment_intent'],
-      });
-
-      console.log('Subscription created:', {
-        id: subscription.id,
-        status: subscription.status,
-        customerId: subscription.customer,
-        priceId: subscription.items.data[0]?.price.id
       });
 
       return subscription;
@@ -89,13 +66,13 @@ export class StripeService {
     }
   }
 
-  static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
+  static async createCheckoutSession(customerId: string, priceId: string, userId: number, couponId?: string) {
     try {
       if (!customerId || customerId === 'NULL') {
         throw new Error('Invalid customer ID');
       }
 
-      console.log('Creating checkout session with:', { customerId, priceId, userId });
+      console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });
 
       const baseUrl = process.env.NODE_ENV === 'production'
         ? 'https://lumate.replit.app'
@@ -103,7 +80,7 @@ export class StripeService {
 
       console.log('Using base URL:', baseUrl);
 
-      const session = await stripe.checkout.sessions.create({
+      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         line_items: [
           {
@@ -118,7 +95,15 @@ export class StripeService {
           userId: userId.toString(),
         },
         allow_promotion_codes: true,
-      });
+      };
+
+      if (couponId) {
+        sessionConfig.discounts = [{
+          coupon: couponId,
+        }];
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
 
       console.log('Successfully created checkout session:', {
         sessionId: session.id,

@@ -13,28 +13,17 @@ export default function SubscriptionSuccessPage() {
   const { data: subscriptionStatus, isLoading } = useQuery({
     queryKey: ['/api/stripe/subscription/status'],
     queryFn: async () => {
-      console.log('Checking subscription status...');
       const response = await fetch('/api/stripe/subscription/status');
-      if (!response.ok) {
-        console.error('Failed to fetch subscription status:', await response.text());
-        throw new Error('Failed to fetch subscription status');
-      }
-      const data = await response.json();
-      console.log('Received subscription status:', data);
-      return data;
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      return response.json();
     },
     // Only start querying once we have a session ID
     enabled: !!sessionId,
-    // Poll every 2 seconds for 1 minute to catch webhook processing
-    refetchInterval: (data) => 
-      data?.status === 'active' ? false : 2000,
-    refetchCount: 30
   });
 
   useEffect(() => {
     // If subscription is active, wait a moment then redirect to settings
     if (subscriptionStatus?.status === 'active') {
-      console.log('Subscription active, redirecting to settings...');
       const timer = setTimeout(() => {
         setLocation('/settings');
       }, 3000);
