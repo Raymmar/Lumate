@@ -6,7 +6,8 @@ import { PreviewSidebar } from "./PreviewSidebar";
 import { PersonPreview } from "./PersonPreview";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
-import { formatUsernameForUrl } from "@/components/people/PeopleDirectory";
+import { formatUsernameForUrl } from "@/lib/utils";
+import { useLocation } from "wouter";
 import {
   Pagination,
   PaginationContent,
@@ -24,6 +25,7 @@ export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [, setLocation] = useLocation();
   const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
 
@@ -70,6 +72,7 @@ export function PeopleTable() {
   const onRowClick = (person: Person) => {
     const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setSelectedPerson(person);
+    setLocation(`/people/${encodeURIComponent(urlPath)}`);
   };
 
   const handlePreviousPage = () => {
@@ -83,6 +86,7 @@ export function PeopleTable() {
   const handleNavigate = (person: Person) => {
     const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setSelectedPerson(person);
+    setLocation(`/people/${encodeURIComponent(urlPath)}`);
   };
 
   return (

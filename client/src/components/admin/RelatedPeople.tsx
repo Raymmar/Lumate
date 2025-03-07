@@ -1,7 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Person } from "@shared/schema";
 import { Link } from "wouter";
-import { formatUsernameForUrl } from "@/components/people/PeopleDirectory";
+import { formatUsernameForUrl } from "@/lib/utils";
 
 interface RelatedPeopleProps {
   person?: Person | null;

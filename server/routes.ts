@@ -415,21 +415,32 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/people/by-username/:username", async (req, res) => {
     try {
-      const username = req.params.username.replace(/-/g, ' ');
-      let person = await storage.getPersonByUsername(username);
+      // First try to look up by username (replacing hyphens with spaces)
+      const normalizedUsername = decodeURIComponent(req.params.username).replace(/-/g, ' ');
+      console.log('Looking up person by normalized username:', normalizedUsername);
+      
+      let person = await storage.getPersonByUsername(normalizedUsername);
 
       if (!person) {
-        // If not found by username, try looking up by API ID as fallback
+        // If not found by username, try API ID
+        console.log('Person not found by username, trying API ID:', req.params.username);
         person = await storage.getPersonByApiId(req.params.username);
         
-        if (person?.userName && req.headers.accept?.includes('text/html')) {
+        if (person?.userName) {
           // If found by API ID and has username, redirect to username URL
           const formattedUsername = person.userName.trim().toLowerCase().replace(/\s+/g, '-');
-          return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
+          console.log('Found by API ID, has username:', formattedUsername);
+          
+          // If it's a browser request, do a redirect
+          if (req.headers.accept?.includes('text/html')) {
+            console.log('Browser request - redirecting to username URL');
+            return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
+          }
         }
       }
 
       if (!person) {
+        console.log('Person not found by either username or API ID');
         return res.status(404).json({ error: "Person not found" });
       }
 
@@ -462,20 +473,9 @@ export async function registerRoutes(app: Express) {
       };
 
       console.log('API Response - Person with user data:', {
-        username,
-        hasUser: !!user[0],
-        userData: user[0] ? {
-          id: user[0].id,
-          email: user[0].email,
-          companyName: user[0].companyName,
-          companyDescription: user[0].companyDescription,
-          hasAddress: !!user[0].address,
-          hasPhone: !!user[0].phoneNumber,
-          hasCustomLinks: Array.isArray(user[0].customLinks) && user[0].customLinks.length > 0,
-          hasFeaturedImage: !!user[0].featuredImageUrl,
-          hasTags: Array.isArray(user[0].tags) && user[0].tags.length > 0,
-          hasBio: !!user[0].bio
-        } : null
+        username: normalizedUsername,
+        personId: person.id,
+        hasUser: !!user[0]
       });
 
       res.json(personWithUser);

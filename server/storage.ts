@@ -1576,7 +1576,10 @@ export class PostgresStorage implements IStorage {
   }
   async getPersonByUsername(username: string): Promise<Person | null> {
     try {
-      const result = await db
+      console.log('Looking up person by username:', username);
+
+      // First try exact match with userName (camelCase as per schema)
+      let result = await db
         .select({
           ...people,
           isAdmin: users.isAdmin
@@ -1587,9 +1590,29 @@ export class PostgresStorage implements IStorage {
         .limit(1);
 
       if (result.length === 0) {
-        // Try looking up by API ID as fallback
-        return this.getPersonByApiId(username);
+        console.log('No exact match found, trying case-insensitive match');
+        // Try case-insensitive match with userName
+        result = await db
+          .select({
+            ...people,
+            isAdmin: users.isAdmin
+          })
+          .from(people)
+          .leftJoin(users, eq(users.email, people.email))
+          .where(sql`LOWER(${people.userName}) = LOWER(${username})`)
+          .limit(1);
       }
+
+      if (result.length === 0) {
+        console.log('Person not found by username:', username);
+        return null;
+      }
+
+      console.log('Found person by username:', {
+        id: result[0].id,
+        userName: result[0].userName,
+        email: result[0].email
+      });
 
       // Extract the person data and admin status
       const person = result[0];
@@ -1602,6 +1625,7 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+
 }
 
 export const storage = new PostgresStorage();

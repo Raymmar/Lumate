@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
 import { useLocation, useParams } from 'wouter';
+import { formatUsernameForUrl } from '@/lib/utils';
 import {
   Pagination,
   PaginationContent,
@@ -39,12 +40,6 @@ interface PeopleResponse {
   people: Person[];
   total: number;
 }
-
-// Helper function to format username for URLs
-export const formatUsernameForUrl = (username: string | null, fallbackId: string): string => {
-  if (!username) return fallbackId;
-  return username.trim().toLowerCase().replace(/\s+/g, '-');
-};
 
 export default function PeopleDirectory() {
   const [, setLocation] = useLocation();
