@@ -97,9 +97,11 @@ export class StripeService {
         metadata: {
           userId: userId.toString(),
         },
+        // Enable promotion code input field
+        allow_promotion_codes: true,
       };
 
-      // Add coupon if provided
+      // Add coupon if provided programmatically
       if (couponId) {
         sessionConfig.discounts = [{
           coupon: couponId,
