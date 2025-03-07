@@ -60,6 +60,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   let event: Stripe.Event;
 
   try {
+    console.log('Received webhook request:', {
+      path: req.path,
+      method: req.method,
+      headers: {
+        'stripe-signature': sig?.substring(0, 10) + '...',
+        'content-type': req.headers['content-type']
+      }
+    });
+
     event = stripe.webhooks.constructEvent(
       req.body,
       sig!,
@@ -67,7 +76,11 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     );
     console.log('Received webhook event:', event.type, JSON.stringify(event.data.object, null, 2));
   } catch (err: any) {
-    console.error('Webhook signature verification failed:', err);
+    console.error('Webhook signature verification failed:', {
+      error: err.message,
+      stack: err.stack,
+      headers: req.headers
+    });
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
@@ -85,7 +98,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           customerId,
           status: subscription.status,
           currentPeriodEnd: subscription.current_period_end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          metadata: subscription.metadata,
+          items: subscription.items.data.map(item => ({
+            priceId: item.price.id,
+            quantity: item.quantity
+          }))
         });
 
         const user = await storage.getUserByStripeCustomerId(customerId);
@@ -103,7 +121,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         console.log('Successfully updated user subscription:', {
           userId: user.id,
           subscriptionId: subscription.id,
-          status: subscription.status
+          status: subscription.status,
+          timestamp: new Date().toISOString()
         });
         break;
       }
@@ -116,7 +135,10 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           customerId: session.customer,
           paymentStatus: session.payment_status,
           mode: session.mode,
-          subscriptionId: session.subscription
+          subscriptionId: session.subscription,
+          metadata: session.metadata,
+          amountTotal: session.amount_total,
+          currency: session.currency
         });
 
         // For subscription mode, the subscription event will handle the status update
@@ -133,7 +155,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
     res.json({ received: true });
   } catch (err: any) {
-    console.error('Error processing webhook:', err);
+    console.error('Error processing webhook:', {
+      error: err.message,
+      stack: err.stack,
+      eventType: event.type,
+      eventId: event.id
+    });
     res.status(500).send(`Webhook Error: ${err.message}`);
   }
 });

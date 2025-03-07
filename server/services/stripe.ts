@@ -1,13 +1,23 @@
 import Stripe from 'stripe';
 import { storage } from '../storage';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY must be defined');
+// Test mode configuration
+const isTestMode = process.env.STRIPE_TEST_MODE === 'true';
+if (isTestMode) {
+  console.log('⚠️ Stripe running in TEST mode');
+  if (!process.env.STRIPE_TEST_PRICE_ID) {
+    throw new Error('STRIPE_TEST_PRICE_ID must be defined in test mode');
+  }
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+// Initialize Stripe with the appropriate secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16'
 });
+
+// Price IDs for different environments
+const TEST_PRICE_ID = process.env.STRIPE_TEST_PRICE_ID;
+const PROD_PRICE_ID = 'price_1Qs63DCM3nBpAbtwkRVcXEmS';
 
 export class StripeService {
   static async createCustomer(email: string, userId: number) {
@@ -47,41 +57,28 @@ export class StripeService {
     }
   }
 
-  static async cancelSubscription(subscriptionId: string) {
-    try {
-      return await stripe.subscriptions.cancel(subscriptionId);
-    } catch (error) {
-      console.error('Error canceling subscription:', error);
-      throw error;
-    }
-  }
-
-  static async getSubscriptionStatus(subscriptionId: string) {
-    try {
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      return subscription.status;
-    } catch (error) {
-      console.error('Error fetching subscription status:', error);
-      throw error;
-    }
-  }
-
   static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
       console.log('Creating checkout session with:', { customerId, userId });
 
       // Use environment variables with fallbacks for success/cancel URLs
-      const baseUrl = process.env.APP_URL || process.env.REPL_SLUG 
-        ? `https://${process.env.REPL_SLUG}.repl.co` 
+      const baseUrl = process.env.APP_URL || process.env.REPL_SLUG
+        ? `https://${process.env.REPL_SLUG}.repl.co`
         : 'http://localhost:3000';
 
       console.log('Creating session with base URL:', baseUrl);
+
+      // Determine which price ID to use based on environment
+      const isTestMode = process.env.STRIPE_TEST_MODE === 'true';
+      const actualPriceId = isTestMode ? TEST_PRICE_ID : PROD_PRICE_ID;
+
+      console.log(`Operating in ${isTestMode ? 'TEST' : 'PRODUCTION'} mode with price ID:`, actualPriceId);
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [
           {
-            price: 'price_1Qs63DCM3nBpAbtwkRVcXEmS', // Use the exact price ID
+            price: actualPriceId,
             quantity: 1,
           },
         ],
@@ -97,6 +94,25 @@ export class StripeService {
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);
+      throw error;
+    }
+  }
+
+  static async cancelSubscription(subscriptionId: string) {
+    try {
+      return await stripe.subscriptions.cancel(subscriptionId);
+    } catch (error) {
+      console.error('Error canceling subscription:', error);
+      throw error;
+    }
+  }
+
+  static async getSubscriptionStatus(subscriptionId: string) {
+    try {
+      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+      return subscription.status;
+    } catch (error) {
+      console.error('Error fetching subscription status:', error);
       throw error;
     }
   }
