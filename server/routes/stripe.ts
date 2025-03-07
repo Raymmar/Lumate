@@ -69,15 +69,26 @@ router.post('/create-checkout-session', async (req, res) => {
 
 // Stripe webhook handler
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  console.log('Received webhook request at:', new Date().toISOString());
+
   const sig = req.headers['stripe-signature'];
+  if (!sig) {
+    console.error('No Stripe signature found in webhook request');
+    return res.status(400).send('No Stripe signature');
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('STRIPE_WEBHOOK_SECRET is not configured');
+    return res.status(500).send('Webhook secret not configured');
+  }
 
   let event: Stripe.Event;
 
   try {
     event = stripe.webhooks.constructEvent(
       req.body,
-      sig!,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err);
