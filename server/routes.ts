@@ -27,16 +27,6 @@ import { CacheService } from './services/CacheService';
 import { posts, tags, postTags } from "@shared/schema";
 import stripeRouter from './routes/stripe';
 import { StripeService } from './services/stripe';
-import express from 'express';
-import Stripe from 'stripe';
-
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16'
-});
-
-// Configure raw body parsing for webhook endpoints
-const rawBodyMiddleware = express.raw({ type: 'application/json' });
 
 interface Post {
   id: number;
@@ -180,55 +170,7 @@ export async function registerRoutes(app: Express) {
 
   app.use('/api/upload', uploadRouter);
   app.use('/api/unsplash', unsplashRouter);
-  
-  // Configure Stripe routes with raw body middleware for webhooks
   app.use('/api/stripe', stripeRouter);
-  
-  // Add fallback webhook endpoint using raw body middleware
-  app.post('/api/webhook', rawBodyMiddleware, async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    console.log('Webhook request received at /api/webhook', {
-      headers: {
-        'stripe-signature': sig?.toString().substring(0, 10) + '...',
-        'content-type': req.headers['content-type']
-      }
-    });
-
-    try {
-      const event = stripe.webhooks.constructEvent(
-        req.body,
-        sig!,
-        process.env.STRIPE_WEBHOOK_SECRET!
-      );
-      
-      // Handle webhook event
-      switch (event.type) {
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-        case 'customer.subscription.deleted': {
-          const subscription = event.data.object as Stripe.Subscription;
-          const customerId = subscription.customer as string;
-          
-          const user = await storage.getUserByStripeCustomerId(customerId);
-          if (!user) {
-            return res.status(400).send('No user found');
-          }
-
-          await storage.updateUserSubscription(
-            user.id,
-            subscription.id,
-            subscription.status
-          );
-          break;
-        }
-      }
-
-      res.json({ received: true });
-    } catch (error: any) {
-      console.error('Webhook Error:', error.message);
-      return res.status(400).send(`Webhook Error: ${error.message}`);
-    }
-  });
 
   app.get("/api/subscription/status", async (req, res) => {
     try {
