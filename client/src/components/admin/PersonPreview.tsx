@@ -122,7 +122,7 @@ export function PersonPreview({ person, people = [], onNavigate }: PersonPreview
       {/* Navigation Section - Fixed to bottom */}
       {people.length > 1 && onNavigate && (
         <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center max-w-[400px] mx-auto">
             <Button
               variant="ghost"
               disabled={!hasPrevious}
