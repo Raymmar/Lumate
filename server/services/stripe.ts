@@ -1,23 +1,13 @@
 import Stripe from 'stripe';
 import { storage } from '../storage';
 
-// Test mode configuration
-const isTestMode = process.env.STRIPE_TEST_MODE === 'true';
-if (isTestMode) {
-  console.log('⚠️ Stripe running in TEST mode');
-  if (!process.env.STRIPE_TEST_PRICE_ID) {
-    throw new Error('STRIPE_TEST_PRICE_ID must be defined in test mode');
-  }
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY must be defined');
 }
 
-// Initialize Stripe with the appropriate secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia'
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16'
 });
-
-// Price IDs for different environments
-const TEST_PRICE_ID = process.env.STRIPE_TEST_PRICE_ID!;
-const PROD_PRICE_ID = 'price_1Qs63DCM3nBpAbtwkRVcXEmS';
 
 export class StripeService {
   static async createCustomer(email: string, userId: number) {
@@ -57,47 +47,6 @@ export class StripeService {
     }
   }
 
-  static async createCheckoutSession(customerId: string, userId: number) {
-    try {
-      console.log('Creating checkout session with:', { customerId, userId });
-
-      // Use environment variables with fallbacks for success/cancel URLs
-      const baseUrl = process.env.APP_URL || process.env.REPL_SLUG
-        ? `https://${process.env.REPL_SLUG}.repl.co`
-        : 'http://localhost:3000';
-
-      console.log('Creating session with base URL:', baseUrl);
-
-      // Determine which price ID to use based on environment
-      const isTestMode = process.env.STRIPE_TEST_MODE === 'true';
-      const actualPriceId = isTestMode ? TEST_PRICE_ID : PROD_PRICE_ID;
-
-      console.log(`Operating in ${isTestMode ? 'TEST' : 'PRODUCTION'} mode with price ID:`, actualPriceId);
-
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [
-          {
-            price: actualPriceId,
-            quantity: 1,
-          },
-        ],
-        mode: 'subscription',
-        success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/subscription/cancel`,
-        metadata: {
-          userId: userId.toString(),
-        },
-      });
-
-      console.log('Successfully created checkout session:', session.id);
-      return session;
-    } catch (error) {
-      console.error('Error creating checkout session:', error);
-      throw error;
-    }
-  }
-
   static async cancelSubscription(subscriptionId: string) {
     try {
       return await stripe.subscriptions.cancel(subscriptionId);
@@ -113,6 +62,41 @@ export class StripeService {
       return subscription.status;
     } catch (error) {
       console.error('Error fetching subscription status:', error);
+      throw error;
+    }
+  }
+
+  static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
+    try {
+      console.log('Creating checkout session with:', { customerId, userId });
+
+      // Use environment variables with fallbacks for success/cancel URLs
+      const baseUrl = process.env.APP_URL || process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.repl.co` 
+        : 'http://localhost:3000';
+
+      console.log('Creating session with base URL:', baseUrl);
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        line_items: [
+          {
+            price: 'price_1Qs63DCM3nBpAbtwkRVcXEmS', // Use the exact price ID
+            quantity: 1,
+          },
+        ],
+        mode: 'subscription',
+        success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/subscription/cancel`,
+        metadata: {
+          userId: userId.toString(),
+        },
+      });
+
+      console.log('Successfully created checkout session:', session.id);
+      return session;
+    } catch (error) {
+      console.error('Error creating checkout session:', error);
       throw error;
     }
   }
