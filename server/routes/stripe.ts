@@ -203,10 +203,15 @@ router.get('/session-status', async (req, res) => {
       });
     }
 
-    return res.json({
-      status: 'complete',
-      subscriptionStatus: subscription.status
-    });
+    // If we have a subscription ID and it's active, consider it complete
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
+      return res.json({
+        status: 'complete',
+        subscriptionStatus: subscription.status
+      });
+    }
+
+    return res.json({ status: 'pending' });
   } catch (error) {
     console.error('❌ Error checking session status:', error);
     return res.status(500).json({ error: 'Failed to verify session status' });
