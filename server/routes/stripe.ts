@@ -170,6 +170,12 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 });
 
+// Add test endpoint for webhook verification
+router.get('/webhook/test', (req, res) => {
+  console.log('Webhook test endpoint reached');
+  res.json({ status: 'Webhook endpoint is accessible' });
+});
+
 // Add specific route for checking subscription status
 router.get('/subscription/status', async (req, res) => {
   try {

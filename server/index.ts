@@ -9,7 +9,15 @@ import stripeRoutes from './routes/stripe';
 const app = express();
 
 // Raw body handling for Stripe webhooks must come before JSON middleware
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+// Update the webhook path to match Stripe configuration
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), (req: Request, res: Response, next: NextFunction) => {
+  console.log('Received webhook request at:', new Date().toISOString());
+  console.log('Webhook Headers:', {
+    'stripe-signature': req.headers['stripe-signature'] ? 'Present' : 'Missing',
+    'content-type': req.headers['content-type'],
+  });
+  next();
+});
 
 // Regular JSON parsing for all other routes
 app.use(express.json());
