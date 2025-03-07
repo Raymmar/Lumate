@@ -22,6 +22,8 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
+    const { couponId } = req.body; // Get coupon ID from request body
+
     const user = await storage.getUserById(userId);
     if (!user) {
       console.log('User not found:', userId);
@@ -32,7 +34,8 @@ router.post('/create-checkout-session', async (req, res) => {
       userId, 
       email: user.email,
       stripeCustomerId: user.stripeCustomerId || 'none',
-      priceId: process.env.STRIPE_PRICE_ID
+      priceId: process.env.STRIPE_PRICE_ID,
+      couponId: couponId || 'none'
     });
 
     // Create Stripe customer if not exists
@@ -47,7 +50,8 @@ router.post('/create-checkout-session', async (req, res) => {
     const session = await StripeService.createCheckoutSession(
       user.stripeCustomerId,
       process.env.STRIPE_PRICE_ID,
-      user.id
+      user.id,
+      couponId
     );
 
     console.log('Successfully created checkout session:', {

@@ -66,9 +66,9 @@ export class StripeService {
     }
   }
 
-  static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
+  static async createCheckoutSession(customerId: string, priceId: string, userId: number, couponId?: string) {
     try {
-      console.log('Creating checkout session with:', { customerId, priceId, userId });
+      console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });
 
       // Get the base URL with production URL as default
       const isProd = process.env.NODE_ENV === 'production';
@@ -82,7 +82,8 @@ export class StripeService {
         throw new Error(`Invalid price ID format: ${priceId}. Price ID should start with 'price_'`);
       }
 
-      const session = await stripe.checkout.sessions.create({
+      // Create session configuration
+      const sessionConfig: Stripe.Checkout.SessionCreateParams = {
         customer: customerId,
         line_items: [
           {
@@ -96,13 +97,23 @@ export class StripeService {
         metadata: {
           userId: userId.toString(),
         },
-      });
+      };
+
+      // Add coupon if provided
+      if (couponId) {
+        sessionConfig.discounts = [{
+          coupon: couponId,
+        }];
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
 
       console.log('Successfully created checkout session:', {
         sessionId: session.id,
         url: session.url,
         successUrl: session.success_url,
-        cancelUrl: session.cancel_url
+        cancelUrl: session.cancel_url,
+        hasCoupon: !!couponId
       });
 
       return session;
