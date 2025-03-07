@@ -91,7 +91,7 @@ export class StripeService {
         metadata: {
           userId: userId.toString(),
         },
-        allow_promotion_codes: true,
+        allow_promotion_codes: true, // Enable coupon/promotion code support
       };
 
       if (couponId) {

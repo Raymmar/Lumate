@@ -64,6 +64,7 @@ router.post('/create-checkout-session', async (req, res) => {
       metadata: {
         userId: user.id.toString(),
       },
+      allow_promotion_codes: true, // Enable coupon/promotion code support
     });
 
     res.json({ url: session.url });
