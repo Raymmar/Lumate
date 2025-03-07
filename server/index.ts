@@ -8,15 +8,6 @@ import stripeRoutes from './routes/stripe';
 
 const app = express();
 
-// Raw body handling for Stripe webhooks must come before ANY other middleware
-app.use((req, res, next) => {
-  if (req.path === '/api/stripe/webhook') {
-    express.raw({ type: 'application/json' })(req, res, next);
-  } else {
-    next();
-  }
-});
-
 // Regular JSON parsing for non-webhook routes
 app.use((req, res, next) => {
   if (req.path !== '/api/stripe/webhook') {
@@ -32,7 +23,6 @@ app.use(express.urlencoded({ extended: false }));
 const PostgresStore = connectPg(session);
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Enhanced session configuration
 app.use(session({
   store: new PostgresStore({
     conObject: {
@@ -52,51 +42,6 @@ app.use(session({
   name: 'sid',
   proxy: isProduction
 }));
-
-// Add detailed authentication logging middleware
-app.use((req, res, next) => {
-  console.log('Auth Debug:', {
-    sessionId: req.sessionID,
-    userId: req.session?.userId,
-    path: req.path,
-    method: req.method,
-    authenticated: !!req.session?.userId,
-    cookies: req.headers.cookie,
-    timestamp: new Date().toISOString()
-  });
-  next();
-});
-
-// Request logging middleware with timing
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
 
 (async () => {
   // First ensure database tables exist
