@@ -967,7 +967,7 @@ export class PostgresStorage implements IStorage {
           body: posts.body,
           featuredImage: posts.featuredImage,
           videoUrl: posts.videoUrl,
-ctaLink: posts.ctaLink,
+          ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
           creatorId: posts.creatorId,
@@ -1576,36 +1576,44 @@ ctaLink: posts.ctaLink,
   }
   async getPersonByUsername(username: string): Promise<Person | null> {
     try {
-      console.log('Looking up person by normalized username:', username);
+      // Remove any URL encoding and normalize spaces
+      const normalizedUsername = decodeURIComponent(username).replace(/-/g, ' ');
+      console.log('Looking up person by normalized username:', normalizedUsername);
 
-      // Try an exact match with userName first
+      // Try direct match first
       let result = await db
-        .select({
-          ...people,
-          isAdmin: users.isAdmin
-        })
+        .select()
         .from(people)
-        .leftJoin(users, eq(users.email, people.email))
-        .where(eq(people.userName, username))
+        .where(eq(people.userName, normalizedUsername))
         .limit(1);
 
       if (result.length === 0) {
         console.log('No exact match found, trying case-insensitive match');
         // Try case-insensitive match
         result = await db
-          .select({
-            ...people,
-            isAdmin: users.isAdmin
-          })
+          .select()
           .from(people)
-          .leftJoin(users, eq(users.email, people.email))
-          .where(sql`LOWER(${people.userName}) = LOWER(${username})`)
+          .where(sql`LOWER(${people.userName}) = LOWER(${normalizedUsername})`)
           .limit(1);
       }
 
       if (result.length === 0) {
-        console.log('Person not found by username:', username);
-        return null;
+        console.log('No case-insensitive match found, trying fuzzy match');
+        // Try fuzzy match with special character normalization
+        result = await db
+          .select()
+          .from(people)
+          .where(sql`
+            LOWER(REGEXP_REPLACE(${people.userName}, '[^a-zA-Z0-9]+', '', 'g')) = 
+            LOWER(REGEXP_REPLACE(${normalizedUsername}, '[^a-zA-Z0-9]+', '', 'g'))
+          `)
+          .limit(1);
+      }
+
+      if (result.length === 0) {
+        console.log('Person not found by username:', normalizedUsername);
+        // Try looking up by API ID as last resort
+        return this.getPersonByApiId(username);
       }
 
       console.log('Found person by username:', {
@@ -1614,12 +1622,7 @@ ctaLink: posts.ctaLink,
         email: result[0].email
       });
 
-      // Extract the person data and admin status
-      const person = result[0];
-      return {
-        ...person,
-        isAdmin: Boolean(person.isAdmin)
-      };
+      return result[0];
     } catch (error) {
       console.error('Failed to get person by username:', error);
       throw error;
