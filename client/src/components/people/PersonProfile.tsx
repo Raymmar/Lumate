@@ -102,7 +102,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  // Check if the viewed profile has a subscription
   const { data: profileSubscriptionStatus, isLoading: statusLoading } = useQuery({
     queryKey: ['/api/people', personId, 'subscription'],
     queryFn: async () => {
@@ -112,6 +111,8 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     },
   });
 
+  const isAdmin = Boolean(currentUser?.isAdmin);
+  const isProfileAdmin = Boolean(person?.isAdmin);
   const hasActiveSubscription = profileSubscriptionStatus?.status === 'active';
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
 
@@ -137,15 +138,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isAdmin = Boolean(currentUser?.isAdmin);
-  const isProfileAdmin = Boolean(person.isAdmin);
-
-  // Mock data for badges - This should eventually come from the API
   const userBadges = [
     { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
     { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
   ];
+
+  const shouldShowMemberDetails = person.user && (isProfileAdmin || hasActiveSubscription);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -185,7 +184,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </div>
         </div>
 
-        {/* Badges Section - Always visible */}
         <div className="flex flex-wrap gap-2">
           {userBadges.map((badge, index) => (
             <ProfileBadge
@@ -196,7 +194,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           ))}
         </div>
 
-        {/* Bio/About Section - Always visible */}
         <Card>
           <CardContent className="py-4 pt-4">
             {person.user?.bio ? (
@@ -207,8 +204,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Show Member Details if the person has an active subscription */}
-        {hasActiveSubscription && person.user && (
+        {shouldShowMemberDetails && (
           <AuthGuard>
             <MemberDetails user={person.user} />
           </AuthGuard>
