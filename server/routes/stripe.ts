@@ -11,6 +11,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
+    console.log("⭐️ Creating checkout session");
     if (!process.env.STRIPE_PRICE_ID) {
       throw new Error('Stripe price ID is not configured');
     }
@@ -27,16 +28,24 @@ router.post('/create-checkout-session', async (req, res) => {
 
     // Create or use existing Stripe customer
     if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
+      console.log('Creating new Stripe customer for user:', user.email);
       const customer = await StripeService.createCustomer(user.email, user.id);
       await storage.setStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
+      console.log('Created new Stripe customer:', customer.id);
     }
 
+    console.log('Creating checkout session with customer:', user.stripeCustomerId);
     const session = await StripeService.createCheckoutSession(
       user.stripeCustomerId,
       process.env.STRIPE_PRICE_ID,
       user.id
     );
+
+    console.log('Checkout session created:', {
+      sessionId: session.id,
+      url: session.url
+    });
 
     res.json({ url: session.url });
   } catch (error: any) {
@@ -47,10 +56,11 @@ router.post('/create-checkout-session', async (req, res) => {
 
 // Webhook handler
 router.post('/webhook', async (req, res) => {
-  console.log('🔄 Webhook request received:', {
+  console.log('🔔 Webhook Request Details:', {
     contentType: req.headers['content-type'],
     hasSignature: !!req.headers['stripe-signature'],
-    bodyType: typeof req.body
+    bodyType: typeof req.body,
+    bodyLength: req.body?.length || 0
   });
 
   const sig = req.headers['stripe-signature'];
@@ -73,6 +83,8 @@ router.post('/webhook', async (req, res) => {
   }
 
   try {
+    console.log('📦 Full webhook event:', JSON.stringify(event.data.object, null, 2));
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -86,11 +98,19 @@ router.post('/webhook', async (req, res) => {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           const customerId = subscription.customer as string;
 
+          console.log('🔍 Looking up user for customer:', customerId);
           const user = await storage.getUserByStripeCustomerId(customerId);
+
           if (!user) {
             console.error('❌ No user found for customer:', customerId);
             return res.status(400).json({ error: 'No user found for customer' });
           }
+
+          console.log('✨ Updating subscription for user:', {
+            userId: user.id,
+            subscriptionId: subscription.id,
+            status: subscription.status
+          });
 
           const updatedUser = await storage.updateUserSubscription(
             user.id,
@@ -98,7 +118,7 @@ router.post('/webhook', async (req, res) => {
             subscription.status
           );
 
-          console.log('✅ Updated subscription from checkout:', {
+          console.log('✅ Successfully updated user subscription:', {
             userId: updatedUser.id,
             subscriptionId: updatedUser.subscriptionId,
             status: updatedUser.subscriptionStatus
@@ -131,7 +151,7 @@ router.post('/webhook', async (req, res) => {
           subscription.status
         );
 
-        console.log('✅ Updated subscription status:', {
+        console.log('✅ Successfully updated subscription:', {
           userId: updatedUser.id,
           subscriptionId: updatedUser.subscriptionId,
           status: updatedUser.subscriptionStatus
@@ -146,12 +166,14 @@ router.post('/webhook', async (req, res) => {
     res.json({ received: true });
   } catch (error) {
     console.error('❌ Webhook processing error:', error);
+    console.error(error);
     return res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 
-// Subscription status check
+// Status check endpoint
 router.get('/subscription/status', async (req, res) => {
+  console.log("📊 Checking subscription status");
   try {
     const userId = req.session?.userId;
     if (!userId) {
@@ -168,9 +190,10 @@ router.get('/subscription/status', async (req, res) => {
     }
 
     const status = await StripeService.getSubscriptionStatus(user.subscriptionId);
+    console.log('📈 Current subscription status:', status);
     return res.json({ status });
   } catch (error) {
-    console.error('Error checking subscription status:', error);
+    console.error('❌ Error checking subscription status:', error);
     return res.status(500).json({ error: 'Failed to check subscription status' });
   }
 });
