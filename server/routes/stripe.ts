@@ -51,19 +51,30 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Configure webhook raw body handling - must be before any other middleware
-router.use('/webhook', express.raw({ type: 'application/json' }));
+// IMPORTANT: Configure webhook raw body handling before any other middleware
+// This ensures we get the raw body for signature verification
+router.use('/webhook', 
+  express.raw({ type: 'application/json' }), 
+  (req, res, next) => {
+    // Log detailed request info for debugging
+    console.log('🔔 Webhook request details:', {
+      method: req.method,
+      path: req.path,
+      headers: {
+        'content-type': req.headers['content-type'],
+        'content-length': req.headers['content-length'],
+        'stripe-signature': req.headers['stripe-signature']?.substring(0, 10) + '...'
+      },
+      bodyType: typeof req.body,
+      bodyIsBuffer: Buffer.isBuffer(req.body),
+      bodyLength: req.body?.length
+    });
+    next();
+  }
+);
 
-// Enhanced webhook handler with detailed logging
+// Enhanced webhook handler
 router.post('/webhook', async (req: Request, res) => {
-  console.log('🔔 Incoming webhook request:', {
-    method: req.method,
-    path: req.path,
-    contentType: req.headers['content-type'],
-    contentLength: req.headers['content-length'],
-    stripeSignatureHeader: req.headers['stripe-signature']?.substring(0, 10) + '...' // Log partial signature for debugging
-  });
-
   const sig = req.headers['stripe-signature'];
 
   try {
@@ -77,15 +88,7 @@ router.post('/webhook', async (req: Request, res) => {
       return res.status(500).json({ error: 'Webhook secret not configured' });
     }
 
-    // Log request body characteristics without exposing sensitive data
-    console.log('📦 Request body info:', {
-      type: typeof req.body,
-      isBuffer: Buffer.isBuffer(req.body),
-      length: req.body?.length,
-      hasContent: !!req.body
-    });
-
-    // Verify webhook signature
+    // Verify webhook signature with detailed error logging
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(
@@ -95,7 +98,13 @@ router.post('/webhook', async (req: Request, res) => {
       );
       console.log('✅ Webhook signature verified for event:', event.type);
     } catch (err) {
-      console.error('⚠️ Webhook signature verification failed:', err);
+      console.error('⚠️ Webhook signature verification failed:', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        signatureHeader: sig.substring(0, 10) + '...',
+        bodyLength: req.body?.length,
+        secretKeyFirstChars: process.env.STRIPE_WEBHOOK_SECRET.substring(0, 5) + '...',
+        requestTimestamp: new Date().toISOString()
+      });
       return res.status(400).json({ error: 'Webhook signature verification failed' });
     }
 
