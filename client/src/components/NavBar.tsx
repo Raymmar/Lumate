@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { formatUsernameForUrl } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,9 @@ export function NavBar() {
   const [location] = useLocation();
   const isAdmin = Boolean(user?.isAdmin);
   const isAdminPage = location.startsWith("/admin");
+
+  // Generate profile URL using username if available, fallback to API ID
+  const profileUrl = user ? `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : '';
 
   return (
     <nav className="flex h-16 items-center pl-2 pr-4 max-w-[1440px] mx-auto border-b">
@@ -69,7 +73,7 @@ export function NavBar() {
               )}
               {user.api_id && (
                 <DropdownMenuItem asChild>
-                  <Link href={`/people/${user.api_id}`}>
+                  <Link href={profileUrl}>
                     <span className="flex items-center">
                       <User className="mr-2 h-4 w-4 text-foreground" />
                       Profile

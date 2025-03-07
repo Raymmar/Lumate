@@ -966,8 +966,7 @@ export class PostgresStorage implements IStorage {
           summary: posts.summary,
           body: posts.body,
           featuredImage: posts.featuredImage,
-          videoUrl: posts.videoUrl,
-          ctaLink: posts.ctaLink,
+          videoUrl: posts.videoUrl,          ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
           creatorId: posts.creatorId,
@@ -1576,33 +1575,83 @@ export class PostgresStorage implements IStorage {
   }
   async getPersonByUsername(username: string): Promise<Person | null> {
     try {
-      // Remove any URL encoding and normalize spaces
       const normalizedUsername = decodeURIComponent(username).replace(/-/g, ' ');
       console.log('Looking up person by normalized username:', normalizedUsername);
 
-      // Try direct match first
+      // Try direct match first with user data join
       let result = await db
-        .select()
+        .select({
+          ...people,
+          // Include all user profile fields
+          isAdmin: users.isAdmin,
+          displayName: users.displayName,
+          companyName: users.companyName,
+          companyDescription: users.companyDescription,
+          address: users.address,
+          phoneNumber: users.phoneNumber,
+          isPhonePublic: users.isPhonePublic,
+          isEmailPublic: users.isEmailPublic,
+          customLinks: users.customLinks,
+          featuredImageUrl: users.featuredImageUrl,
+          ctaText: users.ctaText,
+          tags: users.tags,
+          bio: users.bio
+        })
         .from(people)
+        .leftJoin(users, eq(users.email, people.email))
         .where(eq(people.userName, normalizedUsername))
         .limit(1);
 
       if (result.length === 0) {
         console.log('No exact match found, trying case-insensitive match');
-        // Try case-insensitive match
+        // Try case-insensitive match with user data
         result = await db
-          .select()
+          .select({
+            ...people,
+            // Include all user profile fields
+            isAdmin: users.isAdmin,
+            displayName: users.displayName,
+            companyName: users.companyName,
+            companyDescription: users.companyDescription,
+            address: users.address,
+            phoneNumber: users.phoneNumber,
+            isPhonePublic: users.isPhonePublic,
+            isEmailPublic: users.isEmailPublic,
+            customLinks: users.customLinks,
+            featuredImageUrl: users.featuredImageUrl,
+            ctaText: users.ctaText,
+            tags: users.tags,
+            bio: users.bio
+          })
           .from(people)
+          .leftJoin(users, eq(users.email, people.email))
           .where(sql`LOWER(${people.userName}) = LOWER(${normalizedUsername})`)
           .limit(1);
       }
 
       if (result.length === 0) {
         console.log('No case-insensitive match found, trying fuzzy match');
-        // Try fuzzy match with special character normalization
+        // Try fuzzy match with special character normalization and user data
         result = await db
-          .select()
+          .select({
+            ...people,
+            // Include all user profile fields
+            isAdmin: users.isAdmin,
+            displayName: users.displayName,
+            companyName: users.companyName,
+            companyDescription: users.companyDescription,
+            address: users.address,
+            phoneNumber: users.phoneNumber,
+            isPhonePublic: users.isPhonePublic,
+            isEmailPublic: users.isEmailPublic,
+            customLinks: users.customLinks,
+            featuredImageUrl: users.featuredImageUrl,
+            ctaText: users.ctaText,
+            tags: users.tags,
+            bio: users.bio
+          })
           .from(people)
+          .leftJoin(users, eq(users.email, people.email))
           .where(sql`
             LOWER(REGEXP_REPLACE(${people.userName}, '[^a-zA-Z0-9]+', '', 'g')) = 
             LOWER(REGEXP_REPLACE(${normalizedUsername}, '[^a-zA-Z0-9]+', '', 'g'))
@@ -1612,17 +1661,23 @@ export class PostgresStorage implements IStorage {
 
       if (result.length === 0) {
         console.log('Person not found by username:', normalizedUsername);
-        // Try looking up by API ID as last resort
-        return this.getPersonByApiId(username);
+        return null;
       }
 
+      const person = result[0];
       console.log('Found person by username:', {
-        id: result[0].id,
-        userName: result[0].userName,
-        email: result[0].email
+        id: person.id,
+        userName: person.userName,
+        email: person.email,
+        hasBusinessProfile: !!person.companyName,
+        displayName: person.displayName
       });
 
-      return result[0];
+      // Return combined person and user data
+      return {
+        ...person,
+        isAdmin: Boolean(person.isAdmin)
+      };
     } catch (error) {
       console.error('Failed to get person by username:', error);
       throw error;
