@@ -10,9 +10,7 @@ const app = express();
 
 // Raw body handling for Stripe webhooks must come first
 app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), (req, res, next) => {
-  console.log('🔄 Stripe webhook request received:', {
-    path: req.path,
-    method: req.method,
+  console.log('🔔 Webhook Request Details:', {
     contentType: req.headers['content-type'],
     hasSignature: !!req.headers['stripe-signature'],
     bodyLength: req.body?.length || 0

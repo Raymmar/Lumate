@@ -1,7 +1,6 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
-import { StripeService } from '../services/stripe';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -11,7 +10,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
-    console.log("⭐️ Creating checkout session");
     if (!process.env.STRIPE_PRICE_ID) {
       throw new Error('Stripe price ID is not configured');
     }
@@ -26,25 +24,31 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Create or use existing Stripe customer
     if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
-      console.log('Creating new Stripe customer for user:', user.email);
-      const customer = await StripeService.createCustomer(user.email, user.id);
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: {
+          userId: user.id.toString(),
+        },
+      });
       await storage.setStripeCustomerId(user.id, customer.id);
       user.stripeCustomerId = customer.id;
-      console.log('Created new Stripe customer:', customer.id);
     }
 
-    console.log('Creating checkout session with customer:', user.stripeCustomerId);
-    const session = await StripeService.createCheckoutSession(
-      user.stripeCustomerId,
-      process.env.STRIPE_PRICE_ID,
-      user.id
-    );
-
-    console.log('Checkout session created:', {
-      sessionId: session.id,
-      url: session.url
+    const session = await stripe.checkout.sessions.create({
+      customer: user.stripeCustomerId,
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/cancel`,
+      metadata: {
+        userId: user.id.toString(),
+      },
     });
 
     res.json({ url: session.url });
@@ -54,120 +58,53 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Webhook handler
+// Simple webhook handler
 router.post('/webhook', async (req, res) => {
-  console.log('🔔 Webhook Request Details:', {
-    contentType: req.headers['content-type'],
-    hasSignature: !!req.headers['stripe-signature'],
-    bodyType: typeof req.body,
-    bodyLength: req.body?.length || 0
+  console.log('🔔 Webhook received:', {
+    type: req.headers['content-type'],
+    signature: !!req.headers['stripe-signature']
   });
 
-  const sig = req.headers['stripe-signature'];
-  if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('❌ Missing webhook signature or secret');
-    return res.status(400).send('Missing signature or secret');
-  }
-
-  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
+    const event = stripe.webhooks.constructEvent(
       req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      req.headers['stripe-signature'] as string,
+      process.env.STRIPE_WEBHOOK_SECRET!
     );
-    console.log('✅ Webhook signature verified for event:', event.type);
-  } catch (err: any) {
-    console.error('❌ Webhook signature verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
 
-  try {
-    console.log('📦 Full webhook event:', JSON.stringify(event.data.object, null, 2));
+    console.log('📦 Webhook event:', event.type, JSON.stringify(event.data.object));
 
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        console.log('💳 Processing checkout completion:', {
-          sessionId: session.id,
-          customerId: session.customer,
-          subscriptionId: session.subscription
-        });
+    // Only handle subscription completion
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
 
-        if (session.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          const customerId = subscription.customer as string;
-
-          console.log('🔍 Looking up user for customer:', customerId);
-          const user = await storage.getUserByStripeCustomerId(customerId);
-
-          if (!user) {
-            console.error('❌ No user found for customer:', customerId);
-            return res.status(400).json({ error: 'No user found for customer' });
-          }
-
-          console.log('✨ Updating subscription for user:', {
-            userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
-          });
-
-          const updatedUser = await storage.updateUserSubscription(
-            user.id,
-            subscription.id,
-            subscription.status
-          );
-
-          console.log('✅ Successfully updated user subscription:', {
-            userId: updatedUser.id,
-            subscriptionId: updatedUser.subscriptionId,
-            status: updatedUser.subscriptionStatus
-          });
-        }
-        break;
-      }
-
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object as Stripe.Subscription;
+      if (session.subscription) {
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
         const customerId = subscription.customer as string;
-
-        console.log('💫 Processing subscription event:', {
-          type: event.type,
-          subscriptionId: subscription.id,
-          customerId,
-          status: subscription.status
-        });
 
         const user = await storage.getUserByStripeCustomerId(customerId);
         if (!user) {
-          console.error('❌ No user found for customer:', customerId);
-          return res.status(400).json({ error: 'No user found for customer' });
+          throw new Error(`No user found for customer: ${customerId}`);
         }
 
-        const updatedUser = await storage.updateUserSubscription(
+        await storage.updateUserSubscription(
           user.id,
           subscription.id,
           subscription.status
         );
 
-        console.log('✅ Successfully updated subscription:', {
-          userId: updatedUser.id,
-          subscriptionId: updatedUser.subscriptionId,
-          status: updatedUser.subscriptionStatus
+        console.log('✅ Subscription updated:', {
+          userId: user.id,
+          subscriptionId: subscription.id,
+          status: subscription.status
         });
-        break;
       }
-
-      default:
-        console.log('ℹ️ Unhandled webhook event type:', event.type);
     }
 
     res.json({ received: true });
   } catch (error) {
-    console.error('❌ Webhook processing error:', error);
-    console.error(error);
-    return res.status(500).json({ error: 'Webhook processing failed' });
+    console.error('❌ Webhook error:', error);
+    res.status(400).json({ error: 'Webhook error' });
   }
 });
 
