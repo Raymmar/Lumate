@@ -5,10 +5,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY must be defined');
 }
 
-if (!process.env.STRIPE_PRICE_ID) {
-  throw new Error('STRIPE_PRICE_ID must be defined');
-}
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
@@ -72,15 +68,7 @@ export class StripeService {
 
   static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
-      console.log('Creating checkout session with:', { customerId, priceId, userId });
-
-      // Verify price exists before creating session
-      try {
-        await stripe.prices.retrieve(process.env.STRIPE_PRICE_ID!);
-      } catch (error) {
-        console.error('Invalid price ID:', process.env.STRIPE_PRICE_ID);
-        throw new Error('Invalid price configuration');
-      }
+      console.log('Creating checkout session with:', { customerId, userId });
 
       // Use environment variables with fallbacks for success/cancel URLs
       const baseUrl = process.env.APP_URL || process.env.REPL_SLUG 
@@ -93,7 +81,7 @@ export class StripeService {
         customer: customerId,
         line_items: [
           {
-            price: process.env.STRIPE_PRICE_ID,
+            price: 'price_1Qs63DCM3nBpAbtwkRVcXEmS', // Use the exact price ID
             quantity: 1,
           },
         ],

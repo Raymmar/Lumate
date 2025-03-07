@@ -141,7 +141,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       }
 
       console.log('Redirecting to Stripe checkout:', url);
-      // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error) {
       console.error('Subscription error:', error);
