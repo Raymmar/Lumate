@@ -55,7 +55,11 @@ async function syncEventAttendees(event: Event) {
     }
 
     // Update event sync timestamp
-    await storage.updateEventSync(event.api_id, syncTimestamp);
+    await storage.updateEventSyncStatus(event.api_id, {
+      lastSyncedAt: syncTimestamp,
+      attendanceCount: allGuests.length
+    });
+
     console.log(`Successfully synced ${allGuests.length} approved guests for event: ${event.title}`);
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);
