@@ -49,83 +49,80 @@ router.post('/create-checkout-session', async (req, res) => {
 
 // Webhook handler
 router.post('/webhook', async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  console.log('🔔 Webhook received:', { 
-    hasSignature: !!sig,
-    contentType: req.headers['content-type']
-  });
-
-  if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('❌ Missing webhook signature or secret');
-    return res.status(400).send('Missing signature or secret');
-  }
-
-  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err: any) {
-    console.error('❌ Invalid webhook signature:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
+    console.log('🔔 Webhook Request Details:', {
+      contentType: req.headers['content-type'],
+      hasSignature: !!req.headers['stripe-signature'],
+      bodyType: typeof req.body,
+      rawBody: req.body ? req.body.toString() : 'No body'
+    });
 
-  try {
-    console.log('✨ Processing webhook:', event.type);
+    const sig = req.headers['stripe-signature'];
+    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('❌ Missing webhook signature or secret');
+      return res.status(400).send('Missing signature or secret');
+    }
 
-    // Only handle subscription-related events
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+      console.log('✅ Webhook signature verified for event:', event.type);
+    } catch (err: any) {
+      console.error('❌ Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Log the full event data for debugging
+    console.log('📦 Full webhook event:', JSON.stringify(event, null, 2));
+
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
+      console.log('💳 Processing checkout completion:', {
+        sessionId: session.id,
+        customerId: session.customer,
+        subscriptionId: session.subscription
+      });
+
       if (session.subscription) {
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
         const customerId = subscription.customer as string;
 
+        console.log('🔍 Looking up user for customer:', customerId);
         const user = await storage.getUserByStripeCustomerId(customerId);
+
         if (!user) {
-          throw new Error(`No user found for customer: ${customerId}`);
+          console.error('❌ No user found for customer:', customerId);
+          return res.status(400).json({ error: 'No user found for customer' });
         }
 
-        await storage.updateUserSubscription(
+        console.log('✨ Updating subscription for user:', {
+          userId: user.id,
+          subscriptionId: subscription.id,
+          status: subscription.status
+        });
+
+        const updatedUser = await storage.updateUserSubscription(
           user.id,
           subscription.id,
           subscription.status
         );
 
-        console.log('✅ Updated subscription:', {
-          userId: user.id,
-          subscriptionId: subscription.id,
-          status: subscription.status
+        console.log('✅ Successfully updated user subscription:', {
+          userId: updatedUser.id,
+          subscriptionId: updatedUser.subscriptionId,
+          status: updatedUser.subscriptionStatus
         });
       }
-    } 
-    else if (event.type === 'customer.subscription.updated') {
-      const subscription = event.data.object as Stripe.Subscription;
-      const customerId = subscription.customer as string;
-
-      const user = await storage.getUserByStripeCustomerId(customerId);
-      if (!user) {
-        throw new Error(`No user found for customer: ${customerId}`);
-      }
-
-      await storage.updateUserSubscription(
-        user.id,
-        subscription.id,
-        subscription.status
-      );
-
-      console.log('✅ Updated subscription:', {
-        userId: user.id,
-        subscriptionId: subscription.id,
-        status: subscription.status
-      });
     }
 
     res.json({ received: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Webhook processing error:', error);
-    return res.status(500).send(`Webhook Error: ${error.message}`);
+    return res.status(500).json({ error: 'Webhook processing failed' });
   }
 });
 

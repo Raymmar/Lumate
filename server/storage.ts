@@ -115,7 +115,7 @@ export interface IStorage {
 
   // Stripe-related methods
   getUserByStripeCustomerId(customerId: string): Promise<User | null>;
-  updateUserSubscription(userId: number, subscriptionId: string | null, status: string): Promise<User>;
+  updateUserSubscription(userId: number, subscriptionId: string, status: string): Promise<User>;
   setStripeCustomerId(userId: number, customerId: string): Promise<User>;
   getPersonByUsername(username: string): Promise<Person | null>;
 }
@@ -1529,11 +1529,17 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateUserSubscription(userId: number, subscriptionId: string | null, status: string): Promise<User> {
+  async updateUserSubscription(userId: number, subscriptionId: string, status: string): Promise<User> {
     try {
+      console.log('📝 Updating user subscription in database:', {
+        userId,
+        subscriptionId,
+        status
+      });
+
       const [updatedUser] = await db
         .update(users)
-        .set({ 
+        .set({
           subscriptionId,
           subscriptionStatus: status,
           updatedAt: new Date().toISOString()
@@ -1542,12 +1548,18 @@ export class PostgresStorage implements IStorage {
         .returning();
 
       if (!updatedUser) {
-        throw new Error(`User with ID ${userId} not found`);
+        throw new Error(`User not found: ${userId}`);
       }
+
+      console.log('✅ Successfully updated user subscription in database:', {
+        userId: updatedUser.id,
+        subscriptionId: updatedUser.subscriptionId,
+        status: updatedUser.subscriptionStatus
+      });
 
       return updatedUser;
     } catch (error) {
-      console.error('Failed to update user subscription:', error);
+      console.error('❌ Failed to update user subscription:', error);
       throw error;
     }
   }
