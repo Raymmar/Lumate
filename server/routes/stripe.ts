@@ -157,33 +157,6 @@ router.post('/webhook', async (req, res) => {
   }
 });
 
-// Status check endpoint
-router.get('/subscription/status', async (req, res) => {
-  console.log("📊 Checking subscription status");
-  try {
-    const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    if (!user.subscriptionId) {
-      return res.json({ status: 'inactive' });
-    }
-
-    const status = await StripeService.getSubscriptionStatus(user.subscriptionId);
-    console.log('📈 Current subscription status:', status);
-    return res.json({ status });
-  } catch (error) {
-    console.error('❌ Error checking subscription status:', error);
-    return res.status(500).json({ error: 'Failed to check subscription status' });
-  }
-});
-
 // Verify checkout session status
 router.get('/session-status', async (req, res) => {
   console.log('🔍 Checking session status');
@@ -206,17 +179,12 @@ router.get('/session-status', async (req, res) => {
       customerId: session.customer
     });
 
-    if (session.payment_status !== 'paid') {
-      console.warn('⚠️ Payment not completed:', session.payment_status);
-      return res.json({ status: 'pending' });
-    }
-
     if (!session.subscription) {
       console.warn('⚠️ No subscription found in session');
       return res.json({ status: 'pending' });
     }
 
-    const subscription = session.subscription as Stripe.Subscription;
+    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
     const customerId = session.customer as string;
 
     // Update user subscription status
