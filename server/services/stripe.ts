@@ -74,7 +74,8 @@ export class StripeService {
 
       console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });
 
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000';
+      // Always use the production URL
+      const baseUrl = 'https://lumate.replit.app';
       console.log('Using base URL:', baseUrl);
 
       const sessionConfig: Stripe.Checkout.SessionCreateParams = {
