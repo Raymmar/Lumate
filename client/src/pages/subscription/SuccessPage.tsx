@@ -13,12 +13,16 @@ export default function SubscriptionSuccessPage() {
   const { data: sessionStatus, isLoading, error } = useQuery({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
+      console.log('Verifying session:', sessionId);
       const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
       if (!response.ok) throw new Error('Failed to verify payment status');
-      return response.json();
+      const data = await response.json();
+      console.log('Session status response:', data);
+      return data;
     },
     enabled: !!sessionId,
     retry: 3,
+    refetchInterval: 2000, // Poll every 2 seconds until we get a complete status
   });
 
   useEffect(() => {
@@ -66,7 +70,9 @@ export default function SubscriptionSuccessPage() {
             <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto" />
             <h1 className="text-2xl font-bold mt-4">Payment Processing</h1>
             <p className="text-muted-foreground mt-2">
-              Your payment is still being processed. Please wait a moment.
+              Session ID: {sessionId}<br />
+              Status: {sessionStatus?.status || 'pending'}<br />
+              {sessionStatus?.subscriptionStatus && `Subscription: ${sessionStatus.subscriptionStatus}`}
             </p>
             <Button onClick={() => setLocation('/settings')} className="mt-4">
               Return to Settings

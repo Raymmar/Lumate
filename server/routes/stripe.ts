@@ -179,13 +179,14 @@ router.get('/session-status', async (req, res) => {
       customerId: session.customer
     });
 
-    if (!session.subscription) {
-      console.warn('⚠️ No subscription found in session');
-      return res.json({ status: 'pending' });
-    }
-
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
     const customerId = session.customer as string;
+
+    console.log('Subscription data:', {
+      id: subscription.id,
+      status: subscription.status,
+      customerId: subscription.customer
+    });
 
     // Update user subscription status
     const user = await storage.getUserByStripeCustomerId(customerId);
@@ -203,8 +204,8 @@ router.get('/session-status', async (req, res) => {
       });
     }
 
-    // If we have a subscription ID and it's active, consider it complete
-    if (subscription.status === 'active' || subscription.status === 'trialing') {
+    // If payment is successful and we have subscription info, mark as complete
+    if (session.payment_status === 'paid' && session.subscription) {
       return res.json({
         status: 'complete',
         subscriptionStatus: subscription.status
