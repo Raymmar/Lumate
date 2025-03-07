@@ -5,6 +5,10 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY must be defined');
 }
 
+if (!process.env.STRIPE_PRICE_ID) {
+  console.warn('Warning: STRIPE_PRICE_ID not set. Please set this for production use.');
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16'
 });
@@ -67,6 +71,11 @@ export class StripeService {
 
   static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
+      // Use environment variables with fallbacks for success/cancel URLs
+      const baseUrl = process.env.APP_URL || process.env.REPL_SLUG 
+        ? `https://${process.env.REPL_SLUG}.repl.co` 
+        : 'http://localhost:3000';
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [
@@ -76,8 +85,8 @@ export class StripeService {
           },
         ],
         mode: 'subscription',
-        success_url: `${process.env.APP_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.APP_URL}/subscription/cancel`,
+        success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/subscription/cancel`,
         metadata: {
           userId: userId.toString(),
         },

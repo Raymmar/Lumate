@@ -126,16 +126,28 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId: 'your_price_id_here', // Replace with your actual price ID
+          priceId: import.meta.env.VITE_STRIPE_PRICE_ID || 'price_default', // Use environment variable
+          successUrl: `${window.location.origin}/subscription/success`,
+          cancelUrl: `${window.location.origin}/subscription/cancel`,
         }),
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
       const { url } = await response.json();
+      if (!url) {
+        throw new Error('No checkout URL received');
+      }
+
+      // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error) {
+      console.error('Subscription error:', error);
       toast({
         title: "Error",
-        description: "Failed to start subscription process",
+        description: "Failed to start subscription process. Please try again.",
         variant: "destructive",
       });
     }
