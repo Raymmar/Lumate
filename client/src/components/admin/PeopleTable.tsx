@@ -6,6 +6,7 @@ import { PreviewSidebar } from "./PreviewSidebar";
 import { PersonPreview } from "./PersonPreview";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
+import { formatUsernameForUrl } from "@/components/people/PeopleDirectory";
 import {
   Pagination,
   PaginationContent,
@@ -67,7 +68,7 @@ export function PeopleTable() {
   ];
 
   const onRowClick = (person: Person) => {
-    const username = person.userName || person.api_id; 
+    const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setSelectedPerson(person);
   };
 
@@ -80,7 +81,7 @@ export function PeopleTable() {
   };
 
   const handleNavigate = (person: Person) => {
-    const username = person.userName || person.api_id; 
+    const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setSelectedPerson(person);
   };
 

@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Person } from "@shared/schema";
 import { Link } from "wouter";
+import { formatUsernameForUrl } from "@/components/people/PeopleDirectory";
 
 interface RelatedPeopleProps {
   person?: Person | null;
@@ -16,7 +17,7 @@ export function RelatedPeople({ person }: RelatedPeopleProps) {
   }
 
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
-  const profilePath = `/people/${encodeURIComponent(person.userName || person.api_id)}`;
+  const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
 
   return (
     <Link href={profilePath} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-accent">

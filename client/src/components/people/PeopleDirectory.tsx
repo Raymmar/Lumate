@@ -40,6 +40,12 @@ interface PeopleResponse {
   total: number;
 }
 
+// Helper function to format username for URLs
+export const formatUsernameForUrl = (username: string | null, fallbackId: string): string => {
+  if (!username) return fallbackId;
+  return username.trim().toLowerCase().replace(/\s+/g, '-');
+};
+
 export default function PeopleDirectory() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,8 +75,8 @@ export default function PeopleDirectory() {
   };
 
   const handlePersonClick = (person: Person) => {
-    const username = person.userName || person.api_id; // Fallback to api_id if no username
-    setLocation(`/people/${encodeURIComponent(username)}`);
+    const urlPath = formatUsernameForUrl(person.userName, person.api_id);
+    setLocation(`/people/${encodeURIComponent(urlPath)}`);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -136,35 +142,38 @@ export default function PeopleDirectory() {
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="space-y-0.5">
-              {data.people.map((person, index) => (
-                <div
-                  key={person.api_id}
-                  className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
-                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === person.userName)
-                      ? 'bg-muted ring-1 ring-inset ring-ring'
-                      : 'hover:bg-muted/50'
-                  }`}
-                  onClick={() => handlePersonClick(person)}
-                >
-                  <Avatar className="h-8 w-8">
-                    {person.avatarUrl ? (
-                      <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
-                    ) : (
-                      <AvatarFallback className="text-sm">
-                        {person.userName
-                          ? person.userName
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                          : "?"}
-                      </AvatarFallback>
-                    )}
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-base font-medium truncate">{person.userName || "Anonymous"}</p>
+              {data.people.map((person, index) => {
+                const urlPath = formatUsernameForUrl(person.userName, person.api_id);
+                return (
+                  <div
+                    key={person.api_id}
+                    className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
+                      (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === urlPath)
+                        ? 'bg-muted ring-1 ring-inset ring-ring'
+                        : 'hover:bg-muted/50'
+                    }`}
+                    onClick={() => handlePersonClick(person)}
+                  >
+                    <Avatar className="h-8 w-8">
+                      {person.avatarUrl ? (
+                        <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
+                      ) : (
+                        <AvatarFallback className="text-sm">
+                          {person.userName
+                            ? person.userName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                            : "?"}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-medium truncate">{person.userName || "Anonymous"}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           <div className="pt-2 mt-2 border-t flex-none">

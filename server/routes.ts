@@ -355,6 +355,12 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
+      // If accessing via API ID and person has a username, redirect to username URL
+      if (person.userName && req.headers.accept?.includes('text/html')) {
+        const formattedUsername = person.userName.trim().toLowerCase().replace(/\s+/g, '-');
+        return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
+      }
+
       // Fetch the associated user data if it exists
       const user = await db
         .select({
@@ -409,8 +415,19 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/people/by-username/:username", async (req, res) => {
     try {
-      const username = req.params.username;
-      const person = await storage.getPersonByUsername(username);
+      const username = req.params.username.replace(/-/g, ' ');
+      let person = await storage.getPersonByUsername(username);
+
+      if (!person) {
+        // If not found by username, try looking up by API ID as fallback
+        person = await storage.getPersonByApiId(req.params.username);
+        
+        if (person?.userName && req.headers.accept?.includes('text/html')) {
+          // If found by API ID and has username, redirect to username URL
+          const formattedUsername = person.userName.trim().toLowerCase().replace(/\s+/g, '-');
+          return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
+        }
+      }
 
       if (!person) {
         return res.status(404).json({ error: "Person not found" });
