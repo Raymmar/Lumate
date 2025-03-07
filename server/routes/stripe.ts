@@ -36,6 +36,8 @@ router.post('/create-checkout-session', async (req, res) => {
       user.stripeCustomerId = customer.id;
     }
 
+    const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000';
+
     const session = await stripe.checkout.sessions.create({
       customer: user.stripeCustomerId,
       line_items: [
@@ -45,8 +47,8 @@ router.post('/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/cancel`,
+      success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/subscription/cancel`,
       metadata: {
         userId: user.id.toString(),
       },
@@ -59,7 +61,7 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Simple webhook handler
+// Webhook handler
 router.post('/webhook', async (req, res) => {
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
@@ -75,30 +77,64 @@ router.post('/webhook', async (req, res) => {
 
     console.log('📦 Webhook event:', event.type, JSON.stringify(event.data.object));
 
-    // Only handle subscription completion
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('💳 Processing completed checkout session:', session.id);
 
-      if (session.subscription) {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        if (session.subscription && session.customer) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          const customerId = subscription.customer as string;
+
+          console.log('🔍 Looking up user for customer:', customerId);
+          const user = await storage.getUserByStripeCustomerId(customerId);
+
+          if (!user) {
+            console.error('❌ No user found for customer:', customerId);
+            throw new Error(`No user found for customer: ${customerId}`);
+          }
+
+          console.log('✏️ Updating subscription for user:', user.id);
+          await storage.updateUserSubscription(
+            user.id,
+            subscription.id,
+            subscription.status
+          );
+
+          console.log('✅ Subscription updated:', {
+            userId: user.id,
+            subscriptionId: subscription.id,
+            status: subscription.status
+          });
+        } else {
+          console.warn('⚠️ Session missing subscription or customer:', session.id);
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
+        console.log('🔄 Processing subscription change:', subscription.id);
         const user = await storage.getUserByStripeCustomerId(customerId);
-        if (!user) {
-          throw new Error(`No user found for customer: ${customerId}`);
+
+        if (user) {
+          await storage.updateUserSubscription(
+            user.id,
+            subscription.id,
+            subscription.status
+          );
+          console.log('✅ Subscription status updated:', {
+            userId: user.id,
+            subscriptionId: subscription.id,
+            status: subscription.status
+          });
+        } else {
+          console.warn('⚠️ No user found for subscription update:', customerId);
         }
-
-        await storage.updateUserSubscription(
-          user.id,
-          subscription.id,
-          subscription.status
-        );
-
-        console.log('✅ Subscription updated:', {
-          userId: user.id,
-          subscriptionId: subscription.id,
-          status: subscription.status
-        });
+        break;
       }
     }
 
