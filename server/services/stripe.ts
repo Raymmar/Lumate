@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { storage } from '../storage';
+import type { User } from '@shared/schema';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('STRIPE_SECRET_KEY must be defined');
@@ -10,20 +11,30 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export class StripeService {
-  static async createCustomer(email: string, userId: number) {
+  static async getOrCreateCustomer(user: User): Promise<string> {
     try {
-      console.log('Creating Stripe customer for:', email);
+      if (user.stripeCustomerId && user.stripeCustomerId !== 'NULL') {
+        // Verify the customer exists
+        try {
+          await stripe.customers.retrieve(user.stripeCustomerId);
+          return user.stripeCustomerId;
+        } catch (error) {
+          console.log('Invalid customer ID, creating new customer');
+        }
+      }
+
+      // Create new customer
       const customer = await stripe.customers.create({
-        email,
+        email: user.email,
         metadata: {
-          userId: userId.toString(),
+          userId: user.id.toString(),
         },
       });
 
-      console.log('Successfully created Stripe customer:', customer.id);
-      return customer;
+      await storage.setStripeCustomerId(user.id, customer.id);
+      return customer.id;
     } catch (error) {
-      console.error('Error creating Stripe customer:', error);
+      console.error('Error in getOrCreateCustomer:', error);
       throw error;
     }
   }

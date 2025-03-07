@@ -1,9 +1,16 @@
-import express from 'express';
+import express, { Request } from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
+import { StripeService } from '../services/stripe';
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+
+// Ensure we have the required environment variables
+if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+  throw new Error('Required Stripe environment variables are not set');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2025-02-24.acacia'
 });
 
@@ -24,32 +31,18 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          userId: user.id.toString(),
-        },
-      });
-      await storage.setStripeCustomerId(user.id, customer.id);
-      user.stripeCustomerId = customer.id;
+    // Create or retrieve Stripe customer
+    const customerId = await StripeService.getOrCreateCustomer(user);
+    if (!customerId) {
+      throw new Error('Failed to create/retrieve Stripe customer');
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId,
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REPLIT_DEPLOYMENT_URL}/subscription/cancel`,
-      metadata: {
-        userId: user.id.toString(),
-      },
-    });
+    // Create checkout session
+    const session = await StripeService.createCheckoutSession(
+      customerId,
+      process.env.STRIPE_PRICE_ID,
+      userId
+    );
 
     res.json({ url: session.url });
   } catch (error: any) {
@@ -58,28 +51,66 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Simple webhook handler
-router.post('/webhook', async (req, res) => {
+// Configure webhook raw body handling
+router.use('/webhook', express.raw({ type: 'application/json' }));
+
+// Enhanced webhook handler
+router.post('/webhook', async (req: Request, res) => {
+  const sig = req.headers['stripe-signature'];
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
-    signature: !!req.headers['stripe-signature']
+    signature: !!sig
   });
 
   try {
+    if (!sig) {
+      throw new Error('No Stripe signature found');
+    }
+
     const event = stripe.webhooks.constructEvent(
       req.body,
-      req.headers['stripe-signature'] as string,
+      sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log('📦 Webhook event:', event.type, JSON.stringify(event.data.object));
+    console.log('📦 Processing webhook event:', event.type);
 
-    // Only handle subscription completion
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('💳 Checkout completed:', {
+          sessionId: session.id,
+          customerId: session.customer,
+          subscriptionId: session.subscription
+        });
 
-      if (session.subscription) {
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        if (session.subscription) {
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          const customerId = subscription.customer as string;
+
+          const user = await storage.getUserByStripeCustomerId(customerId);
+          if (!user) {
+            throw new Error(`No user found for customer: ${customerId}`);
+          }
+
+          await storage.updateUserSubscription(
+            user.id,
+            subscription.id,
+            subscription.status
+          );
+
+          console.log('✅ Subscription activated:', {
+            userId: user.id,
+            subscriptionId: subscription.id,
+            status: subscription.status
+          });
+        }
+        break;
+      }
+
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
         const user = await storage.getUserByStripeCustomerId(customerId);
@@ -93,24 +124,27 @@ router.post('/webhook', async (req, res) => {
           subscription.status
         );
 
-        console.log('✅ Subscription updated:', {
+        console.log('📝 Subscription updated:', {
           userId: user.id,
           subscriptionId: subscription.id,
           status: subscription.status
         });
+        break;
       }
     }
 
     res.json({ received: true });
   } catch (error) {
     console.error('❌ Webhook error:', error);
-    res.status(400).json({ error: 'Webhook error' });
+    return res.status(400).json({
+      error: 'Webhook error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
 // Status check endpoint
 router.get('/subscription/status', async (req, res) => {
-  console.log("📊 Checking subscription status");
   try {
     const userId = req.session?.userId;
     if (!userId) {
