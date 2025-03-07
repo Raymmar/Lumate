@@ -3,11 +3,6 @@
  * Base URL: process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000'
  * Webhook Path: /api/stripe/webhook
  * Full webhook URL should be: https://lumate.replit.app/api/stripe/webhook
- * 
- * Required webhook events:
- * - checkout.session.completed
- * - customer.subscription.updated
- * - customer.subscription.deleted
  */
 
 import express from 'express';
@@ -18,6 +13,12 @@ import { StripeService } from '../services/stripe';
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia'
+});
+
+// Simple ping endpoint for testing
+router.get('/ping', (req, res) => {
+  console.log('🏓 Stripe routes ping received');
+  res.json({ status: 'ok' });
 });
 
 // Create checkout session
@@ -159,54 +160,41 @@ router.post('/webhook', async (req, res) => {
 
 // Verify checkout session status
 router.get('/session-status', async (req, res) => {
+  console.log('🔍 Session status check initiated');
   try {
     const sessionId = req.query.session_id as string;
+    console.log('Session ID received:', sessionId);
+
     if (!sessionId) {
       console.log('❌ No session ID provided');
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    console.log('🔍 Verifying session:', sessionId);
+    console.log('📦 Retrieving session from Stripe...');
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-    console.log('Session details:', {
+    console.log('Session retrieved:', {
       id: session.id,
       status: session.status,
       paymentStatus: session.payment_status,
-      customerId: session.customer,
-      subscriptionId: session.subscription
+      hasSubscription: !!session.subscription
     });
 
-    // If the session is complete and paid, update subscription in our database
-    if (session.payment_status === 'paid' && session.subscription) {
-      console.log('💳 Payment confirmed, updating subscription');
-
-      const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-      const customerId = session.customer as string;
-
-      // Find and update user subscription
-      const user = await storage.getUserByStripeCustomerId(customerId);
-      if (user) {
-        console.log('👤 Updating subscription for user:', user.id);
-        await storage.updateUserSubscription(
-          user.id,
-          subscription.id,
-          subscription.status
-        );
-        console.log('✅ User subscription updated successfully');
-      } else {
-        console.warn('⚠️ No user found for customer:', customerId);
+    // Always respond with status information for debugging
+    return res.json({
+      status: session.payment_status === 'paid' ? 'complete' : 'pending',
+      debug: {
+        sessionStatus: session.status,
+        paymentStatus: session.payment_status,
+        hasSubscription: !!session.subscription
       }
+    });
 
-      return res.json({ status: 'complete' });
-    }
-
-    console.log('⏳ Payment status:', session.payment_status);
-    return res.json({ status: 'pending' });
-
-  } catch (error) {
-    console.error('❌ Error verifying session:', error);
-    return res.status(500).json({ error: 'Failed to verify session status' });
+  } catch (error: any) {
+    console.error('❌ Error in session-status:', error.message);
+    return res.status(500).json({ 
+      error: 'Failed to verify session status',
+      message: error.message 
+    });
   }
 });
 
