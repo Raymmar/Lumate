@@ -54,12 +54,13 @@ router.post('/create-checkout-session', async (req, res) => {
 // Configure webhook raw body handling
 router.use('/webhook', express.raw({ type: 'application/json' }));
 
-// Enhanced webhook handler
+// Enhanced webhook handler with detailed logging
 router.post('/webhook', async (req: Request, res) => {
   const sig = req.headers['stripe-signature'];
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
-    signature: !!sig
+    signature: !!sig,
+    bodyLength: req.body?.length || 0
   });
 
   try {
@@ -67,11 +68,18 @@ router.post('/webhook', async (req: Request, res) => {
       throw new Error('No Stripe signature found');
     }
 
-    const event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    // Verify webhook signature
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET!
+      );
+    } catch (err) {
+      console.error('⚠️ Webhook signature verification failed:', err);
+      return res.status(400).json({ error: 'Webhook signature verification failed' });
+    }
 
     console.log('📦 Processing webhook event:', event.type);
 
@@ -81,29 +89,50 @@ router.post('/webhook', async (req: Request, res) => {
         console.log('💳 Checkout completed:', {
           sessionId: session.id,
           customerId: session.customer,
-          subscriptionId: session.subscription
+          subscriptionId: session.subscription,
+          metadata: session.metadata
         });
 
         if (session.subscription) {
+          // Retrieve subscription details
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           const customerId = subscription.customer as string;
 
+          console.log('📝 Retrieved subscription:', {
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            customerId
+          });
+
+          // Find user by customer ID
           const user = await storage.getUserByStripeCustomerId(customerId);
           if (!user) {
+            console.error('❌ No user found for customer:', customerId);
             throw new Error(`No user found for customer: ${customerId}`);
           }
 
-          await storage.updateUserSubscription(
-            user.id,
-            subscription.id,
-            subscription.status
-          );
-
-          console.log('✅ Subscription activated:', {
+          console.log('👤 Found user:', {
             userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
+            email: user.email
           });
+
+          // Update user subscription
+          try {
+            await storage.updateUserSubscription(
+              user.id,
+              subscription.id,
+              subscription.status
+            );
+
+            console.log('✅ Successfully updated user subscription:', {
+              userId: user.id,
+              subscriptionId: subscription.id,
+              status: subscription.status
+            });
+          } catch (error) {
+            console.error('❌ Failed to update user subscription:', error);
+            throw error;
+          }
         }
         break;
       }
@@ -113,22 +142,34 @@ router.post('/webhook', async (req: Request, res) => {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
+        console.log('📝 Processing subscription update:', {
+          subscriptionId: subscription.id,
+          status: subscription.status,
+          customerId
+        });
+
         const user = await storage.getUserByStripeCustomerId(customerId);
         if (!user) {
+          console.error('❌ No user found for customer:', customerId);
           throw new Error(`No user found for customer: ${customerId}`);
         }
 
-        await storage.updateUserSubscription(
-          user.id,
-          subscription.id,
-          subscription.status
-        );
+        try {
+          await storage.updateUserSubscription(
+            user.id,
+            subscription.id,
+            subscription.status
+          );
 
-        console.log('📝 Subscription updated:', {
-          userId: user.id,
-          subscriptionId: subscription.id,
-          status: subscription.status
-        });
+          console.log('✅ Updated subscription status:', {
+            userId: user.id,
+            subscriptionId: subscription.id,
+            status: subscription.status
+          });
+        } catch (error) {
+          console.error('❌ Failed to update subscription status:', error);
+          throw error;
+        }
         break;
       }
     }
