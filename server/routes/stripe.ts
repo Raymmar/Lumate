@@ -15,6 +15,32 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia'
 });
 
+// Add proper debug logging at the top of the file
+router.use((req, res, next) => {
+  const startTime = Date.now();
+  console.log('🔄 Stripe route request received:', {
+    timestamp: new Date().toISOString(),
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    sessionId: req.query.session_id
+  });
+
+  // Add response logging
+  res.on('finish', () => {
+    const duration = Date.now() - startTime;
+    console.log('🔄 Stripe route response sent:', {
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      duration: `${duration}ms`
+    });
+  });
+
+  next();
+});
+
 // Simple ping endpoint for testing
 router.get('/ping', (req, res) => {
   console.log('🏓 Stripe routes ping received');
@@ -160,59 +186,55 @@ router.post('/webhook', async (req, res) => {
 
 // Verify checkout session status
 router.get('/session-status', async (req, res) => {
+  const startTime = Date.now();
+  console.log('🔍 Session verification request received:', {
+    timestamp: new Date().toISOString(),
+    sessionId: req.query.session_id,
+    hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+    stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7)
+  });
+
   try {
     const sessionId = req.query.session_id as string;
-    console.log('🔍 Session verification request received:', {
-      sessionId,
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-      stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7)
-    });
-
     if (!sessionId) {
       console.log('❌ No session ID provided');
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    try {
-      console.log('📦 Attempting to retrieve session from Stripe:', sessionId);
-      const session = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log('📦 Retrieving session from Stripe:', sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-      console.log('✅ Session retrieved successfully:', {
-        id: session.id,
-        status: session.status,
-        paymentStatus: session.payment_status,
-        customer: session.customer,
-        subscription: session.subscription,
-        hasPaymentIntent: !!session.payment_intent
-      });
+    const responseTime = Date.now() - startTime;
+    console.log('✅ Session verification completed:', {
+      duration: `${responseTime}ms`,
+      sessionId: session.id,
+      status: session.status,
+      paymentStatus: session.payment_status,
+      hasSubscription: !!session.subscription
+    });
 
-      if (session.payment_status === 'paid') {
-        console.log('💰 Payment confirmed as paid');
-        return res.json({ status: 'complete' });
-      }
-
-      console.log('⏳ Payment not yet confirmed:', session.payment_status);
-      return res.json({ 
-        status: 'pending',
-        debug: {
-          sessionStatus: session.status,
-          paymentStatus: session.payment_status
-        }
-      });
-
-    } catch (stripeError: any) {
-      console.error('❌ Stripe API Error:', {
-        type: stripeError.type,
-        code: stripeError.code,
-        message: stripeError.message
-      });
-      throw stripeError;
+    if (session.payment_status === 'paid') {
+      console.log('💳 Payment confirmed as paid');
+      return res.json({ status: 'complete' });
     }
 
+    console.log('⏳ Payment pending:', session.payment_status);
+    return res.json({
+      status: 'pending',
+      debug: {
+        sessionStatus: session.status,
+        paymentStatus: session.payment_status
+      }
+    });
+
   } catch (error: any) {
+    const responseTime = Date.now() - startTime;
     console.error('❌ Session verification failed:', {
+      duration: `${responseTime}ms`,
       error: error.message,
       type: error.type,
+      code: error.code,
+      decline_code: error.decline_code,
       stack: error.stack
     });
 

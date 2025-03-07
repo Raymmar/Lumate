@@ -38,7 +38,10 @@ export default function SubscriptionSuccessPage() {
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
-    refetchInterval: (data) => data?.status === 'complete' ? false : 2000
+    refetchInterval: (data) => {
+      console.log('Checking refetch status:', data?.status);
+      return data?.status === 'complete' ? false : 2000;
+    }
   });
 
   useEffect(() => {
@@ -67,9 +70,6 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               {error instanceof Error ? error.message : 'Failed to verify payment status'}
             </p>
-            <div className="mt-4 text-sm text-muted-foreground">
-              Session ID: {sessionId}
-            </div>
             <Button onClick={() => setLocation('/settings')} className="mt-4">
               Return to Settings
             </Button>
