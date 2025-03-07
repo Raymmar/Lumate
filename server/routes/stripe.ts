@@ -187,13 +187,6 @@ router.post('/webhook', async (req, res) => {
 // Verify checkout session status
 router.get('/session-status', async (req, res) => {
   const startTime = Date.now();
-  console.log('🔍 Session verification request received:', {
-    timestamp: new Date().toISOString(),
-    sessionId: req.query.session_id,
-    hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-    stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7)
-  });
-
   try {
     const sessionId = req.query.session_id as string;
     if (!sessionId) {
@@ -201,29 +194,28 @@ router.get('/session-status', async (req, res) => {
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    console.log('📦 Retrieving session from Stripe:', sessionId);
+    console.log('🔍 Retrieving session from Stripe:', sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const responseTime = Date.now() - startTime;
-    console.log('✅ Session verification completed:', {
-      duration: `${responseTime}ms`,
-      sessionId: session.id,
+    console.log('Session details:', {
+      id: session.id,
       status: session.status,
       paymentStatus: session.payment_status,
-      hasSubscription: !!session.subscription
+      subscription: session.subscription
     });
 
+    // Simple status check based on payment status
     if (session.payment_status === 'paid') {
-      console.log('💳 Payment confirmed as paid');
+      console.log('✅ Payment confirmed for session:', sessionId);
       return res.json({ status: 'complete' });
     }
 
-    console.log('⏳ Payment pending:', session.payment_status);
+    console.log('⏳ Payment still processing:', session.payment_status);
     return res.json({
       status: 'pending',
       debug: {
-        sessionStatus: session.status,
-        paymentStatus: session.payment_status
+        paymentStatus: session.payment_status,
+        sessionStatus: session.status
       }
     });
 
@@ -233,15 +225,12 @@ router.get('/session-status', async (req, res) => {
       duration: `${responseTime}ms`,
       error: error.message,
       type: error.type,
-      code: error.code,
-      decline_code: error.decline_code,
-      stack: error.stack
+      code: error.code
     });
 
     return res.status(500).json({
       error: 'Failed to verify session status',
-      message: error.message,
-      type: error.type
+      message: error.message
     });
   }
 });
