@@ -62,7 +62,7 @@ router.post('/create-checkout-session', async (req, res) => {
       metadata: {
         userId: user.id.toString(),
       },
-      allow_promotion_codes: true, // Enable coupon/promotion code support
+      allow_promotion_codes: true,
     });
 
     res.json({ url: session.url });
@@ -160,40 +160,67 @@ router.post('/webhook', async (req, res) => {
 
 // Verify checkout session status
 router.get('/session-status', async (req, res) => {
-  console.log('🔍 Session status check initiated');
   try {
     const sessionId = req.query.session_id as string;
-    console.log('Session ID received:', sessionId);
+    console.log('🔍 Processing session status check for:', sessionId);
 
     if (!sessionId) {
       console.log('❌ No session ID provided');
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    console.log('📦 Retrieving session from Stripe...');
+    // Log the Stripe environment being used
+    console.log('Stripe Config:', {
+      apiVersion: stripe.getApiField('version'),
+      environment: process.env.NODE_ENV,
+      hasSecretKey: !!process.env.STRIPE_SECRET_KEY
+    });
+
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    console.log('Session retrieved:', {
+    console.log('Retrieved Stripe session:', {
       id: session.id,
       status: session.status,
       paymentStatus: session.payment_status,
-      hasSubscription: !!session.subscription
+      customer: session.customer,
+      subscription: session.subscription
     });
 
-    // Always respond with status information for debugging
-    return res.json({
-      status: session.payment_status === 'paid' ? 'complete' : 'pending',
+    if (session.payment_status === 'paid') {
+      if (session.subscription) {
+        // Fetch subscription details
+        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+        console.log('Subscription details:', {
+          id: subscription.id,
+          status: subscription.status
+        });
+
+        // Update user subscription in database
+        const user = await storage.getUserByStripeCustomerId(session.customer as string);
+        if (user) {
+          await storage.updateUserSubscription(
+            user.id,
+            subscription.id,
+            subscription.status
+          );
+          console.log('Updated subscription for user:', user.id);
+        }
+      }
+
+      return res.json({ status: 'complete' });
+    }
+
+    return res.json({ 
+      status: 'pending',
       debug: {
         sessionStatus: session.status,
-        paymentStatus: session.payment_status,
-        hasSubscription: !!session.subscription
+        paymentStatus: session.payment_status
       }
     });
-
   } catch (error: any) {
-    console.error('❌ Error in session-status:', error.message);
-    return res.status(500).json({ 
+    console.error('Error verifying session:', error);
+    return res.status(500).json({
       error: 'Failed to verify session status',
-      message: error.message 
+      message: error.message
     });
   }
 });

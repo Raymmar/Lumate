@@ -45,25 +45,6 @@ export default function SubscriptionSuccessPage() {
     }
   }, [sessionStatus, setLocation]);
 
-  if (!sessionId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md p-6">
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-            <h1 className="text-2xl font-bold mt-4">Invalid Session</h1>
-            <p className="text-muted-foreground mt-2">
-              No session ID found. Please try the subscription process again.
-            </p>
-            <Button onClick={() => setLocation('/settings')} className="mt-4">
-              Return to Settings
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md p-6">
@@ -71,7 +52,9 @@ export default function SubscriptionSuccessPage() {
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-4 text-lg">Verifying payment...</p>
-            <p className="text-sm text-muted-foreground mt-2">Session ID: {sessionId}</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Session: {sessionId}
+            </p>
           </div>
         ) : error ? (
           <div className="text-center py-8">
@@ -81,7 +64,6 @@ export default function SubscriptionSuccessPage() {
               {error instanceof Error ? error.message : 'Failed to verify payment status'}
             </p>
             <div className="mt-4 text-sm text-muted-foreground">
-              Debug Info:<br />
               Session ID: {sessionId}
             </div>
             <Button onClick={() => setLocation('/settings')} className="mt-4">
@@ -99,13 +81,13 @@ export default function SubscriptionSuccessPage() {
         ) : (
           <div className="text-center py-8">
             <Loader2 className="h-12 w-12 text-yellow-500 mx-auto animate-spin" />
-            <h1 className="text-2xl font-bold mt-4">Verifying Payment</h1>
+            <h1 className="text-2xl font-bold mt-4">Processing Payment</h1>
             <p className="text-muted-foreground mt-2">
               Status: {sessionStatus?.status || 'checking'}<br />
               {sessionStatus?.debug && (
                 <span className="text-sm">
-                  Payment: {sessionStatus.debug.paymentStatus}<br />
-                  Session: {sessionStatus.debug.sessionStatus}
+                  Payment Status: {sessionStatus.debug.paymentStatus}<br />
+                  Session Status: {sessionStatus.debug.sessionStatus}
                 </span>
               )}
             </p>
