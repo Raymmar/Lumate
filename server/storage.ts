@@ -117,6 +117,7 @@ export interface IStorage {
   getUserByStripeCustomerId(customerId: string): Promise<User | null>;
   updateUserSubscription(userId: number, subscriptionId: string | null, status: string): Promise<User>;
   setStripeCustomerId(userId: number, customerId: string): Promise<User>;
+  getPersonByUsername(username: string): Promise<Person | null>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -1570,6 +1571,34 @@ export class PostgresStorage implements IStorage {
       return updatedUser;
     } catch (error) {
       console.error('Failed to set Stripe customer ID:', error);
+      throw error;
+    }
+  }
+  async getPersonByUsername(username: string): Promise<Person | null> {
+    try {
+      const result = await db
+        .select({
+          ...people,
+          isAdmin: users.isAdmin
+        })
+        .from(people)
+        .leftJoin(users, eq(users.email, people.email))
+        .where(eq(people.userName, username))
+        .limit(1);
+
+      if (result.length === 0) {
+        // Try looking up by API ID as fallback
+        return this.getPersonByApiId(username);
+      }
+
+      // Extract the person data and admin status
+      const person = result[0];
+      return {
+        ...person,
+        isAdmin: Boolean(person.isAdmin)
+      };
+    } catch (error) {
+      console.error('Failed to get person by username:', error);
       throw error;
     }
   }

@@ -407,6 +407,67 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/people/by-username/:username", async (req, res) => {
+    try {
+      const username = req.params.username;
+      const person = await storage.getPersonByUsername(username);
+
+      if (!person) {
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      // Fetch the associated user data if it exists
+      const user = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          isAdmin: users.isAdmin,
+          companyName: users.companyName,
+          companyDescription: users.companyDescription,
+          address: users.address,
+          phoneNumber: users.phoneNumber,
+          isPhonePublic: users.isPhonePublic,
+          isEmailPublic: users.isEmailPublic,
+          customLinks: users.customLinks,
+          featuredImageUrl: users.featuredImageUrl,
+          tags: users.tags,
+          bio: users.bio
+        })
+        .from(users)
+        .where(sql`LOWER(email) = LOWER(${person.email})`)
+        .limit(1);
+
+      // Attach the user data to the person object
+      const personWithUser = {
+        ...person,
+        user: user[0] || null
+      };
+
+      console.log('API Response - Person with user data:', {
+        username,
+        hasUser: !!user[0],
+        userData: user[0] ? {
+          id: user[0].id,
+          email: user[0].email,
+          companyName: user[0].companyName,
+          companyDescription: user[0].companyDescription,
+          hasAddress: !!user[0].address,
+          hasPhone: !!user[0].phoneNumber,
+          hasCustomLinks: Array.isArray(user[0].customLinks) && user[0].customLinks.length > 0,
+          hasFeaturedImage: !!user[0].featuredImageUrl,
+          hasTags: Array.isArray(user[0].tags) && user[0].tags.length > 0,
+          hasBio: !!user[0].bio
+        } : null
+      });
+
+      res.json(personWithUser);
+    } catch (error) {
+      console.error('Failed to fetch person by username:', error);
+      res.status(500).json({ error: "Failed to fetch person" });
+    }
+  });
+
   app.get("/api/people/check-email", async (req, res) => {
     try {
       const email = req.query.email as string;
