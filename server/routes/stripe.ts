@@ -2,7 +2,7 @@
  * Stripe Webhook Configuration:
  * Base URL: process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000'
  * Webhook Path: /api/stripe/webhook
- * Full webhook URL should be: https://[your-repl-name].[your-repl-username].repl.co/api/stripe/webhook
+ * Full webhook URL should be: https://lumate.replit.app/api/stripe/webhook
  * 
  * Required webhook events:
  * - checkout.session.completed
@@ -48,7 +48,9 @@ router.post('/create-checkout-session', async (req, res) => {
       user.stripeCustomerId = customer.id;
     }
 
-    const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000';
+    // Always use the production URL in deployment
+    const baseUrl = 'https://lumate.replit.app';
+    console.log('Using base URL for checkout:', baseUrl);
 
     const session = await stripe.checkout.sessions.create({
       customer: user.stripeCustomerId,
@@ -79,7 +81,8 @@ router.post('/webhook', async (req, res) => {
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
     signature: !!req.headers['stripe-signature'],
-    url: req.originalUrl
+    url: req.originalUrl,
+    body: JSON.stringify(req.body)
   });
 
   try {
