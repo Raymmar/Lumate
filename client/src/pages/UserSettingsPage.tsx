@@ -273,12 +273,12 @@ export default function UserSettingsPage() {
                     <div className="text-center space-y-4">
                       <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
                       <div className="space-y-2">
-                        <h3 className="text-lg font-semibold">Premium Features</h3>
+                        <h3 className="text-lg font-semibold">Paid Members Only</h3>
                         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                          Subscribe to unlock additional profile features including company details,
+                          Upgrade your account to unlock additional premium profile features including company details,
                           location, contact information, and custom links.
                         </p>
-                        <Button onClick={startSubscription} className="mt-4">
+                        <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90">
                           Upgrade to Premium
                         </Button>
                       </div>
