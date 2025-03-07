@@ -3,15 +3,15 @@ import PersonProfile from "@/components/people/PersonProfile";
 import { useParams } from "wouter";
 
 export default function PersonProfilePage() {
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ username: string }>();
 
-  if (!params.id) {
-    return <div>Invalid person ID</div>;
+  if (!params.username) {
+    return <div>Invalid username</div>;
   }
 
   return (
     <DashboardLayout>
-      <PersonProfile personId={params.id} />
+      <PersonProfile username={params.username} />
     </DashboardLayout>
   );
 }

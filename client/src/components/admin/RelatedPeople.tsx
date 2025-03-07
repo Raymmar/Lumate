@@ -3,7 +3,7 @@ import { Person } from "@shared/schema";
 import { Link } from "wouter";
 
 interface RelatedPeopleProps {
-  person?: Person | null;  // Change back to using the full person object
+  person?: Person | null;
 }
 
 export function RelatedPeople({ person }: RelatedPeopleProps) {
@@ -16,9 +16,10 @@ export function RelatedPeople({ person }: RelatedPeopleProps) {
   }
 
   const initials = person.userName?.split(' ').map(n => n[0]).join('') || person.email[0].toUpperCase();
+  const profilePath = `/people/${encodeURIComponent(person.userName || person.api_id)}`;
 
   return (
-    <Link href={`/people/${person.api_id}`} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-accent">
+    <Link href={profilePath} className="flex items-center space-x-4 p-2 rounded-lg hover:bg-accent">
       <Avatar>
         {person.avatarUrl ? (
           <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />

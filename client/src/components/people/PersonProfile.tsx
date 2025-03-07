@@ -13,7 +13,7 @@ import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
 
 interface PersonProfileProps {
-  personId: string;
+  username: string;
 }
 
 interface StatsCardProps {
@@ -71,44 +71,50 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
   );
 }
 
-export default function PersonProfile({ personId }: PersonProfileProps) {
+export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
-    queryKey: ['/api/people', personId],
+    queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
-      const response = await fetch(`/api/people/${personId}`);
+      const response = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
       if (!response.ok) throw new Error('Failed to fetch person details');
       return response.json();
     }
   });
 
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['/api/people', personId, 'stats'],
+    queryKey: ['/api/people', person?.api_id, 'stats'],
     queryFn: async () => {
-      const response = await fetch(`/api/people/${personId}/stats`);
+      if (!person?.api_id) return null;
+      const response = await fetch(`/api/people/${person.api_id}/stats`);
       if (!response.ok) throw new Error('Failed to fetch person stats');
       return response.json();
-    }
+    },
+    enabled: !!person?.api_id
   });
 
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
-    queryKey: ['/api/people', personId, 'events'],
+    queryKey: ['/api/people', person?.api_id, 'events'],
     queryFn: async () => {
-      const response = await fetch(`/api/people/${personId}/events`);
+      if (!person?.api_id) return [];
+      const response = await fetch(`/api/people/${person.api_id}/events`);
       if (!response.ok) throw new Error('Failed to fetch events');
       return response.json();
-    }
+    },
+    enabled: !!person?.api_id
   });
 
   const { data: profileSubscriptionStatus, isLoading: statusLoading } = useQuery({
-    queryKey: ['/api/people', personId, 'subscription'],
+    queryKey: ['/api/people', person?.api_id, 'subscription'],
     queryFn: async () => {
-      const response = await fetch(`/api/people/${personId}/subscription`);
+      if (!person?.api_id) return null;
+      const response = await fetch(`/api/people/${person.api_id}/subscription`);
       if (!response.ok) throw new Error('Failed to fetch subscription status');
       return response.json();
     },
+    enabled: !!person?.api_id
   });
 
   const isAdmin = Boolean(currentUser?.isAdmin);

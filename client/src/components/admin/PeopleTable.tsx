@@ -67,6 +67,7 @@ export function PeopleTable() {
   ];
 
   const onRowClick = (person: Person) => {
+    const username = person.userName || person.api_id; 
     setSelectedPerson(person);
   };
 
@@ -79,6 +80,7 @@ export function PeopleTable() {
   };
 
   const handleNavigate = (person: Person) => {
+    const username = person.userName || person.api_id; 
     setSelectedPerson(person);
   };
 

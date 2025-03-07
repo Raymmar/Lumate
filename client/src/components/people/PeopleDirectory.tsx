@@ -46,7 +46,7 @@ export default function PeopleDirectory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const [isSearchActive, setIsSearchActive] = useState(false);
-  const params = useParams<{ id: string }>();
+  const params = useParams<{ username: string }>();
   const pageSize = 50;
 
   const { data, isLoading, error } = useQuery<PeopleResponse>({
@@ -68,8 +68,9 @@ export default function PeopleDirectory() {
     setCurrentPage(1);
   };
 
-  const handlePersonClick = (personId: string) => {
-    setLocation(`/people/${personId}`);
+  const handlePersonClick = (person: Person) => {
+    const username = person.userName || person.api_id; // Fallback to api_id if no username
+    setLocation(`/people/${encodeURIComponent(username)}`);
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -88,7 +89,7 @@ export default function PeopleDirectory() {
         e.preventDefault();
         const selectedPerson = data.people[focusedIndex];
         if (selectedPerson) {
-          handlePersonClick(selectedPerson.api_id);
+          handlePersonClick(selectedPerson);
         }
         break;
     }
@@ -139,11 +140,11 @@ export default function PeopleDirectory() {
                 <div
                   key={person.api_id}
                   className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
-                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.id === person.api_id)
+                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === person.userName)
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   }`}
-                  onClick={() => handlePersonClick(person.api_id)}
+                  onClick={() => handlePersonClick(person)}
                 >
                   <Avatar className="h-8 w-8">
                     {person.avatarUrl ? (
