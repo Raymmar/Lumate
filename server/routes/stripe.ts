@@ -98,8 +98,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     console.log('Successfully constructed webhook event:', {
       type: event.type,
       id: event.id,
-      apiVersion: event.api_version,
-      livemode: event.livemode ? 'live' : 'test'
+      apiVersion: event.api_version
     });
   } catch (err: any) {
     console.error('Webhook signature verification failed:', {
@@ -120,9 +119,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           sessionId: session.id,
           customerId: session.customer,
           subscriptionId: session.subscription,
-          paymentStatus: session.payment_status,
-          mode: session.mode,
-          livemode: session.livemode ? 'live' : 'test'
+          paymentStatus: session.payment_status
         });
 
         // The subscription will be activated by the customer.subscription.created event
@@ -138,8 +135,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           type: event.type,
           customerId,
           subscriptionId: subscription.id,
-          status: subscription.status,
-          livemode: subscription.livemode ? 'live' : 'test'
+          status: subscription.status
         });
 
         const user = await storage.getUserByStripeCustomerId(customerId);
@@ -163,12 +159,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       }
     }
 
-    res.json({ 
-      received: true,
-      type: event.type,
-      id: event.id,
-      livemode: event.livemode ? 'live' : 'test'
-    });
+    res.json({ received: true });
   } catch (err: any) {
     console.error('Error processing webhook:', err);
     res.status(500).send(`Webhook Error: ${err.message}`);
