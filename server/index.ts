@@ -79,5 +79,6 @@ app.use(session({
     reusePort: true,
   }, () => {
     console.log(`Server running on port ${port}`);
+    console.log(`For local webhook testing, use: http://localhost:${port}/api/stripe/webhook`);
   });
 })();
