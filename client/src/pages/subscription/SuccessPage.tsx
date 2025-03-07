@@ -14,33 +14,37 @@ export default function SubscriptionSuccessPage() {
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
 
-      // First test if the endpoint is reachable
-      const pingResponse = await fetch('/api/stripe/ping');
-      if (!pingResponse.ok) {
-        throw new Error('Could not reach Stripe verification endpoint');
-      }
+      try {
+        const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
+        console.log('📦 Session verification response:', {
+          status: response.status,
+          ok: response.ok
+        });
 
-      const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to verify payment status');
-      }
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ Session verification failed:', errorData);
+          throw new Error(errorData.message || 'Failed to verify payment status');
+        }
 
-      const data = await response.json();
-      console.log('📦 Session verification response:', data);
-      return data;
+        const data = await response.json();
+        console.log('✅ Session verification data:', data);
+        return data;
+      } catch (error) {
+        console.error('❌ Session verification error:', error);
+        throw error;
+      }
     },
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
+    refetchInterval: (data) => data?.status === 'complete' ? false : 2000
   });
 
   useEffect(() => {
     if (sessionStatus?.status === 'complete') {
-      console.log('✅ Payment confirmed, redirecting...');
-      const timer = setTimeout(() => {
-        setLocation('/settings');
-      }, 3000);
+      console.log('✨ Payment confirmed, redirecting to settings...');
+      const timer = setTimeout(() => setLocation('/settings'), 3000);
       return () => clearTimeout(timer);
     }
   }, [sessionStatus, setLocation]);

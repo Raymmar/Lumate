@@ -162,65 +162,64 @@ router.post('/webhook', async (req, res) => {
 router.get('/session-status', async (req, res) => {
   try {
     const sessionId = req.query.session_id as string;
-    console.log('🔍 Processing session status check for:', sessionId);
+    console.log('🔍 Session verification request received:', {
+      sessionId,
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7)
+    });
 
     if (!sessionId) {
       console.log('❌ No session ID provided');
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    // Log the Stripe environment being used
-    console.log('Stripe Config:', {
-      apiVersion: stripe.getApiField('version'),
-      environment: process.env.NODE_ENV,
-      hasSecretKey: !!process.env.STRIPE_SECRET_KEY
-    });
+    try {
+      console.log('📦 Attempting to retrieve session from Stripe:', sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
 
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    console.log('Retrieved Stripe session:', {
-      id: session.id,
-      status: session.status,
-      paymentStatus: session.payment_status,
-      customer: session.customer,
-      subscription: session.subscription
-    });
+      console.log('✅ Session retrieved successfully:', {
+        id: session.id,
+        status: session.status,
+        paymentStatus: session.payment_status,
+        customer: session.customer,
+        subscription: session.subscription,
+        hasPaymentIntent: !!session.payment_intent
+      });
 
-    if (session.payment_status === 'paid') {
-      if (session.subscription) {
-        // Fetch subscription details
-        const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-        console.log('Subscription details:', {
-          id: subscription.id,
-          status: subscription.status
-        });
-
-        // Update user subscription in database
-        const user = await storage.getUserByStripeCustomerId(session.customer as string);
-        if (user) {
-          await storage.updateUserSubscription(
-            user.id,
-            subscription.id,
-            subscription.status
-          );
-          console.log('Updated subscription for user:', user.id);
-        }
+      if (session.payment_status === 'paid') {
+        console.log('💰 Payment confirmed as paid');
+        return res.json({ status: 'complete' });
       }
 
-      return res.json({ status: 'complete' });
+      console.log('⏳ Payment not yet confirmed:', session.payment_status);
+      return res.json({ 
+        status: 'pending',
+        debug: {
+          sessionStatus: session.status,
+          paymentStatus: session.payment_status
+        }
+      });
+
+    } catch (stripeError: any) {
+      console.error('❌ Stripe API Error:', {
+        type: stripeError.type,
+        code: stripeError.code,
+        message: stripeError.message
+      });
+      throw stripeError;
     }
 
-    return res.json({ 
-      status: 'pending',
-      debug: {
-        sessionStatus: session.status,
-        paymentStatus: session.payment_status
-      }
-    });
   } catch (error: any) {
-    console.error('Error verifying session:', error);
+    console.error('❌ Session verification failed:', {
+      error: error.message,
+      type: error.type,
+      stack: error.stack
+    });
+
     return res.status(500).json({
       error: 'Failed to verify session status',
-      message: error.message
+      message: error.message,
+      type: error.type
     });
   }
 });
