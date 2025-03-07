@@ -38,7 +38,6 @@ router.post('/create-checkout-session', async (req, res) => {
 
     const session = await StripeService.createCheckoutSession(
       user.stripeCustomerId,
-      'price_1Qs63DCM3nBpAbtwkRVcXEmS', // Use the exact price ID
       user.id
     );
 

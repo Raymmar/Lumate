@@ -16,7 +16,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // Price IDs for different environments
-const TEST_PRICE_ID = process.env.STRIPE_TEST_PRICE_ID;
+const TEST_PRICE_ID = process.env.STRIPE_TEST_PRICE_ID!;
 const PROD_PRICE_ID = 'price_1Qs63DCM3nBpAbtwkRVcXEmS';
 
 export class StripeService {
@@ -57,7 +57,7 @@ export class StripeService {
     }
   }
 
-  static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
+  static async createCheckoutSession(customerId: string, userId: number) {
     try {
       console.log('Creating checkout session with:', { customerId, userId });
 
