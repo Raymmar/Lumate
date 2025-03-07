@@ -175,9 +175,10 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         </div>
       </div>
 
+      {/* Navigation */}
       {members.length > 1 && onNavigate && (
-        <div className="border-t bg-background py-4">
-          <div className="flex justify-between items-center px-4">
+        <div className="absolute bottom-0 left-0 right-0 border-t bg-background">
+          <div className="flex justify-between items-center p-4">
             <Button
               variant="ghost"
               disabled={!hasPrevious}
