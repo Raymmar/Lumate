@@ -203,7 +203,7 @@ router.get('/session-status', async (req, res) => {
 
     console.log('📦 Retrieving session from Stripe:', sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['subscription']
+      expand: ['subscription', 'payment_intent']
     });
 
     const subscription = session.subscription as Stripe.Subscription;
