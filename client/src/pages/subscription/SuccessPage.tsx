@@ -5,11 +5,20 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
+interface SessionStatusResponse {
+  status: 'complete' | 'pending';
+  debug?: {
+    sessionStatus: string;
+    paymentStatus: string;
+    subscriptionStatus?: string;
+  };
+}
+
 export default function SubscriptionSuccessPage() {
   const [location, setLocation] = useLocation();
   const sessionId = new URLSearchParams(location.split('?')[1]).get('session_id');
 
-  const { data: sessionStatus, isLoading, error } = useQuery({
+  const { data: sessionStatus, isLoading, error } = useQuery<SessionStatusResponse, Error>({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
@@ -39,8 +48,8 @@ export default function SubscriptionSuccessPage() {
     retry: 3,
     retryDelay: 1000,
     refetchInterval: (data) => {
-      console.log('Checking refetch status:', data?.status);
-      return data?.status === 'complete' ? false : 2000;
+      if (!data) return 2000;
+      return data.status === 'complete' ? false : 2000;
     }
   });
 
@@ -91,7 +100,10 @@ export default function SubscriptionSuccessPage() {
               {sessionStatus?.debug && (
                 <span className="text-sm">
                   Payment Status: {sessionStatus.debug.paymentStatus}<br />
-                  Session Status: {sessionStatus.debug.sessionStatus}
+                  Session Status: {sessionStatus.debug.sessionStatus}<br />
+                  {sessionStatus.debug.subscriptionStatus && (
+                    <>Subscription Status: {sessionStatus.debug.subscriptionStatus}</>
+                  )}
                 </span>
               )}
             </p>

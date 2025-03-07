@@ -202,7 +202,11 @@ router.get('/session-status', async (req, res) => {
     }
 
     console.log('📦 Retrieving session from Stripe:', sessionId);
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription']
+    });
+
+    const subscription = session.subscription as Stripe.Subscription;
 
     const responseTime = Date.now() - startTime;
     console.log('✅ Session verification completed:', {
@@ -210,20 +214,33 @@ router.get('/session-status', async (req, res) => {
       sessionId: session.id,
       status: session.status,
       paymentStatus: session.payment_status,
-      hasSubscription: !!session.subscription
+      hasSubscription: !!subscription,
+      subscriptionStatus: subscription?.status
     });
 
-    if (session.payment_status === 'paid') {
-      console.log('💳 Payment confirmed as paid');
-      return res.json({ status: 'complete' });
+    if (session.payment_status === 'paid' && 
+        subscription?.status === 'active') {
+      console.log('💳 Payment confirmed and subscription active');
+      return res.json({ 
+        status: 'complete',
+        debug: {
+          sessionStatus: session.status,
+          paymentStatus: session.payment_status,
+          subscriptionStatus: subscription.status
+        }
+      });
     }
 
-    console.log('⏳ Payment pending:', session.payment_status);
+    console.log('⏳ Payment or subscription pending:', {
+      paymentStatus: session.payment_status,
+      subscriptionStatus: subscription?.status
+    });
     return res.json({
       status: 'pending',
       debug: {
         sessionStatus: session.status,
-        paymentStatus: session.payment_status
+        paymentStatus: session.payment_status,
+        subscriptionStatus: subscription?.status
       }
     });
 
