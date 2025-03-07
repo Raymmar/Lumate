@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X, Lock } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -19,11 +19,11 @@ import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Sun, Moon, Monitor, Lock } from "lucide-react";
+import { Sun, Moon, Monitor } from "lucide-react";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 
 export default function UserSettingsPage() {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [displayName, setDisplayName] = useState("");
@@ -52,20 +52,10 @@ export default function UserSettingsPage() {
       setCompanyName(user.companyName || "");
       setCompanyDescription(user.companyDescription || "");
 
-      // Parse address from user data
       if (user.address) {
         const addressData = typeof user.address === 'string'
           ? { address: user.address }
-          : {
-              address: user.address.address || user.address.formatted_address,
-              city: user.address.city,
-              region: user.address.region,
-              country: user.address.country,
-              latitude: user.address.latitude,
-              longitude: user.address.longitude,
-              placeId: user.address.placeId,
-              formatted_address: user.address.formatted_address
-            };
+          : user.address;
         setAddress(addressData as Location);
       } else {
         setAddress(null);
@@ -80,21 +70,23 @@ export default function UserSettingsPage() {
     }
   }, [user]);
 
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ['/api/subscription/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/subscription/status');
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      return response.json();
+    },
+    enabled: !!user && !user.isAdmin, // Only check subscription for non-admin users
+  });
+
+  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
-      // Format address data for submission
       const formattedData = {
         ...data,
-        address: data.address ? {
-          address: data.address.address,
-          city: data.address.city,
-          region: data.address.region,
-          country: data.address.country,
-          latitude: data.address.latitude,
-          longitude: data.address.longitude,
-          placeId: data.address.placeId,
-          formatted_address: data.address.formatted_address,
-        } : null
+        address: data.address || null
       };
 
       const response = await fetch("/api/auth/update-profile", {
@@ -112,7 +104,6 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      updateUser(data);
       queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
@@ -128,18 +119,6 @@ export default function UserSettingsPage() {
     },
   });
 
-  const { data: subscriptionStatus } = useQuery({
-    queryKey: ['/api/subscription/status'],
-    queryFn: async () => {
-      const response = await fetch('/api/subscription/status');
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
-      return response.json();
-    },
-    enabled: !!user,
-  });
-
-  const hasActiveSubscription = subscriptionStatus?.status === 'active';
-
   const startSubscription = async () => {
     try {
       console.log('Starting subscription process...');
@@ -148,7 +127,7 @@ export default function UserSettingsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({}) // Using environment variable on backend
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {
