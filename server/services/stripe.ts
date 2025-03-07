@@ -44,12 +44,21 @@ export class StripeService {
 
   static async createSubscription(customerId: string, priceId: string) {
     try {
+      console.log('Creating subscription:', { customerId, priceId });
+
       const subscription = await stripe.subscriptions.create({
         customer: customerId,
         items: [{ price: priceId }],
         payment_behavior: 'default_incomplete',
         payment_settings: { save_default_payment_method: 'on_subscription' },
         expand: ['latest_invoice.payment_intent'],
+      });
+
+      console.log('Subscription created:', {
+        id: subscription.id,
+        status: subscription.status,
+        customerId: subscription.customer,
+        priceId: subscription.items.data[0]?.price.id
       });
 
       return subscription;
