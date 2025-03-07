@@ -15,6 +15,10 @@ import { Star, Code, Heart, CalendarDays, Users, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import { loadStripe } from '@stripe/stripe-js';
+
+// Initialize Stripe
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface PersonProfileProps {
   personId: string;
@@ -100,6 +104,42 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       return response.json();
     }
   });
+
+  // Check if the current user has an active subscription
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ['/api/subscription/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/subscription/status');
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  const hasActiveSubscription = subscriptionStatus?.status === 'active';
+
+  const startSubscription = async () => {
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceId: 'your_price_id_here', // Replace with your actual price ID
+        }),
+      });
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start subscription process",
+        variant: "destructive",
+      });
+    }
+  };
 
 
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
@@ -214,10 +254,32 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Additional details for authenticated users */}
-        <AuthGuard>
-          <MemberDetails user={person?.user} />
-        </AuthGuard>
+        {/* Protected content section */}
+        {user ? (
+          hasActiveSubscription ? (
+            <AuthGuard>
+              <MemberDetails user={person?.user} />
+            </AuthGuard>
+          ) : (
+            <Card>
+              <CardContent className="py-8">
+                <div className="text-center space-y-4">
+                  <h3 className="text-lg font-semibold">Premium Content</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Subscribe to access detailed member information and connect with professionals.
+                  </p>
+                  <Button onClick={startSubscription}>
+                    Subscribe Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        ) : (
+          <AuthGuard>
+            <MemberDetails user={person?.user} />
+          </AuthGuard>
+        )}
       </div>
 
       <div>

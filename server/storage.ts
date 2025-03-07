@@ -28,8 +28,8 @@ export interface IStorage {
   insertEvent(event: InsertEvent): Promise<Event>;
   getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
-  getEventByApiId(apiId: string): Promise<Event | null>; // Added method
-  getFutureEvents(): Promise<Event[]>; // Added method
+  getEventByApiId(apiId: string): Promise<Event | null>; 
+  getFutureEvents(): Promise<Event[]>; 
 
   // People
   getPeople(): Promise<Person[]>;
@@ -112,6 +112,11 @@ export interface IStorage {
   getTopAttendees(limit?: number): Promise<Person[]>;
   getFeaturedEvent(): Promise<Event | null>;
   clearEventAttendance(eventApiId: string): Promise<Event>;
+
+  // Stripe-related methods
+  getUserByStripeCustomerId(customerId: string): Promise<User | null>;
+  updateUserSubscription(userId: number, subscriptionId: string | null, status: string): Promise<User>;
+  setStripeCustomerId(userId: number, customerId: string): Promise<User>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -1509,6 +1514,65 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async getUserByStripeCustomerId(customerId: string): Promise<User | null> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.stripeCustomerId, customerId))
+        .limit(1);
+
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get user by Stripe customer ID:', error);
+      throw error;
+    }
+  }
+
+  async updateUserSubscription(userId: number, subscriptionId: string | null, status: string): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          subscriptionId,
+          subscriptionStatus: status,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update user subscription:', error);
+      throw error;
+    }
+  }
+
+  async setStripeCustomerId(userId: number, customerId: string): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          stripeCustomerId: customerId,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to set Stripe customer ID:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new PostgresStorage();

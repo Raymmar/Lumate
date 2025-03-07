@@ -4,9 +4,19 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import unsplashRoutes from './routes/unsplash';
+import stripeRoutes from './routes/stripe';
 
 const app = express();
-app.use(express.json());
+
+// Raw body handling for Stripe webhooks
+app.use((req, res, next) => {
+  if (req.path === '/api/stripe/webhook') {
+    express.raw({ type: 'application/json' })(req, res, next);
+  } else {
+    express.json()(req, res, next);
+  }
+});
+
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session handling
@@ -48,8 +58,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// Mount Unsplash routes
+// Mount routes
 app.use('/api/unsplash', unsplashRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 // Request logging middleware with timing
 app.use((req, res, next) => {

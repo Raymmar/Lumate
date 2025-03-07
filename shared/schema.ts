@@ -79,7 +79,10 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
   personId: serial("person_id").references(() => people.id),
-  // New fields
+  // Stripe related fields
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  subscriptionStatus: varchar("subscription_status", { length: 50 }).default('inactive'),
+  subscriptionId: varchar("subscription_id", { length: 255 }),
   featuredImageUrl: varchar("featured_image_url", { length: 255 }),
   bio: text("bio"),
   companyName: varchar("company_name", { length: 255 }),

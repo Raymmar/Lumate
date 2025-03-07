@@ -25,6 +25,8 @@ import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
 import { CacheService } from './services/CacheService';
 import { posts, tags, postTags } from "@shared/schema";
+import stripeRouter from './routes/stripe';
+import { StripeService } from './services/stripe';
 
 interface Post {
   id: number;
@@ -168,6 +170,30 @@ export async function registerRoutes(app: Express) {
 
   app.use('/api/upload', uploadRouter);
   app.use('/api/unsplash', unsplashRouter);
+  app.use('/api/stripe', stripeRouter);
+
+  app.get("/api/subscription/status", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!user.subscriptionId) {
+        return res.json({ status: 'inactive' });
+      }
+
+      const status = await StripeService.getSubscriptionStatus(user.subscriptionId);
+      return res.json({ status });
+    } catch (error) {
+      console.error('Failed to fetch subscription status:', error);
+      res.status(500).json({ error: "Failed to fetch subscription status" });
+    }
+  });
 
   app.get("/api/events", async (_req, res) => {
     try {
