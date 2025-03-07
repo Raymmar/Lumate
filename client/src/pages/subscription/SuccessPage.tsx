@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SubscriptionSuccessPage() {
   const [location, setLocation] = useLocation();
@@ -38,20 +38,27 @@ export default function SubscriptionSuccessPage() {
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-4 text-lg">Confirming your subscription...</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Just a moment while we verify your payment
+            </p>
           </div>
         ) : subscriptionStatus?.status === 'active' ? (
           <div className="text-center py-8">
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
             <h1 className="text-2xl font-bold mt-4">Subscription Activated!</h1>
             <p className="text-muted-foreground mt-2">
-              Thank you for subscribing. You will be redirected to your settings page shortly.
+              Your premium account is now active. You'll be redirected to your settings page shortly.
+            </p>
+            <p className="text-sm text-muted-foreground mt-4">
+              Thank you for subscribing to our premium features.
             </p>
           </div>
         ) : (
           <div className="text-center py-8">
-            <h1 className="text-2xl font-bold">Something went wrong</h1>
+            <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto" />
+            <h1 className="text-2xl font-bold mt-4">Verification in Progress</h1>
             <p className="text-muted-foreground mt-2">
-              We couldn't confirm your subscription. Please try again or contact support.
+              We're still processing your subscription. Please check back in a few moments.
             </p>
             <Button onClick={() => setLocation('/settings')} className="mt-4">
               Return to Settings
