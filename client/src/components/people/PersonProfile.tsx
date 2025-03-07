@@ -42,6 +42,17 @@ interface Event {
   url: string | null;
 }
 
+// Extend the Person interface to include the isAdmin property
+interface ExtendedPerson extends Person {
+  isAdmin?: boolean;
+  user?: {
+    bio?: string;
+    id: number;
+    email: string;
+    displayName: string;
+  };
+}
+
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
   return (
     <div className="flex items-center gap-3">
@@ -67,13 +78,13 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
+  const { data: person, isLoading: personLoading, error: personError } = useQuery<ExtendedPerson>({
     queryKey: ['/api/people', personId],
     queryFn: async () => {
       const response = await fetch(`/api/people/${personId}`);
       if (!response.ok) throw new Error('Failed to fetch person details');
       const data = await response.json();
-      console.log('Person data fetched:', data); // Debug log
+      console.log('Person data fetched:', data);
       return data;
     }
   });
@@ -151,7 +162,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
       });
     }
   };
-
 
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
   const error = personError;
@@ -283,7 +293,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     <Button onClick={startSubscription}>
                       Subscribe Now
                     </Button>
-                    {process.env.STRIPE_TEST_MODE === 'true' && (
+                    {import.meta.env.VITE_STRIPE_TEST_MODE === 'true' && (
                       <div className="mt-4 p-4 bg-yellow-50 rounded-md">
                         <p className="text-sm font-medium text-yellow-800">Test Mode Active</p>
                         <p className="text-xs text-yellow-600 mt-1">
