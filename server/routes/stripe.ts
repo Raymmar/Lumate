@@ -1,3 +1,15 @@
+/**
+ * Stripe Webhook Configuration:
+ * Base URL: process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000'
+ * Webhook Path: /api/stripe/webhook
+ * Full webhook URL should be: https://[your-repl-name].[your-repl-username].repl.co/api/stripe/webhook
+ * 
+ * Required webhook events:
+ * - checkout.session.completed
+ * - customer.subscription.updated
+ * - customer.subscription.deleted
+ */
+
 import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
@@ -65,7 +77,8 @@ router.post('/create-checkout-session', async (req, res) => {
 router.post('/webhook', async (req, res) => {
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
-    signature: !!req.headers['stripe-signature']
+    signature: !!req.headers['stripe-signature'],
+    url: req.originalUrl
   });
 
   try {
