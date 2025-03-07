@@ -11,8 +11,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 // Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('Stripe secret key is not configured');
+    if (!process.env.STRIPE_PRICE_ID) {
+      throw new Error('Stripe price ID is not configured');
     }
 
     const userId = req.session?.userId;
@@ -38,7 +38,7 @@ router.post('/create-checkout-session', async (req, res) => {
 
     const session = await StripeService.createCheckoutSession(
       user.stripeCustomerId,
-      'price_1Qs63DCM3nBpAbtwkRVcXEmS', // Use the exact price ID
+      process.env.STRIPE_PRICE_ID,
       user.id
     );
 
@@ -65,7 +65,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
       sig!,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-    console.log('Received webhook event:', event.type, JSON.stringify(event.data.object, null, 2));
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -79,15 +78,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        console.log('Processing subscription event:', {
-          type: event.type,
-          subscriptionId: subscription.id,
-          customerId,
-          status: subscription.status,
-          currentPeriodEnd: subscription.current_period_end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end
-        });
-
         const user = await storage.getUserByStripeCustomerId(customerId);
         if (!user) {
           console.error('No user found for Stripe customer:', customerId);
@@ -99,36 +89,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           subscription.id,
           subscription.status
         );
-
-        console.log('Successfully updated user subscription:', {
-          userId: user.id,
-          subscriptionId: subscription.id,
-          status: subscription.status
-        });
         break;
       }
-
-      // Handle checkout.session.completed for one-time payments if needed
-      case 'checkout.session.completed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        console.log('Checkout session completed:', {
-          sessionId: session.id,
-          customerId: session.customer,
-          paymentStatus: session.payment_status,
-          mode: session.mode,
-          subscriptionId: session.subscription
-        });
-
-        // For subscription mode, the subscription event will handle the status update
-        if (session.mode === 'subscription' && session.subscription) {
-          console.log('Subscription created:', session.subscription);
-        }
-        break;
-      }
-
-      // Log other events we might want to handle in the future
-      default:
-        console.log('Unhandled webhook event type:', event.type);
     }
 
     res.json({ received: true });
