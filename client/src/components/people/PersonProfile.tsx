@@ -1,24 +1,16 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Person } from '@/components/people/PeopleDirectory';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from 'react';
 import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
-import { Star, Code, Heart, CalendarDays, Users, Mail } from 'lucide-react';
+import { Star, Code, Heart, CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
-import { loadStripe } from '@stripe/stripe-js';
-
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface PersonProfileProps {
   personId: string;
@@ -42,6 +34,24 @@ interface Event {
   url: string | null;
 }
 
+interface Person {
+  id: number;
+  api_id: string;
+  email: string;
+  userName: string;
+  avatarUrl: string | null;
+  role: string | null;
+  isAdmin?: boolean;
+  user?: {
+    id: number;
+    email: string;
+    displayName: string;
+    bio: string;
+    isAdmin: boolean;
+    [key: string]: any;
+  };
+}
+
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
   return (
     <div className="flex items-center gap-3">
@@ -62,19 +72,15 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 }
 
 export default function PersonProfile({ personId }: PersonProfileProps) {
-  const [email, setEmail] = useState('');
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const queryClient = useQueryClient();
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people', personId],
     queryFn: async () => {
       const response = await fetch(`/api/people/${personId}`);
       if (!response.ok) throw new Error('Failed to fetch person details');
-      const data = await response.json();
-      console.log('Person data fetched:', data); // Debug log
-      return data;
+      return response.json();
     }
   });
 
@@ -96,31 +102,20 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     }
   });
 
-  const { data: userStatus, isLoading: statusLoading } = useQuery({
-    queryKey: ['/api/auth/check-profile', personId],
+  // Check if the viewed profile has a subscription
+  const { data: profileSubscriptionStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ['/api/people', personId, 'subscription'],
     queryFn: async () => {
-      const response = await fetch(`/api/auth/check-profile/${personId}`);
-      if (!response.ok) throw new Error('Failed to check profile status');
-      return response.json();
-    }
-  });
-
-  // Instead of checking current user's subscription, check the viewed person's subscription
-  const { data: profileSubscriptionStatus } = useQuery({
-    queryKey: ['/api/subscription/status', personId],
-    queryFn: async () => {
-      const response = await fetch(`/api/subscription/status/${personId}`);
+      const response = await fetch(`/api/people/${personId}/subscription`);
       if (!response.ok) throw new Error('Failed to fetch subscription status');
       return response.json();
     },
   });
 
   const hasActiveSubscription = profileSubscriptionStatus?.status === 'active';
-
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
-  const error = personError;
 
-  if (error) {
+  if (personError) {
     return (
       <div className="rounded-lg border bg-destructive/10 p-3">
         <p className="text-xs text-destructive">Failed to load person details</p>
@@ -142,9 +137,7 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const isAdmin = Boolean(user?.isAdmin);
-  const isOwnProfile = user?.api_id === person?.api_id;
-  const isClaimed = userStatus?.isClaimed || isOwnProfile;
+  const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person.isAdmin);
 
   // Mock data for badges - This should eventually come from the API
@@ -190,21 +183,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               </div>
             </div>
           </div>
-
-          {!user && (
-            <ClaimProfileDialog
-              personId={personId}
-              trigger={
-                <Button
-                  variant={isClaimed ? "outline" : "default"}
-                  className={isClaimed ? "cursor-default" : ""}
-                  disabled={isClaimed}
-                >
-                  {isClaimed ? "Profile Claimed" : "Claim Profile"}
-                </Button>
-              }
-            />
-          )}
         </div>
 
         {/* Badges Section - Always visible */}
@@ -230,9 +208,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
         </Card>
 
         {/* Show Member Details if the person has an active subscription */}
-        {hasActiveSubscription && (
+        {hasActiveSubscription && person.user && (
           <AuthGuard>
-            <MemberDetails user={person?.user} />
+            <MemberDetails user={person.user} />
           </AuthGuard>
         )}
       </div>
@@ -278,12 +256,6 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
           </CardContent>
         </Card>
       </div>
-      {person?.user && (
-        <div className="hidden">
-          {/* This div is hidden but will show in React DevTools */}
-          <pre>{JSON.stringify({ user: person.user }, null, 2)}</pre>
-        </div>
-      )}
     </div>
   );
 }
