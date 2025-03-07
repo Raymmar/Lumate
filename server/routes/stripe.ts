@@ -48,73 +48,90 @@ router.post('/create-checkout-session', async (req, res) => {
   }
 });
 
-// Stripe webhook handler
-router.post('/webhook', async (req, res) => {
+// Enhanced webhook handler
+router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
   if (!sig) {
-    console.error('Webhook Error: No Stripe signature found');
+    console.error('No Stripe signature found');
     return res.status(400).send('No Stripe signature');
   }
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('Webhook Error: STRIPE_WEBHOOK_SECRET is not configured');
+    console.error('STRIPE_WEBHOOK_SECRET is not configured');
     return res.status(500).send('Webhook secret not configured');
   }
 
   let event: Stripe.Event;
 
   try {
-    // Log the raw body for debugging
-    console.log('Webhook raw body type:', typeof req.body);
-    console.log('Stripe-Signature header:', sig);
-
+    console.log('Attempting to verify webhook signature...');
     event = stripe.webhooks.constructEvent(
       req.body,
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-
-    console.log('Webhook verified successfully:', {
-      type: event.type,
-      id: event.id
-    });
+    console.log('✅ Webhook verified:', event.type);
   } catch (err: any) {
-    console.error('Webhook Error:', err.message);
+    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  // Handle the subscription events
   try {
-    if (event.type === 'customer.subscription.created' || 
-        event.type === 'customer.subscription.updated') {
-      const subscription = event.data.object as Stripe.Subscription;
-      const customerId = subscription.customer as string;
-
-      console.log('Processing subscription event:', {
-        type: event.type,
-        subscriptionId: subscription.id,
-        customerId,
-        status: subscription.status
-      });
-
-      const user = await storage.getUserByStripeCustomerId(customerId);
-      if (!user) {
-        console.error('No user found for Stripe customer:', customerId);
-        return res.status(400).send('No user found');
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        console.log('Processing checkout.session.completed:', {
+          customerId: session.customer,
+          subscriptionId: session.subscription
+        });
+        // The subscription will be activated by the subscription.created event
+        break;
       }
 
-      await storage.updateUserSubscription(
-        user.id,
-        subscription.id,
-        subscription.status
-      );
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
 
-      console.log('Successfully updated subscription:', {
-        userId: user.id,
-        subscriptionId: subscription.id,
-        status: subscription.status
-      });
+        console.log('Processing subscription event:', {
+          type: event.type,
+          subscriptionId: subscription.id,
+          customerId,
+          status: subscription.status
+        });
+
+        const user = await storage.getUserByStripeCustomerId(customerId);
+        if (!user) {
+          console.error('No user found for Stripe customer:', customerId);
+          return res.status(400).send('No user found');
+        }
+
+        await storage.updateUserSubscription(
+          user.id,
+          subscription.id,
+          subscription.status
+        );
+
+        console.log('✅ Updated subscription for user:', {
+          userId: user.id,
+          subscriptionId: subscription.id,
+          status: subscription.status
+        });
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log('Processing successful payment:', {
+          customerId: invoice.customer,
+          subscriptionId: invoice.subscription
+        });
+        break;
+      }
+
+      default:
+        console.log('Unhandled webhook event type:', event.type);
     }
 
     res.json({ received: true });
