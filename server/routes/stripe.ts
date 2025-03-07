@@ -31,7 +31,8 @@ router.post('/create-checkout-session', async (req, res) => {
     console.log('Creating checkout session for user:', { 
       userId, 
       email: user.email,
-      stripeCustomerId: user.stripeCustomerId || 'none'
+      stripeCustomerId: user.stripeCustomerId || 'none',
+      priceId: process.env.STRIPE_PRICE_ID
     });
 
     // Create Stripe customer if not exists

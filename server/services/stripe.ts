@@ -68,13 +68,17 @@ export class StripeService {
 
   static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
-      console.log('Creating checkout session with:', { customerId, userId });
+      console.log('Creating checkout session with:', { customerId, priceId, userId });
 
       // Get the base URL from environment variables
       const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 
                      (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : 'http://localhost:3000');
 
-      console.log('Creating session with base URL:', baseUrl);
+      console.log('Using base URL for Stripe redirects:', baseUrl);
+
+      if (!priceId || !priceId.startsWith('price_')) {
+        throw new Error(`Invalid price ID format: ${priceId}. Price ID should start with 'price_'`);
+      }
 
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -92,7 +96,13 @@ export class StripeService {
         },
       });
 
-      console.log('Successfully created checkout session:', session.id);
+      console.log('Successfully created checkout session:', {
+        sessionId: session.id,
+        url: session.url,
+        successUrl: session.success_url,
+        cancelUrl: session.cancel_url
+      });
+
       return session;
     } catch (error) {
       console.error('Error creating checkout session:', error);
