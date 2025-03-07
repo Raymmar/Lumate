@@ -166,8 +166,9 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
               )}
             </Avatar>
             <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                {person.userName || "Anonymous"}
+                <h1 className="text-2xl font-bold mb-2">
+                  {person.userName || "Anonymous"}
+                </h1>
                 <div className="flex items-center gap-2">
                   {isProfileAdmin && <AdminBadge />}
                   {person.role && (
@@ -183,17 +184,10 @@ export default function PersonProfile({ personId }: PersonProfileProps) {
                     />
                   ))}
                 </div>
-              </h1>
-              <div className="flex items-center gap-2">
-                {/* Email removed from here */}
               </div>
-            </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {/* Badges moved to h1 */}
-        </div>
 
         <Card>
           <CardContent className="py-4 pt-4">
