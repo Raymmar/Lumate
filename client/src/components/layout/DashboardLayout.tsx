@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="w-full">
           <PageContainer>
-            <div className="flex items-center justify-between w-full">
+            <div className="flex items-center justify-between w-full border-b">
               <div className="flex-1">
                 <NavBar />
               </div>
