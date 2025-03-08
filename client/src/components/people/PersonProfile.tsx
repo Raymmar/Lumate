@@ -76,6 +76,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
+  // Fetch person details
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
@@ -85,6 +86,19 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     }
   });
 
+  // Fetch person's subscription status
+  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery({
+    queryKey: ['/api/people', person?.api_id, 'subscription'],
+    queryFn: async () => {
+      if (!person?.api_id) return null;
+      const response = await fetch(`/api/people/${person.api_id}/subscription`);
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      return response.json();
+    },
+    enabled: !!person?.api_id
+  });
+
+  // Fetch person's stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/people', person?.api_id, 'stats'],
     queryFn: async () => {
@@ -96,6 +110,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     enabled: !!person?.api_id
   });
 
+  // Fetch person's events
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ['/api/people', person?.api_id, 'events'],
     queryFn: async () => {
@@ -107,22 +122,11 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     enabled: !!person?.api_id
   });
 
-  const { data: profileSubscriptionStatus, isLoading: statusLoading } = useQuery({
-    queryKey: ['/api/people', person?.api_id, 'subscription'],
-    queryFn: async () => {
-      if (!person?.api_id) return null;
-      const response = await fetch(`/api/people/${person.api_id}/subscription`);
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
-      return response.json();
-    },
-    enabled: !!person?.api_id
-  });
-
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
-  const isProfilePaidUser = profileSubscriptionStatus?.status === 'active';
-  const hasActiveSubscription = profileSubscriptionStatus?.status === 'active';
-  const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
+  const isProfilePaidUser = subscriptionStatus?.status === 'active';
+  const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
+  const isLoading = personLoading || statsLoading || subscriptionLoading || eventsLoading;
 
   if (personError) {
     return (
@@ -152,7 +156,28 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
   ];
 
-  const shouldShowMemberDetails = person.user && (isProfileAdmin || isProfilePaidUser || hasActiveSubscription);
+  // Show member details if:
+  // 1. The profile exists (person.user)
+  // 2. AND any of:
+  //    - The profile being viewed belongs to an admin
+  //    - The profile being viewed belongs to a paid user
+  //    - The current viewer has an active subscription
+  //    - The current viewer is an admin
+  const shouldShowMemberDetails = person.user && (
+    isProfileAdmin || 
+    isProfilePaidUser || 
+    hasActiveSubscription || 
+    isAdmin
+  );
+
+  console.log('Profile visibility:', {
+    isProfileAdmin,
+    isProfilePaidUser,
+    hasActiveSubscription,
+    isAdmin,
+    shouldShowMemberDetails,
+    subscriptionStatus
+  });
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -174,28 +199,27 @@ export default function PersonProfile({ username }: PersonProfileProps) {
               )}
             </Avatar>
             <div>
-                <h1 className="text-2xl font-bold mb-2">
-                  {person.userName || "Anonymous"}
-                </h1>
-                <div className="flex items-center gap-2">
-                  {isProfileAdmin && <AdminBadge />}
-                  {person.role && (
-                    <Badge variant="secondary">
-                      {person.role}
-                    </Badge>
-                  )}
-                  {userBadges.map((badge, index) => (
-                    <ProfileBadge
-                      key={index}
-                      name={badge.name}
-                      icon={badge.icon}
-                    />
-                  ))}
-                </div>
+              <h1 className="text-2xl font-bold mb-2">
+                {person.userName || "Anonymous"}
+              </h1>
+              <div className="flex items-center gap-2">
+                {isProfileAdmin && <AdminBadge />}
+                {person.role && (
+                  <Badge variant="secondary">
+                    {person.role}
+                  </Badge>
+                )}
+                {userBadges.map((badge, index) => (
+                  <ProfileBadge
+                    key={index}
+                    name={badge.name}
+                    icon={badge.icon}
+                  />
+                ))}
               </div>
+            </div>
           </div>
         </div>
-
 
         <Card>
           <CardContent className="py-4 pt-4">
