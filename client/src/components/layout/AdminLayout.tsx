@@ -61,8 +61,8 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
             {/* Main content area */}
             <div className="flex-1 min-h-[calc(100vh-57px)]">
-              <div className="p-6 border-t">
-                {title && <div className="mb-6">{title}</div>}
+              <div className="p-4">
+                {title && <div className="mb-4">{title}</div>}
                 {children}
               </div>
             </div>

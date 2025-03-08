@@ -6,7 +6,6 @@ interface PreviewSidebarProps {
   children: React.ReactNode;
   title?: string;
   headerContent?: React.ReactNode;
-  isAdminView?: boolean;
 }
 
 export function PreviewSidebar({ 
@@ -14,13 +13,12 @@ export function PreviewSidebar({
   onOpenChange, 
   children, 
   title,
-  headerContent,
-  isAdminView = false
+  headerContent 
 }: PreviewSidebarProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
-        className={`w-[480px] sm:max-w-[480px] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${isAdminView ? 'border-l' : ''}`}
+        className="w-[480px] sm:max-w-[480px] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
         style={{
           outline: 'none',
           boxShadow: 'none'

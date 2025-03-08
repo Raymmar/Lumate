@@ -16,6 +16,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 
 
+// Only updating the PinnedPostsCarousel component section
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
@@ -365,7 +366,7 @@ export function BulletinBoard() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const { data: postsData, isLoading: isPostsLoading } = useQuery<{ posts: Post[] }>({
+  const { data: postsData } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
 

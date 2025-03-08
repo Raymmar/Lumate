@@ -32,26 +32,22 @@ import { useToast } from "@/hooks/use-toast";
 TimeAgo.addLocale(en);
 const timeAgo = new TimeAgo('en-US');
 
+// Export query key for reuse
+export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
+
 interface PublicPostsTableProps {
   onSelect: (post: Post, isEditing?: boolean) => void;
   onCreatePost?: () => void;
-  isAdminView?: boolean;
 }
 
-// Export query keys for reuse
-export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
-export const ADMIN_POSTS_QUERY_KEY = ["/api/admin/posts"];
-
-export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: PublicPostsTableProps) {
+export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
   const { user } = useAuth();
   const { toast } = useToast();
   const [postToDelete, setPostToDelete] = useState<Post | null>(null);
 
-  const queryKey = isAdminView ? ADMIN_POSTS_QUERY_KEY : PUBLIC_POSTS_QUERY_KEY;
-
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
-    queryKey: queryKey,
+    queryKey: PUBLIC_POSTS_QUERY_KEY,
   });
 
   // Sort posts by creation date only (newest first)
@@ -59,8 +55,8 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  // Get the posts to display based on displayCount (only for public view)
-  const displayedPosts = isAdminView ? sortedPosts : sortedPosts?.slice(0, displayCount);
+  // Get the posts to display based on displayCount
+  const displayedPosts = sortedPosts?.slice(0, displayCount);
 
   // Check if user can create posts (admin or has publish_content permission)
   const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
@@ -75,26 +71,16 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
   const handleDeletePost = async (post: Post) => {
     try {
-      // Use different endpoints based on view
-      const endpoint = isAdminView
-        ? `/api/admin/posts/${post.id}`
-        : `/api/posts/${post.id}`;
-
-      await apiRequest(endpoint, 'DELETE');
-
-      // Invalidate both query keys to ensure UI updates everywhere
+      await apiRequest(`/api/posts/${post.id}`, 'DELETE');
       await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
-      await queryClient.invalidateQueries({ queryKey: ADMIN_POSTS_QUERY_KEY });
-
       toast({
         title: "Success",
         description: "Post deleted successfully"
       });
     } catch (error) {
-      console.error('Delete error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to delete post",
+        description: "Failed to delete post",
         variant: "destructive"
       });
     } finally {
@@ -106,7 +92,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
     <Card className="border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle>{isAdminView ? "Posts Management" : "Community News"}</CardTitle>
+          <CardTitle>Community News</CardTitle>
           {canCreatePosts && onCreatePost && (
             <Button
               onClick={onCreatePost}
@@ -221,8 +207,8 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
               </div>
             ))}
 
-            {/* Load More button - only shown in public view */}
-            {!isAdminView && sortedPosts && displayCount < sortedPosts.length && (
+            {/* Load More button */}
+            {sortedPosts && displayCount < sortedPosts.length && (
               <div className="pt-2 text-center">
                 <Button
                   variant="outline"

@@ -8,7 +8,6 @@ import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } f
 import { PostForm } from "./PostForm";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
 import { useEffect, useState } from 'react';
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -46,7 +45,6 @@ interface PostPreviewProps {
   readOnly?: boolean;
   posts?: Post[];
   onNavigate?: (post: Post) => void;
-  isAdminView?: boolean;
 }
 
 export function PostPreview({
@@ -57,8 +55,7 @@ export function PostPreview({
   onSave,
   readOnly = false,
   posts = [],
-  onNavigate,
-  isAdminView = true // Default to true since it's in the admin component
+  onNavigate
 }: PostPreviewProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -66,28 +63,9 @@ export function PostPreview({
   const [isEditMode, setIsEditMode] = useState(isEditing);
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Link.configure({
-        protocols: ['http', 'https', 'mailto', 'tel'],
-        autolink: true,
-        openOnClick: true,
-        linkOnPaste: true,
-        validate: href => /^(https?:\/\/|mailto:|tel:)/.test(href),
-        HTMLAttributes: {
-          class: 'text-primary underline decoration-primary cursor-pointer hover:text-primary/80',
-          rel: 'noopener noreferrer',
-          target: '_blank'
-        }
-      })
-    ],
+    extensions: [StarterKit],
     content: '',
     editable: false,
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none'
-      }
-    }
   });
 
   // Check if user can edit this post
@@ -157,7 +135,6 @@ export function PostPreview({
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
-        isAdminView={isAdminView}
       >
         <PostForm 
           onSubmit={isEditMode ? handleUpdatePost : onSave!}
@@ -214,7 +191,6 @@ export function PostPreview({
           </DropdownMenu>
         )
       }
-      isAdminView={isAdminView}
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto pb-16">
@@ -294,7 +270,7 @@ export function PostPreview({
 
             {/* Rich Text Content Section */}
             {editor && (
-              <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary [&_a]:cursor-pointer [&_a]:hover:text-primary/80">
+              <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
                 <EditorContent editor={editor} />
               </div>
             )}
