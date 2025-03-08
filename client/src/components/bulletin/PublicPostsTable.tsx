@@ -75,7 +75,12 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
   const handleDeletePost = async (post: Post) => {
     try {
-      await apiRequest(`/api/posts/${post.id}`, 'DELETE');
+      // Use different endpoints based on view
+      const endpoint = isAdminView
+        ? `/api/admin/posts/${post.id}`
+        : `/api/posts/${post.id}`;
+
+      await apiRequest(endpoint, 'DELETE');
 
       // Invalidate both query keys to ensure UI updates everywhere
       await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
