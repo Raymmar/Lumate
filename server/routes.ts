@@ -172,6 +172,64 @@ export async function registerRoutes(app: Express) {
   app.use('/api/unsplash', unsplashRouter);
   app.use('/api/stripe', stripeRouter);
 
+  app.get("/api/public/posts", async (_req, res) => {
+    try {
+      console.log('Fetching public posts...');
+      
+      // Fetch all posts from database
+      console.log('Fetching all posts from database...');
+      const allPosts = await db
+        .select({
+          id: posts.id,
+          title: posts.title,
+          summary: posts.summary,
+          body: posts.body,
+          isPinned: posts.isPinned,
+          featuredImage: posts.featuredImage,
+          videoUrl: posts.videoUrl,
+          ctaLink: posts.ctaLink,
+          ctaLabel: posts.ctaLabel,
+          creatorId: posts.creatorId,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt
+        })
+        .from(posts)
+        .orderBy(sql`created_at DESC`);
+
+      // Fetch creators for all posts
+      const postsWithCreators = await Promise.all(
+        allPosts.map(async (post) => {
+          const creator = await storage.getUser(post.creatorId);
+          
+          // Fetch tags for the post
+          const postTagsResult = await db
+            .select({
+              text: tags.text
+            })
+            .from(postTags)
+            .innerJoin(tags, eq(tags.id, postTags.tagId))
+            .where(eq(postTags.postId, post.id));
+
+          return {
+            ...post,
+            creator: creator ? {
+              id: creator.id,
+              displayName: creator.displayName
+            } : null,
+            tags: postTagsResult.map(tag => tag.text)
+          };
+        })
+      );
+
+      console.log('Posts with creators and tags:', postsWithCreators);
+
+      res.json({ posts: postsWithCreators });
+    } catch (error) {
+      console.error('Failed to fetch posts:', error);
+      res.status(500).json({ error: "Failed to fetch posts" });
+    }
+  });
+
   app.get("/api/subscription/status", async (req, res) => {
     try {
       if (!req.session.userId) {

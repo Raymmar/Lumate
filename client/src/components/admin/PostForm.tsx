@@ -14,22 +14,29 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 import { X, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 interface PostFormProps {
   onSubmit: (data: InsertPost & { tags?: string[] }) => Promise<void>;
-  defaultValues?: Partial<InsertPost>;
+  defaultValues?: Partial<InsertPost & { tags?: string[] }>;
   isEditing?: boolean;
 }
 
 export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [tags, setTags] = useState<string[]>(defaultValues?.tags || []);
+  const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
+
+  // Initialize tags from defaultValues when component mounts or defaultValues changes
+  useEffect(() => {
+    if (defaultValues?.tags) {
+      setTags(defaultValues.tags);
+    }
+  }, [defaultValues?.tags]);
 
   // Fetch existing tags
   const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
@@ -71,17 +78,20 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
 
   const handleSubmit = async (data: InsertPost) => {
     try {
+      // Include tags in the submission
       await onSubmit({ ...data, tags });
+
       // Invalidate the public posts query to trigger a refetch
       queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
+
       toast({
         title: "Success",
-        description: "Post published successfully"
+        description: isEditing ? "Post updated successfully" : "Post published successfully"
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to publish post",
+        description: isEditing ? "Failed to update post" : "Failed to publish post",
         variant: "destructive"
       });
     }
@@ -147,7 +157,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                 <Textarea
                   {...field}
                   value={value || ""}
-                  placeholder="Add your summary here and this will be used as post meta description as well."
+                  placeholder="Add your summary here..."
                   className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                 />
               </FormControl>
