@@ -45,6 +45,7 @@ interface PostPreviewProps {
   readOnly?: boolean;
   posts?: Post[];
   onNavigate?: (post: Post) => void;
+  isAdminView?: boolean;
 }
 
 export function PostPreview({
@@ -55,7 +56,8 @@ export function PostPreview({
   onSave,
   readOnly = false,
   posts = [],
-  onNavigate
+  onNavigate,
+  isAdminView = true // Default to true since it's in the admin component
 }: PostPreviewProps) {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -135,6 +137,7 @@ export function PostPreview({
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
+        isAdminView={isAdminView}
       >
         <PostForm 
           onSubmit={isEditMode ? handleUpdatePost : onSave!}
@@ -191,6 +194,7 @@ export function PostPreview({
           </DropdownMenu>
         )
       }
+      isAdminView={isAdminView}
     >
       <div className="flex flex-col h-full">
         <div className="flex-1 overflow-y-auto pb-16">
