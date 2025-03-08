@@ -3,7 +3,13 @@ import PeopleDirectory from "@/components/people/PeopleDirectory";
 import EventList from "@/components/events/EventList";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "./PageContainer";
-import { Drawer } from "@/components/ui/drawer";
+import { Button } from "@/components/ui/button";
+import { List } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -36,10 +42,22 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <PageContainer>
             <div className="flex items-center justify-between w-full border-b">
               <div className="flex-1">
-                <NavBar 
-                  onOpenDirectory={() => setIsOpen(!isOpen)} 
-                  isDirectoryOpen={isOpen}
-                />
+                <NavBar />
+              </div>
+              <div className="lg:hidden">
+                <Drawer open={isOpen} onOpenChange={setIsOpen}>
+                  <DrawerTrigger asChild>
+                    <Button variant="ghost" size="icon" className="ml-2">
+                      <List className="h-5 w-5" />
+                      <span className="sr-only">Toggle directory</span>
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent>
+                    <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
+                      <SidebarContent isMobile={true} />
+                    </div>
+                  </DrawerContent>
+                </Drawer>
               </div>
             </div>
           </PageContainer>
@@ -65,14 +83,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {children}
             </div>
           </main>
-
-          {/* Mobile Directory Drawer */}
-          <Drawer open={isOpen} onOpenChange={setIsOpen}>
-            {/* Drawer trigger is now in NavBar */}
-            <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
-              <SidebarContent isMobile={true} />
-            </div>
-          </Drawer>
         </div>
       </PageContainer>
     </div>
