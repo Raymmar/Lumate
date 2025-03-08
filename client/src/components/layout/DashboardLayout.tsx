@@ -67,6 +67,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
           {/* Main content area */}
           <main className="flex-1 overflow-y-auto bg-muted/10">
+            {/* Mobile Events List - only visible when sidebar is hidden */}
+            <div className="md:hidden">
+              <div className="bg-background border-b p-4">
+                <EventList compact />
+              </div>
+            </div>
             <div className="p-4 min-h-[calc(100vh-57px)]">
               {children}
             </div>

@@ -19,6 +19,10 @@ interface EventsResponse {
   total: number;
 }
 
+interface EventListProps {
+  compact?: boolean;
+}
+
 function formatEventDate(utcDateStr: string, timezone: string | null): string {
   try {
     const eventTimezone = timezone || 'America/New_York';
@@ -34,7 +38,7 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
   }
 }
 
-function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event) => void }) {
+function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (event: Event) => void; compact?: boolean }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,7 +61,6 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
       const response = await fetch(`/api/events/${event.api_id}/attendees`);
       if (!response.ok) throw new Error('Failed to fetch attendees');
       const data = await response.json();
-      // Filter out anonymous attendees for public display
       if (data.attendees) {
         data.attendees = data.attendees.filter((person: any) =>
           person.userName && person.userName.toLowerCase() !== "anonymous"
@@ -111,6 +114,59 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
       rsvpMutation.mutate();
     }
   };
+
+  if (compact) {
+    return (
+      <div
+        onClick={() => onSelect(event)}
+        className="cursor-pointer"
+      >
+        <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
+          <div className="p-4 flex gap-4 items-center">
+            <div className="w-16 h-16 flex-shrink-0 relative rounded-md overflow-hidden">
+              {event.coverUrl ? (
+                <img
+                  src={event.coverUrl}
+                  alt={event.title}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full bg-muted flex items-center justify-center">
+                  <CalendarDays className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">
+                {event.title}
+              </h3>
+              <div className="text-xs text-muted-foreground">
+                {formatEventDate(event.startTime, event.timezone)}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <AuthGuard>
+                  <Button
+                    size="sm"
+                    variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                    onClick={handleRSVP}
+                    disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                    className="text-xs px-2 h-6"
+                  >
+                    {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+                  </Button>
+                </AuthGuard>
+                {!isAttendeesLoading && (
+                  <span className="text-xs text-muted-foreground">
+                    {attendeesData?.total || 0} attending
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -193,7 +249,7 @@ function EventCard({ event, onSelect }: { event: Event; onSelect: (event: Event)
   );
 }
 
-export default function EventList() {
+export default function EventList({ compact }: EventListProps) {
   const { data, isLoading, error } = useQuery<EventsResponse>({
     queryKey: ["/api/events"],
     queryFn: async () => {
@@ -246,6 +302,7 @@ export default function EventList() {
         <EventCard
           event={upcomingEvent}
           onSelect={(event) => setSelectedEvent(event)}
+          compact={compact}
         />
       ) : (
         <p className="text-xs text-muted-foreground">No upcoming events</p>
