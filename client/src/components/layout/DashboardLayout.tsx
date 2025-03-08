@@ -39,7 +39,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <PageContainer>
           <div className="flex items-center">
             <NavBar />
-            <div className="lg:hidden ml-2">
+            <div className="md:hidden ml-2">
               <Drawer open={isOpen} onOpenChange={setIsOpen}>
                 <DrawerTrigger asChild>
                   <Button variant="ghost" size="icon">
@@ -60,8 +60,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <PageContainer>
         <div className="flex">
-          {/* Sidebar - hidden below lg breakpoint */}
-          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[300px] xl:w-[350px] border-r bg-background flex flex-col">
+          {/* Sidebar - hidden on mobile, visible on md and up */}
+          <aside className="hidden md:block sticky top-[57px] h-[calc(100vh-57px)] w-[280px] lg:w-[350px] border-r bg-background flex flex-col">
             <SidebarContent />
           </aside>
 
