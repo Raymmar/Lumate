@@ -118,6 +118,9 @@ export interface IStorage {
   updateUserSubscription(userId: number, subscriptionId: string, status: string): Promise<User>;
   setStripeCustomerId(userId: number, customerId: string): Promise<User>;
   getPersonByUsername(username: string): Promise<Person | null>;
+
+  // Add this new method
+  updatePost(postId: number, data: Partial<Post>): Promise<Post>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -1696,6 +1699,39 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async updatePost(postId: number, data: Partial<Post>): Promise<Post> {
+    try {
+      console.log('Attempting to update post:', {
+        postId,
+        updateData: data,
+        timestamp: new Date().toISOString()
+      });
+
+      const [updatedPost] = await db
+        .update(posts)
+        .set({
+          ...data,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(posts.id, postId))
+        .returning();
+
+      if (!updatedPost) {
+        throw new Error(`Post with ID ${postId} not found`);
+      }
+
+      console.log('Successfully updated post:', {
+        postId: updatedPost.id,
+        title: updatedPost.title,
+        updatedAt: updatedPost.updatedAt
+      });
+
+      return updatedPost;
+    } catch (error) {
+      console.error('Failed to update post:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new PostgresStorage();

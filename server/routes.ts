@@ -24,7 +24,7 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
 import { CacheService } from './services/CacheService';
-import { posts, tags, postTags } from "@shared/schema";
+import { posts, tags, postTags, insertPostSchema } from "@shared/schema";
 import stripeRouter from './routes/stripe';
 import { StripeService } from './services/stripe';
 
@@ -930,6 +930,115 @@ export async function registerRoutes(app: Express) {
       res.clearCookie('connect.sid');
       res.json({ message: "Logged out successfully" });
     });
+  });
+
+  app.patch("/api/posts/:id", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        console.log('Post update rejected: User not authenticated');
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) {
+        console.log('Post update rejected: Invalid post ID:', req.params.id);
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
+
+      console.log('Processing post update request:', {
+        postId,
+        userId: req.session.userId,
+        updateData: req.body
+      });
+
+      // Get the existing post
+      const post = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.id, postId))
+        .limit(1);
+
+      if (!post || post.length === 0) {
+        console.log('Post update rejected: Post not found:', postId);
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      const existingPost = post[0];
+      console.log('Found existing post:', {
+        id: existingPost.id,
+        title: existingPost.title,
+        creatorId: existingPost.creatorId
+      });
+
+      // Check if user has permission to edit this post
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        console.log('Post update rejected: User not found:', req.session.userId);
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (!user.isAdmin && existingPost.creatorId !== user.id) {
+        console.log('Post update rejected: Unauthorized edit attempt', {
+          userId: user.id,
+          postCreatorId: existingPost.creatorId,
+          isAdmin: user.isAdmin
+        });
+        return res.status(403).json({ error: "Not authorized to edit this post" });
+      }
+
+      // Validate the update data
+      const updateData = insertPostSchema.partial().parse(req.body);
+      console.log('Validated update data:', updateData);
+
+      // Update the post
+      const updatedPost = await storage.updatePost(postId, updateData);
+      console.log('Post updated successfully:', {
+        id: updatedPost.id,
+        title: updatedPost.title,
+        updatedAt: updatedPost.updatedAt
+      });
+
+      // Update post tags if provided
+      if (req.body.tags) {
+        console.log('Updating post tags:', req.body.tags);
+        
+        // Delete existing tags
+        await db.delete(postTags).where(eq(postTags.postId, postId));
+        console.log('Deleted existing tags for post:', postId);
+
+        // Insert new tags
+        for (const tagText of req.body.tags) {
+          // Find or create tag
+          let [tag] = await db
+            .select()
+            .from(tags)
+            .where(eq(tags.text, tagText.toLowerCase()));
+
+          if (!tag) {
+            [tag] = await db
+              .insert(tags)
+              .values({ text: tagText.toLowerCase() })
+              .returning();
+            console.log('Created new tag:', tag.text);
+          }
+
+          // Link tag to post
+          await db
+            .insert(postTags)
+            .values({ postId, tagId: tag.id })
+            .onConflictDoNothing();
+        }
+        console.log('Updated post tags successfully');
+      }
+
+      res.json(updatedPost);
+    } catch (error) {
+      console.error('Failed to update post:', error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid post data", details: error.errors });
+      }
+      res.status(500).json({ error: "Failed to update post" });
+    }
   });
 
   app.post("/_internal/reset-database", async (req, res) => {
