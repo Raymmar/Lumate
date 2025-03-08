@@ -228,7 +228,7 @@ export default function UserSettingsPage() {
                         <FormControl>
                           <Textarea
                             {...field}
-                            placeholder="Add your bio here..."
+                            placeholder="Add your custom greeting here"
                             className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                           />
                         </FormControl>
@@ -469,7 +469,7 @@ export default function UserSettingsPage() {
                             <div className="space-y-2">
                               {field.value.map((link, index) => (
                                 <div key={index} className="flex gap-2 items-start">
-                                  <div className="flex-1 space-y-2">
+                                  <div className="flex-1 flex gap-2">
                                     <Input
                                       placeholder="Link title"
                                       value={link.title}
