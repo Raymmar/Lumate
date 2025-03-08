@@ -365,6 +365,7 @@ export function BulletinBoard() {
 
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const { data: postsData } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
@@ -389,6 +390,11 @@ export function BulletinBoard() {
     }
   };
 
+  const handleSelectPost = (post: Post, isEditing = false) => {
+    setSelectedPost(post);
+    setIsEditing(isEditing);
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 grid-cols-2">
@@ -397,7 +403,7 @@ export function BulletinBoard() {
       </div>
 
       {/* Pinned Posts Carousel */}
-      <PinnedPostsCarousel onSelect={setSelectedPost} />
+      <PinnedPostsCarousel onSelect={handleSelectPost} />
 
       {/* Stats Grid - Moved here */}
       <div className="grid gap-3 md:grid-cols-3 mt-4 mb-4">
@@ -426,7 +432,7 @@ export function BulletinBoard() {
 
       {/* Latest Posts Section */}
       <PublicPostsTable
-        onSelect={setSelectedPost}
+        onSelect={handleSelectPost}
         onCreatePost={() => setIsCreating(true)}
       />
 
@@ -435,13 +441,15 @@ export function BulletinBoard() {
         <PostPreview
           post={selectedPost || undefined}
           isNew={isCreating}
+          isEditing={isEditing}
           onClose={() => {
             setSelectedPost(null);
             setIsCreating(false);
+            setIsEditing(false);
           }}
           onSave={handleCreatePost}
           posts={postsData?.posts || []}
-          onNavigate={setSelectedPost}
+          onNavigate={post => handleSelectPost(post)}
         />
       )}
 
