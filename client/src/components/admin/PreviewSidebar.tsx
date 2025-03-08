@@ -1,13 +1,20 @@
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader } from "@/components/ui/sheet";
 
 interface PreviewSidebarProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
-  title?: string;  // Make title optional
+  title?: string;
+  headerContent?: React.ReactNode;
 }
 
-export function PreviewSidebar({ open, onOpenChange, children, title }: PreviewSidebarProps) {
+export function PreviewSidebar({ 
+  open, 
+  onOpenChange, 
+  children, 
+  title,
+  headerContent 
+}: PreviewSidebarProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
@@ -23,9 +30,10 @@ export function PreviewSidebar({ open, onOpenChange, children, title }: PreviewS
           e.preventDefault();
         }}
       >
-        {title && (
-          <SheetHeader>
-            <SheetTitle>{title}</SheetTitle>
+        {(title || headerContent) && (
+          <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+            {title && <h2 className="text-lg font-semibold">{title}</h2>}
+            {headerContent}
           </SheetHeader>
         )}
         {children}
