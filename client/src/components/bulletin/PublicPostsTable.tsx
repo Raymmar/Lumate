@@ -39,8 +39,8 @@ interface PublicPostsTableProps {
 }
 
 // Export query keys for reuse
-export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
-export const ADMIN_POSTS_QUERY_KEY = ["/api/admin/posts"];
+export const PUBLIC_POSTS_QUERY_KEY = ['/api/public/posts'];
+export const ADMIN_POSTS_QUERY_KEY = ['/api/admin/posts'];
 
 export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
@@ -75,10 +75,9 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
   const handleDeletePost = async (post: Post) => {
     try {
-      const endpoint = isAdminView ? `/api/admin/posts/${post.id}` : `/api/posts/${post.id}`;
-      await apiRequest(endpoint, 'DELETE');
+      await apiRequest(`/api/posts/${post.id}`, 'DELETE');
 
-      // Invalidate the queries
+      // Invalidate both query keys to ensure UI updates everywhere
       await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
       await queryClient.invalidateQueries({ queryKey: ADMIN_POSTS_QUERY_KEY });
 
@@ -246,7 +245,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={() => postToDelete && handleDeletePost(postToDelete)}
