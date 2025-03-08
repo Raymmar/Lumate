@@ -19,12 +19,15 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
-        <div className="flex-none">
-          <EventList />
-        </div>
+        {/* Show EventList in desktop sidebar, hide in mobile sidebar since it's shown in main content */}
+        {!isMobile && (
+          <div className="flex-none">
+            <EventList />
+          </div>
+        )}
         <div className="flex-1 overflow-hidden min-h-0">
           <PeopleDirectory />
         </div>
@@ -52,7 +55,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   </DrawerTrigger>
                   <DrawerContent>
                     <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
-                      <SidebarContent />
+                      <SidebarContent isMobile={true} />
                     </div>
                   </DrawerContent>
                 </Drawer>
