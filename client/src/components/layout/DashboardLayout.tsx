@@ -24,9 +24,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Fixed header with full-width background */}
         <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
           <PageContainer>
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              <NavBar />
+            <div className="flex h-14 items-center gap-4">
+              <SidebarTrigger className="flex-none" />
+              <NavBar className="flex-1" />
             </div>
           </PageContainer>
         </div>
@@ -34,7 +34,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <PageContainer>
           <div className="flex relative">
             {/* Sidebar */}
-            <Sidebar variant="sidebar" collapsible="offcanvas">
+            <Sidebar 
+              variant="sidebar" 
+              collapsible="offcanvas"
+              style={{
+                "--sidebar-width": "400px",
+              } as React.CSSProperties}
+            >
               <SidebarContent>
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
