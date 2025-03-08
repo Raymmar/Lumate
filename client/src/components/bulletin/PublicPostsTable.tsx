@@ -75,7 +75,8 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
   const handleDeletePost = async (post: Post) => {
     try {
-      await apiRequest(`/api/posts/${post.id}`, 'DELETE');
+      const endpoint = isAdminView ? `/api/admin/posts/${post.id}` : `/api/posts/${post.id}`;
+      await apiRequest(endpoint, 'DELETE');
       await queryClient.invalidateQueries({ queryKey: [queryKey] });
       toast({
         title: "Success",

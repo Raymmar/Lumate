@@ -990,11 +990,17 @@ export async function registerRoutes(app: Express) {
     });
   });
 
-  app.patch("/api/posts/:id", async (req, res) => {
+  app.patch("/api/admin/posts/:id", async (req, res) => {
     try {
       if (!req.session.userId) {
         console.log('Post update rejected: User not authenticated');
         return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        console.log('Post update rejected: User not admin');
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       const postId = parseInt(req.params.id);
@@ -1003,93 +1009,79 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
 
-      console.log('Processing post update request:', {
-        postId,
-        userId: req.session.userId,
-        updateData: req.body
-      });
-
-      // Get the existing post
-      const post = await db
+      const existingPost = await db
         .select()
         .from(posts)
         .where(eq(posts.id, postId))
-        .limit(1);
+        .limit(1)
+        .then(results => results[0]);
 
-      if (!post || post.length === 0) {
+      if (!existingPost) {
         console.log('Post update rejected: Post not found:', postId);
         return res.status(404).json({ error: "Post not found" });
       }
 
-      const existingPost = post[0];
-      console.log('Found existing post:', {
-        id: existingPost.id,
-        title: existingPost.title,
-        creatorId: existingPost.creatorId
+      // If admin is editing, let them specify updateData directly
+      const updateData = req.body;
+
+      console.log('Processing post update request:', {
+        postId,
+        userId: req.session.userId,
+        isAdmin: true,
+        updateData
       });
 
-      // Check if user has permission to edit this post
-      const user = await storage.getUser(req.session.userId);
-      if (!user) {
-        console.log('Post update rejected: User not found:', req.session.userId);
-        return res.status(401).json({ error: "User not found" });
-      }
+      // Update the post in the database
+      await db
+        .update(posts)
+        .set({
+          ...updateData,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(posts.id, postId));
 
-      if (!user.isAdmin && existingPost.creatorId !== user.id) {
-        console.log('Post update rejected: Unauthorized edit attempt', {
-          userId: user.id,
-          postCreatorId: existingPost.creatorId,
-          isAdmin: user.isAdmin
-        });
-        return res.status(403).json({ error: "Not authorized to edit this post" });
-      }
-
-      // Validate the update data
-      const updateData = insertPostSchema.partial().parse(req.body);
-      console.log('Validated update data:', updateData);
-
-      // Update the post
-      const updatedPost = await storage.updatePost(postId, updateData);
-      console.log('Post updated successfully:', {
-        id: updatedPost.id,
-        title: updatedPost.title,
-        updatedAt: updatedPost.updatedAt
-      });
-
-      // Update post tags if provided
-      if (req.body.tags) {
-        console.log('Updating post tags:', req.body.tags);
+      // If there are tags, handle them
+      if (updateData.tags) {
+        console.log('Updating post tags:', updateData.tags);
         
-        // Delete existing tags
-        await db.delete(postTags).where(eq(postTags.postId, postId));
-        console.log('Deleted existing tags for post:', postId);
+        // First, remove all existing tags for this post
+        await db
+          .delete(postTags)
+          .where(eq(postTags.postId, postId));
 
-        // Insert new tags
-        for (const tagText of req.body.tags) {
-          // Find or create tag
-          let [tag] = await db
+        // Then add the new tags
+        for (const tagText of updateData.tags) {
+          // Find or create the tag
+          let [existingTag] = await db
             .select()
             .from(tags)
             .where(eq(tags.text, tagText.toLowerCase()));
 
-          if (!tag) {
-            [tag] = await db
+          if (!existingTag) {
+            [existingTag] = await db
               .insert(tags)
               .values({ text: tagText.toLowerCase() })
               .returning();
-            console.log('Created new tag:', tag.text);
           }
 
-          // Link tag to post
+          // Add the tag to the post
           await db
             .insert(postTags)
-            .values({ postId, tagId: tag.id })
+            .values({
+              postId,
+              tagId: existingTag.id
+            })
             .onConflictDoNothing();
         }
-        console.log('Updated post tags successfully');
       }
 
-      res.json(updatedPost);
+      console.log('Post updated successfully:', {
+        id: postId,
+        title: updateData.title,
+        tags: updateData.tags
+      });
+
+      res.json({ message: "Post updated successfully" });
     } catch (error) {
       console.error('Failed to update post:', error);
       if (error instanceof ZodError) {
@@ -1099,11 +1091,18 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/posts/:id", async (req, res) => {
+  // Add admin post delete route
+  app.delete("/api/admin/posts/:id", async (req, res) => {
     try {
       if (!req.session.userId) {
         console.log('Post deletion rejected: User not authenticated');
         return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        console.log('Post deletion rejected: User not admin');
+        return res.status(403).json({ error: "Not authorized" });
       }
 
       const postId = parseInt(req.params.id);
@@ -1112,43 +1111,32 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid post ID" });
       }
 
-      // Get the existing post
-      const post = await db
+      const existingPost = await db
         .select()
         .from(posts)
         .where(eq(posts.id, postId))
-        .limit(1);
+        .limit(1)
+        .then(results => results[0]);
 
-      if (!post || post.length === 0) {
+      if (!existingPost) {
         console.log('Post deletion rejected: Post not found:', postId);
         return res.status(404).json({ error: "Post not found" });
       }
 
-      const existingPost = post[0];
+      // First remove all tags associations
+      await db
+        .delete(postTags)
+        .where(eq(postTags.postId, postId));
 
-      // Check if user has permission to delete this post
-      const user = await storage.getUser(req.session.userId);
-      if (!user) {
-        console.log('Post deletion rejected: User not found:', req.session.userId);
-        return res.status(401).json({ error: "User not found" });
-      }
+      // Then delete the post
+      await db
+        .delete(posts)
+        .where(eq(posts.id, postId));
 
-      if (!user.isAdmin && existingPost.creatorId !== user.id) {
-        console.log('Post deletion rejected: Unauthorized deletion attempt', {
-          userId: user.id,
-          postCreatorId: existingPost.creatorId,
-          isAdmin: user.isAdmin
-        });
-        return res.status(403).json({ error: "Not authorized to delete this post" });
-      }
-
-      // Delete associated tags first
-      await db.delete(postTags).where(eq(postTags.postId, postId));
-      console.log('Deleted associated tags for post:', postId);
-
-      // Delete the post
-      await db.delete(posts).where(eq(posts.id, postId));
-      console.log('Successfully deleted post:', postId);
+      console.log('Successfully deleted post:', {
+        id: postId,
+        title: existingPost.title
+      });
 
       res.json({ message: "Post deleted successfully" });
     } catch (error) {
