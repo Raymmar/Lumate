@@ -30,7 +30,7 @@ export function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
 
   // Generate profile URL using username if available, fallback to API ID
-  const profileUrl = user ? `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : '';
+  const profileUrl = user?.displayName ? `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : '';
 
   return (
     <nav className="flex h-16 items-center pl-2 pr-4 w-full">
@@ -55,7 +55,7 @@ export function NavBar() {
               <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
                 <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
                   <div className="flex-1 overflow-hidden min-h-0">
-                    <PeopleDirectory />
+                    <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
                   </div>
                 </div>
               </div>
