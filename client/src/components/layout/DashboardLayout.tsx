@@ -45,7 +45,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="flex-1">
                 <NavBar />
               </div>
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 <Drawer open={isOpen} onOpenChange={setIsOpen}>
                   <DrawerTrigger asChild>
                     <Button variant="ghost" size="icon" className="ml-2">
@@ -67,15 +67,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <PageContainer>
         <div className="flex">
-          {/* Sidebar - hidden on mobile, visible on md and up */}
-          <aside className="hidden md:block sticky top-[57px] h-[calc(100vh-57px)] w-[280px] lg:w-[350px] border-r bg-background">
+          {/* Sidebar - hidden below lg, visible on lg and up */}
+          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[280px] xl:w-[350px] border-r bg-background">
             <SidebarContent />
           </aside>
 
           {/* Main content area */}
           <main className="flex-1 overflow-y-auto bg-muted/10">
             {/* Mobile Events List - only visible when sidebar is hidden */}
-            <div className="md:hidden">
+            <div className="lg:hidden">
               <div className="bg-background p-4">
                 <EventList compact />
               </div>
