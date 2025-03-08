@@ -7,13 +7,14 @@ interface MemberDetailsProps {
 }
 
 export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
-  console.log('MemberDetails - Received user data:', user); // Debug log
+  console.log('MemberDetails - Received user data:', user);
 
   if (!user) {
     console.log('MemberDetails - No user data found');
     return null;
   }
 
+  // Always construct business data using available fields, with fallbacks
   const businessData = {
     name: user.companyName || user.displayName || 'Business Profile',
     description: user.companyDescription || user.bio || '',
@@ -25,7 +26,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     tags: user.tags
   };
 
-  console.log('MemberDetails - Prepared business data:', businessData); // Debug log
+  console.log('MemberDetails - Prepared business data:', businessData);
 
   return (
     <div className="space-y-4">

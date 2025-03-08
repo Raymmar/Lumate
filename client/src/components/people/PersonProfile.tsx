@@ -126,16 +126,15 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const isProfileAdmin = Boolean(person?.isAdmin);
   const isProfilePaidUser = Boolean(person?.user?.subscriptionStatus === 'active');
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
-  const isLoading = personLoading || statsLoading || subscriptionLoading || eventsLoading;
+  const isLoading = personLoading || statsLoading || eventsLoading;
 
   console.log('Profile visibility:', {
     isProfileAdmin,
     isProfilePaidUser,
     hasActiveSubscription,
     isAdmin,
-    shouldShowMemberDetails: person?.user && (isProfileAdmin || isProfilePaidUser || hasActiveSubscription || isAdmin),
-    personSubscriptionStatus: person?.user?.subscriptionStatus,
-    subscriptionStatus
+    personData: person?.user,
+    shouldShowMemberDetails: person?.user && (isProfileAdmin || isProfilePaidUser || hasActiveSubscription || isAdmin)
   });
 
   if (personError) {
@@ -166,20 +165,15 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
   ];
 
-  // Show member details if:
-  // 1. The profile exists (person.user)
-  // 2. AND any of:
-  //    - The profile being viewed belongs to an admin
-  //    - The profile being viewed belongs to a paid user
-  //    - The current viewer has an active subscription
-  //    - The current viewer is an admin
-  const shouldShowMemberDetails = person.user && (
-    isProfileAdmin || 
-    isProfilePaidUser || 
-    hasActiveSubscription || 
-    isAdmin
+  // Determine if member details should be shown
+  const shouldShowMemberDetails = Boolean(
+    person.user && (
+      isProfileAdmin || 
+      isProfilePaidUser || 
+      hasActiveSubscription || 
+      isAdmin
+    )
   );
-
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -234,9 +228,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         </Card>
 
         {shouldShowMemberDetails && (
-          <AuthGuard>
-            <MemberDetails user={person.user} />
-          </AuthGuard>
+          <MemberDetails user={person.user} />
         )}
       </div>
 
