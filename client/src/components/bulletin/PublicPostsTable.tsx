@@ -39,8 +39,8 @@ interface PublicPostsTableProps {
 }
 
 // Export query keys for reuse
-export const PUBLIC_POSTS_QUERY_KEY = ['/api/posts']; // Corrected query key
-export const ADMIN_POSTS_QUERY_KEY = ['/api/admin/posts'];
+export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
+export const ADMIN_POSTS_QUERY_KEY = ["/api/admin/posts"];
 
 export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
