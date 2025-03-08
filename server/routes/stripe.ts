@@ -84,50 +84,78 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 // Webhook handler
-router.post('/webhook', async (req, res) => {
+// Important: Use raw body parsing for Stripe webhooks
+router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
-    signature: !!req.headers['stripe-signature'],
+    signature: sig,
     url: req.originalUrl
   });
 
   try {
     const event = stripe.webhooks.constructEvent(
       req.body,
-      req.headers['stripe-signature'] as string,
+      sig as string,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log('📦 Webhook event:', event.type);
+    console.log('📦 Webhook event:', {
+      type: event.type,
+      id: event.id,
+      object: event.data.object.object
+    });
 
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log('💳 Processing completed checkout session:', session.id);
+        console.log('💳 Processing completed checkout session:', {
+          sessionId: session.id,
+          customerId: session.customer,
+          subscriptionId: session.subscription
+        });
 
         if (session.subscription && session.customer) {
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-          const customerId = subscription.customer as string;
+          // Get full subscription details
+          const subscription = await stripe.subscriptions.retrieve(
+            session.subscription as string,
+            {
+              expand: ['customer', 'default_payment_method']
+            }
+          );
 
-          console.log('🔍 Looking up user for customer:', customerId);
-          const user = await storage.getUserByStripeCustomerId(customerId);
+          console.log('🔍 Retrieved subscription details:', {
+            id: subscription.id,
+            status: subscription.status,
+            customerId: subscription.customer
+          });
 
+          // Find and update user subscription
+          const user = await storage.getUserByStripeCustomerId(session.customer as string);
           if (!user) {
-            console.error('❌ No user found for customer:', customerId);
-            throw new Error(`No user found for customer: ${customerId}`);
+            console.error('❌ No user found for customer:', session.customer);
+            throw new Error(`No user found for customer: ${session.customer}`);
           }
 
-          console.log('✏️ Updating subscription for user:', user.id);
+          console.log('✏️ Updating subscription for user:', {
+            userId: user.id,
+            subscriptionId: subscription.id,
+            status: subscription.status
+          });
+
           await storage.updateUserSubscription(
             user.id,
             subscription.id,
             subscription.status
           );
 
-          console.log('✅ Subscription updated:', {
-            userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
+          console.log('✅ Subscription updated successfully');
+        } else {
+          console.warn('⚠️ Missing subscription or customer in session:', {
+            sessionId: session.id,
+            subscription: session.subscription,
+            customer: session.customer
           });
         }
         break;
@@ -136,24 +164,22 @@ router.post('/webhook', async (req, res) => {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        const customerId = subscription.customer as string;
+        console.log('🔄 Processing subscription change:', {
+          subscriptionId: subscription.id,
+          customerId: subscription.customer,
+          status: subscription.status
+        });
 
-        console.log('🔄 Processing subscription change:', subscription.id);
-        const user = await storage.getUserByStripeCustomerId(customerId);
-
+        const user = await storage.getUserByStripeCustomerId(subscription.customer as string);
         if (user) {
           await storage.updateUserSubscription(
             user.id,
             subscription.id,
             subscription.status
           );
-          console.log('✅ Subscription status updated:', {
-            userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
-          });
+          console.log('✅ Subscription status updated for user:', user.id);
         } else {
-          console.warn('⚠️ No user found for subscription update:', customerId);
+          console.warn('⚠️ No user found for subscription update:', subscription.customer);
         }
         break;
       }
@@ -162,7 +188,10 @@ router.post('/webhook', async (req, res) => {
     res.json({ received: true });
   } catch (error) {
     console.error('❌ Webhook error:', error);
-    res.status(400).json({ error: 'Webhook error' });
+    return res.status(400).json({
+      error: 'Webhook error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 

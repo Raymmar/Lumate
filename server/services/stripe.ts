@@ -139,6 +139,7 @@ export class StripeService {
       throw error;
     }
   }
+  
   static async cancelSubscription(subscriptionId: string) {
     try {
       return await stripe.subscriptions.cancel(subscriptionId);
