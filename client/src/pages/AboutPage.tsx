@@ -66,13 +66,13 @@ function TimelineSection() {
   ];
 
   return (
-    <div className="space-y-24 max-w-[960px] py-24 mx-auto">
-      <div className="space-y-24">
+    <div className="space-y-12 max-w-[960px] py-12 md:py-24 mx-auto">
+      <div className="space-y-12 md:space-y-24">
         {events.map((event, index) => (
           <div
             key={index}
-            className={`flex gap-8 items-center ${
-              index % 2 === 0 ? "flex-row" : "flex-row-reverse"
+            className={`flex flex-col gap-8 md:flex-row ${
+              index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
             }`}
           >
             <div className="flex-1">
@@ -121,7 +121,7 @@ function BoardMembersSection() {
   return (
     <div className="space-y-12">
       <h2 className="text-3xl font-bold text-center">Founding Board Members</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
           <Card key={member.name}>
             <CardHeader className="text-center">
@@ -154,7 +154,7 @@ function FoundingMembersSection() {
   return (
     <div className="space-y-12">
       <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
         {members.map((member) => (
           <div key={member.name} className="text-center">
             <Avatar className="w-16 h-16 mx-auto mb-2">
@@ -207,7 +207,7 @@ function TestimonialsSection() {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 max-w-[1140px] pt-12 md:grid-cols-2 lg:grid-cols-3 gap-6 mx-auto">
+      <div className="grid grid-cols-1 max-w-[1140px] pt-12 sm:grid-cols-2 lg:grid-cols-3 gap-6 mx-auto">
         {testimonials.map((testimonial) => (
           <Card key={testimonial.name}>
             <CardContent className="pt-6">
