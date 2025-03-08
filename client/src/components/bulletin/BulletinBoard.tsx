@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 // Only updating the PinnedPostsCarousel component section
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
-    queryKey: ["/api/public/posts"],
+    queryKey: ["/api/posts"], // Updated query key
   });
 
   const pinnedPosts = postsData?.posts.filter(post => post.isPinned).sort((a, b) =>
@@ -366,8 +366,8 @@ export function BulletinBoard() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const { data: postsData } = useQuery<{ posts: Post[] }>({
-    queryKey: ["/api/public/posts"],
+  const { data: postsData, isLoading: isPostsLoading } = useQuery<{ posts: Post[] }>({ // Updated query key and isLoading
+    queryKey: ["/api/posts"],
   });
 
   const { toast } = useToast();
@@ -380,7 +380,7 @@ export function BulletinBoard() {
         title: "Success",
         description: "Post created successfully"
       });
-      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/posts'] }); //Updated query key
     } catch (error) {
       toast({
         title: "Error",
