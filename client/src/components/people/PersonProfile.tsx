@@ -124,9 +124,19 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
-  const isProfilePaidUser = subscriptionStatus?.status === 'active';
+  const isProfilePaidUser = Boolean(person?.user?.subscriptionStatus === 'active');
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || subscriptionLoading || eventsLoading;
+
+  console.log('Profile visibility:', {
+    isProfileAdmin,
+    isProfilePaidUser,
+    hasActiveSubscription,
+    isAdmin,
+    shouldShowMemberDetails: person?.user && (isProfileAdmin || isProfilePaidUser || hasActiveSubscription || isAdmin),
+    personSubscriptionStatus: person?.user?.subscriptionStatus,
+    subscriptionStatus
+  });
 
   if (personError) {
     return (
@@ -170,14 +180,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     isAdmin
   );
 
-  console.log('Profile visibility:', {
-    isProfileAdmin,
-    isProfilePaidUser,
-    hasActiveSubscription,
-    isAdmin,
-    shouldShowMemberDetails,
-    subscriptionStatus
-  });
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
