@@ -10,6 +10,9 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect } from 'react';
 import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { PUBLIC_POSTS_QUERY_KEY } from "../bulletin/PublicPostsTable";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -18,6 +21,7 @@ const timeAgo = new TimeAgo('en-US');
 interface PostPreviewProps {
   post?: Post;
   isNew?: boolean;
+  isEditing?: boolean;
   onClose: () => void;
   onSave?: (data: InsertPost) => Promise<void>;
   readOnly?: boolean;
@@ -25,41 +29,17 @@ interface PostPreviewProps {
   onNavigate?: (post: Post) => void;
 }
 
-function getVideoEmbedUrl(url: string): string | null {
-  try {
-    const videoUrl = new URL(url);
-
-    // YouTube
-    if (videoUrl.hostname.includes('youtube.com') || videoUrl.hostname.includes('youtu.be')) {
-      const videoId = videoUrl.hostname.includes('youtu.be')
-        ? videoUrl.pathname.slice(1)
-        : videoUrl.searchParams.get('v');
-      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-    }
-
-    // Vimeo
-    if (videoUrl.hostname.includes('vimeo.com')) {
-      const videoId = videoUrl.pathname.split('/').pop();
-      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 export function PostPreview({
   post,
   isNew = false,
+  isEditing = false,
   onClose,
   onSave,
   readOnly = false,
   posts = [],
   onNavigate
 }: PostPreviewProps) {
-  console.log("PostPreview render - isNew:", isNew, "post:", post, "readOnly:", readOnly);
-
+  const { toast } = useToast();
   const editor = useEditor({
     extensions: [StarterKit],
     content: '',
@@ -69,10 +49,7 @@ export function PostPreview({
   // Update editor content when post changes
   useEffect(() => {
     if (editor && post?.body !== undefined) {
-      // First clear the content
       editor.commands.clearContent();
-
-      // Then set the new content if it exists
       if (post.body) {
         editor.commands.setContent(post.body);
       }
@@ -88,17 +65,37 @@ export function PostPreview({
     };
   }, [editor]);
 
-  if ((isNew || !post) && !readOnly) {
-    console.log("Rendering new post form");
+  const handleUpdatePost = async (data: InsertPost) => {
+    try {
+      await apiRequest(`/api/posts/${post!.id}`, 'PATCH', data);
+      toast({
+        title: "Success",
+        description: "Post updated successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if ((isNew || isEditing) && !readOnly) {
     return (
       <PreviewSidebar
         open={true}
         onOpenChange={(open) => {
-          console.log("PreviewSidebar onOpenChange:", open);
           if (!open) onClose();
         }}
       >
-        <PostForm onSubmit={onSave!} />
+        <PostForm 
+          onSubmit={isEditing ? handleUpdatePost : onSave!}
+          defaultValues={post}
+          isEditing={isEditing}
+        />
       </PreviewSidebar>
     );
   }
@@ -122,7 +119,6 @@ export function PostPreview({
     <PreviewSidebar
       open={true}
       onOpenChange={(open) => {
-        console.log("PreviewSidebar onOpenChange:", open);
         if (!open) onClose();
       }}
     >
@@ -237,4 +233,28 @@ export function PostPreview({
       </div>
     </PreviewSidebar>
   );
+}
+
+function getVideoEmbedUrl(url: string): string | null {
+  try {
+    const videoUrl = new URL(url);
+
+    // YouTube
+    if (videoUrl.hostname.includes('youtube.com') || videoUrl.hostname.includes('youtu.be')) {
+      const videoId = videoUrl.hostname.includes('youtu.be')
+        ? videoUrl.pathname.slice(1)
+        : videoUrl.searchParams.get('v');
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    // Vimeo
+    if (videoUrl.hostname.includes('vimeo.com')) {
+      const videoId = videoUrl.pathname.split('/').pop();
+      return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }

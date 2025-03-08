@@ -4,7 +4,7 @@ import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageIcon, Plus } from "lucide-react";
+import { ImageIcon, Plus, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -17,7 +17,7 @@ const timeAgo = new TimeAgo('en-US');
 export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
 
 interface PublicPostsTableProps {
-  onSelect: (post: Post) => void;
+  onSelect: (post: Post, isEditing?: boolean) => void;
   onCreatePost?: () => void;
 }
 
@@ -39,6 +39,14 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
 
   // Check if user can create posts (admin or has publish_content permission)
   const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
+
+  // Check if user can edit a specific post
+  const canEditPost = (post: Post) => {
+    return Boolean(
+      user?.isAdmin || // Admin can edit any post
+      (post.creatorId === user?.id) // Post creator can edit their own posts
+    );
+  };
 
   return (
     <Card className="border">
@@ -103,14 +111,29 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate">
-                      {post.title}
-                      {post.isPinned && (
-                        <span className="ml-2 text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                          Featured
-                        </span>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate">
+                        {post.title}
+                        {post.isPinned && (
+                          <span className="ml-2 text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                            Featured
+                          </span>
+                        )}
+                      </h4>
+                      {canEditPost(post) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="ml-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelect(post, true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                       )}
-                    </h4>
+                    </div>
                     {post.summary && (
                       <p className="text-sm text-muted-foreground mt-1 text-wrap-balance max-w-[80ch] line-clamp-2">
                         {post.summary}

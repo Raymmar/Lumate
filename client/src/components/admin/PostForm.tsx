@@ -21,12 +21,13 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 interface PostFormProps {
   onSubmit: (data: InsertPost & { tags?: string[] }) => Promise<void>;
   defaultValues?: Partial<InsertPost>;
+  isEditing?: boolean;
 }
 
-export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
+export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [tags, setTags] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>(defaultValues?.tags || []);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
 
@@ -239,7 +240,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
           </div>
         </div>
 
-        <div className="space-y-4 pt-4"> {/* Removed border-t */}
+        <div className="space-y-4 pt-4">
           <FormField
             control={form.control}
             name="featuredImage"
@@ -341,7 +342,7 @@ export function PostForm({ onSubmit, defaultValues }: PostFormProps) {
         </div>
 
         <Button type="submit" className="w-full mt-6">
-          Publish Post
+          {isEditing ? "Save Changes" : "Publish Post"}
         </Button>
       </form>
     </Form>
