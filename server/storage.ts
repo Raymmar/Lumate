@@ -1590,109 +1590,43 @@ export class PostgresStorage implements IStorage {
   }
   async getPersonByUsername(username: string): Promise<Person | null> {
     try {
-      const normalizedUsername = decodeURIComponent(username).replace(/-/g, ' ');
-      console.log('Looking up person by normalized username:', normalizedUsername);
+      console.log('Looking up person by username:', username);
 
-      // Try direct match first with user data join
-      let result = await db
-        .select({
-          ...people,
-          // Include all user profile fields
-          isAdmin: users.isAdmin,
-          displayName: users.displayName,
-          companyName: users.companyName,
-          companyDescription: users.companyDescription,
-          address: users.address,
-          phoneNumber: users.phoneNumber,
-          isPhonePublic: users.isPhonePublic,
-          isEmailPublic: users.isEmailPublic,
-          customLinks: users.customLinks,
-          featuredImageUrl: users.featuredImageUrl,
-          ctaText: users.ctaText,
-          tags: users.tags,
-          bio: users.bio
-        })
+      // Try exact match first
+      const exactMatch = await db
+        .select()
         .from(people)
-        .leftJoin(users, eq(users.email, people.email))
-        .where(eq(people.userName, normalizedUsername))
+        .where(sql`LOWER(user_name) = LOWER(${username})`)
         .limit(1);
 
-      if (result.length === 0) {
-        console.log('No exact match found, trying case-insensitive match');
-        // Try case-insensitive match with user data
-        result = await db
-          .select({
-            ...people,
-            // Include all user profile fields
-            isAdmin: users.isAdmin,
-            displayName: users.displayName,
-            companyName: users.companyName,
-            companyDescription: users.companyDescription,
-            address: users.address,
-            phoneNumber: users.phoneNumber,
-            isPhonePublic: users.isPhonePublic,
-            isEmailPublic: users.isEmailPublic,
-            customLinks: users.customLinks,
-            featuredImageUrl: users.featuredImageUrl,
-            ctaText: users.ctaText,
-            tags: users.tags,
-            bio: users.bio
-          })
-          .from(people)
-          .leftJoin(users, eq(users.email, people.email))
-          .where(sql`LOWER(${people.userName}) = LOWER(${normalizedUsername})`)
-          .limit(1);
+      if (exactMatch.length > 0) {
+        console.log('Found person by exact username match:', exactMatch[0].userName);
+        return exactMatch[0];
       }
 
-      if (result.length === 0) {
-        console.log('No case-insensitive match found, trying fuzzy match');
-        // Try fuzzy match with special character normalization and user data
-        result = await db
-          .select({
-            ...people,
-            // Include all user profile fields
-            isAdmin: users.isAdmin,
-            displayName: users.displayName,
-            companyName: users.companyName,
-            companyDescription: users.companyDescription,
-            address: users.address,
-            phoneNumber: users.phoneNumber,
-            isPhonePublic: users.isPhonePublic,
-            isEmailPublic: users.isEmailPublic,
-            customLinks: users.customLinks,
-            featuredImageUrl: users.featuredImageUrl,
-            ctaText: users.ctaText,
-            tags: users.tags,
-            bio: users.bio
-          })
-          .from(people)
-          .leftJoin(users, eq(users.email, people.email))
-          .where(sql`
-            LOWER(REGEXP_REPLACE(${people.userName}, '[^a-zA-Z0-9]+', '', 'g')) = 
-            LOWER(REGEXP_REPLACE(${normalizedUsername}, '[^a-zA-Z0-9]+', '', 'g'))
-          `)
-          .limit(1);
+      // Try normalized match (removing accents and special characters)
+      const normalizedUsername = username.normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+      const normalizedMatch = await db
+        .select()
+        .from(people)
+        .where(sql`
+          LOWER(UNACCENT(user_name)) = LOWER(UNACCENT(${normalizedUsername}))
+          OR
+          LOWER(user_name) LIKE LOWER(${username})
+          OR
+          LOWER(UNACCENT(user_name)) LIKE LOWER(UNACCENT(${username}))
+        `)
+        .limit(1);
+
+      if (normalizedMatch.length > 0) {
+        console.log('Found person by normalized username match:', normalizedMatch[0].userName);
+        return normalizedMatch[0];
       }
 
-      if (result.length === 0) {
-        console.log('Person not found by username:', normalizedUsername);
-        return null;
-      }
-
-      const person = result[0];
-      console.log('Found person by username:', {
-        id: person.id,
-        userName: person.userName,
-        email: person.email,
-        hasBusinessProfile: !!person.companyName,
-        displayName: person.displayName
-      });
-
-      // Return combined person and user data
-      return {
-        ...person,
-        isAdmin: Boolean(person.isAdmin)
-      };
+      console.log('No person found for username:', username);
+      return null;
     } catch (error) {
       console.error('Failed to get person by username:', error);
       throw error;

@@ -473,39 +473,34 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/people/by-username/:username", async (req, res) => {
     try {
-      // First try to look up by username (replacing hyphens with spaces)
-      const normalizedUsername = decodeURIComponent(req.params.username).replace(/-/g, ' ');
-      console.log('Looking up person by normalized username:', normalizedUsername);
+      const username = decodeURIComponent(req.params.username);
+      console.log('Looking up person by username:', {
+        original: req.params.username,
+        decoded: username
+      });
       
-      let person = await storage.getPersonByUsername(normalizedUsername);
-
-      // If not found by normalized username, try the original format
-      if (!person && normalizedUsername !== req.params.username) {
-        console.log('Not found by normalized username, trying original:', req.params.username);
-        person = await storage.getPersonByUsername(req.params.username);
-      }
+      let person = await storage.getPersonByUsername(username);
 
       if (!person) {
-        // Try API ID as a last resort
-        console.log('Person not found by username, trying API ID:', req.params.username);
-        person = await storage.getPersonByApiId(req.params.username);
+        // Try API ID as a fallback
+        console.log('Person not found by username, trying API ID:', username);
+        person = await storage.getPersonByApiId(username);
         
-        if (person?.userName) {
-          // If found by API ID and has username, redirect to username URL
+        if (!person) {
+          console.log('Person not found by either username or API ID');
+          return res.status(404).json({ error: "Person not found" });
+        }
+
+        if (person.userName) {
           const formattedUsername = person.userName.trim().toLowerCase().replace(/\s+/g, '-');
           console.log('Found by API ID, has username:', formattedUsername);
           
-          // If it's a browser request, do a redirect
+          // Only redirect browser requests
           if (req.headers.accept?.includes('text/html')) {
             console.log('Browser request - redirecting to username URL');
             return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
           }
         }
-      }
-
-      if (!person) {
-        console.log('Person not found by either username or API ID');
-        return res.status(404).json({ error: "Person not found" });
       }
 
       // Fetch the associated user data if it exists
@@ -537,15 +532,19 @@ export async function registerRoutes(app: Express) {
       };
 
       console.log('API Response - Person found:', {
-        username: normalizedUsername,
+        username,
         personId: person.id,
-        hasUser: !!user[0]
+        hasUser: !!user[0],
+        apiId: person.api_id
       });
 
       res.json(personWithUser);
     } catch (error) {
       console.error('Failed to fetch person by username:', error);
-      res.status(500).json({ error: "Failed to fetch person" });
+      res.status(500).json({ 
+        error: "Failed to fetch person",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
