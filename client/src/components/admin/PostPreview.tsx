@@ -8,6 +8,7 @@ import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } f
 import { PostForm } from "./PostForm";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
 import { useEffect, useState } from 'react';
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -65,7 +66,21 @@ export function PostPreview({
   const [isEditMode, setIsEditMode] = useState(isEditing);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Link.configure({
+        protocols: ['http', 'https', 'mailto', 'tel'],
+        autolink: true,
+        openOnClick: true,
+        linkOnPaste: true,
+        validate: href => /^(https?:\/\/|mailto:|tel:)/.test(href),
+        HTMLAttributes: {
+          class: 'text-primary underline decoration-primary cursor-pointer hover:text-primary/80',
+          rel: 'noopener noreferrer',
+          target: '_blank'
+        }
+      })
+    ],
     content: '',
     editable: false,
   });
@@ -274,7 +289,7 @@ export function PostPreview({
 
             {/* Rich Text Content Section */}
             {editor && (
-              <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
+              <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4 [&_a]:text-primary [&_a]:underline [&_a]:decoration-primary [&_a]:cursor-pointer [&_a]:hover:text-primary/80">
                 <EditorContent editor={editor} />
               </div>
             )}
