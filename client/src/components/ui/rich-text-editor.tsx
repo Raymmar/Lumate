@@ -63,7 +63,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
       Link.configure({
         protocols: ['http', 'https', 'mailto', 'tel'],
         openOnClick: true,
-        validate: href => /^https?:\/\//.test(href) || /^mailto:/.test(href) || /^tel:/.test(href),
+        validate: href => /^(https?:\/\/|mailto:|tel:)/.test(href),
         HTMLAttributes: {
           class: 'text-primary underline decoration-primary cursor-pointer',
           rel: 'noopener noreferrer',
@@ -78,25 +78,38 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
   });
 
   if (!editor) {
-    return null
+    return null;
   }
 
-  const handleSetLink = (e?: React.MouseEvent | React.FormEvent) => {
-    e?.preventDefault();
+  const handleSetLink = (e: React.MouseEvent | React.FormEvent) => {
+    // Prevent the event from bubbling up and triggering form submissions
+    e.preventDefault();
+    e.stopPropagation();
+
     const url = linkUrl.trim();
+    if (!url) return;
 
     // Add https:// if no protocol is specified
     const formattedUrl = /^(https?:\/\/|mailto:|tel:)/.test(url) 
       ? url 
       : `https://${url}`;
 
-    if (formattedUrl === 'https://' || !url) {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-    } else {
-      editor.chain().focus().extendMarkRange('link')
-        .setLink({ href: formattedUrl })
-        .run();
-    }
+    editor
+      .chain()
+      .focus()
+      .extendMarkRange('link')
+      .setLink({ href: formattedUrl })
+      .run();
+
+    setIsLinkPopoverOpen(false);
+    setLinkUrl('');
+  };
+
+  const handleRemoveLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    editor.chain().focus().unsetLink().run();
     setIsLinkPopoverOpen(false);
     setLinkUrl('');
   };
@@ -109,18 +122,26 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     if (href) {
       setLinkUrl(href);
     }
-
     setIsLinkPopoverOpen(true);
-    setTimeout(() => {
-      linkInputRef.current?.focus();
-      linkInputRef.current?.select();
-    }, 0);
   };
+
+  // Focus the input when the popover opens
+  React.useEffect(() => {
+    if (isLinkPopoverOpen && linkInputRef.current) {
+      setTimeout(() => {
+        linkInputRef.current?.focus();
+        linkInputRef.current?.select();
+      }, 0);
+    }
+  }, [isLinkPopoverOpen]);
 
   return (
     <div 
       className={cn("flex flex-col gap-0 border rounded-md", className)}
-      onClick={() => editor.chain().focus().run()}
+      onClick={(e) => {
+        e.preventDefault();
+        editor.chain().focus().run();
+      }}
     >
       <div className="flex flex-wrap items-center gap-1 p-1 border-b bg-muted/50">
         <MenuButton
@@ -182,33 +203,56 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
         <Popover 
           open={isLinkPopoverOpen} 
           onOpenChange={setIsLinkPopoverOpen}
+          modal={true}
         >
           <PopoverTrigger asChild>
-            <button
-              className={cn(
-                "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-8 px-2 lg:px-3",
-                editor.isActive('link')
-                  ? "bg-accent text-accent-foreground hover:bg-accent/80"
-                  : "hover:bg-muted hover:text-muted-foreground"
-              )}
-              onClick={handleLinkButtonClick}
-              type="button"
+            <Toggle
+              size="sm"
+              pressed={editor.isActive('link')}
+              onPressedChange={handleLinkButtonClick}
+              className="h-8 px-2 lg:px-3"
             >
               <LinkIcon className="h-4 w-4" />
-            </button>
+            </Toggle>
           </PopoverTrigger>
-          <PopoverContent className="w-80" align="start">
-            <form onSubmit={handleSetLink} className="flex gap-2">
-              <Input
-                ref={linkInputRef}
-                placeholder="Enter URL"
-                value={linkUrl}
-                onChange={(e) => setLinkUrl(e.target.value)}
-              />
-              <Button type="submit">
-                {editor.isActive('link') ? 'Update' : 'Add'}
-              </Button>
-            </form>
+          <PopoverContent 
+            className="w-80" 
+            align="start"
+            onInteractOutside={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <Input
+                  ref={linkInputRef}
+                  placeholder="Enter URL"
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSetLink(e);
+                    }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <Button 
+                  onClick={handleSetLink} 
+                  type="button"
+                >
+                  {editor.isActive('link') ? 'Update' : 'Add'}
+                </Button>
+              </div>
+              {editor.isActive('link') && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleRemoveLink}
+                  className="w-full"
+                >
+                  Remove Link
+                </Button>
+              )}
+            </div>
           </PopoverContent>
         </Popover>
       </div>
