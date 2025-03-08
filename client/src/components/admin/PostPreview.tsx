@@ -172,13 +172,13 @@ export function PostPreview({
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
-                size="sm"
-                className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground rounded-full"
+                size="icon"
+                className="h-6 w-6 p-0"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="start">
               <DropdownMenuItem onClick={() => setIsEditMode(true)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Edit

@@ -30,15 +30,22 @@ export function PreviewSidebar({
           e.preventDefault();
         }}
       >
-        {(title || headerContent) && (
-          <SheetHeader className="flex flex-row items-center justify-between space-y-0 py-0">
-            {title && <h2 className="text-lg font-semibold">{title}</h2>}
-            <div className="flex items-center gap-2">
+        <div className="relative pt-12">
+          {/* Positioned Actions */}
+          {headerContent && (
+            <div className="absolute top-3 left-4">
               {headerContent}
             </div>
-          </SheetHeader>
-        )}
-        {children}
+          )}
+
+          {/* Main Content */}
+          {title && (
+            <SheetHeader className="text-left pb-4">
+              <h2 className="text-lg font-semibold">{title}</h2>
+            </SheetHeader>
+          )}
+          {children}
+        </div>
       </SheetContent>
     </Sheet>
   );
