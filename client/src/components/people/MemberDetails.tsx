@@ -9,15 +9,14 @@ interface MemberDetailsProps {
 export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
   console.log('MemberDetails - Received user data:', user); // Debug log
 
-  // Only render if there's company information
-  if (!user?.companyName) {
-    console.log('MemberDetails - No company name found, not rendering'); // Debug log
+  if (!user) {
+    console.log('MemberDetails - No user data found');
     return null;
   }
 
   const businessData = {
-    name: user.companyName,
-    description: user.companyDescription || '',
+    name: user.companyName || user.displayName || 'Business Profile',
+    description: user.companyDescription || user.bio || '',
     address: typeof user.address === 'object' ? user.address : undefined,
     phone: user.isPhonePublic ? user.phoneNumber : undefined,
     email: user.isEmailPublic ? user.email : undefined,
