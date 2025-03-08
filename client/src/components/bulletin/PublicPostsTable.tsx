@@ -39,7 +39,7 @@ interface PublicPostsTableProps {
 }
 
 // Export query keys for reuse
-export const PUBLIC_POSTS_QUERY_KEY = ['/api/public/posts'];
+export const PUBLIC_POSTS_QUERY_KEY = ['/api/posts']; // Corrected query key
 export const ADMIN_POSTS_QUERY_KEY = ['/api/admin/posts'];
 
 export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: PublicPostsTableProps) {
@@ -78,7 +78,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
       // Use different endpoints based on view
       const endpoint = isAdminView
         ? `/api/admin/posts/${post.id}`
-        : `/api/public/posts/${post.id}`;
+        : `/api/posts/${post.id}`;
 
       await apiRequest(endpoint, 'DELETE');
 
