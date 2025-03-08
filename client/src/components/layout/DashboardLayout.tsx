@@ -10,6 +10,7 @@ import {
   SidebarHeader,
   SidebarProvider,
   SidebarTrigger,
+  SidebarInset,
 } from "@/components/ui/sidebar";
 
 interface DashboardLayoutProps {
@@ -31,9 +32,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
 
         <PageContainer>
-          <div className="flex">
+          <div className="flex relative">
             {/* Sidebar */}
-            <Sidebar>
+            <Sidebar variant="sidebar" collapsible="offcanvas">
               <SidebarContent>
                 <div className="flex-1 overflow-hidden flex flex-col">
                   <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -49,11 +50,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </Sidebar>
 
             {/* Main content area */}
-            <main className="flex-1 overflow-y-auto bg-muted/10">
-              <div className="p-4 min-h-[calc(100vh-57px)]">
+            <SidebarInset>
+              <div className="p-4">
                 {children}
               </div>
-            </main>
+            </SidebarInset>
           </div>
         </PageContainer>
       </div>
