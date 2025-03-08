@@ -97,8 +97,9 @@ export default function UserSettingsPage() {
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
+        displayName: user?.displayName, 
         address: data.address || null,
-        tags: tags, // Include tags from state
+        tags: tags,
       };
 
       const response = await fetch("/api/auth/update-profile", {
@@ -119,14 +120,14 @@ export default function UserSettingsPage() {
       queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
-        description: "Profile updated successfully",
+        description: "Profile updated successfully"
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     },
   });
@@ -148,7 +149,7 @@ export default function UserSettingsPage() {
 
       const { url } = await response.json();
       if (!url) {
-        throw new Error('No checkout URL received');
+        throw new Error('No portal URL received');
       }
 
       window.location.href = url;
@@ -219,34 +220,25 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-4">
                 {/* Basic Information - Always Available */}
-                <div className="space-y-3">
-                  <FormField
-                    control={form.control}
-                    name="displayName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Display Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="Your display name" className="bg-background" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                <div className="space-y-2">
+                  {/* Display Name (Read-only) */}
+                  <div className="space-y-1">
+                    <FormLabel>Display Name</FormLabel>
+                    <p className="text-sm text-muted-foreground">{user?.displayName}</p>
+                  </div>
 
                   <FormField
                     control={form.control}
                     name="bio"
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bio</FormLabel>
+                      <FormItem className="space-y-1">
                         <FormControl>
                           <Textarea
                             {...field}
-                            placeholder="Tell us about yourself"
-                            className="min-h-[100px] bg-background"
+                            placeholder="Add your bio here..."
+                            className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                           />
                         </FormControl>
                         <FormMessage />
@@ -277,15 +269,15 @@ export default function UserSettingsPage() {
                 ) : (
                   <>
                     {/* Company Information */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <h3 className="text-lg font-medium">Company Information</h3>
 
                       <FormField
                         control={form.control}
                         name="featuredImageUrl"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Featured Image</FormLabel>
+                          <FormItem className="space-y-1">
+                            <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
                             <FormControl>
                               <UnsplashPicker
                                 value={field.value || ""}
@@ -301,10 +293,13 @@ export default function UserSettingsPage() {
                         control={form.control}
                         name="companyName"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Company Name</FormLabel>
+                          <FormItem className="space-y-1">
                             <FormControl>
-                              <Input {...field} placeholder="Enter your company name" className="bg-background" />
+                              <Input
+                                {...field}
+                                placeholder="Company name"
+                                className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -315,13 +310,12 @@ export default function UserSettingsPage() {
                         control={form.control}
                         name="companyDescription"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Company Description</FormLabel>
+                          <FormItem className="space-y-1">
                             <FormControl>
                               <Textarea
                                 {...field}
-                                placeholder="Describe your company"
-                                className="min-h-[100px] bg-background"
+                                placeholder="Describe your company..."
+                                className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                               />
                             </FormControl>
                             <FormMessage />
@@ -331,18 +325,18 @@ export default function UserSettingsPage() {
                     </div>
 
                     {/* Contact Information */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <FormField
                         control={form.control}
                         name="address"
                         render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Address</FormLabel>
+                          <FormItem className="space-y-1">
+                            <FormLabel className="text-sm text-muted-foreground">Location</FormLabel>
                             <FormControl>
                               <LocationPicker
                                 defaultValue={field.value}
                                 onLocationSelect={field.onChange}
-                                className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-background [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
+                                className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
                               />
                             </FormControl>
                             <FormMessage />
@@ -355,14 +349,13 @@ export default function UserSettingsPage() {
                           control={form.control}
                           name="phoneNumber"
                           render={({ field }) => (
-                            <FormItem className="flex-1">
-                              <FormLabel>Phone Number</FormLabel>
+                            <FormItem className="flex-1 space-y-1">
                               <FormControl>
                                 <Input
                                   {...field}
                                   type="tel"
-                                  placeholder="Enter your phone number"
-                                  className="bg-background"
+                                  placeholder="Phone number"
+                                  className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -373,7 +366,7 @@ export default function UserSettingsPage() {
                           control={form.control}
                           name="isPhonePublic"
                           render={({ field }) => (
-                            <FormItem className="space-y-0 pt-7">
+                            <FormItem className="space-y-0 pt-2">
                               <FormControl>
                                 <div className="space-y-0.5">
                                   <Switch
@@ -390,8 +383,7 @@ export default function UserSettingsPage() {
 
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
-                          <FormLabel>Email</FormLabel>
-                          <p className="text-sm text-muted-foreground mt-1">{user?.email}</p>
+                          <p className="text-sm text-muted-foreground">{user?.email}</p>
                         </div>
                         <FormField
                           control={form.control}
@@ -414,9 +406,9 @@ export default function UserSettingsPage() {
                     </div>
 
                     {/* Tags */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <FormLabel>Tags</FormLabel>
+                        <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
                         <span className="text-sm text-muted-foreground">
                           {tags.length}/5 tags
                         </span>
@@ -424,7 +416,7 @@ export default function UserSettingsPage() {
                       <div className="space-y-2">
                         <div className="flex flex-wrap gap-2 min-h-[2.5rem]">
                           {tags.map(tag => (
-                            <Badge key={tag} variant="secondary" className="px-2 py-1 h-7">
+                            <Badge key={tag} variant="secondary" className="gap-1 h-7">
                               {tag}
                               <button
                                 type="button"
@@ -436,7 +428,7 @@ export default function UserSettingsPage() {
                             </Badge>
                           ))}
                         </div>
-                        <Command className="rounded-md border bg-background">
+                        <Command className="rounded-lg overflow-visible border-0">
                           <CommandInput
                             placeholder="Add tags..."
                             value={currentTag}
@@ -447,7 +439,7 @@ export default function UserSettingsPage() {
                                 handleSelectTag(currentTag);
                               }
                             }}
-                            className="h-9"
+                            className="border-0 focus:ring-0 focus-visible:ring-0"
                           />
                         </Command>
                       </div>
@@ -458,9 +450,9 @@ export default function UserSettingsPage() {
                       control={form.control}
                       name="customLinks"
                       render={({ field }) => (
-                        <FormItem className="space-y-3">
+                        <FormItem className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <FormLabel>Custom Links</FormLabel>
+                            <FormLabel className="text-sm text-muted-foreground">Custom Links</FormLabel>
                             <Button
                               type="button"
                               variant="outline"
@@ -483,22 +475,22 @@ export default function UserSettingsPage() {
                               Add Link
                             </Button>
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-2">
                             {field.value.map((link, index) => (
-                              <div key={index} className="flex gap-4 items-start">
-                                <div className="flex-1 space-y-3">
+                              <div key={index} className="flex gap-2 items-start">
+                                <div className="flex-1 space-y-2">
                                   <Input
-                                    placeholder="Link Title"
+                                    placeholder="Link title"
                                     value={link.title}
                                     onChange={(e) => {
                                       const newLinks = [...field.value];
                                       newLinks[index] = { ...newLinks[index], title: e.target.value };
                                       field.onChange(newLinks);
                                     }}
-                                    className="bg-background"
+                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                   />
                                   <Input
-                                    placeholder="URL"
+                                    placeholder="https://..."
                                     type="url"
                                     value={link.url}
                                     onChange={(e) => {
@@ -506,7 +498,7 @@ export default function UserSettingsPage() {
                                       newLinks[index] = { ...newLinks[index], url: e.target.value };
                                       field.onChange(newLinks);
                                     }}
-                                    className="bg-background"
+                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                   />
                                 </div>
                                 <Button
@@ -534,7 +526,7 @@ export default function UserSettingsPage() {
 
                 <Button
                   type="submit"
-                  className="w-full"
+                  className="w-full mt-6"
                   disabled={updateProfileMutation.isPending}
                 >
                   {updateProfileMutation.isPending ? (
