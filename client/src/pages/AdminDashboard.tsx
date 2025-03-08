@@ -119,9 +119,8 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Posts Section */}
+      {/* Posts Section - Removed the extra headline */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Posts</h2>
         <PostsTable onSelect={setSelectedPost} />
         {(selectedPost || isCreating) && (
           <PostPreview

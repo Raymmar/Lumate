@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
 import { cn } from "@/lib/utils"
 import {
   Bold,
@@ -11,9 +12,16 @@ import {
   Heading2,
   Heading3,
   Minus,
-  Link,
+  Link as LinkIcon,
 } from 'lucide-react'
 import { Toggle } from './toggle'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Button } from "./button"
+import { Input } from "./input"
 
 interface RichTextEditorProps {
   value: string;
@@ -41,11 +49,20 @@ const MenuButton = ({
 );
 
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
+  const [linkUrl, setLinkUrl] = React.useState('');
+  const [isLinkPopoverOpen, setIsLinkPopoverOpen] = React.useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [2, 3]
+        }
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline decoration-primary cursor-pointer'
         }
       })
     ],
@@ -58,6 +75,18 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
   if (!editor) {
     return null
   }
+
+  const handleSetLink = () => {
+    if (linkUrl === '') {
+      editor.chain().focus().extendMarkRange('link').unsetLink().run();
+    } else {
+      editor.chain().focus().extendMarkRange('link')
+        .setLink({ href: linkUrl })
+        .run();
+    }
+    setIsLinkPopoverOpen(false);
+    setLinkUrl('');
+  };
 
   return (
     <div 
@@ -120,6 +149,36 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
         >
           <Minus className="h-4 w-4" />
         </MenuButton>
+
+        <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
+          <PopoverTrigger asChild>
+            <Toggle
+              size="sm"
+              pressed={editor.isActive('link')}
+              className="h-8 px-2 lg:px-3"
+            >
+              <LinkIcon className="h-4 w-4" />
+            </Toggle>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter URL"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSetLink();
+                  }
+                }}
+              />
+              <Button onClick={handleSetLink}>
+                {editor.isActive('link') ? 'Update' : 'Add'}
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <EditorContent 
