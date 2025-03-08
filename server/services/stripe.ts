@@ -163,4 +163,30 @@ export class StripeService {
       throw error;
     }
   }
+
+  static async createCustomerPortalSession(customerId: string) {
+    try {
+      if (!customerId) {
+        throw new Error('Customer ID is required');
+      }
+
+      console.log('Creating customer portal session for:', customerId);
+
+      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000';
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${baseUrl}/settings`,
+      });
+
+      console.log('✅ Customer portal session created:', {
+        sessionId: session.id,
+        url: session.url
+      });
+
+      return session;
+    } catch (error) {
+      console.error('❌ Error creating customer portal session:', error);
+      throw error;
+    }
+  }
 }

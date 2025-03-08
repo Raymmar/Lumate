@@ -305,4 +305,32 @@ router.post('/cancel-subscription', async (req, res) => {
   }
 });
 
+// Create customer portal session
+router.post('/create-portal-session', async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
+      return res.status(400).json({ error: 'No customer record found' });
+    }
+
+    const session = await StripeService.createCustomerPortalSession(user.stripeCustomerId);
+    res.json({ url: session.url });
+  } catch (error: any) {
+    console.error('❌ Error creating portal session:', error);
+    res.status(500).json({
+      error: 'Failed to create portal session',
+      message: error.message
+    });
+  }
+});
+
 export default router;

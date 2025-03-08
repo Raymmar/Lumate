@@ -473,15 +473,15 @@ export default function UserSettingsPage() {
                 )}
               </Button>
 
-              {/* Add Cancel Subscription Button */}
+              {/* Add Manage Subscription Button */}
               {hasActiveSubscription && !user.isAdmin && (
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full mt-4 text-destructive hover:text-destructive"
+                  className="w-full mt-4"
                   onClick={async () => {
                     try {
-                      const response = await fetch('/api/stripe/cancel-subscription', {
+                      const response = await fetch('/api/stripe/create-portal-session', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json'
@@ -489,27 +489,27 @@ export default function UserSettingsPage() {
                       });
 
                       if (!response.ok) {
-                        throw new Error('Failed to cancel subscription');
+                        throw new Error('Failed to create portal session');
                       }
 
-                      // Invalidate the subscription status query to refresh the UI
-                      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+                      const { url } = await response.json();
+                      if (!url) {
+                        throw new Error('No portal URL received');
+                      }
 
-                      toast({
-                        title: "Subscription Cancelled",
-                        description: "Your subscription has been cancelled. You'll have access to premium features until the end of your current billing period.",
-                      });
+                      // Redirect to Stripe Customer Portal
+                      window.location.href = url;
                     } catch (error) {
-                      console.error('Error cancelling subscription:', error);
+                      console.error('Error accessing customer portal:', error);
                       toast({
                         title: "Error",
-                        description: "Failed to cancel subscription. Please try again.",
+                        description: "Failed to access subscription management. Please try again.",
                         variant: "destructive",
                       });
                     }
                   }}
                 >
-                  Cancel Subscription
+                  Manage Subscription
                 </Button>
               )}
             </form>
