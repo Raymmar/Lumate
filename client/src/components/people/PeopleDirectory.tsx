@@ -41,7 +41,11 @@ interface PeopleResponse {
   total: number;
 }
 
-export default function PeopleDirectory() {
+interface PeopleDirectoryProps {
+  onMobileSelect?: () => void; // New prop for mobile selection handling
+}
+
+export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps) {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,6 +76,10 @@ export default function PeopleDirectory() {
   const handlePersonClick = (person: Person) => {
     const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setLocation(`/people/${encodeURIComponent(urlPath)}`);
+    // Call onMobileSelect when provided (mobile view)
+    if (onMobileSelect) {
+      onMobileSelect();
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
