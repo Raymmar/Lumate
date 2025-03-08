@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SubscriptionSuccessPage() {
-  const [location, setLocation] = useLocation();
-  const sessionId = new URLSearchParams(location.split('?')[1]).get('session_id');
+  const [location, navigate] = useLocation();
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get('session_id');
 
   // Type the response data
   type SessionResponse = {
@@ -18,7 +19,7 @@ export default function SubscriptionSuccessPage() {
     };
   };
 
-  const { data: sessionStatus, isLoading, error } = useQuery<SessionResponse, Error>({
+  const { data: sessionStatus, isLoading, error } = useQuery({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
@@ -39,7 +40,6 @@ export default function SubscriptionSuccessPage() {
     retry: 3,
     retryDelay: 1000,
     refetchInterval: (data) => {
-      // Only refetch if status is not complete
       return data?.status !== 'complete' ? 2000 : false;
     }
   });
@@ -47,10 +47,10 @@ export default function SubscriptionSuccessPage() {
   useEffect(() => {
     if (sessionStatus?.status === 'complete') {
       console.log('✨ Payment confirmed, redirecting to settings...');
-      const timer = setTimeout(() => setLocation('/settings'), 3000);
+      const timer = setTimeout(() => navigate('/settings'), 3000);
       return () => clearTimeout(timer);
     }
-  }, [sessionStatus, setLocation]);
+  }, [sessionStatus, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -70,7 +70,7 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               {error instanceof Error ? error.message : 'Failed to verify payment status'}
             </p>
-            <Button onClick={() => setLocation('/settings')} className="mt-4">
+            <Button onClick={() => navigate('/settings')} className="mt-4">
               Return to Settings
             </Button>
           </div>
