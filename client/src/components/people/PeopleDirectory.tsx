@@ -187,7 +187,7 @@ export default function PeopleDirectory() {
                 </PaginationItem>
                 <PaginationItem>
                   <span className="px-4 text-xs">
-                    Page {currentPage} of {totalPages}
+                    {currentPage} of {totalPages}
                   </span>
                 </PaginationItem>
                 <PaginationItem>
