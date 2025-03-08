@@ -4,16 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Command, CommandInput } from "@/components/ui/command";
-import { Loader2, Plus, X, Lock, Globe, Link as LinkIcon } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useTheme } from "@/hooks/use-theme";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { Loader2, Plus, X, Lock, Globe, Link } from "lucide-react";
+import { SiDiscord, SiFacebook, SiGithub, SiInstagram, SiLinkedin, SiTiktok, SiTwitter, SiYoutube } from "react-icons/si";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useTheme } from "@/hooks/use-theme";
+import { Badge } from "@/components/ui/badge";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
@@ -22,6 +23,8 @@ import { Sun, Moon, Monitor } from "lucide-react";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from 'react';
 import {
   Form,
   FormControl,
@@ -30,12 +33,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { SiDiscord, SiXTwitter, SiFacebook, SiGithub, SiInstagram, SiLinkedin, SiTiktok, SiYoutube } from "react-icons/si";
 
 const LINK_ICONS = {
   website: { icon: Globe, label: "Website" },
-  link: { icon: LinkIcon, label: "Custom Link" },
-  twitter: { icon: SiXTwitter, label: "X (Twitter)" },
+  link: { icon: Link, label: "Custom Link" },
+  twitter: { icon: SiTwitter, label: "X (Twitter)" },
   facebook: { icon: SiFacebook, label: "Facebook" },
   instagram: { icon: SiInstagram, label: "Instagram" },
   linkedin: { icon: SiLinkedin, label: "LinkedIn" },
