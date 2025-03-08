@@ -12,11 +12,9 @@ export function Billboard({ children, className }: BillboardProps) {
       // Base styles
       "grid gap-6 p-6",
       // Default grid layout for larger screens
-      "grid-cols-2 md:grid-cols-3",
-      // Single column layout for mobile view
-      "[max-width:50vw]:!grid-cols-1",
+      "grid-cols-1 md:grid-cols-3",
       // Additional padding adjustments for mobile
-      "[max-width:50vw]:p-4",
+      "p-4 md:p-6",
       className
     )}>
       {children}
@@ -27,11 +25,7 @@ export function Billboard({ children, className }: BillboardProps) {
 export function BillboardItem({ children, className }: BillboardProps) {
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center p-4",
-      // Force full width on mobile
-      "[max-width:50vw]:w-full",
-      // Center content on mobile
-      "[max-width:50vw]:text-center",
+      "flex flex-col items-center justify-center p-4 w-full text-center",
       className
     )}>
       {children}

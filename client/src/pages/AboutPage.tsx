@@ -24,7 +24,7 @@ function SocialLinks() {
   ];
 
   return (
-    <div className="flex gap-4 justify-center">
+    <div className="flex gap-4 justify-center mb-6">
       {socialLinks.map(({ Icon, href, label }) => (
         <a
           key={label}
@@ -283,13 +283,14 @@ export default function AboutPage() {
               We're on a mission to connect the local tech community and drive
               Sarasota forward.
             </p>
-            <SocialLinks />
-            <div className="max-w-md mx-auto">
-              <JoinUsCard showHeader={false} />
+            <div className="flex flex-col items-center space-y-6">
+              <SocialLinks />
+              <div className="w-full max-w-md">
+                <JoinUsCard showHeader={false} />
+              </div>
             </div>
 
             <BillboardSection />
-
             <div className="text-center space-y-4">
               <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
