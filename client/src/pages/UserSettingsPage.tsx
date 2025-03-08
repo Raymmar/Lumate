@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock, Link as LinkIcon, Globe } from "lucide-react";
-import { SiGithub, SiLinkedin, SiTwitter, SiFacebook, SiInstagram, SiYoutube } from "react-icons/si";
+import { SiGithub, SiLinkedin, SiXTwitter, SiFacebook, SiInstagram, SiYoutube } from "react-icons/si";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/form";
 
 const SOCIAL_ICONS = {
-  twitter: { icon: SiTwitter, label: "X (Twitter)" },
+  twitter: { icon: SiXTwitter, label: "X (Twitter)" },
   facebook: { icon: SiFacebook, label: "Facebook" },
   linkedin: { icon: SiLinkedin, label: "LinkedIn" },
   instagram: { icon: SiInstagram, label: "Instagram" },
