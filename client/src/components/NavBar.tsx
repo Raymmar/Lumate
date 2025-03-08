@@ -76,7 +76,7 @@ export function NavBar() {
                   <Link href={profileUrl}>
                     <span className="flex items-center">
                       <User className="mr-2 h-4 w-4 text-foreground" />
-                      Profile
+                      View Profile
                     </span>
                   </Link>
                 </DropdownMenuItem>
@@ -85,7 +85,7 @@ export function NavBar() {
                 <Link href="/settings">
                   <span className="flex items-center">
                     <Settings className="mr-2 h-4 w-4 text-foreground" />
-                    Settings
+                    Edit Profile
                   </span>
                 </Link>
               </DropdownMenuItem>
