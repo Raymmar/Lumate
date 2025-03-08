@@ -78,7 +78,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
       // Use different endpoints based on view
       const endpoint = isAdminView
         ? `/api/admin/posts/${post.id}`
-        : `/api/posts/${post.id}`;
+        : `/api/public/posts/${post.id}`;
 
       await apiRequest(endpoint, 'DELETE');
 
