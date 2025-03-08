@@ -51,6 +51,7 @@ const MenuButton = ({
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
   const [linkUrl, setLinkUrl] = React.useState('');
   const [isLinkPopoverOpen, setIsLinkPopoverOpen] = React.useState(false);
+  const linkInputRef = React.useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
     extensions: [
@@ -70,7 +71,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
     }
-  })
+  });
 
   if (!editor) {
     return null
@@ -87,6 +88,21 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     setIsLinkPopoverOpen(false);
     setLinkUrl('');
   };
+
+  const handleLinkButtonClick = () => {
+    // If a link is selected, pre-fill the input with its URL
+    const linkNode = editor.getAttributes('link');
+    if (linkNode && linkNode.href) {
+      setLinkUrl(linkNode.href as string);
+    }
+    setIsLinkPopoverOpen(true);
+  };
+
+  React.useEffect(() => {
+    if (isLinkPopoverOpen && linkInputRef.current) {
+      linkInputRef.current.focus();
+    }
+  }, [isLinkPopoverOpen]);
 
   return (
     <div 
@@ -150,19 +166,24 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
           <Minus className="h-4 w-4" />
         </MenuButton>
 
-        <Popover open={isLinkPopoverOpen} onOpenChange={setIsLinkPopoverOpen}>
+        <Popover 
+          open={isLinkPopoverOpen} 
+          onOpenChange={setIsLinkPopoverOpen}
+        >
           <PopoverTrigger asChild>
             <Toggle
               size="sm"
               pressed={editor.isActive('link')}
+              onPressedChange={handleLinkButtonClick}
               className="h-8 px-2 lg:px-3"
             >
               <LinkIcon className="h-4 w-4" />
             </Toggle>
           </PopoverTrigger>
-          <PopoverContent className="w-80">
+          <PopoverContent className="w-80" align="start">
             <div className="flex gap-2">
               <Input
+                ref={linkInputRef}
                 placeholder="Enter URL"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}

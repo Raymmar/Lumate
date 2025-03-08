@@ -6,7 +6,6 @@ import { StatCard } from "@/components/StatCard";
 import { useState } from "react";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
-import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -55,22 +54,13 @@ export default function AdminDashboard() {
     <AdminLayout title={
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuJw79D', '_blank')}
-          >
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Manage Calendar
-          </Button>
-          <Button 
-            className="bg-primary hover:bg-primary/90"
-            onClick={() => setIsCreating(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Post
-          </Button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuJw79D', '_blank')}
+        >
+          <ExternalLink className="mr-2 h-4 w-4" />
+          Manage Calendar
+        </Button>
       </div>
     }>
       {/* Stats Grid */}
@@ -119,9 +109,14 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Posts Section - Removed the extra headline */}
+      {/* Posts Section */}
       <div className="mt-8">
-        <PostsTable onSelect={setSelectedPost} />
+        <PostsTable 
+          onSelect={setSelectedPost} 
+          onCreatePost={() => setIsCreating(true)}
+          isCreating={isCreating}
+          setIsCreating={setIsCreating}
+        />
         {(selectedPost || isCreating) && (
           <PostPreview
             post={selectedPost || undefined}
