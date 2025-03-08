@@ -10,16 +10,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, List } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { User, Settings, LogOut, LogIn, Shield, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
+import { useState } from "react";
+import PeopleDirectory from "@/components/people/PeopleDirectory";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const isAdmin = Boolean(user?.isAdmin);
   const isAdminPage = location.startsWith("/admin");
+  const [isOpen, setIsOpen] = useState(false);
 
   // Generate profile URL using username if available, fallback to API ID
   const profileUrl = user ? `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : '';
@@ -35,6 +43,26 @@ export function NavBar() {
           />
         </div>
       </Link>
+      <div className="lg:hidden ml-2">
+        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+          <DrawerTrigger asChild>
+            <Button variant="outline" size="sm">
+              Directory
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
+              <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
+                <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+                  <div className="flex-1 overflow-hidden min-h-0">
+                    <PeopleDirectory />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </div>
       {isAdminPage && (
         <Link href="/">
           <Button 

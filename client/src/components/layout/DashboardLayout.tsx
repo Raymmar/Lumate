@@ -1,22 +1,14 @@
-import { ReactNode, useState } from "react";
+import { ReactNode } from "react";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
 import EventList from "@/components/events/EventList";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "./PageContainer";
-import { Button } from "@/components/ui/button";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -42,20 +34,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center justify-between w-full border-b">
               <div className="flex-1">
                 <NavBar />
-              </div>
-              <div className="lg:hidden">
-                <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                  <DrawerTrigger asChild>
-                    <Button variant="outline" size="sm" className="ml-2">
-                      Directory
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent>
-                    <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
-                      <SidebarContent isMobile={true} />
-                    </div>
-                  </DrawerContent>
-                </Drawer>
               </div>
             </div>
           </PageContainer>
