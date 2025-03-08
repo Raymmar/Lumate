@@ -4,10 +4,29 @@ import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageIcon, Plus, Edit } from "lucide-react";
+import { ImageIcon, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -24,6 +43,8 @@ interface PublicPostsTableProps {
 export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [postToDelete, setPostToDelete] = useState<Post | null>(null);
 
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
     queryKey: PUBLIC_POSTS_QUERY_KEY,
@@ -46,6 +67,25 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
       user?.isAdmin || // Admin can edit any post
       (post.creatorId === user?.id) // Post creator can edit their own posts
     );
+  };
+
+  const handleDeletePost = async (post: Post) => {
+    try {
+      await apiRequest(`/api/posts/${post.id}`, 'DELETE');
+      await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
+      toast({
+        title: "Success",
+        description: "Post deleted successfully"
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive"
+      });
+    } finally {
+      setPostToDelete(null);
+    }
   };
 
   return (
@@ -121,17 +161,35 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                         )}
                       </h4>
                       {canEditPost(post) && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelect(post, true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onSelect(post, true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPostToDelete(post);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                     {post.summary && (
@@ -166,6 +224,28 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
           </div>
         )}
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!postToDelete} onOpenChange={() => setPostToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the post
+              "{postToDelete?.title}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => postToDelete && handleDeletePost(postToDelete)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

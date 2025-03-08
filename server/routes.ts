@@ -1041,6 +1041,64 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.delete("/api/posts/:id", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        console.log('Post deletion rejected: User not authenticated');
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) {
+        console.log('Post deletion rejected: Invalid post ID:', req.params.id);
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
+
+      // Get the existing post
+      const post = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.id, postId))
+        .limit(1);
+
+      if (!post || post.length === 0) {
+        console.log('Post deletion rejected: Post not found:', postId);
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      const existingPost = post[0];
+
+      // Check if user has permission to delete this post
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        console.log('Post deletion rejected: User not found:', req.session.userId);
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (!user.isAdmin && existingPost.creatorId !== user.id) {
+        console.log('Post deletion rejected: Unauthorized deletion attempt', {
+          userId: user.id,
+          postCreatorId: existingPost.creatorId,
+          isAdmin: user.isAdmin
+        });
+        return res.status(403).json({ error: "Not authorized to delete this post" });
+      }
+
+      // Delete associated tags first
+      await db.delete(postTags).where(eq(postTags.postId, postId));
+      console.log('Deleted associated tags for post:', postId);
+
+      // Delete the post
+      await db.delete(posts).where(eq(posts.id, postId));
+      console.log('Successfully deleted post:', postId);
+
+      res.json({ message: "Post deleted successfully" });
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+      res.status(500).json({ error: "Failed to delete post" });
+    }
+  });
+
   app.post("/_internal/reset-database", async (req, res) => {
     try {
       const requestIP = req.ip || req.socket.remoteAddress;
