@@ -39,8 +39,8 @@ interface PublicPostsTableProps {
 }
 
 // Export query keys for reuse
-export const PUBLIC_POSTS_QUERY_KEY = "/api/public/posts";
-export const ADMIN_POSTS_QUERY_KEY = "/api/admin/posts";
+export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
+export const ADMIN_POSTS_QUERY_KEY = ["/api/admin/posts"];
 
 export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
@@ -51,7 +51,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
   const queryKey = isAdminView ? ADMIN_POSTS_QUERY_KEY : PUBLIC_POSTS_QUERY_KEY;
 
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
-    queryKey: [queryKey],
+    queryKey: queryKey,
   });
 
   // Sort posts by creation date only (newest first)
@@ -75,13 +75,12 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
   const handleDeletePost = async (post: Post) => {
     try {
-      console.log('Deleting post:', post.id, 'isAdminView:', isAdminView);
-      const endpoint = `/api/public/posts/${post.id}`;
-
+      const endpoint = isAdminView ? `/api/admin/posts/${post.id}` : `/api/posts/${post.id}`;
       await apiRequest(endpoint, 'DELETE');
 
-      // Invalidate queries
-      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+      // Invalidate the queries
+      await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
+      await queryClient.invalidateQueries({ queryKey: ADMIN_POSTS_QUERY_KEY });
 
       toast({
         title: "Success",
@@ -238,7 +237,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!postToDelete} onOpenChange={() => setPostToDelete(null)}>
-        <AlertDialogContent onPointerDownOutside={(e) => e.preventDefault()}>
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -250,13 +249,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
             <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (postToDelete) {
-                  handleDeletePost(postToDelete);
-                }
-              }}
+              onClick={() => postToDelete && handleDeletePost(postToDelete)}
             >
               Delete
             </AlertDialogAction>
