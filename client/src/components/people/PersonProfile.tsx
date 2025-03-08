@@ -75,13 +75,34 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  // Fetch person details
+  // Enhanced error logging
+  console.log('PersonProfile - Attempting to fetch profile for username:', username);
+
+  // Fetch person details with improved error handling
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
+      console.log('Fetching person details for username:', username);
       const response = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
-      if (!response.ok) throw new Error('Failed to fetch person details');
-      return response.json();
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch person details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText,
+          username
+        });
+        throw new Error(`Failed to fetch person details: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Successfully fetched person details:', {
+        id: data.id,
+        apiId: data.api_id,
+        username: data.userName
+      });
+      return data;
     }
   });
 
@@ -115,9 +136,15 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const isLoading = personLoading || statsLoading || eventsLoading;
 
   if (personError) {
+    console.error('Error in PersonProfile:', personError);
     return (
-      <div className="rounded-lg border bg-destructive/10 p-3">
-        <p className="text-xs text-destructive">Failed to load person details</p>
+      <div className="rounded-lg border bg-destructive/10 p-4">
+        <p className="text-sm text-destructive">
+          Failed to load profile details. Please try again later.
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Error: {personError instanceof Error ? personError.message : 'Unknown error'}
+        </p>
       </div>
     );
   }
