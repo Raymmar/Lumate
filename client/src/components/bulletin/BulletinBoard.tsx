@@ -397,7 +397,8 @@ export function BulletinBoard() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 grid-cols-2">
+      {/* Grid layout for links and join us sections */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <LinksSection />
         <JoinUsSection />
       </div>
