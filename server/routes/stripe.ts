@@ -256,4 +256,53 @@ router.get('/session-status', async (req, res) => {
   }
 });
 
+// Cancel subscription
+router.post('/cancel-subscription', async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.stripeSubscriptionId || user.stripeSubscriptionId === 'NULL') {
+      return res.status(400).json({ error: 'No active subscription found' });
+    }
+
+    console.log('🔄 Cancelling subscription:', {
+      userId,
+      subscriptionId: user.stripeSubscriptionId
+    });
+
+    const cancelledSubscription = await StripeService.cancelSubscription(user.stripeSubscriptionId);
+
+    console.log('✅ Subscription cancelled:', {
+      subscriptionId: cancelledSubscription.id,
+      status: cancelledSubscription.status
+    });
+
+    // Update the user's subscription status in the database
+    await storage.updateUserSubscription(
+      user.id,
+      cancelledSubscription.id,
+      cancelledSubscription.status
+    );
+
+    res.json({
+      status: 'success',
+      message: 'Subscription cancelled successfully'
+    });
+  } catch (error: any) {
+    console.error('❌ Error cancelling subscription:', error);
+    res.status(500).json({
+      error: 'Failed to cancel subscription',
+      message: error.message
+    });
+  }
+});
+
 export default router;

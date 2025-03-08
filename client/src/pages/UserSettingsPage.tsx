@@ -472,6 +472,46 @@ export default function UserSettingsPage() {
                   "Save Changes"
                 )}
               </Button>
+
+              {/* Add Cancel Subscription Button */}
+              {hasActiveSubscription && !user.isAdmin && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-4 text-destructive hover:text-destructive"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/stripe/cancel-subscription', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json'
+                        }
+                      });
+
+                      if (!response.ok) {
+                        throw new Error('Failed to cancel subscription');
+                      }
+
+                      // Invalidate the subscription status query to refresh the UI
+                      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+
+                      toast({
+                        title: "Subscription Cancelled",
+                        description: "Your subscription has been cancelled. You'll have access to premium features until the end of your current billing period.",
+                      });
+                    } catch (error) {
+                      console.error('Error cancelling subscription:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to cancel subscription. Please try again.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  Cancel Subscription
+                </Button>
+              )}
             </form>
           </CardContent>
         </Card>
