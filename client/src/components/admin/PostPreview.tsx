@@ -83,6 +83,11 @@ export function PostPreview({
     ],
     content: '',
     editable: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none focus:outline-none'
+      }
+    }
   });
 
   // Check if user can edit this post

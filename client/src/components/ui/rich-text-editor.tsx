@@ -89,7 +89,6 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
   }
 
   const handleSetLink = (e: React.MouseEvent | React.FormEvent) => {
-    // Prevent the event from bubbling up and triggering form submissions
     e.preventDefault();
     e.stopPropagation();
 
@@ -105,7 +104,11 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
       .chain()
       .focus()
       .extendMarkRange('link')
-      .setLink({ href: formattedUrl })
+      .setLink({ 
+        href: formattedUrl,
+        target: '_blank',
+        rel: 'noopener noreferrer'
+      })
       .run();
 
     setIsLinkPopoverOpen(false);
