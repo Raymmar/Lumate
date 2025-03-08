@@ -33,12 +33,12 @@ export function DataTable<T>({ data, columns, actions, onRowClick }: DataTablePr
   return (
     <div className="rounded-md border">
       <Table>
-        <TableHeader>
+        <TableHeader className="hidden md:table-header-group">
           <TableRow>
             {columns.map((column) => (
               <TableHead key={column.key}>{column.header}</TableHead>
             ))}
-            {actions && <TableHead>Actions</TableHead>}
+            {actions && <TableHead className="w-[50px]">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -46,15 +46,26 @@ export function DataTable<T>({ data, columns, actions, onRowClick }: DataTablePr
             <TableRow 
               key={index}
               onClick={() => onRowClick?.(row)}
-              className={onRowClick ? "cursor-pointer hover:bg-muted/50" : undefined}
+              className={`
+                flex flex-col md:table-row
+                ${onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+              `}
             >
               {columns.map((column) => (
-                <TableCell key={column.key}>
-                  {column.cell(row)}
+                <TableCell 
+                  key={column.key}
+                  className="flex flex-col md:table-cell md:w-auto w-full"
+                >
+                  <span className="font-medium text-sm md:hidden mb-1">
+                    {column.header}
+                  </span>
+                  <div className="w-full">
+                    {column.cell(row)}
+                  </div>
                 </TableCell>
               ))}
               {actions && (
-                <TableCell>
+                <TableCell className="flex justify-end md:table-cell md:w-[50px]">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">

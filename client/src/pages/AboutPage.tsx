@@ -12,6 +12,7 @@ import { FaTwitter } from "react-icons/fa";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { Button } from "@/components/ui/button";
+import { Billboard, BillboardItem } from "@/components/ui/billboard";
 
 function SocialLinks() {
   const socialLinks = [
@@ -242,6 +243,25 @@ function TestimonialsSection() {
   );
 }
 
+function BillboardSection() {
+  const stats = [
+    { title: "Tech Events", value: "22+" },
+    { title: "Members", value: "2,000+" },
+    { title: "Cities Reached", value: "5+" },
+  ];
+
+  return (
+    <Billboard className="my-12">
+      {stats.map((stat) => (
+        <BillboardItem key={stat.title}>
+          <h3 className="text-4xl font-bold">{stat.value}</h3>
+          <p className="text-muted-foreground">{stat.title}</p>
+        </BillboardItem>
+      ))}
+    </Billboard>
+  );
+}
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col relative">
@@ -268,6 +288,8 @@ export default function AboutPage() {
               <JoinUsCard showHeader={false} />
             </div>
 
+            <BillboardSection />
+
             <div className="text-center space-y-4">
               <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
@@ -276,7 +298,6 @@ export default function AboutPage() {
                 sometimes at a local business HQ. Either way, it's always a blast!
               </p>
             </div>
-
             <TestimonialsSection />
             <TimelineSection />
             <BoardMembersSection />
