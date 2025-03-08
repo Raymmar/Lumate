@@ -172,10 +172,11 @@ export class StripeService {
 
       console.log('Creating customer portal session for:', customerId);
 
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000';
+      // Use production URL, fallback to environment URL only in development
+      const returnUrl = 'https://sarasota.tech/settings';
       const session = await stripe.billingPortal.sessions.create({
         customer: customerId,
-        return_url: `${baseUrl}/settings`,
+        return_url: returnUrl,
       });
 
       console.log('✅ Customer portal session created:', {
