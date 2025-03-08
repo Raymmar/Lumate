@@ -46,7 +46,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="lg:hidden">
                 <Drawer open={isOpen} onOpenChange={setIsOpen}>
                   <DrawerTrigger asChild>
-                    <Button variant="ghost" size="sm" className="ml-2">
+                    <Button variant="outline" size="sm" className="ml-2">
                       Directory
                     </Button>
                   </DrawerTrigger>
