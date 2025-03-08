@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Lock } from "lucide-react";
+import { Loader2, Plus, X, Lock, Globe, Link } from "lucide-react";
+import { SiDiscord, SiFacebook, SiGithub, SiInstagram, SiLinkedin, SiTiktok, SiTwitter, SiYoutube } from "react-icons/si";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +23,8 @@ import { Sun, Moon, Monitor } from "lucide-react";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React from 'react';
 import {
   Form,
   FormControl,
@@ -30,6 +33,21 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
+const LINK_ICONS = {
+  website: { icon: Globe, label: "Website" },
+  link: { icon: Link, label: "Custom Link" },
+  twitter: { icon: SiTwitter, label: "X (Twitter)" },
+  facebook: { icon: SiFacebook, label: "Facebook" },
+  instagram: { icon: SiInstagram, label: "Instagram" },
+  linkedin: { icon: SiLinkedin, label: "LinkedIn" },
+  discord: { icon: SiDiscord, label: "Discord" },
+  github: { icon: SiGithub, label: "GitHub" },
+  tiktok: { icon: SiTiktok, label: "TikTok" },
+  youtube: { icon: SiYoutube, label: "YouTube" },
+} as const;
+
+type LinkIconType = keyof typeof LINK_ICONS;
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
@@ -97,7 +115,7 @@ export default function UserSettingsPage() {
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
-        displayName: user?.displayName, 
+        displayName: user?.displayName,
         address: data.address || null,
         tags: tags,
       };
@@ -223,12 +241,6 @@ export default function UserSettingsPage() {
               <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-4">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
-                  {/* Display Name (Read-only) */}
-                  <div className="space-y-1">
-                    <FormLabel>Display Name</FormLabel>
-                    <p className="text-sm text-muted-foreground">{user?.displayName}</p>
-                  </div>
-
                   <FormField
                     control={form.control}
                     name="bio"
@@ -466,7 +478,7 @@ export default function UserSettingsPage() {
                                   });
                                   return;
                                 }
-                                field.onChange([...field.value, { title: "", url: "" }]);
+                                field.onChange([...field.value, { icon: 'website', title: "", url: "" }]);
                               }}
                               disabled={field.value.length >= 5}
                               className="h-8"
@@ -477,30 +489,58 @@ export default function UserSettingsPage() {
                           </div>
                           <div className="space-y-2">
                             {field.value.map((link, index) => (
-                              <div key={index} className="flex gap-2 items-start">
-                                <div className="flex-1 space-y-2">
-                                  <Input
-                                    placeholder="Link title"
-                                    value={link.title}
-                                    onChange={(e) => {
-                                      const newLinks = [...field.value];
-                                      newLinks[index] = { ...newLinks[index], title: e.target.value };
-                                      field.onChange(newLinks);
-                                    }}
-                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  />
-                                  <Input
-                                    placeholder="https://..."
-                                    type="url"
-                                    value={link.url}
-                                    onChange={(e) => {
-                                      const newLinks = [...field.value];
-                                      newLinks[index] = { ...newLinks[index], url: e.target.value };
-                                      field.onChange(newLinks);
-                                    }}
-                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  />
-                                </div>
+                              <div key={index} className="flex items-center gap-2">
+                                <Select
+                                  value={link.icon || 'website'}
+                                  onValueChange={(value: LinkIconType) => {
+                                    const newLinks = [...field.value];
+                                    newLinks[index] = { ...newLinks[index], icon: value };
+                                    field.onChange(newLinks);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-[3.5rem] h-9 bg-muted/50 border-0">
+                                    {link.icon && LINK_ICONS[link.icon as LinkIconType] ? (
+                                      <div className="flex items-center justify-center w-full">
+                                        {React.createElement(LINK_ICONS[link.icon as LinkIconType].icon, {
+                                          className: "h-4 w-4"
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <Globe className="h-4 w-4" />
+                                    )}
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Object.entries(LINK_ICONS).map(([key, { icon: Icon, label }]) => (
+                                      <SelectItem key={key} value={key}>
+                                        <div className="flex items-center gap-2">
+                                          {React.createElement(Icon, { className: "h-4 w-4" })}
+                                          <span>{label}</span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <Input
+                                  placeholder="Link title"
+                                  value={link.title}
+                                  onChange={(e) => {
+                                    const newLinks = [...field.value];
+                                    newLinks[index] = { ...newLinks[index], title: e.target.value };
+                                    field.onChange(newLinks);
+                                  }}
+                                  className="flex-1 border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
+                                <Input
+                                  placeholder="https://..."
+                                  type="url"
+                                  value={link.url}
+                                  onChange={(e) => {
+                                    const newLinks = [...field.value];
+                                    newLinks[index] = { ...newLinks[index], url: e.target.value };
+                                    field.onChange(newLinks);
+                                  }}
+                                  className="flex-1 border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
                                 <Button
                                   type="button"
                                   variant="ghost"
