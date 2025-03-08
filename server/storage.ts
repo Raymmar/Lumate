@@ -967,8 +967,7 @@ export class PostgresStorage implements IStorage {
           id: posts.id,
           title: posts.title,
           summary: posts.summary,
-          body: posts.body,
-          featuredImage: posts.featuredImage,
+          body: posts.body,featuredImage: posts.featuredImage,
           videoUrl: posts.videoUrl,          ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
@@ -1592,37 +1591,63 @@ export class PostgresStorage implements IStorage {
     try {
       console.log('Looking up person by username:', username);
 
-      // Try exact match first
-      const exactMatch = await db
+      // First try direct match
+      const directResult = await db
         .select()
         .from(people)
-        .where(sql`LOWER(user_name) = LOWER(${username})`)
+        .where(eq(people.userName, username))
         .limit(1);
 
-      if (exactMatch.length > 0) {
-        console.log('Found person by exact username match:', exactMatch[0].userName);
-        return exactMatch[0];
+      if (directResult.length > 0) {
+        console.log('Found person by direct username match');
+        return directResult[0];
       }
 
-      // Try normalized match (removing accents and special characters)
-      const normalizedUsername = username.normalize('NFKD')
+      // Try with spaces instead of hyphens (URL-friendly version to DB version)
+      const spacedUsername = username.replace(/-/g, ' ');
+      console.log('Trying spaced username:', spacedUsername);
+
+      const spacedResult = await db
+        .select()
+        .from(people)
+        .where(eq(people.userName, spacedUsername))
+        .limit(1);
+
+      if (spacedResult.length > 0) {
+        console.log('Found person by spaced username match');
+        return spacedResult[0];
+      }
+
+      // Try case-insensitive match
+      const caseInsensitiveResult = await db
+        .select()
+        .from(people)
+        .where(sql`LOWER(user_name) = LOWER(${spacedUsername})`)
+        .limit(1);
+
+      if (caseInsensitiveResult.length > 0) {
+        console.log('Found person by case-insensitive match');
+        return caseInsensitiveResult[0];
+      }
+
+      // Try normalized match (removing accents)
+      const normalizedUsername = spacedUsername
+        .normalize('NFKD')
         .replace(/[\u0300-\u036f]/g, '');
 
-      const normalizedMatch = await db
+      console.log('Trying normalized username:', normalizedUsername);
+
+      const normalizedResult = await db
         .select()
         .from(people)
         .where(sql`
           LOWER(UNACCENT(user_name)) = LOWER(UNACCENT(${normalizedUsername}))
-          OR
-          LOWER(user_name) LIKE LOWER(${username})
-          OR
-          LOWER(UNACCENT(user_name)) LIKE LOWER(UNACCENT(${username}))
         `)
         .limit(1);
 
-      if (normalizedMatch.length > 0) {
-        console.log('Found person by normalized username match:', normalizedMatch[0].userName);
-        return normalizedMatch[0];
+      if (normalizedResult.length > 0) {
+        console.log('Found person by normalized match');
+        return normalizedResult[0];
       }
 
       console.log('No person found for username:', username);
