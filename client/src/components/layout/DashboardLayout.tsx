@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <PageContainer>
         <div className="flex">
           {/* Sidebar - hidden below lg, visible on lg and up */}
-          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[280px] xl:w-[350px] border-r bg-background">
+          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">
             <SidebarContent />
           </aside>
 
