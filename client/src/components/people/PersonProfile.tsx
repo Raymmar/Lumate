@@ -243,7 +243,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
                 {events?.length > 0 && (
                   <div className="space-y-1 mt-4 border-t pt-4">
-                    <div className="max-h-[50vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
+                    <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
                       {events.map((event) => (
                         <div key={event.api_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                           <div>
