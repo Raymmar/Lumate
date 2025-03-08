@@ -4,15 +4,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Lock } from "lucide-react";
+import { Loader2, Plus, X, Lock, Link as LinkIcon, Globe } from "lucide-react";
+import { SiGithub, SiLinkedin, SiTwitter, SiFacebook, SiInstagram, SiYoutube } from "react-icons/si";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
@@ -30,6 +32,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
+const SOCIAL_ICONS = {
+  twitter: { icon: SiTwitter, label: "X (Twitter)" },
+  facebook: { icon: SiFacebook, label: "Facebook" },
+  linkedin: { icon: SiLinkedin, label: "LinkedIn" },
+  instagram: { icon: SiInstagram, label: "Instagram" },
+  youtube: { icon: SiYoutube, label: "YouTube" },
+  github: { icon: SiGithub, label: "GitHub" },
+  link: { icon: LinkIcon, label: "Link" },
+  globe: { icon: Globe, label: "Website" }
+} as const;
+
+type IconType = keyof typeof SOCIAL_ICONS;
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
@@ -173,6 +188,11 @@ export default function UserSettingsPage() {
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const renderIcon = (icon: IconType) => {
+    const IconComponent = SOCIAL_ICONS[icon].icon;
+    return <IconComponent className="h-4 w-4" />;
   };
 
   if (!user) {
@@ -457,7 +477,7 @@ export default function UserSettingsPage() {
                                     });
                                     return;
                                   }
-                                  field.onChange([...field.value, { title: "", url: "" }]);
+                                  field.onChange([...field.value, { title: "", url: "", icon: "link" }]);
                                 }}
                                 disabled={field.value.length >= 5}
                                 className="h-8"
@@ -468,7 +488,31 @@ export default function UserSettingsPage() {
                             </div>
                             <div className="space-y-2">
                               {field.value.map((link, index) => (
-                                <div key={index} className="flex gap-2 items-start">
+                                <div key={index} className="flex gap-2 items-center">
+                                  <Select
+                                    value={link.icon || "link"}
+                                    onValueChange={(value: IconType) => {
+                                      const newLinks = [...field.value];
+                                      newLinks[index] = { ...newLinks[index], icon: value };
+                                      field.onChange(newLinks);
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[42px] h-[38px] px-2">
+                                      <SelectValue>
+                                        {renderIcon(link.icon as IconType || "link")}
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {Object.entries(SOCIAL_ICONS).map(([key, { icon: Icon, label }]) => (
+                                        <SelectItem key={key} value={key}>
+                                          <div className="flex items-center gap-2">
+                                            <Icon className="h-4 w-4" />
+                                            <span>{label}</span>
+                                          </div>
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                   <div className="flex-1 flex gap-2">
                                     <Input
                                       placeholder="Link title"
