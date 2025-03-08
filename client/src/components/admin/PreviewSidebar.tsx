@@ -31,9 +31,11 @@ export function PreviewSidebar({
         }}
       >
         {(title || headerContent) && (
-          <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <SheetHeader className="flex flex-row items-center justify-between space-y-0 py-0">
             {title && <h2 className="text-lg font-semibold">{title}</h2>}
-            {headerContent}
+            <div className="flex items-center gap-2">
+              {headerContent}
+            </div>
           </SheetHeader>
         )}
         {children}
