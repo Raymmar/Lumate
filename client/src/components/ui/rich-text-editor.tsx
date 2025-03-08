@@ -62,10 +62,12 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
       }),
       Link.configure({
         protocols: ['http', 'https', 'mailto', 'tel'],
+        autolink: true,
         openOnClick: true,
+        linkOnPaste: true,
         validate: href => /^(https?:\/\/|mailto:|tel:)/.test(href),
         HTMLAttributes: {
-          class: 'text-primary underline decoration-primary cursor-pointer',
+          class: 'text-primary underline decoration-primary cursor-pointer hover:text-primary/80',
           rel: 'noopener noreferrer',
           target: '_blank'
         }
@@ -74,6 +76,11 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     content: value,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
+    },
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm max-w-none min-h-[200px] focus:outline-none'
+      }
     }
   });
 
@@ -259,7 +266,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
 
       <EditorContent 
         editor={editor} 
-        className="prose prose-sm max-w-none min-h-[200px] p-4 focus:outline-none cursor-text dark:prose-invert [&_*]:outline-none [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-foreground [&_.ProseMirror_ul]:space-y-0.5 [&_.ProseMirror_ol]:space-y-0.5 [&_.ProseMirror_li_p]:my-0 [&_.ProseMirror_a]:text-primary [&_.ProseMirror_a]:underline [&_.ProseMirror_a]:decoration-primary" 
+        className="prose prose-sm max-w-none min-h-[200px] p-4 focus:outline-none cursor-text dark:prose-invert [&_.ProseMirror]:min-h-[200px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-foreground [&_.ProseMirror_ul]:space-y-0.5 [&_.ProseMirror_ol]:space-y-0.5 [&_.ProseMirror_li_p]:my-0 [&_.ProseMirror_a]:text-primary [&_.ProseMirror_a]:underline [&_.ProseMirror_a]:decoration-primary [&_.ProseMirror_a]:hover:text-primary/80"
       />
     </div>
   )
