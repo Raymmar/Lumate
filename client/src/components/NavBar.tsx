@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, Users } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
@@ -45,9 +45,9 @@ export function NavBar() {
           </Button>
         </Link>
       )}
-      <div className="ml-auto flex items-center space-x-4">
+      <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
-          <AdminBadge className="mr-4" asLink />
+          <AdminBadge className="mr-2" asLink />
         )}
         {user ? (
           <DropdownMenu>
