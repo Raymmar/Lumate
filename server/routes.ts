@@ -479,8 +479,14 @@ export async function registerRoutes(app: Express) {
       
       let person = await storage.getPersonByUsername(normalizedUsername);
 
+      // If not found by normalized username, try the original format
+      if (!person && normalizedUsername !== req.params.username) {
+        console.log('Not found by normalized username, trying original:', req.params.username);
+        person = await storage.getPersonByUsername(req.params.username);
+      }
+
       if (!person) {
-        // If not found by username, try API ID
+        // Try API ID as a last resort
         console.log('Person not found by username, trying API ID:', req.params.username);
         person = await storage.getPersonByApiId(req.params.username);
         
