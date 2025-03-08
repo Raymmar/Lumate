@@ -7,19 +7,40 @@ interface MemberDetailsProps {
 }
 
 export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
+  // Debug logging for troubleshooting
   console.log('MemberDetails - FULL DEBUG:', {
     receivedUser: user,
-    hasSubscription: Boolean(user?.subscriptionStatus === 'active'),
-    isAdmin: Boolean(user?.isAdmin),
-    userId: user?.id,
-    displayName: user?.displayName,
-    email: user?.email,
-    companyName: user?.companyName,
-    bio: user?.bio
+    hasCompanyName: Boolean(user?.companyName),
+    hasDisplayName: Boolean(user?.displayName),
+    hasBio: Boolean(user?.bio),
+    hasCustomLinks: Boolean(user?.customLinks?.length > 0),
+    hasAddress: Boolean(user?.address),
+    hasPhone: Boolean(user?.phoneNumber),
+    hasEmail: Boolean(user?.email),
+    hasFeaturedImage: Boolean(user?.featuredImageUrl),
+    hasTags: Boolean(user?.tags?.length > 0)
   });
 
   if (!user) {
     console.log('MemberDetails - No user data found');
+    return null;
+  }
+
+  // Check if there's meaningful content to display
+  const hasContent = Boolean(
+    user.bio ||
+    user.companyName ||
+    user.companyDescription ||
+    user.address ||
+    (user.customLinks && user.customLinks.length > 0) ||
+    user.featuredImageUrl ||
+    (user.tags && user.tags.length > 0)
+  );
+
+  console.log('MemberDetails - Content check:', { hasContent });
+
+  if (!hasContent) {
+    console.log('MemberDetails - No meaningful content to display');
     return null;
   }
 
@@ -35,7 +56,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     tags: user.tags
   };
 
-  console.log('MemberDetails - Prepared business data:', businessData);
+  console.log('MemberDetails - Final business data:', businessData);
 
   return (
     <div className="space-y-4">
