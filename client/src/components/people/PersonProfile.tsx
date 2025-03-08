@@ -85,6 +85,18 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     }
   });
 
+  // Fetch subscription status
+  const { data: subscriptionStatus } = useQuery({
+    queryKey: ['/api/people', person?.api_id, 'subscription'],
+    queryFn: async () => {
+      if (!person?.api_id) return null;
+      const response = await fetch(`/api/people/${person.api_id}/subscription`);
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      return response.json();
+    },
+    enabled: !!person?.api_id
+  });
+
   // Fetch person's stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/people', person?.api_id, 'stats'],
@@ -111,8 +123,28 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
+  const isProfilePaidUser = Boolean(
+    subscriptionStatus?.status === 'active' || 
+    person?.user?.subscriptionStatus === 'active'
+  );
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading;
+
+  console.log('Profile visibility check:', {
+    isProfileAdmin,
+    isProfilePaidUser,
+    subscriptionStatus: subscriptionStatus?.status,
+    userSubscriptionStatus: person?.user?.subscriptionStatus
+  });
+
+  // Show member details if:
+  // 1. We have user data AND
+  // 2. Either:
+  //    - The profile belongs to an admin
+  //    - The profile owner has an active subscription
+  const shouldShowMemberDetails = Boolean(
+    person?.user && (isProfileAdmin || isProfilePaidUser)
+  );
 
   if (personError) {
     return (
@@ -194,8 +226,10 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Show member details whenever we have user data */}
-        {person.user && <MemberDetails user={person.user} />}
+        {/* Only show member details for admins or paid users */}
+        {shouldShowMemberDetails && (
+          <MemberDetails user={person.user} />
+        )}
       </div>
 
       <div>
