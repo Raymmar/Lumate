@@ -70,14 +70,19 @@ export default function UserSettingsPage() {
     }
   }, [user]);
 
-  const { data: subscriptionStatus } = useQuery({
+  // Update the subscription status query
+  const { data: subscriptionStatus, isError: subscriptionError } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
       const response = await fetch('/api/subscription/status');
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch subscription status');
+      }
       return response.json();
     },
     enabled: !!user && !user.isAdmin, // Only check subscription for non-admin users
+    retry: 1, // Only retry once to avoid too many failed attempts
   });
 
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
