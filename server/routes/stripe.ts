@@ -190,8 +190,6 @@ router.get('/session-status', async (req, res) => {
   console.log('🔍 Session verification request received:', {
     timestamp: new Date().toISOString(),
     sessionId: req.query.session_id,
-    hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
-    stripeKeyPrefix: process.env.STRIPE_SECRET_KEY?.substring(0, 7)
   });
 
   try {
@@ -201,29 +199,29 @@ router.get('/session-status', async (req, res) => {
       return res.status(400).json({ error: 'Session ID is required' });
     }
 
-    console.log('📦 Retrieving session from Stripe:', sessionId);
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const sessionDetails = await StripeService.verifySession(sessionId);
 
     const responseTime = Date.now() - startTime;
     console.log('✅ Session verification completed:', {
       duration: `${responseTime}ms`,
-      sessionId: session.id,
-      status: session.status,
-      paymentStatus: session.payment_status,
-      hasSubscription: !!session.subscription
+      sessionId,
+      status: sessionDetails.status,
+      paymentStatus: sessionDetails.paymentStatus
     });
 
-    if (session.payment_status === 'paid') {
+    // If payment is confirmed, return complete status
+    if (sessionDetails.paymentStatus === 'paid') {
       console.log('💳 Payment confirmed as paid');
       return res.json({ status: 'complete' });
     }
 
-    console.log('⏳ Payment pending:', session.payment_status);
+    // If payment is still processing, return pending status
+    console.log('⏳ Payment pending:', sessionDetails.paymentStatus);
     return res.json({
       status: 'pending',
       debug: {
-        sessionStatus: session.status,
-        paymentStatus: session.payment_status
+        sessionStatus: sessionDetails.status,
+        paymentStatus: sessionDetails.paymentStatus
       }
     });
 
@@ -233,9 +231,7 @@ router.get('/session-status', async (req, res) => {
       duration: `${responseTime}ms`,
       error: error.message,
       type: error.type,
-      code: error.code,
-      decline_code: error.decline_code,
-      stack: error.stack
+      code: error.code
     });
 
     return res.status(500).json({

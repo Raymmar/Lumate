@@ -66,10 +66,28 @@ export class StripeService {
     }
   }
 
+  static async verifySession(sessionId: string) {
+    try {
+      console.log('Verifying Stripe session:', sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      return {
+        isValid: true,
+        status: session.status,
+        customerId: session.customer as string,
+        subscriptionId: session.subscription as string,
+        paymentStatus: session.payment_status
+      };
+    } catch (error) {
+      console.error('Error verifying session:', error);
+      throw error;
+    }
+  }
+
   static async createCheckoutSession(customerId: string, priceId: string, userId: number, couponId?: string) {
     try {
-      if (!customerId || customerId === 'NULL') {
-        throw new Error('Invalid customer ID');
+      if (!customerId) {
+        throw new Error('Customer ID is required');
       }
 
       console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });

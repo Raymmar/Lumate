@@ -9,38 +9,38 @@ export default function SubscriptionSuccessPage() {
   const [location, setLocation] = useLocation();
   const sessionId = new URLSearchParams(location.split('?')[1]).get('session_id');
 
-  const { data: sessionStatus, isLoading, error } = useQuery({
+  // Type the response data
+  type SessionResponse = {
+    status: 'complete' | 'pending';
+    debug?: {
+      sessionStatus: string;
+      paymentStatus: string;
+    };
+  };
+
+  const { data: sessionStatus, isLoading, error } = useQuery<SessionResponse, Error>({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
 
-      try {
-        const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
-        console.log('📦 Session verification response:', {
-          status: response.status,
-          ok: response.ok
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('❌ Session verification failed:', errorData);
-          throw new Error(errorData.message || 'Failed to verify payment status');
-        }
-
-        const data = await response.json();
-        console.log('✅ Session verification data:', data);
-        return data;
-      } catch (error) {
-        console.error('❌ Session verification error:', error);
-        throw error;
+      if (!sessionId) {
+        throw new Error('No session ID provided');
       }
+
+      const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to verify payment status');
+      }
+
+      return response.json();
     },
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
     refetchInterval: (data) => {
-      console.log('Checking refetch status:', data?.status);
-      return data?.status === 'complete' ? false : 2000;
+      // Only refetch if status is not complete
+      return data?.status !== 'complete' ? 2000 : false;
     }
   });
 
@@ -58,9 +58,9 @@ export default function SubscriptionSuccessPage() {
         {isLoading ? (
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-            <p className="mt-4 text-lg">Verifying payment...</p>
+            <p className="mt-4 text-lg">Verifying your subscription...</p>
             <p className="text-sm text-muted-foreground mt-2">
-              Session: {sessionId}
+              Please wait while we confirm your payment
             </p>
           </div>
         ) : error ? (
@@ -77,9 +77,12 @@ export default function SubscriptionSuccessPage() {
         ) : sessionStatus?.status === 'complete' ? (
           <div className="text-center py-8">
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-            <h1 className="text-2xl font-bold mt-4">Payment Successful!</h1>
+            <h1 className="text-2xl font-bold mt-4">Subscription Activated!</h1>
             <p className="text-muted-foreground mt-2">
-              Your premium subscription has been activated. Redirecting to settings...
+              Thank you for subscribing. You now have access to all premium features.
+            </p>
+            <p className="text-sm text-muted-foreground mt-4">
+              Redirecting to settings...
             </p>
           </div>
         ) : (
@@ -87,13 +90,7 @@ export default function SubscriptionSuccessPage() {
             <Loader2 className="h-12 w-12 text-yellow-500 mx-auto animate-spin" />
             <h1 className="text-2xl font-bold mt-4">Processing Payment</h1>
             <p className="text-muted-foreground mt-2">
-              Status: {sessionStatus?.status || 'checking'}<br />
-              {sessionStatus?.debug && (
-                <span className="text-sm">
-                  Payment Status: {sessionStatus.debug.paymentStatus}<br />
-                  Session Status: {sessionStatus.debug.sessionStatus}
-                </span>
-              )}
+              We're confirming your subscription...
             </p>
           </div>
         )}
