@@ -36,26 +36,30 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     <div className="min-h-screen bg-muted/10">
       {/* Fixed header with full-width background */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-        <PageContainer>
-          <div className="flex items-center">
-            <NavBar />
-            <div className="md:hidden ml-2">
-              <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                <DrawerTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle menu</span>
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent>
-                  <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
-                    <SidebarContent />
-                  </div>
-                </DrawerContent>
-              </Drawer>
+        <div className="w-full">
+          <PageContainer>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex-1">
+                <NavBar />
+              </div>
+              <div className="md:hidden">
+                <Drawer open={isOpen} onOpenChange={setIsOpen}>
+                  <DrawerTrigger asChild>
+                    <Button variant="ghost" size="icon" className="ml-2">
+                      <Menu className="h-5 w-5" />
+                      <span className="sr-only">Toggle menu</span>
+                    </Button>
+                  </DrawerTrigger>
+                  <DrawerContent>
+                    <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
+                      <SidebarContent />
+                    </div>
+                  </DrawerContent>
+                </Drawer>
+              </div>
             </div>
-          </div>
-        </PageContainer>
+          </PageContainer>
+        </div>
       </div>
 
       <PageContainer>

@@ -25,7 +25,7 @@ export function NavBar() {
   const profileUrl = user ? `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : '';
 
   return (
-    <nav className="flex h-16 items-center pl-2 pr-4 max-w-[1440px] mx-auto border-b">
+    <nav className="flex h-16 items-center pl-2 pr-4 w-full">
       <Link href="/">
         <div className="flex items-center">
           <img 
