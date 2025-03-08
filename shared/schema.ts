@@ -2,10 +2,13 @@ import { pgTable, text, serial, timestamp, varchar, json, boolean } from "drizzl
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Add type for custom links
+// Add validation for phone numbers
+export const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+
+// Update the userCustomLink schema with better URL validation
 export const userCustomLink = z.object({
   title: z.string().min(1, "Link title is required"),
-  url: z.string().url("Must be a valid URL"),
+  url: z.string().url("Must be a valid URL").min(1, "URL is required"),
   icon: z.string().optional(),
 });
 
@@ -393,12 +396,12 @@ export const locationSchema = z.object({
 
 export type Location = z.infer<typeof locationSchema>;
 
-// Update user profile schema for frontend validation
+// Update user profile schema with enhanced validation
 export const updateUserProfileSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
   featuredImageUrl: z.string()
     .transform(val => val === "" ? null : val)
-    .pipe(z.string().url("Must be a valid URL").nullable()),
+    .pipe(z.string().url("Featured image must be a valid URL").nullable()),
   bio: z.string()
     .transform(val => val === "" ? null : val)
     .nullable(),
@@ -415,7 +418,11 @@ export const updateUserProfileSchema = z.object({
   ]).nullable(),
   phoneNumber: z.string()
     .transform(val => val === "" ? null : val)
-    .nullable(),
+    .pipe(
+      z.string()
+        .regex(phoneRegex, "Please enter a valid phone number")
+        .nullable()
+    ),
   isPhonePublic: z.boolean().default(false),
   isEmailPublic: z.boolean().default(false),
   ctaText: z.string()
