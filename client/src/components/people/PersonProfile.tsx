@@ -42,6 +42,7 @@ interface Person {
   avatarUrl: string | null;
   role: string | null;
   isAdmin?: boolean;
+  subscriptionStatus?: string;
   user?: {
     id: number;
     email: string;
@@ -119,6 +120,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
+  const isProfilePaidUser = profileSubscriptionStatus?.status === 'active';
   const hasActiveSubscription = profileSubscriptionStatus?.status === 'active';
   const isLoading = personLoading || statsLoading || statusLoading || eventsLoading;
 
@@ -150,7 +152,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
   ];
 
-  const shouldShowMemberDetails = person.user && (isProfileAdmin || hasActiveSubscription);
+  const shouldShowMemberDetails = person.user && (isProfileAdmin || isProfilePaidUser || hasActiveSubscription);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
