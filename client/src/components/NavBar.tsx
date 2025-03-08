@@ -14,8 +14,18 @@ import { User, Settings, LogOut, LogIn, Shield, Loader2, List } from "lucide-rea
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
-export function NavBar() {
+interface NavBarProps {
+  onOpenDirectory?: () => void;
+  isDirectoryOpen?: boolean;
+}
+
+export function NavBar({ onOpenDirectory, isDirectoryOpen }: NavBarProps) {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const isAdmin = Boolean(user?.isAdmin);
@@ -26,6 +36,19 @@ export function NavBar() {
 
   return (
     <nav className="flex h-16 items-center pl-2 pr-4 w-full">
+      <div className="lg:hidden">
+        <Drawer open={isDirectoryOpen} onOpenChange={onOpenDirectory}>
+          <DrawerTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <List className="h-5 w-5" />
+              <span className="sr-only">Toggle directory</span>
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            {/* Drawer content would go here */}
+          </DrawerContent>
+        </Drawer>
+      </div>
       <Link href="/">
         <div className="flex items-center">
           <img 
@@ -35,16 +58,6 @@ export function NavBar() {
           />
         </div>
       </Link>
-      {isAdminPage && (
-        <Link href="/">
-          <Button 
-            variant="secondary"
-            className="ml-4"
-          >
-            View Directory
-          </Button>
-        </Link>
-      )}
       <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
           <AdminBadge className="mr-2" asLink />
