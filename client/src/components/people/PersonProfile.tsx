@@ -5,7 +5,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { AuthGuard } from "@/components/AuthGuard";
 import { AdminBadge } from "@/components/AdminBadge";
 import { Star, Code, Heart, CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
@@ -86,18 +85,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     }
   });
 
-  // Fetch person's subscription status
-  const { data: subscriptionStatus, isLoading: subscriptionLoading } = useQuery({
-    queryKey: ['/api/people', person?.api_id, 'subscription'],
-    queryFn: async () => {
-      if (!person?.api_id) return null;
-      const response = await fetch(`/api/people/${person.api_id}/subscription`);
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
-      return response.json();
-    },
-    enabled: !!person?.api_id
-  });
-
   // Fetch person's stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/people', person?.api_id, 'stats'],
@@ -124,33 +111,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
-  const isProfilePaidUser = Boolean(
-    subscriptionStatus?.status === 'active' || 
-    person?.user?.subscriptionStatus === 'active' ||
-    person?.subscriptionStatus === 'active'
-  );
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading;
-
-  console.log('Profile visibility - FULL DEBUG:', {
-    isProfileAdmin,
-    isProfilePaidUser,
-    hasActiveSubscription,
-    isAdmin,
-    personData: person?.user,
-    subscriptionStatusData: subscriptionStatus,
-    personSubscriptionStatus: person?.subscriptionStatus,
-    userSubscriptionStatus: person?.user?.subscriptionStatus,
-    person: person,
-    shouldShowMemberDetails: Boolean(
-      person?.user && (
-        isProfileAdmin || 
-        isProfilePaidUser || 
-        hasActiveSubscription || 
-        isAdmin
-      )
-    )
-  });
 
   if (personError) {
     return (
@@ -179,16 +141,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
     { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
   ];
-
-  // Determine if member details should be shown
-  const shouldShowMemberDetails = Boolean(
-    person.user && (
-      isProfileAdmin || 
-      isProfilePaidUser || 
-      hasActiveSubscription || 
-      isAdmin
-    )
-  );
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -242,9 +194,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {shouldShowMemberDetails && (
-          <MemberDetails user={person.user} />
-        )}
+        {/* Show member details whenever we have user data */}
+        {person.user && <MemberDetails user={person.user} />}
       </div>
 
       <div>
@@ -263,15 +214,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
               />
             </div>
 
-            {isLoading ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-16 w-full" />
-                ))}
-              </div>
-            ) : !events?.length ? (
-              <p className="text-sm text-muted-foreground">No events attended yet.</p>
-            ) : (
+            {events?.length > 0 && (
               <div className="space-y-1">
                 {events.map((event) => (
                   <div key={event.api_id} className="flex items-center justify-between py-2 border-t">
