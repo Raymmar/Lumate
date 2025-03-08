@@ -70,26 +70,11 @@ router.post('/create-checkout-session', async (req, res) => {
       user.stripeCustomerId = customer.id;
     }
 
-    // Always use the production URL
-    const baseUrl = 'https://lumate.replit.app';
-    console.log('Using base URL:', baseUrl);
-
-    const session = await stripe.checkout.sessions.create({
-      customer: user.stripeCustomerId,
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/subscription/cancel`,
-      metadata: {
-        userId: user.id.toString(),
-      },
-      allow_promotion_codes: true,
-    });
+    const session = await StripeService.createCheckoutSession(
+      user.stripeCustomerId,
+      process.env.STRIPE_PRICE_ID,
+      user.id
+    );
 
     res.json({ url: session.url });
   } catch (error: any) {
@@ -103,8 +88,7 @@ router.post('/webhook', async (req, res) => {
   console.log('🔔 Webhook received:', {
     type: req.headers['content-type'],
     signature: !!req.headers['stripe-signature'],
-    url: req.originalUrl,
-    body: JSON.stringify(req.body)
+    url: req.originalUrl
   });
 
   try {
@@ -114,7 +98,7 @@ router.post('/webhook', async (req, res) => {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
 
-    console.log('📦 Webhook event:', event.type, JSON.stringify(event.data.object));
+    console.log('📦 Webhook event:', event.type);
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -145,8 +129,6 @@ router.post('/webhook', async (req, res) => {
             subscriptionId: subscription.id,
             status: subscription.status
           });
-        } else {
-          console.warn('⚠️ Session missing subscription or customer:', session.id);
         }
         break;
       }
@@ -212,7 +194,10 @@ router.get('/session-status', async (req, res) => {
     // If payment is confirmed, return complete status
     if (sessionDetails.paymentStatus === 'paid') {
       console.log('💳 Payment confirmed as paid');
-      return res.json({ status: 'complete' });
+      return res.json({ 
+        status: 'complete',
+        subscription: sessionDetails.subscriptionDetails 
+      });
     }
 
     // If payment is still processing, return pending status
