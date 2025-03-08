@@ -33,7 +33,7 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           <PageContainer>
             <div className="flex items-center">
               <NavBar />
-              <div className="md:hidden ml-2">
+              <div className="lg:hidden ml-2">
                 <Drawer open={isOpen} onOpenChange={setIsOpen}>
                   <DrawerTrigger asChild>
                     <Button variant="ghost" size="icon">
@@ -54,8 +54,8 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
 
         <PageContainer>
           <div className="flex relative">
-            {/* Sidebar - hidden on mobile, visible on md and up */}
-            <div className="hidden md:block w-64 sticky top-[57px] h-[calc(100vh-57px)] bg-background border-r overflow-y-auto">
+            {/* Sidebar - hidden below lg breakpoint */}
+            <div className="hidden lg:block w-64 sticky top-[57px] h-[calc(100vh-57px)] bg-background border-r overflow-y-auto">
               <SidebarContent />
             </div>
 
