@@ -13,7 +13,9 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     isAdmin: Boolean(user?.isAdmin),
     userId: user?.id,
     displayName: user?.displayName,
-    email: user?.email
+    email: user?.email,
+    companyName: user?.companyName,
+    bio: user?.bio
   });
 
   if (!user) {
