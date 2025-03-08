@@ -5,7 +5,7 @@ import EventList from "@/components/events/EventList";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "./PageContainer";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Users } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -48,9 +48,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="lg:hidden">
                 <Drawer open={isOpen} onOpenChange={setIsOpen}>
                   <DrawerTrigger asChild>
-                    <Button variant="ghost" size="icon" className="ml-2">
-                      <Menu className="h-5 w-5" />
-                      <span className="sr-only">Toggle menu</span>
+                    <Button variant="ghost" size="icon" className="ml-4">
+                      <Users className="h-5 w-5" />
+                      <span className="sr-only">Toggle directory</span>
                     </Button>
                   </DrawerTrigger>
                   <DrawerContent>
