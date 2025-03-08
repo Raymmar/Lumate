@@ -4,7 +4,7 @@ import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageIcon, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { ImageIcon, Plus, MoreVertical, Edit, Trash2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -50,8 +51,9 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
     queryKey: PUBLIC_POSTS_QUERY_KEY,
   });
 
-  // Sort posts by creation date only (newest first)
-  const sortedPosts = data?.posts?.sort((a, b) =>
+  // Filter and sort posts based on authentication status
+  const filteredPosts = data?.posts?.filter(post => !post.membersOnly || user);
+  const sortedPosts = filteredPosts?.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -152,13 +154,21 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                   )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate">
+                      <h4 className="font-medium text-wrap-balance max-w-[80ch] truncate flex items-center gap-2">
                         {post.title}
-                        {post.isPinned && (
-                          <span className="ml-2 text-xs bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
-                            Featured
-                          </span>
-                        )}
+                        <div className="flex gap-2">
+                          {post.isPinned && (
+                            <Badge variant="secondary" className="text-xs">
+                              Featured
+                            </Badge>
+                          )}
+                          {post.membersOnly && (
+                            <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                              <Lock className="w-3 h-3" />
+                              Members Only
+                            </Badge>
+                          )}
+                        </div>
                       </h4>
                       {canEditPost(post) && (
                         <DropdownMenu>

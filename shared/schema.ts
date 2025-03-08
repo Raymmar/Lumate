@@ -135,6 +135,7 @@ export const tags = pgTable("tags", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+// Add membersOnly field to posts table definition
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
@@ -145,6 +146,7 @@ export const posts = pgTable("posts", {
   ctaLink: varchar("cta_link", { length: 255 }),
   ctaLabel: varchar("cta_label", { length: 255 }),
   isPinned: boolean("is_pinned").notNull().default(false),
+  membersOnly: boolean("members_only").notNull().default(false),
   creatorId: serial("creator_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
@@ -198,15 +200,12 @@ export const insertTagSchema = createInsertSchema(tags).omit({
   text: data.text.toLowerCase()
 }));
 
+// Update insert schema
 export const insertPostSchema = createInsertSchema(posts).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
   creatorId: true
-});
-
-export const insertPostTagSchema = createInsertSchema(postTags).omit({
-  id: true
 });
 
 export type Tag = typeof tags.$inferSelect;

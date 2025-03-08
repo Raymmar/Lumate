@@ -4,7 +4,7 @@ import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2, Lock } from "lucide-react";
 import { PostForm } from "./PostForm";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -209,10 +209,23 @@ export function PostPreview({
                     <span>Published by {post.creator?.displayName || 'Unknown'}</span>
                     <span>•</span>
                     <span>{timeAgo.format(new Date(post.createdAt))}</span>
-                    {!readOnly && post?.isPinned && (
+                    {!readOnly && (
                       <>
-                        <span>•</span>
-                        <Badge variant="secondary">Featured</Badge>
+                        {post?.isPinned && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="secondary">Featured</Badge>
+                          </>
+                        )}
+                        {post?.membersOnly && (
+                          <>
+                            <span>•</span>
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <Lock className="w-3 h-3" />
+                              Members Only
+                            </Badge>
+                          </>
+                        )}
                       </>
                     )}
                   </div>

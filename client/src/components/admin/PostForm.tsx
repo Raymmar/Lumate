@@ -72,6 +72,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
       ctaLink: "",
       ctaLabel: "",
       isPinned: false,
+      membersOnly: false, // Add default value for membersOnly
       ...defaultValues
     }
   });
@@ -329,26 +330,49 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="isPinned"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-between rounded-lg bg-muted/50 p-3 space-y-0">
-                <div className="space-y-0.5">
-                  <FormLabel className="text-sm">Pin Post</FormLabel>
-                  <div className="text-xs text-muted-foreground">
-                    Pinned posts will appear at the top of the list
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="isPinned"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg bg-muted/50 p-3 space-y-0">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-sm">Pin Post</FormLabel>
+                    <div className="text-xs text-muted-foreground">
+                      Pinned posts will appear at the top of the list
+                    </div>
                   </div>
-                </div>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="membersOnly"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between rounded-lg bg-muted/50 p-3 space-y-0">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-sm">Members Only</FormLabel>
+                    <div className="text-xs text-muted-foreground">
+                      This post will only be visible to logged-in members
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         <Button type="submit" className="w-full mt-6">

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus, ExternalLink as ExternalLinkIcon } from "lucide-react";
+import { Users, Calendar, ChevronLeft, ChevronRight, Ticket, UserPlus, ExternalLink as ExternalLinkIcon, Lock } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -14,16 +14,19 @@ import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-
+import { useAuth } from "@/hooks/use-auth";
 
 // Only updating the PinnedPostsCarousel component section
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
+  const { user } = useAuth();
 
-  const pinnedPosts = postsData?.posts.filter(post => post.isPinned).sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  // Filter posts based on authentication status and membersOnly flag
+  const pinnedPosts = postsData?.posts
+    .filter(post => post.isPinned && (!post.membersOnly || user))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   ) || [];
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,16 +76,20 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
       {/* Gradient overlay for text readability */}
       <div className="absolute inset-0 bg-black/60" />
 
-      {/* Tags */}
-      {currentPost.tags && currentPost.tags.length > 0 && (
-        <div className="absolute top-6 right-6 flex flex-wrap gap-2 z-20">
-          {currentPost.tags.map((tag: string) => (
-            <Badge key={tag} variant="outline" className="text-xs text-white border-white/40 hover:bg-white/10">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
+      {/* Tags and Badges */}
+      <div className="absolute top-6 right-6 flex flex-wrap gap-2 z-20">
+        {currentPost.membersOnly && (
+          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+            <Lock className="w-3 h-3" />
+            Members Only
+          </Badge>
+        )}
+        {currentPost.tags && currentPost.tags.map((tag: string) => (
+          <Badge key={tag} variant="outline" className="text-xs text-white border-white/40 hover:bg-white/10">
+            {tag}
+          </Badge>
+        ))}
+      </div>
 
       {pinnedPosts.length > 1 && (
         <>
