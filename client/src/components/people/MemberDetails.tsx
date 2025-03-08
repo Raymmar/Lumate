@@ -7,7 +7,14 @@ interface MemberDetailsProps {
 }
 
 export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
-  console.log('MemberDetails - Received user data:', user);
+  console.log('MemberDetails - FULL DEBUG:', {
+    receivedUser: user,
+    hasCompanyName: Boolean(user?.companyName),
+    hasDisplayName: Boolean(user?.displayName),
+    hasBio: Boolean(user?.bio),
+    hasSubscription: Boolean(user?.subscriptionStatus === 'active'),
+    isAdmin: Boolean(user?.isAdmin)
+  });
 
   if (!user) {
     console.log('MemberDetails - No user data found');

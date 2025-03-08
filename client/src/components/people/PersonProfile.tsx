@@ -124,17 +124,32 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
-  const isProfilePaidUser = Boolean(person?.user?.subscriptionStatus === 'active');
+  const isProfilePaidUser = Boolean(
+    subscriptionStatus?.status === 'active' || 
+    person?.user?.subscriptionStatus === 'active' ||
+    person?.subscriptionStatus === 'active'
+  );
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading;
 
-  console.log('Profile visibility:', {
+  console.log('Profile visibility - FULL DEBUG:', {
     isProfileAdmin,
     isProfilePaidUser,
     hasActiveSubscription,
     isAdmin,
     personData: person?.user,
-    shouldShowMemberDetails: person?.user && (isProfileAdmin || isProfilePaidUser || hasActiveSubscription || isAdmin)
+    subscriptionStatusData: subscriptionStatus,
+    personSubscriptionStatus: person?.subscriptionStatus,
+    userSubscriptionStatus: person?.user?.subscriptionStatus,
+    person: person,
+    shouldShowMemberDetails: Boolean(
+      person?.user && (
+        isProfileAdmin || 
+        isProfilePaidUser || 
+        hasActiveSubscription || 
+        isAdmin
+      )
+    )
   });
 
   if (personError) {
