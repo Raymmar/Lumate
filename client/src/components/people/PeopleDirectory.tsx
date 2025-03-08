@@ -116,7 +116,7 @@ export default function PeopleDirectory() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="relative mb-2">
+      <div className="flex-none relative mb-2">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search people..."
@@ -164,14 +164,16 @@ export default function PeopleDirectory() {
                       )}
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-base font-medium truncate">{person.userName || "Anonymous"}</p>
+                      <p className="text-base font-medium truncate">
+                        {person.userName || "Anonymous"}
+                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-          <div className="pt-2 mt-2 border-t flex-none">
+          <div className="flex-none pt-2 mt-2 border-t">
             <div className="text-xs text-muted-foreground mb-2 text-center">
               Showing {data.people.length} of {data.total} total people
             </div>
@@ -184,7 +186,9 @@ export default function PeopleDirectory() {
                   />
                 </PaginationItem>
                 <PaginationItem>
-                  <span className="px-4 text-xs">Page {currentPage} of {totalPages}</span>
+                  <span className="px-4 text-xs">
+                    Page {currentPage} of {totalPages}
+                  </span>
                 </PaginationItem>
                 <PaginationItem>
                   <PaginationNext

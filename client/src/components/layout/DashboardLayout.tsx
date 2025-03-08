@@ -20,12 +20,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const SidebarContent = () => (
-    <div className="flex-1 overflow-hidden flex flex-col">
+    <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
         <div className="flex-none">
           <EventList />
         </div>
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-hidden min-h-0">
           <PeopleDirectory />
         </div>
       </div>
@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     </Button>
                   </DrawerTrigger>
                   <DrawerContent>
-                    <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
+                    <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
                       <SidebarContent />
                     </div>
                   </DrawerContent>
@@ -65,7 +65,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <PageContainer>
         <div className="flex">
           {/* Sidebar - hidden on mobile, visible on md and up */}
-          <aside className="hidden md:block sticky top-[57px] h-[calc(100vh-57px)] w-[280px] lg:w-[350px] border-r bg-background flex flex-col">
+          <aside className="hidden md:block sticky top-[57px] h-[calc(100vh-57px)] w-[280px] lg:w-[350px] border-r bg-background">
             <SidebarContent />
           </aside>
 
