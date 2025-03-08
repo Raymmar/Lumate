@@ -246,31 +246,4 @@ router.get('/session-status', async (req, res) => {
   }
 });
 
-// Update the subscription status route
-router.get('/subscription/status', async (req, res) => {
-  try {
-    const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ status: 'inactive', error: 'Not authenticated' });
-    }
-
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ status: 'inactive', error: 'User not found' });
-    }
-
-    // Check if user has subscription ID
-    if (!user.subscriptionId || user.subscriptionId === 'NULL') {
-      console.log('No valid subscription found for user:', userId);
-      return res.json({ status: 'inactive' });
-    }
-
-    const status = await StripeService.getSubscriptionStatus(user.subscriptionId);
-    return res.json({ status });
-  } catch (error) {
-    console.error('Error checking subscription status:', error);
-    return res.status(500).json({ status: 'inactive', error: 'Failed to check subscription status' });
-  }
-});
-
 export default router;

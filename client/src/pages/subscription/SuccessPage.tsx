@@ -5,27 +5,25 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
-interface SessionResponse {
-  status: 'complete' | 'pending';
-  debug?: {
-    sessionStatus: string;
-    paymentStatus: string;
-  };
-}
-
 export default function SubscriptionSuccessPage() {
   const [location, setLocation] = useLocation();
   const sessionId = new URLSearchParams(location.split('?')[1]).get('session_id');
 
-  const { data: sessionStatus, isLoading, error } = useQuery<SessionResponse>({
+  const { data: sessionStatus, isLoading, error } = useQuery({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
 
       try {
         const response = await fetch(`/api/stripe/session-status?session_id=${sessionId}`);
+        console.log('📦 Session verification response:', {
+          status: response.status,
+          ok: response.ok
+        });
+
         if (!response.ok) {
           const errorData = await response.json();
+          console.error('❌ Session verification failed:', errorData);
           throw new Error(errorData.message || 'Failed to verify payment status');
         }
 
@@ -40,7 +38,10 @@ export default function SubscriptionSuccessPage() {
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
-    refetchInterval: (data) => data?.status === 'complete' ? false : 2000
+    refetchInterval: (data) => {
+      console.log('Checking refetch status:', data?.status);
+      return data?.status === 'complete' ? false : 2000;
+    }
   });
 
   useEffect(() => {

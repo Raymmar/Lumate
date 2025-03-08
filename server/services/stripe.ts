@@ -57,18 +57,12 @@ export class StripeService {
   static async getSubscriptionStatus(subscriptionId: string) {
     try {
       console.log('Fetching subscription status for:', subscriptionId);
-
-      if (!subscriptionId || subscriptionId === 'NULL') {
-        console.log('Invalid subscription ID provided:', subscriptionId);
-        return 'inactive';
-      }
-
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
       console.log('Retrieved subscription status:', subscription.status);
       return subscription.status;
     } catch (error) {
       console.error('Error fetching subscription status:', error);
-      return 'inactive';
+      throw error;
     }
   }
 
@@ -80,6 +74,7 @@ export class StripeService {
 
       console.log('Creating checkout session with:', { customerId, priceId, userId, couponId });
 
+      // Always use the production URL
       const baseUrl = 'https://lumate.replit.app';
       console.log('Using base URL:', baseUrl);
 
@@ -97,7 +92,7 @@ export class StripeService {
         metadata: {
           userId: userId.toString(),
         },
-        allow_promotion_codes: true,
+        allow_promotion_codes: true, // Enable coupon/promotion code support
       };
 
       if (couponId) {
