@@ -75,23 +75,23 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
   const handleDeletePost = async (post: Post) => {
     try {
-      const endpoint = isAdminView ? `/api/admin/posts/${post.id}` : `/api/public/posts/${post.id}`;
+      console.log('Deleting post:', post.id, 'isAdminView:', isAdminView);
+      const endpoint = `/api/public/posts/${post.id}`;
+
       await apiRequest(endpoint, 'DELETE');
 
-      // Invalidate both admin and public queries to ensure proper sync
-      await queryClient.invalidateQueries({ queryKey: [PUBLIC_POSTS_QUERY_KEY] });
-      if (isAdminView) {
-        await queryClient.invalidateQueries({ queryKey: [ADMIN_POSTS_QUERY_KEY] });
-      }
+      // Invalidate queries
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
 
       toast({
         title: "Success",
         description: "Post deleted successfully"
       });
     } catch (error) {
+      console.error('Delete error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete post",
+        description: error instanceof Error ? error.message : "Failed to delete post",
         variant: "destructive"
       });
     } finally {
@@ -238,7 +238,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!postToDelete} onOpenChange={() => setPostToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent onPointerDownOutside={(e) => e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -247,12 +247,15 @@ export function PublicPostsTable({ onSelect, onCreatePost, isAdminView }: Public
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive hover:bg-destructive/90"
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                postToDelete && handleDeletePost(postToDelete);
+                if (postToDelete) {
+                  handleDeletePost(postToDelete);
+                }
               }}
             >
               Delete
