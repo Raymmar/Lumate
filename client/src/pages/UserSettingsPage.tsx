@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
@@ -97,7 +97,7 @@ export default function UserSettingsPage() {
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
-        displayName: user?.displayName, 
+        displayName: user?.displayName,
         address: data.address || null,
         tags: tags,
       };
@@ -189,7 +189,7 @@ export default function UserSettingsPage() {
     <DashboardLayout>
       <div className="container max-w-3xl mx-auto pt-3 pb-6">
         <Card className="border-none shadow-none">
-          <CardHeader className="px-6 space-y-1">
+          <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-2xl font-semibold">{user.displayName || "Settings"}</CardTitle>
               <ToggleGroup
@@ -214,21 +214,12 @@ export default function UserSettingsPage() {
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
-            <CardDescription>
-              Update your profile information and preferences
-            </CardDescription>
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-3">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
-                  {/* Display Name (Read-only) */}
-                  <div className="space-y-1">
-                    <FormLabel>Display Name</FormLabel>
-                    <p className="text-sm text-muted-foreground">{user?.displayName}</p>
-                  </div>
-
                   <FormField
                     control={form.control}
                     name="bio"
@@ -247,114 +238,57 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
-                {/* Premium Features Section */}
-                {!hasActiveSubscription ? (
-                  <Card className="border-2 border-dashed">
-                    <CardContent className="py-8">
-                      <div className="text-center space-y-4">
-                        <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
-                        <div className="space-y-2">
-                          <h3 className="text-lg font-semibold">Paid Members Only</h3>
-                          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                            Upgrade your account to unlock additional premium profile features including company details,
-                            location, contact information, and custom links.
-                          </p>
-                          <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black">
-                            Upgrade to Premium
-                          </Button>
+                <div className="space-y-3">
+                  {!hasActiveSubscription ? (
+                    <Card className="border-2 border-dashed">
+                      <CardContent className="py-8">
+                        <div className="text-center space-y-4">
+                          <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-semibold">Paid Members Only</h3>
+                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                              Upgrade your account to unlock additional premium profile features including company details,
+                              location, contact information, and custom links.
+                            </p>
+                            <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black">
+                              Upgrade to Premium
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <>
-                    {/* Company Information */}
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-medium">Company Information</h3>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      {/* Company Information */}
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-medium">Company Information</h3>
 
-                      <FormField
-                        control={form.control}
-                        name="featuredImageUrl"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
-                            <FormControl>
-                              <UnsplashPicker
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="companyName"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="Company name"
-                                className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="companyDescription"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                placeholder="Describe your company..."
-                                className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="space-y-2">
-                      <FormField
-                        control={form.control}
-                        name="address"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel className="text-sm text-muted-foreground">Location</FormLabel>
-                            <FormControl>
-                              <LocationPicker
-                                defaultValue={field.value}
-                                onLocationSelect={field.onChange}
-                                className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex items-center gap-4">
                         <FormField
                           control={form.control}
-                          name="phoneNumber"
+                          name="featuredImageUrl"
                           render={({ field }) => (
-                            <FormItem className="flex-1 space-y-1">
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
+                              <FormControl>
+                                <UnsplashPicker
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="companyName"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
                               <FormControl>
                                 <Input
                                   {...field}
-                                  type="tel"
-                                  placeholder="Phone number"
+                                  placeholder="Company name"
                                   className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                               </FormControl>
@@ -362,171 +296,229 @@ export default function UserSettingsPage() {
                             </FormItem>
                           )}
                         />
+
                         <FormField
                           control={form.control}
-                          name="isPhonePublic"
+                          name="companyDescription"
                           render={({ field }) => (
-                            <FormItem className="space-y-0 pt-2">
+                            <FormItem className="space-y-1">
                               <FormControl>
-                                <div className="space-y-0.5">
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                  <span className="text-sm text-muted-foreground block">Public</span>
-                                </div>
+                                <Textarea
+                                  {...field}
+                                  placeholder="Describe your company..."
+                                  className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
                               </FormControl>
+                              <FormMessage />
                             </FormItem>
                           )}
                         />
                       </div>
 
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <p className="text-sm text-muted-foreground">{user?.email}</p>
-                        </div>
-                        <FormField
-                          control={form.control}
-                          name="isEmailPublic"
-                          render={({ field }) => (
-                            <FormItem className="space-y-0">
-                              <FormControl>
-                                <div className="space-y-0.5">
-                                  <Switch
-                                    checked={field.value}
-                                    onCheckedChange={field.onChange}
-                                  />
-                                  <span className="text-sm text-muted-foreground block">Public</span>
-                                </div>
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
-                        <span className="text-sm text-muted-foreground">
-                          {tags.length}/5 tags
-                        </span>
-                      </div>
+                      {/* Contact Information */}
                       <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2 min-h-[2.5rem]">
-                          {tags.map(tag => (
-                            <Badge key={tag} variant="secondary" className="gap-1 h-7">
-                              {tag}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveTag(tag)}
-                                className="ml-1 hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                        <Command className="rounded-lg overflow-visible border-0">
-                          <CommandInput
-                            placeholder="Add tags..."
-                            value={currentTag}
-                            onValueChange={setCurrentTag}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' && currentTag.trim()) {
-                                e.preventDefault();
-                                handleSelectTag(currentTag);
-                              }
-                            }}
-                            className="border-0 focus:ring-0 focus-visible:ring-0"
-                          />
-                        </Command>
-                      </div>
-                    </div>
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormLabel className="text-sm text-muted-foreground">Location</FormLabel>
+                              <FormControl>
+                                <LocationPicker
+                                  defaultValue={field.value}
+                                  onLocationSelect={field.onChange}
+                                  className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    {/* Custom Links */}
-                    <FormField
-                      control={form.control}
-                      name="customLinks"
-                      render={({ field }) => (
-                        <FormItem className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <FormLabel className="text-sm text-muted-foreground">Custom Links</FormLabel>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                if (field.value.length >= 5) {
-                                  toast({
-                                    title: "Error",
-                                    description: "Maximum 5 custom links allowed",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                field.onChange([...field.value, { title: "", url: "" }]);
-                              }}
-                              disabled={field.value.length >= 5}
-                              className="h-8"
-                            >
-                              <Plus className="h-4 w-4 mr-2" />
-                              Add Link
-                            </Button>
+                        <div className="flex items-center gap-4">
+                          <FormField
+                            control={form.control}
+                            name="phoneNumber"
+                            render={({ field }) => (
+                              <FormItem className="flex-1 space-y-1">
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    type="tel"
+                                    placeholder="Phone number"
+                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="isPhonePublic"
+                            render={({ field }) => (
+                              <FormItem className="space-y-0 pt-2">
+                                <FormControl>
+                                  <div className="space-y-0.5">
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                    <span className="text-sm text-muted-foreground block">Public</span>
+                                  </div>
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground">{user?.email}</p>
                           </div>
-                          <div className="space-y-2">
-                            {field.value.map((link, index) => (
-                              <div key={index} className="flex gap-2 items-start">
-                                <div className="flex-1 space-y-2">
-                                  <Input
-                                    placeholder="Link title"
-                                    value={link.title}
-                                    onChange={(e) => {
-                                      const newLinks = [...field.value];
-                                      newLinks[index] = { ...newLinks[index], title: e.target.value };
-                                      field.onChange(newLinks);
-                                    }}
-                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  />
-                                  <Input
-                                    placeholder="https://..."
-                                    type="url"
-                                    value={link.url}
-                                    onChange={(e) => {
-                                      const newLinks = [...field.value];
-                                      newLinks[index] = { ...newLinks[index], url: e.target.value };
-                                      field.onChange(newLinks);
-                                    }}
-                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  />
-                                </div>
-                                <Button
+                          <FormField
+                            control={form.control}
+                            name="isEmailPublic"
+                            render={({ field }) => (
+                              <FormItem className="space-y-0">
+                                <FormControl>
+                                  <div className="space-y-0.5">
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                    <span className="text-sm text-muted-foreground block">Public</span>
+                                  </div>
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Tags */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
+                          <span className="text-sm text-muted-foreground">
+                            {tags.length}/5 tags
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-2 min-h-[2.5rem]">
+                            {tags.map(tag => (
+                              <Badge key={tag} variant="secondary" className="gap-1 h-7">
+                                {tag}
+                                <button
                                   type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    const newLinks = [...field.value];
-                                    newLinks.splice(index, 1);
-                                    field.onChange(newLinks);
-                                  }}
-                                  className="h-9 w-9"
+                                  onClick={() => handleRemoveTag(tag)}
+                                  className="ml-1 hover:text-destructive"
                                 >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </div>
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
                             ))}
                           </div>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </>
-                )}
+                          <Command className="rounded-lg overflow-visible border-0">
+                            <CommandInput
+                              placeholder="Add tags..."
+                              value={currentTag}
+                              onValueChange={setCurrentTag}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && currentTag.trim()) {
+                                  e.preventDefault();
+                                  handleSelectTag(currentTag);
+                                }
+                              }}
+                              className="border-0 focus:ring-0 focus-visible:ring-0"
+                            />
+                          </Command>
+                        </div>
+                      </div>
+
+                      {/* Custom Links */}
+                      <FormField
+                        control={form.control}
+                        name="customLinks"
+                        render={({ field }) => (
+                          <FormItem className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <FormLabel className="text-sm text-muted-foreground">Custom Links</FormLabel>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (field.value.length >= 5) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Maximum 5 custom links allowed",
+                                      variant: "destructive",
+                                    });
+                                    return;
+                                  }
+                                  field.onChange([...field.value, { title: "", url: "" }]);
+                                }}
+                                disabled={field.value.length >= 5}
+                                className="h-8"
+                              >
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Link
+                              </Button>
+                            </div>
+                            <div className="space-y-2">
+                              {field.value.map((link, index) => (
+                                <div key={index} className="flex gap-2 items-start">
+                                  <div className="flex-1 space-y-2">
+                                    <Input
+                                      placeholder="Link title"
+                                      value={link.title}
+                                      onChange={(e) => {
+                                        const newLinks = [...field.value];
+                                        newLinks[index] = { ...newLinks[index], title: e.target.value };
+                                        field.onChange(newLinks);
+                                      }}
+                                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                    <Input
+                                      placeholder="https://..."
+                                      type="url"
+                                      value={link.url}
+                                      onChange={(e) => {
+                                        const newLinks = [...field.value];
+                                        newLinks[index] = { ...newLinks[index], url: e.target.value };
+                                        field.onChange(newLinks);
+                                      }}
+                                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      const newLinks = [...field.value];
+                                      newLinks.splice(index, 1);
+                                      field.onChange(newLinks);
+                                    }}
+                                    className="h-9 w-9"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </>
+                  )}
+                </div>
 
                 <Button
                   type="submit"
-                  className="w-full mt-6"
+                  className="w-full mt-4"
                   disabled={updateProfileMutation.isPending}
                 >
                   {updateProfileMutation.isPending ? (
@@ -539,12 +531,11 @@ export default function UserSettingsPage() {
                   )}
                 </Button>
 
-                {/* Add Manage Subscription Button */}
                 {hasActiveSubscription && !user.isAdmin && (
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
+                    className="w-full mt-2"
                     onClick={async () => {
                       try {
                         const response = await fetch('/api/stripe/create-portal-session', {
