@@ -118,12 +118,16 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
             <ol className="list-decimal pl-5 space-y-2 text-sm">
               <li>
                 Enter your{' '}
-                <TooltipProvider>
+                <TooltipProvider delayDuration={0}>
                   <Tooltip>
-                    <TooltipTrigger className="underline decoration-dotted cursor-help">
-                      lu.ma
+                    <TooltipTrigger asChild>
+                      <span className="underline decoration-dotted cursor-help">lu.ma</span>
                     </TooltipTrigger>
-                    <TooltipContent side="right" align="start">
+                    <TooltipContent 
+                      side="right" 
+                      align="start"
+                      sideOffset={5}
+                    >
                       <p className="max-w-xs">This is the email you used to register for our events on lu.ma</p>
                     </TooltipContent>
                   </Tooltip>
