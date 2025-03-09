@@ -128,13 +128,13 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
                       align="start"
                       sideOffset={5}
                     >
-                      <p className="max-w-xs">This is the email you used to register for our events on lu.ma</p>
+                      <p className="max-w-xs">Make sure this is the same email you use to register for our events</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
                 {' '}email to claim your account
               </li>
-              <li>If we have a matching record we will send you a confirmation email</li>
+              <li>If we find a match, we'll send a confirmation email</li>
               <li>Click that email to activate your account</li>
               <li>Create a password</li>
               <li>Log in</li>
