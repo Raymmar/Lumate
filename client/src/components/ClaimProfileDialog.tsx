@@ -117,14 +117,18 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
             </p>
             <ol className="list-decimal pl-5 space-y-2 text-sm">
               <li>
-                Enter your <TooltipProvider>
+                Enter your{' '}
+                <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger className="underline decoration-dotted">lu.ma</TooltipTrigger>
-                    <TooltipContent>
+                    <TooltipTrigger className="underline decoration-dotted cursor-help">
+                      lu.ma
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="start">
                       <p className="max-w-xs">This is the email you used to register for our events on lu.ma</p>
                     </TooltipContent>
                   </Tooltip>
-                </TooltipProvider> email to claim your account
+                </TooltipProvider>
+                {' '}email to claim your account
               </li>
               <li>If we have a matching record we will send you a confirmation email</li>
               <li>Click that email to activate your account</li>
