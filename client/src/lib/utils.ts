@@ -9,23 +9,24 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
   // If no username provided, use a prefix with fallbackId to indicate it's an ID
   if (!username) return `u-${fallbackId}`;
 
-  // First normalize Unicode characters (e.g., 'š' -> 's')
-  let normalized = username.normalize('NFKD')
+  // Pre-process: Replace periods with spaces and normalize Unicode characters
+  let normalized = username
+    .replace(/\./g, ' ') // Replace periods with spaces
+    .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^\w\s-]/g, '') // Remove special characters but keep existing hyphens
+    .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces, keep hyphens
     .toLowerCase()
-    .trim();
-
-  // Replace spaces with hyphens
-  normalized = normalized.replace(/\s+/g, '-');
+    .trim()
+    .replace(/\s+/g, ' '); // Collapse multiple spaces into single space
 
   // If normalized string is empty after processing, use fallback format
   if (!normalized) return `u-${fallbackId}`;
 
-  // Only collapse multiple consecutive hyphens into a single hyphen
-  normalized = normalized.replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '');
+  // Replace single spaces with hyphens and clean up any resulting multiple hyphens
+  normalized = normalized
+    .replace(/\s/g, '-')
+    .replace(/-{2,}/g, '-') // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
 
-  // First try just the clean username
-  // The API will handle collisions by responding with a list of similar usernames
   return normalized;
 }
