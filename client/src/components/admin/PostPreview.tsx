@@ -221,7 +221,7 @@ export function PostPreview({
           <p className="text-center text-muted-foreground max-w-sm">
             This content is exclusive to our members. Sign in or create an account to access it.
           </p>
-          <Link href="/auth">
+          <Link href="/login">
             <Button variant="default" size="lg">
               Sign in to View
             </Button>

@@ -144,7 +144,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                       <Lock className="w-5 h-5" />
                       <span className="font-medium">Members Only Content</span>
                     </div>
-                    <Link href="/auth">
+                    <Link href="/login">
                       <Button variant="default">
                         Sign in to View
                       </Button>
