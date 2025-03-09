@@ -28,6 +28,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -51,9 +52,8 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
     queryKey: PUBLIC_POSTS_QUERY_KEY,
   });
 
-  // Filter and sort posts based on authentication status
-  const filteredPosts = data?.posts?.filter(post => !post.membersOnly || user);
-  const sortedPosts = filteredPosts?.sort((a, b) =>
+  // Sort posts by creation date (newest first)
+  const sortedPosts = data?.posts?.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -134,9 +134,24 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
             {displayedPosts?.map((post) => (
               <div
                 key={post.id}
-                className="p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
+                className={`relative p-4 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg ${post.membersOnly && !user ? 'overflow-hidden' : ''}`}
                 onClick={() => onSelect(post)}
               >
+                {/* Members Only Overlay */}
+                {post.membersOnly && !user && (
+                  <div className="absolute inset-0 backdrop-blur-sm bg-background/80 z-10 flex flex-col items-center justify-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-5 h-5" />
+                      <span className="font-medium">Members Only Content</span>
+                    </div>
+                    <Link href="/auth">
+                      <Button variant="default">
+                        Sign in to View
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+
                 <div className="flex gap-4">
                   {post.featuredImage ? (
                     <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
