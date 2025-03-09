@@ -23,9 +23,8 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
   // Replace multiple consecutive hyphens with a single hyphen and trim from ends
   normalized = normalized.replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '');
 
-  // Always append a portion of the API ID to ensure uniqueness
-  // Take the first 8 characters of the fallbackId to keep URLs reasonable in length
-  const idSuffix = fallbackId.slice(0, 8);
-
-  return `${normalized}-${idSuffix}`;
+  // First try just the clean username
+  // The API will handle collisions by responding with a list of similar usernames
+  // Only then will we append the ID suffix
+  return normalized;
 }
