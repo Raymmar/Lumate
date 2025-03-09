@@ -9,11 +9,15 @@ export default function PersonProfilePage() {
     return <div>Invalid profile URL</div>;
   }
 
-  // The username parameter now includes the API ID suffix
-  // The actual component will handle the parsing internally
+  // Decode the URL-encoded username and handle special characters
+  const decodedUsername = decodeURIComponent(params.username)
+    // First try to preserve the original format
+    .replace(/^dr-/, "Dr. ") // Convert "dr-" prefix back to "Dr. "
+    .replace(/-/g, " "); // Convert remaining hyphens to spaces for lookup
+
   return (
     <DashboardLayout>
-      <PersonProfile username={decodeURIComponent(params.username)} />
+      <PersonProfile username={decodedUsername} />
     </DashboardLayout>
   );
 }
