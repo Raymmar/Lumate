@@ -6,6 +6,12 @@ import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ClaimProfileDialogProps {
   trigger?: React.ReactNode;
@@ -105,8 +111,26 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Claim Your Profile</DialogTitle>
-          <DialogDescription>
-            If you've attended one of our events in the past, enter your email to claim your member profile.
+          <DialogDescription className="space-y-4">
+            <p>
+              If you've attended one of our events in the past, enter your email to claim your member profile.
+            </p>
+            <ol className="list-decimal pl-5 space-y-2 text-sm">
+              <li>
+                Enter your <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="underline decoration-dotted">lu.ma</TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">This is the email you used to register for our events on lu.ma</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider> email to claim your account
+              </li>
+              <li>If we have a matching record we will send you a confirmation email</li>
+              <li>Click that email to activate your account</li>
+              <li>Create a password</li>
+              <li>Log in</li>
+            </ol>
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
