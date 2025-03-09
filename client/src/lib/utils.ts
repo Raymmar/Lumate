@@ -9,24 +9,29 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
   // If no username provided, use a prefix with fallbackId to indicate it's an ID
   if (!username) return `u-${fallbackId}`;
 
-  // Pre-process: Replace periods with spaces and normalize Unicode characters
-  let normalized = username
-    .replace(/\./g, ' ') // Replace periods with spaces
+  console.log('Original username:', username);
+
+  // Special handling for titles (Dr., Mr., Mrs., etc.)
+  let processed = username
+    .replace(/Dr\./i, 'dr') // Replace "Dr." with "dr"
+    .replace(/\./g, '') // Remove remaining periods
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
     .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces, keep hyphens
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, ' '); // Collapse multiple spaces into single space
+    .replace(/\s+/g, '-'); // Replace spaces with hyphens
+
+  console.log('Processed username:', processed);
 
   // If normalized string is empty after processing, use fallback format
-  if (!normalized) return `u-${fallbackId}`;
+  if (!processed) return `u-${fallbackId}`;
 
-  // Replace single spaces with hyphens and clean up any resulting multiple hyphens
-  normalized = normalized
-    .replace(/\s/g, '-')
+  // Clean up any multiple hyphens and trim from ends
+  processed = processed
     .replace(/-{2,}/g, '-') // Collapse multiple hyphens
     .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
 
-  return normalized;
+  console.log('Final processed username:', processed);
+  return processed;
 }
