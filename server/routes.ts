@@ -172,6 +172,53 @@ export async function registerRoutes(app: Express) {
   app.use('/api/unsplash', unsplashRouter);
   app.use('/api/stripe', stripeRouter);
 
+  app.get("/api/posts/:id", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const post = await db
+        .select()
+        .from(posts)
+        .where(eq(posts.id, postId))
+        .limit(1);
+
+      if (!post[0]) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      // Check if the post is members-only and user is not authenticated
+      if (post[0].membersOnly && !req.session.userId) {
+        return res.status(403).json({ 
+          error: "Members only content",
+          membersOnly: true 
+        });
+      }
+
+      // Get creator info
+      const creator = await storage.getUser(post[0].creatorId);
+      
+      // Get tags for the post
+      const postTagsResult = await db
+        .select({
+          text: tags.text
+        })
+        .from(postTags)
+        .innerJoin(tags, eq(tags.id, postTags.tagId))
+        .where(eq(postTags.postId, post[0].id));
+
+      return res.json({
+        ...post[0],
+        creator: creator ? {
+          id: creator.id,
+          displayName: creator.displayName
+        } : null,
+        tags: postTagsResult.map(tag => tag.text)
+      });
+    } catch (error) {
+      console.error('Failed to fetch post:', error);
+      res.status(500).json({ error: "Failed to fetch post" });
+    }
+  });
+
   app.get("/api/public/posts", async (_req, res) => {
     try {
       console.log('Fetching public posts...');

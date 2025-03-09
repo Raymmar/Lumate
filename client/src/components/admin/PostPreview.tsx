@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PUBLIC_POSTS_QUERY_KEY } from "../bulletin/PublicPostsTable";
 import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,15 +62,45 @@ export function PostPreview({
   const { user } = useAuth();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [isEditMode, setIsEditMode] = useState(isEditing);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if user can edit this post
+  const canEditPost = post && (user?.isAdmin || post.creatorId === user?.id);
+
+  // Filter out members-only posts from navigation if user is not authenticated
+  const availablePosts = posts.filter(p => !p.membersOnly || user);
+  const currentIndex = availablePosts.findIndex(p => p.id === post?.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < availablePosts.length - 1;
+
+  // Handle navigation
+  const handleNavigate = async (nextPost: Post) => {
+    try {
+      // Check if post is members-only
+      if (nextPost.membersOnly && !user) {
+        setError("Members only content");
+        return;
+      }
+
+      if (editor) {
+        editor.commands.clearContent();
+      }
+      onNavigate?.(nextPost);
+    } catch (error) {
+      console.error('Navigation error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to navigate to post",
+        variant: "destructive"
+      });
+    }
+  };
 
   const editor = useEditor({
     extensions: [StarterKit],
     content: '',
     editable: false,
   });
-
-  // Check if user can edit this post
-  const canEditPost = post && (user?.isAdmin || post.creatorId === user?.id);
 
   // Update editor content when post changes
   useEffect(() => {
@@ -147,18 +178,6 @@ export function PostPreview({
 
   const videoEmbedUrl = post?.videoUrl ? getVideoEmbedUrl(post.videoUrl) : null;
 
-  // Find current post index and determine if we have prev/next
-  const currentIndex = posts.findIndex(p => p.id === post?.id);
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex < posts.length - 1;
-
-  const handleNavigate = (nextPost: Post) => {
-    if (editor) {
-      // Clear content before navigation
-      editor.commands.clearContent();
-    }
-    onNavigate?.(nextPost);
-  };
 
   return (
     <PreviewSidebar
@@ -192,128 +211,146 @@ export function PostPreview({
         )
       }
     >
-      <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto pb-16">
-          <div className="space-y-6">
-            {/* Title Section */}
-            {post?.title && (
-              <div>
-                <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
-                {post.summary && (
-                  <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
-                )}
-
-                {/* Author and timestamp info */}
-                {post.createdAt && (
-                  <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                    <span>Published by {post.creator?.displayName || 'Unknown'}</span>
-                    <span>•</span>
-                    <span>{timeAgo.format(new Date(post.createdAt))}</span>
-                    {!readOnly && (
-                      <>
-                        {post?.isPinned && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary">Featured</Badge>
-                          </>
-                        )}
-                        {post?.membersOnly && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              <Lock className="w-3 h-3" />
-                              Members Only
-                            </Badge>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Featured Image Section */}
-            {post?.featuredImage && (
-              <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4">
-                <img
-                  src={post.featuredImage}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-
-            {/* Tags Section */}
-            {post?.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {post.tags.map((tag: string) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {/* CTA Section */}
-            {post?.ctaLink && (
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => {
-                  if (post.ctaLink) window.open(post.ctaLink, '_blank');
-                }}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                {post.ctaLabel || 'Learn More'}
-              </Button>
-            )}
-
-            {/* Video Section */}
-            {videoEmbedUrl && (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-4">
-                <iframe
-                  src={videoEmbedUrl}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                />
-              </div>
-            )}
-
-            {/* Rich Text Content Section */}
-            {editor && (
-              <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
-                <EditorContent editor={editor} />
-              </div>
-            )}
+      {/* Show members-only overlay for unauthorized users */}
+      {post?.membersOnly && !user ? (
+        <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
+          <div className="flex items-center gap-2">
+            <Lock className="w-8 h-8" />
+            <h2 className="text-xl font-semibold">Members Only Content</h2>
           </div>
+          <p className="text-center text-muted-foreground max-w-sm">
+            This content is exclusive to our members. Sign in or create an account to access it.
+          </p>
+          <Link href="/auth">
+            <Button variant="default" size="lg">
+              Sign in to View
+            </Button>
+          </Link>
         </div>
+      ) : (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto pb-16">
+            <div className="space-y-6">
+              {/* Title Section */}
+              {post?.title && (
+                <div>
+                  <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
+                  {post.summary && (
+                    <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
+                  )}
 
-        {/* Navigation Section - Fixed to bottom */}
-        {posts.length > 1 && onNavigate && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
-            <div className="flex justify-between items-center">
-              <Button
-                variant="ghost"
-                disabled={!hasPrevious}
-                onClick={() => handleNavigate(posts[currentIndex - 1])}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={!hasNext}
-                onClick={() => handleNavigate(posts[currentIndex + 1])}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
+                  {/* Author and timestamp info */}
+                  {post.createdAt && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <span>Published by {post.creator?.displayName || 'Unknown'}</span>
+                      <span>•</span>
+                      <span>{timeAgo.format(new Date(post.createdAt))}</span>
+                      {!readOnly && (
+                        <>
+                          {post?.isPinned && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary">Featured</Badge>
+                            </>
+                          )}
+                          {post?.membersOnly && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                Members Only
+                              </Badge>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Featured Image Section */}
+              {post?.featuredImage && (
+                <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4">
+                  <img
+                    src={post.featuredImage}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Tags Section */}
+              {post?.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {post.tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* CTA Section */}
+              {post?.ctaLink && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => {
+                    if (post.ctaLink) window.open(post.ctaLink, '_blank');
+                  }}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  {post.ctaLabel || 'Learn More'}
+                </Button>
+              )}
+
+              {/* Video Section */}
+              {videoEmbedUrl && (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-4">
+                  <iframe
+                    src={videoEmbedUrl}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+
+              {/* Rich Text Content Section */}
+              {editor && (
+                <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
+                  <EditorContent editor={editor} />
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Navigation Section - Fixed to bottom */}
+          {availablePosts.length > 1 && onNavigate && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+              <div className="flex justify-between items-center">
+                <Button
+                  variant="ghost"
+                  disabled={!hasPrevious}
+                  onClick={() => handleNavigate(availablePosts[currentIndex - 1])}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={!hasNext}
+                  onClick={() => handleNavigate(availablePosts[currentIndex + 1])}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
