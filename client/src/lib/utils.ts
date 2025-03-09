@@ -32,6 +32,9 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
     .replace(/-{2,}/g, '-') // Collapse multiple hyphens
     .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
 
+  // Note: The API ID will be appended by the server only if this username 
+  // conflicts with an older account
+
   console.log('Final processed username:', processed);
   return processed;
 }
