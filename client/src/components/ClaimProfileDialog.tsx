@@ -121,14 +121,7 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
                 <TooltipProvider delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <a 
-                        href="https://lu.ma/SarasotaTech"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline decoration-dotted cursor-help"
-                      >
-                        lu.ma
-                      </a>
+                      <span className="underline decoration-dotted cursor-help">lu.ma</span>
                     </TooltipTrigger>
                     <TooltipContent 
                       side="right" 
