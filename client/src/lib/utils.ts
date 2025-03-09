@@ -12,19 +12,20 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
   // First normalize Unicode characters (e.g., 'š' -> 's')
   let normalized = username.normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^\w\s-]/g, '') // Remove special characters and emojis
-    .replace(/\s+/g, '-') // Replace spaces with single dash
+    .replace(/[^\w\s-]/g, '') // Remove special characters but keep existing hyphens
     .toLowerCase()
     .trim();
+
+  // Replace spaces with hyphens
+  normalized = normalized.replace(/\s+/g, '-');
 
   // If normalized string is empty after processing, use fallback format
   if (!normalized) return `u-${fallbackId}`;
 
-  // Replace multiple consecutive hyphens with a single hyphen and trim from ends
+  // Only collapse multiple consecutive hyphens into a single hyphen
   normalized = normalized.replace(/-{2,}/g, '-').replace(/^-+|-+$/g, '');
 
   // First try just the clean username
   // The API will handle collisions by responding with a list of similar usernames
-  // Only then will we append the ID suffix
   return normalized;
 }
