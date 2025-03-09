@@ -185,6 +185,7 @@ export async function registerRoutes(app: Express) {
           summary: posts.summary,
           body: posts.body,
           isPinned: posts.isPinned,
+          membersOnly: posts.membersOnly,
           featuredImage: posts.featuredImage,
           videoUrl: posts.videoUrl,
           ctaLink: posts.ctaLink,
