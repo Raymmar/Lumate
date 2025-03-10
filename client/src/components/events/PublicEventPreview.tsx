@@ -196,249 +196,231 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
         if (!open) onClose();
       }}
     >
-      {/* Show members-only overlay for unauthorized users */}
-      {post.membersOnly && !user ? (
-        <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
-          <div className="flex items-center gap-2">
-            <Lock className="w-8 h-8" />
-            <h2 className="text-xl font-semibold">Members Only Content</h2>
-          </div>
-          <p className="text-center text-muted-foreground max-w-sm">
-            This content is exclusive to our members. Sign in or create an account to access it.
-          </p>
-          <RouterLink href="/login">
-            <Button variant="default" size="lg">
-              Sign in to View
-            </Button>
-          </RouterLink>
-        </div>
-      ) : (
-        <>
-          <div className="pb-16">
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
-                {event.description && (
-                  <div className="relative">
-                    <div className={`prose prose-sm max-w-none dark:prose-invert ${!isExpanded ? 'line-clamp-4' : ''}`}>
-                      <EditorContent editor={editor} />
-                    </div>
-                    {event.description.length > 200 && (
-                      <Button
-                        variant="link"
-                        className="px-0 font-medium"
-                        onClick={() => setIsExpanded(!isExpanded)}
-                      >
-                        {isExpanded ? 'Show less' : 'Read more'}
-                      </Button>
-                    )}
+      <div className="relative min-h-full">
+        <div className="pb-16">
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
+              {event.description && (
+                <div className="relative">
+                  <div className={`prose prose-sm max-w-none dark:prose-invert ${!isExpanded ? 'line-clamp-4' : ''}`}>
+                    <EditorContent editor={editor} />
                   </div>
-                )}
-              </div>
-
-              {/* RSVP Section */}
-              {user ? (
-                <Button
-                  variant={rsvpStatus?.isGoing ? "default" : "outline"}
-                  className={`w-full h-12 text-lg ${rsvpStatus?.isGoing && !isEventEnded ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
-                  onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
-                  disabled={rsvpMutation.isPending || rsvpStatus?.isGoing || isEventEnded}
-                >
-                  {rsvpMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : isEventEnded ? (
-                    "Event has ended"
-                  ) : rsvpStatus?.isGoing ? (
-                    "You're in"
-                  ) : (
-                    "RSVP Now"
+                  {event.description.length > 200 && (
+                    <Button
+                      variant="link"
+                      className="px-0 font-medium"
+                      onClick={() => setIsExpanded(!isExpanded)}
+                    >
+                      {isExpanded ? 'Show less' : 'Read more'}
+                    </Button>
                   )}
-                </Button>
-              ) : isSubmitted ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold mb-2">Welcome to Sarasota Tech</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Thanks for joining! We've sent an invite to your email for our next event.
-                      Once you receive it, you can claim your profile to track your attendance and
-                      stay connected with the community.
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Be sure to check your inbox (or spam folder) for the invitation email.
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : nextUpcomingEvent && !isEventEnded ? (
-                <Card>
-                  <CardContent className="p-6">
-                    <form onSubmit={handleInvite} className="space-y-4">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Email"
-                          type="email"
-                          className="flex-1"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          disabled={isInviting}
-                        />
-                        <Button
-                          className="bg-primary hover:bg-primary/90"
-                          type="submit"
-                          disabled={isInviting}
-                        >
-                          {isInviting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Sending...
-                            </>
-                          ) : (
-                            "RSVP"
-                          )}
-                        </Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        Drop your email for an invite to our next event on{' '}
-                        {formatInTimeZone(
-                          new Date(nextUpcomingEvent.startTime + 'Z'),
-                          nextUpcomingEvent.timezone || 'America/New_York',
-                          'MMMM d'
-                        )}{' '}
-                        and start networking with the region's top tech professionals.
-                      </p>
-                    </form>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-6">
-                    <p className="text-sm text-muted-foreground">
-                      {isEventEnded ? "This event has already ended." : "No upcoming events available at the moment."}
-                    </p>
-                  </CardContent>
-                </Card>
+                </div>
               )}
+            </div>
 
-              {/* Event Details Card */}
-              <Card>
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <Calendar className="h-5 w-5 shrink-0 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">
-                        {formatInTimeZone(
-                          new Date(event.startTime + 'Z'),
-                          event.timezone || 'America/New_York',
-                          'EEEE, MMMM d, yyyy'
-                        )}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} -
-                        {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
-                        {event.timezone && ` (${event.timezone})`}
-                      </p>
-                    </div>
-                  </div>
-
-                  {event.location && (
-                    <div className="flex items-start gap-3">
-                      <MapPin className="h-5 w-5 shrink-0 text-muted-foreground" />
-                      <div>
-                        {event.location.full_address && (
-                          <p className="font-medium">{event.location.full_address}</p>
-                        )}
-                        {event.location.city && (
-                          <p className="text-sm text-muted-foreground">
-                            {[
-                              event.location.city,
-                              event.location.region,
-                              event.location.country,
-                            ]
-                              .filter(Boolean)
-                              .join(", ")}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Attendees List */}
+            {/* RSVP Section */}
+            {user ? (
+              <Button
+                variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                className={`w-full h-12 text-lg ${rsvpStatus?.isGoing && !isEventEnded ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
+                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing || isEventEnded}
+              >
+                {rsvpMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : isEventEnded ? (
+                  "Event has ended"
+                ) : rsvpStatus?.isGoing ? (
+                  "You're in"
+                ) : (
+                  "RSVP Now"
+                )}
+              </Button>
+            ) : isSubmitted ? (
               <Card>
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold">Event Attendees</h3>
-                    <Badge variant="secondary">{attendees?.total || 0} registered</Badge>
-                  </div>
-
-                  {isLoadingAttendees ? (
-                    <div className="space-y-2">
-                      {[...Array(3)].map((_, i) => (
-                        <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
-                      ))}
-                    </div>
-                  ) : attendees?.attendees?.length > 0 ? (
-                    <div className="space-y-2">
-                      {attendees.attendees.map((person) => {
-                        const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
-                        return (
-                          <RouterLink
-                            key={person.id}
-                            href={profilePath}
-                            className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                          >
-                            <Avatar className="h-8 w-8">
-                              {person.avatarUrl && (
-                                <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                              )}
-                              <AvatarFallback>
-                                {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{person.userName || "Anonymous"}</p>
-                            </div>
-                          </RouterLink>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>
-                  )}
+                  <h3 className="font-semibold mb-2">Welcome to Sarasota Tech</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Thanks for joining! We've sent an invite to your email for our next event.
+                    Once you receive it, you can claim your profile to track your attendance and
+                    stay connected with the community.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Be sure to check your inbox (or spam folder) for the invitation email.
+                  </p>
                 </CardContent>
               </Card>
+            ) : nextUpcomingEvent && !isEventEnded ? (
+              <Card>
+                <CardContent className="p-6">
+                  <form onSubmit={handleInvite} className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Email"
+                        type="email"
+                        className="flex-1"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={isInviting}
+                      />
+                      <Button
+                        className="bg-primary hover:bg-primary/90"
+                        type="submit"
+                        disabled={isInviting}
+                      >
+                        {isInviting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          "RSVP"
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Drop your email for an invite to our next event on{' '}
+                      {formatInTimeZone(
+                        new Date(nextUpcomingEvent.startTime + 'Z'),
+                        nextUpcomingEvent.timezone || 'America/New_York',
+                        'MMMM d'
+                      )}{' '}
+                      and start networking with the region's top tech professionals.
+                    </p>
+                  </form>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-6">
+                  <p className="text-sm text-muted-foreground">
+                    {isEventEnded ? "This event has already ended." : "No upcoming events available at the moment."}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Event Details Card */}
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <Calendar className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">
+                      {formatInTimeZone(
+                        new Date(event.startTime + 'Z'),
+                        event.timezone || 'America/New_York',
+                        'EEEE, MMMM d, yyyy'
+                      )}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} -
+                      {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
+                      {event.timezone && ` (${event.timezone})`}
+                    </p>
+                  </div>
+                </div>
+
+                {event.location && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    <div>
+                      {event.location.full_address && (
+                        <p className="font-medium">{event.location.full_address}</p>
+                      )}
+                      {event.location.city && (
+                        <p className="text-sm text-muted-foreground">
+                          {[
+                            event.location.city,
+                            event.location.region,
+                            event.location.country,
+                          ]
+                            .filter(Boolean)
+                            .join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Attendees List */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Event Attendees</h3>
+                  <Badge variant="secondary">{attendees?.total || 0} registered</Badge>
+                </div>
+
+                {isLoadingAttendees ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
+                    ))}
+                  </div>
+                ) : attendees?.attendees?.length > 0 ? (
+                  <div className="space-y-2">
+                    {attendees.attendees.map((person) => {
+                      const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
+                      return (
+                        <RouterLink
+                          key={person.id}
+                          href={profilePath}
+                          className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                        >
+                          <Avatar className="h-8 w-8">
+                            {person.avatarUrl && (
+                              <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                            )}
+                            <AvatarFallback>
+                              {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{person.userName || "Anonymous"}</p>
+                          </div>
+                        </RouterLink>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No attendees yet. Be the first to RSVP!</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Navigation Section - Fixed at bottom */}
+        {events.length > 1 && onNavigate && (
+          <div className="absolute bottom-0 inset-x-0 border-t bg-background">
+            <div className="flex justify-between items-center p-4">
+              <Button
+                variant="ghost"
+                disabled={!hasPrevious}
+                onClick={() => handleNavigate(events[currentIndex - 1])}
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={!hasNext}
+                onClick={() => handleNavigate(events[currentIndex + 1])}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
             </div>
           </div>
-
-          {/* Navigation Section */}
-          {events.length > 1 && onNavigate && (
-            <div className="absolute bottom-0 left-0 w-full p-4 border-t bg-background">
-              <div className="flex justify-between items-center">
-                <Button
-                  variant="ghost"
-                  disabled={!hasPrevious}
-                  onClick={() => handleNavigate(events[currentIndex - 1])}
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
-                </Button>
-                <Button
-                  variant="ghost"
-                  disabled={!hasNext}
-                  onClick={() => handleNavigate(events[currentIndex + 1])}
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+        )}
+      </div>
     </PreviewSidebar>
   );
 }

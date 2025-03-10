@@ -30,14 +30,16 @@ export function PreviewSidebar({
           e.preventDefault();
         }}
       >
-        {(title || headerContent) && (
-          <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-            {title && <h2 className="text-lg font-semibold">{title}</h2>}
-            {headerContent}
-          </SheetHeader>
-        )}
-        <div className="flex-1 overflow-y-auto relative">
-          {children}
+        <div className="flex flex-col h-full">
+          {(title || headerContent) && (
+            <SheetHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+              {title && <h2 className="text-lg font-semibold">{title}</h2>}
+              {headerContent}
+            </SheetHeader>
+          )}
+          <div className="flex-1 overflow-y-auto relative">
+            {children}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
