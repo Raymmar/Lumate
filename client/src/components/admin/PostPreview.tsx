@@ -8,13 +8,14 @@ import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2, Lo
 import { PostForm } from "./PostForm";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
 import { useEffect, useState } from 'react';
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PUBLIC_POSTS_QUERY_KEY } from "../bulletin/PublicPostsTable";
 import { useAuth } from "@/hooks/use-auth";
-import { Link } from "wouter";
+import { Link as RouterLink } from "wouter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +33,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Link as TiptapLink } from '@tiptap/core';
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -100,7 +100,7 @@ export function PostPreview({
   const editor = useEditor({
     extensions: [
       StarterKit,
-      TiptapLink.configure({
+      Link.configure({
         openOnClick: true,
         HTMLAttributes: {
           target: '_blank',
@@ -232,11 +232,11 @@ export function PostPreview({
           <p className="text-center text-muted-foreground max-w-sm">
             This content is exclusive to our members. Sign in or create an account to access it.
           </p>
-          <Link href="/login">
+          <RouterLink href="/login">
             <Button variant="default" size="lg">
               Sign in to View
             </Button>
-          </Link>
+          </RouterLink>
         </div>
       ) : (
         <div className="flex flex-col h-full">
