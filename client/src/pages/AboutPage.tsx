@@ -243,6 +243,7 @@ export default function AboutPage() {
       <div className="sticky top-0 w-full bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/40 z-50">
         <PageContainer className="max-w-[1140px]">
           <NavBar />
+          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
         </PageContainer>
       </div>
 

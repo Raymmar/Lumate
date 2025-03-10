@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className="flex-1 overflow-hidden flex flex-col h-full">
+    <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
         {/* Show EventList in desktop sidebar, hide in mobile sidebar since it's shown in main content */}
         {!isMobile && (
@@ -26,42 +26,41 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      {/* Fixed header */}
+    <div className="min-h-screen bg-muted/10">
+      {/* Fixed header with full-width background */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-        <PageContainer>
-          <div className="flex items-center justify-between w-full">
-            <div className="flex-1">
-              <NavBar />
+        <div className="w-full">
+          <PageContainer>
+            <div className="flex items-center justify-between w-full border-b">
+              <div className="flex-1">
+                <NavBar />
+              </div>
             </div>
-          </div>
-        </PageContainer>
+          </PageContainer>
+        </div>
       </div>
 
-      {/* Main content wrapper */}
-      <div className="flex-1 flex">
-        <PageContainer>
-          <div className="flex flex-1">
-            {/* Sidebar - hidden below lg, visible on lg and up */}
-            <aside className="hidden lg:block w-[350px] border-r">
-              <SidebarContent />
-            </aside>
+      <PageContainer>
+        <div className="flex">
+          {/* Sidebar - hidden below lg, visible on lg and up */}
+          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">
+            <SidebarContent />
+          </aside>
 
-            {/* Main content area */}
-            <main className="flex-1 bg-muted/10">
-              {/* Mobile Events List - only visible when sidebar is hidden */}
-              <div className="lg:hidden">
-                <div className="bg-background p-4">
-                  <EventList compact />
-                </div>
+          {/* Main content area */}
+          <main className="flex-1 overflow-y-auto bg-muted/10">
+            {/* Mobile Events List - only visible when sidebar is hidden */}
+            <div className="lg:hidden">
+              <div className="bg-background p-4">
+                <EventList compact />
               </div>
-              <div className="p-4">
-                {children}
-              </div>
-            </main>
-          </div>
-        </PageContainer>
-      </div>
+            </div>
+            <div className="p-4 min-h-[calc(100vh-57px)]">
+              {children}
+            </div>
+          </main>
+        </div>
+      </PageContainer>
     </div>
   );
 }
