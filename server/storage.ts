@@ -1589,8 +1589,12 @@ export class PostgresStorage implements IStorage {
   }
   async getPersonByUsername(username: string): Promise<Person | null> {
     try {
-      // First try exact match with normalized username
-      const normalizedUsername = username.toLowerCase().trim();
+      // Handle special case for "Dr." in the incoming username
+      const searchUsername = username
+        .replace(/^dr[\s-]+/i, 'Dr. ') // Convert "dr-" or "dr " prefix back to "Dr. "
+        .replace(/-/g, ' '); // Convert remaining hyphens to spaces for lookup
+
+      console.log('Looking up person with processed username:', searchUsername);
 
       // Get all matching people ordered by creation date (oldest first)
       const result = await db
@@ -1602,21 +1606,27 @@ export class PostgresStorage implements IStorage {
         .leftJoin(users, eq(users.email, people.email))
         .where(
           or(
-            // Try exact match on original username
-            sql`LOWER(TRIM(full_name)) = ${normalizedUsername}`,
-            // Try matching username with spaces replaced by hyphens
-            sql`LOWER(TRIM(full_name)) = ${normalizedUsername.replace(/-/g, ' ')}`
+            // Try exact match
+            eq(people.userName, searchUsername),
+            // Try case-insensitive match
+            sql`LOWER(user_name) = LOWER(${searchUsername})`,
+            // Try with the original hyphenated version
+            eq(people.userName, username),
+            sql`LOWER(user_name) = LOWER(${username})`
           )
         )
         .orderBy(people.createdAt)
         .limit(1);
 
       if (result.length === 0) {
+        console.log('No person found for username:', searchUsername);
         return null;
       }
 
       // Extract the person data and admin status
       const person = result[0];
+      console.log('Found person:', person.userName);
+
       return {
         ...person,
         isAdmin: Boolean(person.isAdmin)
