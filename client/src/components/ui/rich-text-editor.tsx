@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
 import { cn } from "@/lib/utils"
 import {
   Bold,
@@ -11,9 +12,17 @@ import {
   Heading2,
   Heading3,
   Minus,
-  Link,
+  Link as LinkIcon,
+  LinkOff,
 } from 'lucide-react'
 import { Toggle } from './toggle'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface RichTextEditorProps {
   value: string;
@@ -41,11 +50,20 @@ const MenuButton = ({
 );
 
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
+  const [linkUrl, setLinkUrl] = React.useState('')
+  const [showLinkInput, setShowLinkInput] = React.useState(false)
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [2, 3]
+        }
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline decoration-primary cursor-pointer'
         }
       })
     ],
@@ -55,9 +73,28 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     }
   })
 
+  const setLink = React.useCallback(() => {
+    if (!editor) return
+
+    // If there's no URL, remove the link
+    if (!linkUrl) {
+      editor.chain().focus().unsetLink().run()
+      return
+    }
+
+    // Add https:// if no protocol is specified
+    const url = linkUrl.match(/^https?:\/\//) ? linkUrl : `https://${linkUrl}`
+
+    editor.chain().focus().setLink({ href: url }).run()
+    setLinkUrl('')
+    setShowLinkInput(false)
+  }, [editor, linkUrl])
+
   if (!editor) {
     return null
   }
+
+  const isLinkActive = editor.isActive('link')
 
   return (
     <div 
@@ -120,6 +157,41 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
         >
           <Minus className="h-4 w-4" />
         </MenuButton>
+
+        <Popover open={showLinkInput} onOpenChange={setShowLinkInput}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "h-8 px-2 lg:px-3",
+                isLinkActive && "bg-accent"
+              )}
+            >
+              {isLinkActive ? (
+                <LinkOff className="h-4 w-4" />
+              ) : (
+                <LinkIcon className="h-4 w-4" />
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 p-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter URL"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    setLink()
+                  }
+                }}
+              />
+              <Button onClick={setLink}>Add</Button>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <EditorContent 
