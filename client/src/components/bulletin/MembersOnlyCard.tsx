@@ -28,10 +28,11 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex gap-4">
+      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
+      <CardContent className="pt-6">
+        <div className="flex gap-6">
           {post.featuredImage ? (
-            <div className="w-24 h-24 rounded-md overflow-hidden bg-muted flex-shrink-0">
+            <div className="w-28 h-28 rounded-md overflow-hidden bg-muted flex-shrink-0">
               <img
                 src={post.featuredImage}
                 alt=""
@@ -39,14 +40,14 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
               />
             </div>
           ) : (
-            <div className="w-24 h-24 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="w-28 h-28 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
               <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
             </div>
           )}
           <div className="flex-1 min-w-0">
             <h3 className="font-medium text-lg mb-2">{post.title}</h3>
             {post.summary && (
-              <p className="text-sm text-muted-foreground line-clamp-2">{post.summary}</p>
+              <p className="text-sm text-muted-foreground line-clamp-3">{post.summary}</p>
             )}
           </div>
         </div>
