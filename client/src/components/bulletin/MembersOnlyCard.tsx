@@ -28,7 +28,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
     <Card className="border cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onSelect(post)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">
+          <CardTitle className="text-lg text-balance">
             Welcome {firstName}!
           </CardTitle>
           <Badge variant="secondary" className="w-6 h-6 p-0.5 flex items-center justify-center">
