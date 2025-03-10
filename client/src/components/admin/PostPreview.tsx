@@ -222,7 +222,6 @@ export function PostPreview({
         )
       }
     >
-      {/* Show members-only overlay for unauthorized users */}
       {post?.membersOnly && !user ? (
         <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
           <div className="flex items-center gap-2">
@@ -239,10 +238,9 @@ export function PostPreview({
           </RouterLink>
         </div>
       ) : (
-        <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto pb-16">
+        <>
+          <div className="pb-16">
             <div className="space-y-6">
-              {/* Title Section */}
               {post?.title && (
                 <div>
                   <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
@@ -250,7 +248,6 @@ export function PostPreview({
                     <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
                   )}
 
-                  {/* Author and timestamp info */}
                   {post.createdAt && (
                     <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                       <span>Published by {post.creator?.displayName || 'Unknown'}</span>
@@ -280,7 +277,6 @@ export function PostPreview({
                 </div>
               )}
 
-              {/* Featured Image Section */}
               {post?.featuredImage && (
                 <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4">
                   <img
@@ -291,7 +287,6 @@ export function PostPreview({
                 </div>
               )}
 
-              {/* Tags Section */}
               {post?.tags && post.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {post.tags.map((tag: string) => (
@@ -302,7 +297,6 @@ export function PostPreview({
                 </div>
               )}
 
-              {/* CTA Section */}
               {post?.ctaLink && (
                 <Button
                   variant="outline"
@@ -316,7 +310,6 @@ export function PostPreview({
                 </Button>
               )}
 
-              {/* Video Section */}
               {videoEmbedUrl && (
                 <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-4">
                   <iframe
@@ -328,7 +321,6 @@ export function PostPreview({
                 </div>
               )}
 
-              {/* Rich Text Content Section */}
               {editor && (
                 <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
                   <EditorContent editor={editor} />
@@ -337,9 +329,8 @@ export function PostPreview({
             </div>
           </div>
 
-          {/* Navigation Section - Fixed to bottom */}
           {availablePosts.length > 1 && onNavigate && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+            <div className="fixed bottom-0 left-0 right-0 p-4 border-t bg-background">
               <div className="flex justify-between items-center">
                 <Button
                   variant="ghost"
@@ -360,10 +351,9 @@ export function PostPreview({
               </div>
             </div>
           )}
-        </div>
+        </>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

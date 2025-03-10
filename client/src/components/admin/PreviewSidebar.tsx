@@ -18,7 +18,7 @@ export function PreviewSidebar({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
-        className="w-[480px] sm:max-w-[480px] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+        className="w-[480px] sm:max-w-[480px] flex flex-col h-full outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
         style={{
           outline: 'none',
           boxShadow: 'none'
@@ -36,7 +36,9 @@ export function PreviewSidebar({
             {headerContent}
           </SheetHeader>
         )}
-        {children}
+        <div className="flex-1 overflow-y-auto relative">
+          {children}
+        </div>
       </SheetContent>
     </Sheet>
   );
