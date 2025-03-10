@@ -1,6 +1,6 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,7 @@ import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
-import { Link as RouterLink } from "wouter";
+import { Link } from "wouter";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { AuthGuard } from "@/components/AuthGuard";
@@ -187,17 +187,28 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
     }
   };
 
-  const post = {membersOnly: false}; //Placeholder -  Should be fetched from somewhere
-
   return (
     <PreviewSidebar
       open={true}
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      style={{ outline: 'none' }}
+      className="ring-0 focus:ring-0 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
     >
-      <div className="relative min-h-full">
-        <div className="pb-16">
+      <DialogTitle className="sr-only">Event Preview</DialogTitle>
+      <div className="flex flex-col h-full outline-none focus:outline-none">
+        <div className="flex-1 overflow-y-auto pb-16">
+          {event.coverUrl && (
+            <div className="relative w-full aspect-video mb-4">
+              <img
+                src={event.coverUrl}
+                alt={event.title}
+                className="w-full h-full object-cover rounded-lg"
+              />
+            </div>
+          )}
+
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
@@ -369,7 +380,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                     {attendees.attendees.map((person) => {
                       const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
                       return (
-                        <RouterLink
+                        <Link
                           key={person.id}
                           href={profilePath}
                           className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
@@ -385,7 +396,7 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                           <div>
                             <p className="font-medium">{person.userName || "Anonymous"}</p>
                           </div>
-                        </RouterLink>
+                        </Link>
                       );
                     })}
                   </div>
@@ -394,13 +405,14 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
                 )}
               </CardContent>
             </Card>
+
           </div>
         </div>
 
-        {/* Navigation Section - Fixed at bottom */}
+        {/* Navigation Section - Fixed to bottom */}
         {events.length > 1 && onNavigate && (
-          <div className="absolute bottom-0 inset-x-0 border-t bg-background">
-            <div className="flex justify-between items-center p-4">
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+            <div className="flex justify-between items-center">
               <Button
                 variant="ghost"
                 disabled={!hasPrevious}

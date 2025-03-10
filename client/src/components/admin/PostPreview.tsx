@@ -222,121 +222,148 @@ export function PostPreview({
         )
       }
     >
-      <div className="relative min-h-full">
-        <div className="pb-16">
-          <div className="space-y-6">
-            {post?.title && (
-              <div>
-                <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
-                {post.summary && (
-                  <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
-                )}
-
-                {post.createdAt && (
-                  <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-                    <span>Published by {post.creator?.displayName || 'Unknown'}</span>
-                    <span>•</span>
-                    <span>{timeAgo.format(new Date(post.createdAt))}</span>
-                    {!readOnly && (
-                      <>
-                        {post?.isPinned && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary">Featured</Badge>
-                          </>
-                        )}
-                        {post?.membersOnly && (
-                          <>
-                            <span>•</span>
-                            <Badge variant="secondary" className="flex items-center gap-1">
-                              <Lock className="w-3 h-3" />
-                              Members Only
-                            </Badge>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {post?.featuredImage && (
-              <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4">
-                <img
-                  src={post.featuredImage}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-
-            {post?.tags && post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {post.tags.map((tag: string) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            )}
-
-            {post?.ctaLink && (
-              <Button
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => {
-                  if (post.ctaLink) window.open(post.ctaLink, '_blank');
-                }}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                {post.ctaLabel || 'Learn More'}
-              </Button>
-            )}
-
-            {videoEmbedUrl && (
-              <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-4">
-                <iframe
-                  src={videoEmbedUrl}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full"
-                />
-              </div>
-            )}
-
-            {editor && (
-              <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
-                <EditorContent editor={editor} />
-              </div>
-            )}
+      {/* Show members-only overlay for unauthorized users */}
+      {post?.membersOnly && !user ? (
+        <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
+          <div className="flex items-center gap-2">
+            <Lock className="w-8 h-8" />
+            <h2 className="text-xl font-semibold">Members Only Content</h2>
           </div>
+          <p className="text-center text-muted-foreground max-w-sm">
+            This content is exclusive to our members. Sign in or create an account to access it.
+          </p>
+          <RouterLink href="/login">
+            <Button variant="default" size="lg">
+              Sign in to View
+            </Button>
+          </RouterLink>
         </div>
+      ) : (
+        <div className="flex flex-col h-full">
+          <div className="flex-1 overflow-y-auto pb-16">
+            <div className="space-y-6">
+              {/* Title Section */}
+              {post?.title && (
+                <div>
+                  <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
+                  {post.summary && (
+                    <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
+                  )}
 
-        {availablePosts.length > 1 && onNavigate && (
-          <div className="absolute bottom-0 inset-x-0 border-t bg-background">
-            <div className="flex justify-between items-center p-4">
-              <Button
-                variant="ghost"
-                disabled={!hasPrevious}
-                onClick={() => handleNavigate(availablePosts[currentIndex - 1])}
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={!hasNext}
-                onClick={() => handleNavigate(availablePosts[currentIndex + 1])}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
+                  {/* Author and timestamp info */}
+                  {post.createdAt && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <span>Published by {post.creator?.displayName || 'Unknown'}</span>
+                      <span>•</span>
+                      <span>{timeAgo.format(new Date(post.createdAt))}</span>
+                      {!readOnly && (
+                        <>
+                          {post?.isPinned && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary">Featured</Badge>
+                            </>
+                          )}
+                          {post?.membersOnly && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                Members Only
+                              </Badge>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Featured Image Section */}
+              {post?.featuredImage && (
+                <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4">
+                  <img
+                    src={post.featuredImage}
+                    alt={post.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Tags Section */}
+              {post?.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {post.tags.map((tag: string) => (
+                    <Badge key={tag} variant="outline" className="text-xs">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* CTA Section */}
+              {post?.ctaLink && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-4"
+                  onClick={() => {
+                    if (post.ctaLink) window.open(post.ctaLink, '_blank');
+                  }}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  {post.ctaLabel || 'Learn More'}
+                </Button>
+              )}
+
+              {/* Video Section */}
+              {videoEmbedUrl && (
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-4">
+                  <iframe
+                    src={videoEmbedUrl}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+
+              {/* Rich Text Content Section */}
+              {editor && (
+                <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
+                  <EditorContent editor={editor} />
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
 
+          {/* Navigation Section - Fixed to bottom */}
+          {availablePosts.length > 1 && onNavigate && (
+            <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+              <div className="flex justify-between items-center">
+                <Button
+                  variant="ghost"
+                  disabled={!hasPrevious}
+                  onClick={() => handleNavigate(availablePosts[currentIndex - 1])}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={!hasNext}
+                  onClick={() => handleNavigate(availablePosts[currentIndex + 1])}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
