@@ -4,6 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import type { Post } from "@shared/schema";
 import { ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import TimeAgo from 'javascript-time-ago';
+import en from 'javascript-time-ago/locale/en';
+
+// Initialize TimeAgo
+TimeAgo.addLocale(en);
+const timeAgo = new TimeAgo('en-US');
 
 interface MembersOnlyCardProps {
   post: Post;
@@ -32,7 +38,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
       </CardHeader>
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
       <CardContent className="p-0">
-        <div className="relative h-[200px] overflow-hidden">
+        <div className="relative h-[200px] mx-[1px] mb-[1px] overflow-hidden rounded-md">
           <img
             src={backgroundImage}
             alt=""
@@ -51,7 +57,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
                   <span>•</span>
                 </>
               )}
-              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+              <span>{timeAgo.format(new Date(post.createdAt))}</span>
             </div>
           </div>
         </div>
