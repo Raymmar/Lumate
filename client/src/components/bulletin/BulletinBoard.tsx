@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { MembersOnlyCard } from "./MembersOnlyCard";
 import { JoinUsCard } from "@/components/JoinUsCard";
+import { SocialLinks } from "@/components/ui/social-links";
 
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
@@ -161,20 +162,7 @@ function LinksSection() {
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
-          <div className="flex gap-2">
-            <a href="https://instagram.com/sarasota.tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiInstagram className="h-4 w-4" />
-            </a>
-            <a href="https://twitter.com/sarasota_tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiX className="h-4 w-4" />
-            </a>
-            <a href="https://youtube.com/@sarasota.tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiYoutube className="h-4 w-4" />
-            </a>
-            <a href="https://linkedin.com/company/sarasota-tech" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-foreground/80 transition-colors">
-              <SiLinkedin className="h-4 w-4" />
-            </a>
-          </div>
+          <SocialLinks iconClassName="h-4 w-4" />
         </div>
       </CardHeader>
       <CardContent>
@@ -201,6 +189,7 @@ function LinksSection() {
     </Card>
   );
 }
+
 
 
 function SponsorsSection() {

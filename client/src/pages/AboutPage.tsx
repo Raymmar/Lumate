@@ -13,33 +13,7 @@ import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { Button } from "@/components/ui/button";
 import { Billboard, BillboardItem } from "@/components/ui/billboard";
-
-function SocialLinks() {
-  const socialLinks = [
-    { Icon: SiLinkedin, href: "#", label: "LinkedIn" },
-    { Icon: SiFacebook, href: "#", label: "Facebook" },
-    { Icon: SiInstagram, href: "#", label: "Instagram" },
-    { Icon: FaTwitter, href: "#", label: "Twitter" },
-    { Icon: SiWhatsapp, href: "#", label: "WhatsApp" },
-  ];
-
-  return (
-    <div className="flex gap-4 justify-center mb-6">
-      {socialLinks.map(({ Icon, href, label }) => (
-        <a
-          key={label}
-          href={href}
-          className="text-muted-foreground hover:text-primary transition-colors"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Icon className="w-6 h-6" />
-          <span className="sr-only">{label}</span>
-        </a>
-      ))}
-    </div>
-  );
-}
+import { SocialLinks } from "@/components/ui/social-links";
 
 function TimelineSection() {
   const events = [
