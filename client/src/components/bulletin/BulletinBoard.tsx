@@ -287,9 +287,7 @@ export function BulletinBoard() {
         )}
       </div>
 
-      <PinnedPostsCarousel onSelect={handleSelectPost} />
-
-      <div className="grid gap-3 md:grid-cols-3 mt-4 mb-4">
+      <div className="grid gap-3 md:grid-cols-3">
         <StatCard
           title="Events"
           value={statsData?.events || 0}
@@ -312,6 +310,8 @@ export function BulletinBoard() {
           description="63% open rate 21% click rate"
         />
       </div>
+
+      <PinnedPostsCarousel onSelect={handleSelectPost} />
 
       <PublicPostsTable
         onSelect={handleSelectPost}
