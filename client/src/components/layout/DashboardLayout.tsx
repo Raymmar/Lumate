@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-muted/10">
-      {/* Fixed header with full-width background */}
+      {/* Fixed header nav with full-width background */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="w-full">
           <PageContainer>
