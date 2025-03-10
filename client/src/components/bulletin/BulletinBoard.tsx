@@ -165,7 +165,7 @@ function LinksSection() {
           <SocialLinks iconClassName="h-4 w-4" />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="flex flex-col gap-4">
           <Link href="/about" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
