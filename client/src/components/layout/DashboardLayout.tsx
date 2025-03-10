@@ -9,6 +9,9 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  // Add console log to help debug the layout issue
+  console.log('DashboardLayout rendering');
+  
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -26,7 +29,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-muted/10">
+    <div className="min-h-screen bg-muted/10 overflow-hidden">
       {/* Fixed header nav with full-width background */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="w-full">
@@ -55,7 +58,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <EventList compact />
               </div>
             </div>
-            <div className="p-4 min-h-[calc(100vh-57px)]">
+            <div className="p-4">
               {children}
             </div>
           </main>
