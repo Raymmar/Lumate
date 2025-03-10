@@ -32,6 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Link as TiptapLink } from '@tiptap/core';
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -97,7 +98,17 @@ export function PostPreview({
   };
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      TiptapLink.configure({
+        openOnClick: true,
+        HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
+          class: 'text-primary underline decoration-primary cursor-pointer'
+        }
+      })
+    ],
     content: '',
     editable: false,
   });
