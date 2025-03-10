@@ -257,7 +257,7 @@ export default function AboutPage() {
               We're on a mission to connect the local tech community and drive
               Sarasota forward.
             </p>
-            <div className="flex flex-col items-center space-y-6">
+            <div className="flex flex-col items-center space-y-6 pt-6">
               <SocialLinks />
               <div className="w-full max-w-md">
                 <JoinUsCard showHeader={false} />

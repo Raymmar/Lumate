@@ -36,7 +36,7 @@ export const socialLinks = [
 
 export function SocialLinks({ className, iconClassName }: SocialLinksProps) {
   return (
-    <div className={cn("flex gap-4", className)}>
+    <div className={cn("flex gap-6", className)}>
       {socialLinks.map(({ Icon, href, label }) => (
         <a
           key={label}
