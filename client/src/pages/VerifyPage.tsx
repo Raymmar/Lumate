@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updatePasswordSchema } from "@shared/schema";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function VerifyPage() {
   const [, setLocation] = useLocation();
@@ -18,6 +19,7 @@ export default function VerifyPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -97,12 +99,7 @@ export default function VerifyPage() {
         throw new Error(data.error || 'Failed to set password');
       }
 
-      toast({
-        title: "Success",
-        description: "Your password has been set successfully. You can now log in.",
-      });
-
-      setLocation('/');
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error('Set password error:', error);
       if (error instanceof Error) {
@@ -118,6 +115,11 @@ export default function VerifyPage() {
     }
   };
 
+  const handleSuccessConfirmation = () => {
+    setShowSuccessDialog(false);
+    setLocation('/login');
+  };
+
   if (isVerifying) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -131,57 +133,81 @@ export default function VerifyPage() {
 
   if (requiresPassword) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-[400px]">
-          <CardHeader>
-            <CardTitle>Set Your Password</CardTitle>
-            <CardDescription>
-              Create a password to complete your account setup
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSetPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your password"
-                />
-              </div>
-              {passwordError && (
-                <p className="text-sm text-destructive">{passwordError}</p>
-              )}
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isSettingPassword}
-              >
-                {isSettingPassword ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Setting Password...
-                  </>
-                ) : (
-                  "Set Password"
+      <>
+        <div className="flex items-center justify-center min-h-screen">
+          <Card className="w-[400px]">
+            <CardHeader>
+              <CardTitle>Set Your Password</CardTitle>
+              <CardDescription>
+                Create a password to complete your account setup
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your password"
+                  />
+                </div>
+                {passwordError && (
+                  <p className="text-sm text-destructive">{passwordError}</p>
                 )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+                <Button 
+                  type="submit" 
+                  className="w-full"
+                  disabled={isSettingPassword}
+                >
+                  {isSettingPassword ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Setting Password...
+                    </>
+                  ) : (
+                    "Set Password"
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-6 w-6 text-green-500" />
+                Account Setup Complete
+              </DialogTitle>
+              <DialogDescription className="space-y-4">
+                <p>
+                  Your password has been set successfully. You can now log in to your account using your email and password.
+                </p>
+                <Button 
+                  onClick={handleSuccessConfirmation}
+                  className="w-full"
+                >
+                  Continue to Login
+                </Button>
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
