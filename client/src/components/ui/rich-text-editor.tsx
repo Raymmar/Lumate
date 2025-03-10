@@ -73,12 +73,18 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     }
   })
 
-  const setLink = React.useCallback(() => {
+  const setLink = React.useCallback((e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+
     if (!editor) return
 
     // If there's no URL, remove the link
     if (!linkUrl) {
       editor.chain().focus().unsetLink().run()
+      setShowLinkInput(false)
       return
     }
 
@@ -95,6 +101,16 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
   }
 
   const isLinkActive = editor.isActive('link')
+
+  const handleLinkButton = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isLinkActive) {
+      editor.chain().focus().unsetLink().run()
+    } else {
+      setShowLinkInput(true)
+    }
+  }
 
   return (
     <div 
@@ -167,6 +183,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
                 "h-8 px-2 lg:px-3",
                 isLinkActive && "bg-accent"
               )}
+              onClick={handleLinkButton}
             >
               {isLinkActive ? (
                 <Link2Off className="h-4 w-4" />
@@ -175,21 +192,27 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-3">
-            <div className="flex gap-2">
+          <PopoverContent className="w-80 p-3" onClick={(e) => e.stopPropagation()}>
+            <form 
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setLink()
+              }}
+            >
               <Input
                 placeholder="Enter URL"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    e.preventDefault()
-                    setLink()
+                    setLink(e)
                   }
                 }}
               />
-              <Button onClick={setLink}>Add</Button>
-            </div>
+              <Button type="submit" onClick={(e) => setLink(e)}>Add</Button>
+            </form>
           </PopoverContent>
         </Popover>
       </div>
