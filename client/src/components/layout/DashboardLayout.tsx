@@ -10,7 +10,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
+    <div className="flex-1 overflow-hidden flex flex-col">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
         {/* Show EventList in desktop sidebar, hide in mobile sidebar since it's shown in main content */}
         {!isMobile && (
@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <PageContainer>
         <div className="flex">
           {/* Sidebar - hidden below lg, visible on lg and up */}
-          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">
+          <aside className="hidden lg:block sticky top-[57px] max-h-[calc(100vh-57px)] w-[350px] border-r bg-background">
             <SidebarContent />
           </aside>
 
@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <EventList compact />
               </div>
             </div>
-            <div className="p-4 min-h-[calc(100vh-57px)]">
+            <div className="p-4">
               {children}
             </div>
           </main>
