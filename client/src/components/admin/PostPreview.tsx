@@ -178,7 +178,7 @@ export function PostPreview({
           if (!open) onClose();
         }}
       >
-        <PostForm 
+        <PostForm
           onSubmit={isEditMode ? handleUpdatePost : onSave!}
           defaultValues={post}
           isEditing={isEditMode}
@@ -196,31 +196,6 @@ export function PostPreview({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      headerContent={
-        canEditPost && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditMode(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="text-destructive focus:text-destructive"
-                onClick={() => setShowDeleteDialog(true)}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      }
     >
       {/* Show members-only overlay for unauthorized users */}
       {post?.membersOnly && !user ? (
@@ -282,17 +257,64 @@ export function PostPreview({
 
               {/* Featured Image Section */}
               {post?.featuredImage && (
-                <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4">
+                <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4 group">
                   <img
                     src={post.featuredImage}
                     alt={post.title}
                     className="w-full h-full object-cover"
                   />
+
+                  {/* Image Footer with Tags and Actions */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
+                    <div className="flex justify-between items-center">
+                      {/* Tags Section */}
+                      <div className="flex flex-wrap gap-2">
+                        {post.tags && post.tags.map((tag: string) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="bg-black/30 hover:bg-black/40 text-white border-none"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      {/* Action Menu */}
+                      {canEditPost && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 bg-black/30 hover:bg-black/40 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => setShowDeleteDialog(true)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {/* Tags Section */}
-              {post?.tags && post.tags.length > 0 && (
+              {/* Remove the original tags section since we moved it to the image footer */}
+              {post?.tags && post.tags.length > 0 && !post?.featuredImage && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {post.tags.map((tag: string) => (
                     <Badge key={tag} variant="outline" className="text-xs">
