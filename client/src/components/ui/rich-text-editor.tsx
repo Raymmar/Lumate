@@ -13,7 +13,7 @@ import {
   Heading3,
   Minus,
   Link as LinkIcon,
-  LinkOff,
+  Link2Off,
 } from 'lucide-react'
 import { Toggle } from './toggle'
 import {
@@ -169,7 +169,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
               )}
             >
               {isLinkActive ? (
-                <LinkOff className="h-4 w-4" />
+                <Link2Off className="h-4 w-4" />
               ) : (
                 <LinkIcon className="h-4 w-4" />
               )}
