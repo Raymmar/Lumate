@@ -47,9 +47,6 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
             <h3 className="font-semibold text-xl mb-2">{post.title}</h3>
-            {post.summary && (
-              <p className="text-sm text-white/90 line-clamp-2 mb-2">{post.summary}</p>
-            )}
             <div className="flex items-center gap-2 text-xs text-white/70">
               {post.creator?.displayName && (
                 <>
