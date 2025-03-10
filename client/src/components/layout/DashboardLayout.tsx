@@ -27,8 +27,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-muted/10 relative" style={{ outline: 'none' }}>
-      {/* Debugging overlay to find the thin line */}
-      <div className="fixed inset-0 pointer-events-none z-[9999] border border-red-500 opacity-0 hover:opacity-30" style={{ height: '100vh' }}></div>
       {/* Fixed header nav with full-width background */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="w-full">
