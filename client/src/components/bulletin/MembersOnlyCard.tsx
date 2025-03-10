@@ -22,9 +22,8 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
           <CardTitle className="text-lg">
             Welcome {firstName}!
           </CardTitle>
-          <Badge variant="secondary" className="text-xs flex items-center gap-1">
-            <Lock className="w-3 h-3" />
-            Exclusive
+          <Badge variant="secondary" className="w-6 h-6 p-0.5 flex items-center justify-center">
+            <Lock className="w-4 h-4" />
           </Badge>
         </div>
       </CardHeader>
