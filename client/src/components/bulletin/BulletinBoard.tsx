@@ -15,19 +15,18 @@ import { apiRequest } from "@/lib/api";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import { MembersOnlyCard } from "./MembersOnlyCard";
+import { JoinUsCard } from "@/components/JoinUsCard";
 
-// Only updating the PinnedPostsCarousel component section
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
   const { user } = useAuth();
 
-  // Filter posts based on authentication status and membersOnly flag
   const pinnedPosts = postsData?.posts
     .filter(post => post.isPinned && (!post.membersOnly || user))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  ) || [];
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -60,7 +59,6 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
   return (
     <Card className="relative overflow-hidden h-[300px] group cursor-pointer" onClick={() => onSelect(currentPost)}>
-      {/* Background image */}
       <img
         src={backgroundImage}
         alt=""
@@ -68,15 +66,12 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
         onLoad={() => setImageLoaded(true)}
       />
 
-      {/* Loading state */}
       {!imageLoaded && (
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Gradient overlay for text readability */}
       <div className="absolute inset-0 bg-black/60" />
 
-      {/* Tags and Badges */}
       <div className="absolute top-6 right-6 flex flex-wrap gap-2 z-20">
         {currentPost.membersOnly && (
           <Badge variant="secondary" className="text-xs flex items-center gap-1">
@@ -207,132 +202,6 @@ function LinksSection() {
   );
 }
 
-function JoinUsSection() {
-  const [email, setEmail] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const { toast } = useToast();
-
-  // Fetch featured event
-  const { data: featuredEvent, isLoading: isEventLoading } = useQuery({
-    queryKey: ["/api/events/featured"],
-    queryFn: async () => {
-      const response = await fetch("/api/events/featured");
-      if (!response.ok) {
-        throw new Error("Failed to fetch featured event");
-      }
-      return response.json();
-    }
-  });
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await fetch('/api/events/send-invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          event_api_id: featuredEvent?.api_id
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to send invite');
-      }
-
-      toast({
-        title: "Success!",
-        description: "Please check your email for the invitation.",
-      });
-
-      // Set submitted state to true
-      setIsSubmitted(true);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to send invite",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Card className="border">
-      <CardHeader className="pb-3">
-        {isSubmitted ? (
-          <CardTitle>Welcome to Sarasota Tech</CardTitle>
-        ) : (
-          <>
-            <CardTitle>Sarasota.Tech</CardTitle>
-            <p className="text-muted-foreground mt-1">
-              Connecting Sarasota's tech community and driving the city forward.
-            </p>
-          </>
-        )}
-      </CardHeader>
-      <CardContent>
-        {isSubmitted ? (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Thanks for joining! We've sent an invite to your email for our next event.
-              Once you receive it, you can claim your profile to track your attendance and
-              stay connected with the community.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Be sure to check your inbox (or spam folder) for the invitation email.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Email"
-                type="email"
-                className="flex-1"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading || isEventLoading || !featuredEvent}
-              />
-              <Button
-                className="bg-primary hover:bg-primary/90"
-                type="submit"
-                disabled={isLoading || isEventLoading || !featuredEvent}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
-                  </>
-                ) : (
-                  "Join"
-                )}
-              </Button>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {isEventLoading ? (
-                "Loading event details..."
-              ) : !featuredEvent ? (
-                "No upcoming events available at the moment."
-              ) : (
-                "Drop your email for an invite to our next event and start networking with the region's top tech professionals."
-              )}
-            </p>
-          </form>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 function SponsorsSection() {
   return (
@@ -359,6 +228,7 @@ function SponsorsSection() {
 
 export function BulletinBoard() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["/api/public/stats"],
     queryFn: async () => {
@@ -378,6 +248,10 @@ export function BulletinBoard() {
   });
 
   const { toast } = useToast();
+
+  const mostRecentMembersOnlyPost = postsData?.posts
+    .filter(post => post.membersOnly)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   const handleCreatePost = async (data: InsertPost) => {
     try {
@@ -404,16 +278,17 @@ export function BulletinBoard() {
 
   return (
     <div className="space-y-4">
-      {/* Grid layout for links and join us sections */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <LinksSection />
-        <JoinUsSection />
+        {user && mostRecentMembersOnlyPost ? (
+          <MembersOnlyCard post={mostRecentMembersOnlyPost} onSelect={handleSelectPost} />
+        ) : (
+          <JoinUsCard />
+        )}
       </div>
 
-      {/* Pinned Posts Carousel */}
       <PinnedPostsCarousel onSelect={handleSelectPost} />
 
-      {/* Stats Grid - Moved here */}
       <div className="grid gap-3 md:grid-cols-3 mt-4 mb-4">
         <StatCard
           title="Events"
@@ -438,13 +313,11 @@ export function BulletinBoard() {
         />
       </div>
 
-      {/* Latest Posts Section */}
       <PublicPostsTable
         onSelect={handleSelectPost}
         onCreatePost={() => setIsCreating(true)}
       />
 
-      {/* Post Preview/Creation Modal */}
       {(selectedPost || isCreating) && (
         <PostPreview
           post={selectedPost || undefined}
