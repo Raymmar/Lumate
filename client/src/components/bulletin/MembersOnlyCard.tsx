@@ -3,6 +3,7 @@ import { Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Post } from "@shared/schema";
 import { ImageIcon } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface MembersOnlyCardProps {
   post: Post;
@@ -10,12 +11,16 @@ interface MembersOnlyCardProps {
 }
 
 export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
+  const { user } = useAuth();
+  // Get first name by splitting on space and taking first part
+  const firstName = user?.displayName?.split(' ')[0] || 'back';
+
   return (
     <Card className="border cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onSelect(post)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">
-            Welcome back!
+            Welcome {firstName}!
           </CardTitle>
           <Badge variant="secondary" className="text-xs flex items-center gap-1">
             <Lock className="w-3 h-3" />
