@@ -1,6 +1,6 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,15 +18,32 @@ import StarterKit from '@tiptap/starter-kit';
 import { AuthGuard } from "@/components/AuthGuard";
 import { DialogTitle } from "@/components/ui/dialog";
 import { formatUsernameForUrl } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface PublicEventPreviewProps {
   event: Event;
   onClose: () => void;
   events?: Event[];
   onNavigate?: (event: Event) => void;
+  onEdit?: (event: Event) => void;
+  onDelete?: (event: Event) => void;
+  showActions?: boolean;
 }
 
-export function PublicEventPreview({ event, onClose, events = [], onNavigate }: PublicEventPreviewProps) {
+export function PublicEventPreview({ 
+  event, 
+  onClose, 
+  events = [], 
+  onNavigate,
+  onEdit,
+  onDelete,
+  showActions = false 
+}: PublicEventPreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -193,19 +210,68 @@ export function PublicEventPreview({ event, onClose, events = [], onNavigate }: 
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      style={{ outline: 'none' }}
       className="ring-0 focus:ring-0 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
     >
       <DialogTitle className="sr-only">Event Preview</DialogTitle>
       <div className="flex flex-col h-full outline-none focus:outline-none">
         <div className="flex-1 overflow-y-auto pb-16">
           {event.coverUrl && (
-            <div className="relative w-full aspect-video mb-4">
+            <div className="relative w-full aspect-video mb-4 group">
               <img
                 src={event.coverUrl}
                 alt={event.title}
                 className="w-full h-full object-cover rounded-lg"
               />
+
+              {/* Image Footer with Tags and Actions */}
+              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent rounded-b-lg">
+                <div className="flex justify-between items-center">
+                  {/* Tags Section */}
+                  <div className="flex gap-2">
+                    {event.tags?.map((tag) => (
+                      <Badge 
+                        key={tag} 
+                        variant="secondary"
+                        className="bg-black/30 hover:bg-black/40 text-white border-none"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {/* Action Menu */}
+                  {showActions && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 bg-black/30 hover:bg-black/40 text-white border-none"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {onEdit && (
+                          <DropdownMenuItem onClick={() => onEdit(event)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
+                        {onDelete && (
+                          <DropdownMenuItem
+                            onClick={() => onDelete(event)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
