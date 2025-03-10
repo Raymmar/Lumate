@@ -15,6 +15,9 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
   // Get first name by splitting on space and taking first part
   const firstName = user?.displayName?.split(' ')[0] || 'back';
 
+  const fallbackImage = 'https://images.unsplash.com/photo-1596443686812-2f45229eebc3?q=80&w=2070&auto=format&fit=crop';
+  const backgroundImage = post.featuredImage || fallbackImage;
+
   return (
     <Card className="border cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onSelect(post)}>
       <CardHeader className="pb-3">
@@ -29,25 +32,27 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
       </CardHeader>
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
       <CardContent className="pt-6">
-        <div className="flex gap-6">
-          {post.featuredImage ? (
-            <div className="w-28 h-28 rounded-md overflow-hidden bg-muted flex-shrink-0">
-              <img
-                src={post.featuredImage}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="w-28 h-28 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
-              <ImageIcon className="h-12 w-12 text-muted-foreground/50" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-lg mb-2">{post.title}</h3>
+        <div className="relative h-[200px] -mx-6 overflow-hidden rounded-lg">
+          <img
+            src={backgroundImage}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+            <h3 className="font-semibold text-xl mb-2">{post.title}</h3>
             {post.summary && (
-              <p className="text-sm text-muted-foreground line-clamp-3">{post.summary}</p>
+              <p className="text-sm text-white/90 line-clamp-2 mb-2">{post.summary}</p>
             )}
+            <div className="flex items-center gap-2 text-xs text-white/70">
+              {post.creator?.displayName && (
+                <>
+                  <span>{post.creator.displayName}</span>
+                  <span>•</span>
+                </>
+              )}
+              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+            </div>
           </div>
         </div>
       </CardContent>
