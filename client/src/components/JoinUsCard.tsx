@@ -14,7 +14,11 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [checkData, setCheckData] = useState({}); // Added state to store checkData
+  const [profileStatus, setProfileStatus] = useState<{
+    exists: boolean;
+    personId?: string;
+    isClaimed?: boolean;
+  }>({ exists: false });
   const { toast } = useToast();
 
   // Fetch featured event
@@ -34,23 +38,17 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
     setIsLoading(true);
 
     try {
-      console.log('Join Us Form: Starting email verification process for:', email);
+      console.log('Processing submission for:', email);
 
-      // First check if there's an existing profile for this email
+      // Check for existing profile
       const checkResponse = await fetch(`/api/people/check-email?email=${encodeURIComponent(email)}`);
       const checkData = await checkResponse.json();
-      setCheckData(checkData); // Update state with checkData
-
-      console.log('Join Us Form: Email check result:', {
-        email,
-        exists: checkData.exists,
-        personId: checkData.personId,
-        isClaimed: checkData.isClaimed
-      });
+      setProfileStatus(checkData);
 
       if (checkData.exists && checkData.personId) {
-        console.log('Join Us Form: Found existing profile, initiating claim process');
-        // If profile exists, initiate claim process
+        console.log('Found existing profile, initiating claim process');
+
+        // Send claim profile request
         const claimResponse = await fetch('/api/auth/claim-profile', {
           method: 'POST',
           headers: {
@@ -63,46 +61,43 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
         });
 
         const claimData = await claimResponse.json();
-        console.log('Join Us Form: Claim profile response:', claimData);
 
         if (claimResponse.ok) {
           toast({
             title: "Profile Found!",
-            description: "We found your profile! Check your email for instructions to claim it.",
+            description: "Check your email for instructions to claim your profile and log in.",
           });
         }
       } else {
-        console.log('Join Us Form: No existing profile found for:', email);
+        console.log('No existing profile, sending event invite');
+
+        // Send event invite for new users
+        const response = await fetch('/api/events/send-invite', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email,
+            event_api_id: featuredEvent?.api_id
+          })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || data.message || 'Failed to send invite');
+        }
+
+        toast({
+          title: "Welcome!",
+          description: "Check your email for an invitation to our next event.",
+        });
       }
-
-      // Always send event invite (existing behavior)
-      console.log('Join Us Form: Sending event invite');
-      const response = await fetch('/api/events/send-invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          event_api_id: featuredEvent?.api_id
-        })
-      });
-
-      const data = await response.json();
-      console.log('Join Us Form: Event invite response:', data);
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to send invite');
-      }
-
-      toast({
-        title: "Success!",
-        description: "Please check your email for the invitation.",
-      });
 
       setIsSubmitted(true);
     } catch (error) {
-      console.error('Join Us Form: Error processing submission:', error);
+      console.error('Error processing submission:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to process request",
@@ -133,14 +128,14 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
         {isSubmitted ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Thanks for joining! We've sent an invite to your email for our next event.
-              {" "}
-              {checkData?.exists ? 
-                "We also found your existing profile - check your email for instructions to claim it!" :
-                "Once you receive it, you can claim your profile to track your attendance and stay connected with the community."}
+              {profileStatus.exists ? (
+                "We found your existing profile! Check your email for instructions to claim it and log in."
+              ) : (
+                "Thanks for joining! We've sent you an invite to our next event."
+              )}
             </p>
             <p className="text-sm text-muted-foreground">
-              Be sure to check your inbox (or spam folder) for the invitation email.
+              Be sure to check your inbox (or spam folder) for our email.
             </p>
           </div>
         ) : (
@@ -163,7 +158,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending...
+                    Processing...
                   </>
                 ) : (
                   "Join"
@@ -176,7 +171,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
               ) : !featuredEvent ? (
                 "No upcoming events available at the moment."
               ) : (
-                "Drop your email for an invite to our next event and start networking with the region's top tech professionals."
+                "Enter your email to join our community. If you've attended before, we'll help you claim your profile."
               )}
             </p>
           </form>
