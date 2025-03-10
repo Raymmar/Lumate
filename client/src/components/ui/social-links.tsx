@@ -42,7 +42,7 @@ export function SocialLinks({ className, iconClassName }: SocialLinksProps) {
           key={label}
           href={href}
           className={cn(
-            "text-muted-foreground hover:text-primary transition-colors",
+            "text-foreground hover:text-primary transition-colors",
             iconClassName
           )}
           target="_blank"
