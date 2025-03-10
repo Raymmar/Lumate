@@ -264,56 +264,57 @@ export function PostPreview({
                     className="w-full h-full object-cover"
                   />
 
-                  {/* Image Footer with Tags and Actions */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent">
-                    <div className="flex justify-between items-center">
-                      {/* Tags Section */}
+                  {/* Top Right Action Menu */}
+                  {canEditPost && (
+                    <div className="absolute top-3 right-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-sm"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => setShowDeleteDialog(true)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
+
+                  {/* Bottom Tags Section */}
+                  {post.tags && post.tags.length > 0 && (
+                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
                       <div className="flex flex-wrap gap-2">
-                        {post.tags && post.tags.map((tag: string) => (
+                        {post.tags.map((tag: string) => (
                           <Badge
                             key={tag}
                             variant="secondary"
-                            className="bg-black/30 hover:bg-black/40 text-white border-none"
+                            className="bg-black/40 hover:bg-black/60 text-white border border-white/20 shadow-sm"
                           >
                             {tag}
                           </Badge>
                         ))}
                       </div>
-
-                      {/* Action Menu */}
-                      {canEditPost && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 bg-black/30 hover:bg-black/40 text-white border-none opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setIsEditMode(true)}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => setShowDeleteDialog(true)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
-              {/* Remove the original tags section since we moved it to the image footer */}
+              {/* Show tags outside image only if there's no featured image */}
               {post?.tags && post.tags.length > 0 && !post?.featuredImage && (
                 <div className="flex flex-wrap gap-2 mt-4">
                   {post.tags.map((tag: string) => (
