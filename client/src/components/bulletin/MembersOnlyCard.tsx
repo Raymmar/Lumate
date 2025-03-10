@@ -31,8 +31,8 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
         </div>
       </CardHeader>
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
-      <CardContent className="pt-6">
-        <div className="relative h-[200px] -mx-6 overflow-hidden rounded-lg">
+      <CardContent className="p-0">
+        <div className="relative h-[200px] overflow-hidden">
           <img
             src={backgroundImage}
             alt=""
