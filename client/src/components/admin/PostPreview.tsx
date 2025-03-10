@@ -135,12 +135,23 @@ export function PostPreview({
   const handleUpdatePost = async (data: InsertPost) => {
     try {
       await apiRequest(`/api/posts/${post!.id}`, 'PATCH', data);
+
+      // Invalidate queries first
+      await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
+
+      // Then update UI state
+      setIsEditMode(false);
+
+      // Show success message
       toast({
         title: "Success",
         description: "Post updated successfully"
       });
-      await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
-      setIsEditMode(false);
+
+      // Close the sidebar after a short delay to allow the user to see the success message
+      setTimeout(() => {
+        onClose();
+      }, 500);
     } catch (error) {
       toast({
         title: "Error",
@@ -170,6 +181,7 @@ export function PostPreview({
     }
   };
 
+  // If we're in new/edit mode, render the form
   if ((isNew || isEditMode) && !readOnly) {
     return (
       <PreviewSidebar
@@ -179,7 +191,15 @@ export function PostPreview({
         }}
       >
         <PostForm
-          onSubmit={isEditMode ? handleUpdatePost : onSave!}
+          onSubmit={async (data) => {
+            if (isEditMode) {
+              await handleUpdatePost(data);
+            } else if (onSave) {
+              await onSave(data);
+              // Close the sidebar after successful save
+              onClose();
+            }
+          }}
           defaultValues={post}
           isEditing={isEditMode}
         />

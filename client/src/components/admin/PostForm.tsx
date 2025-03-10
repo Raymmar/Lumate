@@ -12,7 +12,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
-import { X, Check } from "lucide-react";
+import { X, Check, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize tags from defaultValues when component mounts or defaultValues changes
   useEffect(() => {
@@ -78,6 +79,9 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
   });
 
   const handleSubmit = async (data: InsertPost) => {
+    if (isSubmitting) return; // Prevent double submission
+
+    setIsSubmitting(true);
     try {
       // Include tags in the submission
       await onSubmit({ ...data, tags });
@@ -95,6 +99,8 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
         description: isEditing ? "Failed to update post" : "Failed to publish post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -375,8 +381,19 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
           </div>
         </div>
 
-        <Button type="submit" className="w-full mt-6">
-          {isEditing ? "Save Changes" : "Publish Post"}
+        <Button
+          type="submit"
+          className="w-full mt-6"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {isEditing ? "Saving..." : "Publishing..."}
+            </>
+          ) : (
+            isEditing ? "Save Changes" : "Publish Post"
+          )}
         </Button>
       </form>
     </Form>
