@@ -61,8 +61,10 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
         }
       }),
       Link.configure({
-        openOnClick: false,
+        openOnClick: true,
         HTMLAttributes: {
+          target: '_blank',
+          rel: 'noopener noreferrer nofollow',
           class: 'text-primary underline decoration-primary cursor-pointer'
         }
       })
