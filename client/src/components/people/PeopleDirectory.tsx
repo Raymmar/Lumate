@@ -34,15 +34,17 @@ export interface Person {
     averageEventsPerYear?: number;
     lastUpdated: string;
   };
+  isCurrentUser?: boolean;
 }
 
 interface PeopleResponse {
   people: Person[];
   total: number;
+  currentUserId?: string;
 }
 
 interface PeopleDirectoryProps {
-  onMobileSelect?: () => void; // New prop for mobile selection handling
+  onMobileSelect?: () => void;
 }
 
 export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps) {
@@ -63,6 +65,16 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     }
   });
 
+  // Sort people array to ensure current user is at the top
+  const sortedPeople = React.useMemo(() => {
+    if (!data?.people) return [];
+    return data.people.sort((a, b) => {
+      if (a.api_id === data.currentUserId) return -1;
+      if (b.api_id === data.currentUserId) return 1;
+      return 0;
+    });
+  }, [data?.people, data?.currentUserId]);
+
   useEffect(() => {
     setFocusedIndex(searchQuery.length > 0 ? 0 : -1);
     setIsSearchActive(searchQuery.length > 0);
@@ -76,19 +88,18 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   const handlePersonClick = (person: Person) => {
     const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setLocation(`/people/${encodeURIComponent(urlPath)}`);
-    // Call onMobileSelect when provided (mobile view)
     if (onMobileSelect) {
       onMobileSelect();
     }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (!data?.people.length || !isSearchActive) return;
+    if (!sortedPeople.length || !isSearchActive) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setFocusedIndex(prev => Math.min(prev + 1, data.people.length - 1));
+        setFocusedIndex(prev => Math.min(prev + 1, sortedPeople.length - 1));
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -96,7 +107,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
         break;
       case 'Enter':
         e.preventDefault();
-        const selectedPerson = data.people[focusedIndex];
+        const selectedPerson = sortedPeople[focusedIndex];
         if (selectedPerson) {
           handlePersonClick(selectedPerson);
         }
@@ -141,12 +152,13 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           <Skeleton className="h-11" />
           <Skeleton className="h-11" />
         </div>
-      ) : data?.people && data.people.length > 0 ? (
+      ) : sortedPeople && sortedPeople.length > 0 ? (
         <>
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="space-y-0.5">
-              {data.people.map((person, index) => {
+              {sortedPeople.map((person, index) => {
                 const urlPath = formatUsernameForUrl(person.userName, person.api_id);
+                const isCurrentUser = person.api_id === data?.currentUserId;
                 return (
                   <div
                     key={person.api_id}
@@ -154,7 +166,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
                       (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === urlPath)
                         ? 'bg-muted ring-1 ring-inset ring-ring'
                         : 'hover:bg-muted/50'
-                    }`}
+                    } ${isCurrentUser ? 'bg-primary/10' : ''}`}
                     onClick={() => handlePersonClick(person)}
                   >
                     <Avatar className="h-8 w-8">
@@ -174,6 +186,9 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
                     <div className="min-w-0 flex-1">
                       <p className="text-base font-medium truncate">
                         {person.userName || "Anonymous"}
+                        {isCurrentUser && (
+                          <span className="ml-2 text-xs text-primary">(You)</span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -183,7 +198,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           </div>
           <div className="flex-none pt-2 mt-2 border-t">
             <div className="text-xs text-muted-foreground mb-2 text-center">
-              Showing {data.people.length} of {data.total} total people
+              Showing {sortedPeople.length} of {data?.total} total people
             </div>
             <Pagination>
               <PaginationContent>
