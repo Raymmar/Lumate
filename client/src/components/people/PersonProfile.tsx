@@ -10,6 +10,7 @@ import { Star, Code, Heart, CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import type { User } from "@shared/schema";
 
 interface PersonProfileProps {
   username: string;
@@ -42,14 +43,7 @@ interface Person {
   role: string | null;
   isAdmin?: boolean;
   subscriptionStatus?: string;
-  user?: {
-    id: number;
-    email: string;
-    displayName: string;
-    bio: string;
-    isAdmin: boolean;
-    [key: string]: any;
-  };
+  user?: User;
 }
 
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
@@ -163,11 +157,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const userBadges = [
-    { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
-    { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
-    { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
-  ];
+  // Get available badges from the user if it exists
+  const userBadges = person.user?.badges || [];
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -199,11 +190,12 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {userBadges.map((badge, index) => (
+                {/* Only render badges section if user has badges */}
+                {userBadges.length > 0 && userBadges.map((badge) => (
                   <ProfileBadge
-                    key={index}
+                    key={badge.id}
                     name={badge.name}
-                    icon={badge.icon}
+                    icon={badge.icon ? <Star className="h-3 w-3" /> : undefined}
                   />
                 ))}
               </div>
@@ -241,7 +233,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   />
                 </div>
 
-                {events?.length > 0 && (
+                {events && events.length > 0 && (
                   <div className="space-y-1 mt-4 border-t pt-4">
                     <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
                       {events.map((event) => (
