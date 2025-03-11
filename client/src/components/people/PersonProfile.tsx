@@ -6,7 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
-import { Star, Code, Heart, CalendarDays, Users, Shield } from 'lucide-react';
+import { 
+  Sprout, 
+  BadgeDollarSign, 
+  HandMetal, 
+  Tickets, 
+  HeartHandshake, 
+  Loader,
+  CalendarDays, 
+  Users, 
+  Shield 
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
@@ -85,19 +95,19 @@ const getBadgeIcon = (badge: Badge) => {
   // Default badge icons based on badge names
   switch (badge.name) {
     case "Founding Board":
-      return <Shield className="h-3 w-3" />;
+      return <Sprout className="h-3 w-3" />;
     case "Founding Member":
-      return <Star className="h-3 w-3" />;
+      return <BadgeDollarSign className="h-3 w-3" />;
     case "OG":
-      return <Star className="h-3 w-3" />;
+      return <HandMetal className="h-3 w-3" />;
     case "Summit Attendee":
-      return <Users className="h-3 w-3" />;
+      return <Tickets className="h-3 w-3" />;
     case "Volunteer":
-      return <Heart className="h-3 w-3" />;
+      return <HeartHandshake className="h-3 w-3" />;
     case "Newbie":
-      return <Star className="h-3 w-3" />;
+      return <Loader className="h-3 w-3" />;
     default:
-      return <Star className="h-3 w-3" />;
+      return <Shield className="h-3 w-3" />;
   }
 };
 

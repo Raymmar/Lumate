@@ -9,7 +9,18 @@ import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Shield, Star, X, Check } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  Sprout,
+  BadgeDollarSign,
+  HandMetal,
+  Tickets,
+  HeartHandshake,
+  Loader,
+  X, 
+  Check 
+} from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -35,12 +46,12 @@ interface MemberPreviewProps {
 
 // Predefined badges based on your requirements
 const availableBadges = [
-  { name: "Founding Board", icon: <Shield className="h-3 w-3" />, description: "Founding team and organizing committee" },
-  { name: "Founding Member", icon: <Star className="h-3 w-3" />, description: "$1,000 contribution to get the group started" },
-  { name: "OG", icon: <Star className="h-3 w-3" />, description: "Attended one of the first three meetups" },
-  { name: "Summit Attendee", icon: <Star className="h-3 w-3" />, description: "Attended our inaugural tech summit" },
-  { name: "Volunteer", icon: <Star className="h-3 w-3" />, description: "Has volunteered at 3 or more events in the last year" },
-  { name: "Newbie", icon: <Star className="h-3 w-3" />, description: "Has attended less than 6 events" },
+  { name: "Founding Board", icon: <Sprout className="h-3 w-3" />, description: "Founding team and organizing committee" },
+  { name: "Founding Member", icon: <BadgeDollarSign className="h-3 w-3" />, description: "$1,000 contribution to get the group started" },
+  { name: "OG", icon: <HandMetal className="h-3 w-3" />, description: "Attended one of the first three meetups" },
+  { name: "Summit Attendee", icon: <Tickets className="h-3 w-3" />, description: "Attended our inaugural tech summit" },
+  { name: "Volunteer", icon: <HeartHandshake className="h-3 w-3" />, description: "Has volunteered at 3 or more events in the last year" },
+  { name: "Newbie", icon: <Loader className="h-3 w-3" />, description: "Has attended less than 6 events" },
 ];
 
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
