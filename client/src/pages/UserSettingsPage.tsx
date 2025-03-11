@@ -91,24 +91,46 @@ export default function UserSettingsPage() {
       return data as { status: string };
     },
     enabled: !!user && !user.isAdmin,
-    // Increase staleTime to prevent unnecessary refetches
-    staleTime: 30000,
-    // Cache the successful result
-    cacheTime: 1000 * 60 * 5, // 5 minutes
+    // Reduce staleTime to ensure quicker updates
+    staleTime: 5000,
+    // Add polling to catch subscription changes
+    refetchInterval: 10000,
     // Keep previous data while revalidating
-    keepPreviousData: true,
+    keepPreviousData: false,
     // Add retry for better reliability
     retry: 3,
   });
 
-  // Memoize the subscription status to prevent flickering
-  const hasActiveSubscription = user?.isAdmin || 
-    subscriptionStatus?.status === 'active' || 
-    // Keep showing premium features while loading if we previously had access
-    (isSubscriptionLoading && form.getValues().companyName !== "");
+  // Strict subscription check
+  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+
+  // If subscription becomes inactive, reset form
+  useEffect(() => {
+    if (!hasActiveSubscription && !isSubscriptionLoading) {
+      form.reset({
+        displayName: user?.displayName || "",
+        bio: user?.bio || "",
+        featuredImageUrl: "",
+        companyName: "",
+        companyDescription: "",
+        address: null,
+        phoneNumber: "",
+        isPhonePublic: false,
+        isEmailPublic: false,
+        ctaText: "",
+        customLinks: [],
+        tags: [],
+      });
+    }
+  }, [hasActiveSubscription, isSubscriptionLoading, user?.displayName, user?.bio]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
+      // Check subscription status before allowing update
+      if (!hasActiveSubscription && !user?.isAdmin) {
+        throw new Error('Active subscription required to update profile');
+      }
+
       const formattedData = {
         ...data,
         displayName: user?.displayName,
