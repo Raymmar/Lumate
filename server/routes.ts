@@ -13,20 +13,33 @@ import {
   roles as rolesTable, 
   permissions as permissionsTable, 
   rolePermissions as rolePermissionsTable,
-  updateUserProfileSchema 
+  updateUserProfileSchema,
+  attendance,
+  badges,
+  userBadges,
+  posts,
+  tags,
+  postTags,
+  events,
+  insertPostSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance, badges, userBadges } from '@shared/schema';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
 import { CacheService } from './services/CacheService';
-import { posts, tags, postTags, insertPostSchema } from "@shared/schema";
 import stripeRouter from './routes/stripe';
 import { StripeService } from './services/stripe';
+
+// Add session type declaration
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+  }
+}
 
 interface Post {
   id: number;
@@ -139,11 +152,16 @@ export async function lumaApiRequest(
     }
 }
 
+
+
+// Register and configure express routes
 export async function registerRoutes(app: Express) {
+  // Initialize route handlers and middleware
+  console.log('Registering routes...');
+
   console.log('Initializing CacheService...');
   const cacheService = CacheService.getInstance();
   console.log('CacheService initialized.');
-
 
   const PostgresStore = connectPg(session);
   const isProduction = process.env.NODE_ENV === 'production';
@@ -171,6 +189,115 @@ export async function registerRoutes(app: Express) {
   app.use('/api/upload', uploadRouter);
   app.use('/api/unsplash', unsplashRouter);
   app.use('/api/stripe', stripeRouter);
+
+  app.post("/api/admin/auto-assign-badges", async (_req: Request, res: Response) => {
+    try {
+      console.log('Starting automatic badge assignment process');
+
+      // Get all users
+      const allUsers = await db
+        .select()
+        .from(users);
+
+      console.log(`Processing ${allUsers.length} users for automatic badge assignment`);
+
+      for (const user of allUsers) {
+        // Get all events this user has attended
+        const userAttendance = await db
+          .select()
+          .from(attendance)
+          .where(sql`LOWER(user_email) = LOWER(${user.email})`);
+
+        console.log(`Found ${userAttendance.length} attendance records for user ${user.email}`);
+
+        // Check Summit Attendee badge condition
+        const hasSummitAttendance = userAttendance.some(record => 
+          record.eventApiId === 'evt-7mHZuVCKYfqARWL'
+        );
+
+        // Check OG badge condition
+        const ogEvents = [
+          'evt-KUEx5csMUv6otHD',
+          'evt-LArNIZtsDO3shT7',
+          'evt-t8pRapBHvNlNw1L',
+          'evt-C1AWCRN0nScneOw'
+        ];
+        const hasOgAttendance = userAttendance.some(record => 
+          ogEvents.includes(record.eventApiId)
+        );
+
+        // Check Newbie badge condition
+        const isNewbie = userAttendance.length < 3;
+
+        // Get badge IDs
+        const [summitBadge] = await db
+          .select()
+          .from(badges)
+          .where(eq(badges.name, 'Summit Attendee'));
+
+        const [ogBadge] = await db
+          .select()
+          .from(badges)
+          .where(eq(badges.name, 'OG'));
+
+        const [newbieBadge] = await db
+          .select()
+          .from(badges)
+          .where(eq(badges.name, 'Newbie'));
+
+        // Get existing badge assignments for this user
+        const existingBadges = await db
+          .select()
+          .from(userBadges)
+          .where(eq(userBadges.userId, user.id));
+
+        // Helper function to check if user already has a badge
+        const hasBadge = (badgeId: number) => 
+          existingBadges.some(b => b.badgeId === badgeId);
+
+        // Assign Summit Attendee badge if conditions met
+        if (hasSummitAttendance && summitBadge && !hasBadge(summitBadge.id)) {
+          await db
+            .insert(userBadges)
+            .values({
+              userId: user.id,
+              badgeId: summitBadge.id,
+              assignedAt: new Date().toISOString(),
+            });
+          console.log(`Assigned Summit Attendee badge to ${user.email}`);
+        }
+
+        // Assign OG badge if conditions met
+        if (hasOgAttendance && ogBadge && !hasBadge(ogBadge.id)) {
+          await db
+            .insert(userBadges)
+            .values({
+              userId: user.id,
+              badgeId: ogBadge.id,
+              assignedAt: new Date().toISOString(),
+            });
+          console.log(`Assigned OG badge to ${user.email}`);
+        }
+
+        // Assign Newbie badge if conditions met
+        if (isNewbie && newbieBadge && !hasBadge(newbieBadge.id)) {
+          await db
+            .insert(userBadges)
+            .values({
+              userId: user.id,
+              badgeId: newbieBadge.id,
+              assignedAt: new Date().toISOString(),
+            });
+          console.log(`Assigned Newbie badge to ${user.email}`);
+        }
+      }
+
+      return res.json({ message: "Automatic badge assignment completed" });
+    } catch (error) {
+      console.error('Failed to auto-assign badges:', error);
+      return res.status(500).json({ error: "Failed to auto-assign badges" });
+    }
+  });
 
   app.get("/api/posts/:id", async (req, res) => {
     try {
@@ -3516,10 +3643,4 @@ export async function registerRoutes(app: Express) {
   });
 
   return createServer(app);
-}
-
-declare module 'express-session' {
-  interface SessionData {
-    userId: number;
-  }
 }
