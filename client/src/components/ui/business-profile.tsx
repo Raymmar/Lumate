@@ -91,11 +91,11 @@ export function BusinessProfile({
             >
               <a href={link.url} target="_blank" rel="noopener noreferrer">
                 {link.icon ? (
-                  <span className="h-4 w-4">{link.icon}</span>
+                  <span className="h-4 w-4 flex-shrink-0">{link.icon}</span>
                 ) : (
-                  <LinkIcon className="h-4 w-4" />
+                  <LinkIcon className="h-4 w-4 flex-shrink-0" />
                 )}
-                {link.title}
+                <span className="truncate">{link.title}</span>
               </a>
             </Button>
           ))}
@@ -107,8 +107,8 @@ export function BusinessProfile({
               asChild
             >
               <a href={`tel:${phone}`}>
-                <Phone className="h-4 w-4" />
-                {phone}
+                <Phone className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{phone}</span>
               </a>
             </Button>
           )}
@@ -120,8 +120,8 @@ export function BusinessProfile({
               asChild
             >
               <a href={`mailto:${email}`}>
-                <Mail className="h-4 w-4" />
-                {email}
+                <Mail className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">{email}</span>
               </a>
             </Button>
           )}
@@ -129,9 +129,13 @@ export function BusinessProfile({
 
         {tags && tags.length > 0 && (
           <div className="pt-4 border-t">
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-2">
               {tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="rounded-lg whitespace-nowrap">
+                <Badge 
+                  key={index} 
+                  variant="secondary" 
+                  className="rounded-lg whitespace-nowrap flex-shrink-0 inline-flex items-center"
+                >
                   {tag}
                 </Badge>
               ))}
