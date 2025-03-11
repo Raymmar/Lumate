@@ -30,26 +30,30 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
       <div className="min-h-screen bg-background">
         {/* Navbar with background extending full width */}
         <div className="w-full sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <PageContainer>
-            <div className="flex items-center">
-              <NavBar />
-              <div className="md:hidden ml-2">
-                <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                  <DrawerTrigger asChild>
-                    <Button variant="ghost" size="icon">
-                      <Menu className="h-5 w-5" />
-                      <span className="sr-only">Toggle menu</span>
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent>
-                    <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
-                      <SidebarContent />
-                    </div>
-                  </DrawerContent>
-                </Drawer>
-              </div>
+          <div className="border-b">
+            <div className="max-w-[1440px] mx-auto">
+              <PageContainer>
+                <div className="flex items-center">
+                  <NavBar />
+                  <div className="md:hidden ml-2">
+                    <Drawer open={isOpen} onOpenChange={setIsOpen}>
+                      <DrawerTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <Menu className="h-5 w-5" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DrawerTrigger>
+                      <DrawerContent>
+                        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
+                          <SidebarContent />
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
+                  </div>
+                </div>
+              </PageContainer>
             </div>
-          </PageContainer>
+          </div>
         </div>
 
         <PageContainer>
