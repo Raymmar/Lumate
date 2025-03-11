@@ -29,7 +29,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-lg text-wrap-pretty max-w-[80ch] truncate flex items-center gap-2">
+            <CardTitle className="text-lg truncate flex items-center gap-2">
               Welcome {firstName}!
             </CardTitle>
           </div>
