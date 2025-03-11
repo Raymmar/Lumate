@@ -41,8 +41,10 @@ export default function UserSettingsPage() {
   // Fetch fresh user data when component mounts
   const { data: freshUserData, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/auth/me'],
-    retry: 3,
-    retryDelay: 1000,
+    enabled: !!user, // Only run if we have a user
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache
+    refetchOnMount: true, // Always refetch on mount
   });
 
   useEffect(() => {
@@ -71,6 +73,12 @@ export default function UserSettingsPage() {
   useEffect(() => {
     if (freshUserData || user) {
       const currentUser = freshUserData || user;
+      console.log('Current user data:', {
+        isAdmin: currentUser.isAdmin,
+        subscriptionStatus: currentUser.subscriptionStatus,
+        stripeCustomerId: currentUser.stripeCustomerId
+      });
+
       form.reset({
         displayName: currentUser.displayName || "",
         bio: currentUser.bio || "",
@@ -91,8 +99,15 @@ export default function UserSettingsPage() {
 
   // Check subscription status from the most recent user data
   const currentUser = freshUserData || user;
-  const hasActiveSubscription = currentUser?.isAdmin || currentUser?.subscriptionStatus === 'active';
+  const hasActiveSubscription = Boolean(currentUser?.isAdmin || currentUser?.subscriptionStatus === 'active');
   const isLoading = !currentUser || isUserLoading;
+
+  console.log('Subscription check:', {
+    hasActiveSubscription,
+    isAdmin: currentUser?.isAdmin,
+    subscriptionStatus: currentUser?.subscriptionStatus,
+    isLoading
+  });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
