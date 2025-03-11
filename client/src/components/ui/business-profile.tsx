@@ -134,9 +134,9 @@ export function BusinessProfile({
                 <Badge 
                   key={index} 
                   variant="secondary" 
-                  className="rounded-lg whitespace-nowrap flex-shrink-0 inline-flex items-center"
+                  className="rounded-lg whitespace-nowrap flex-shrink-0 inline-flex items-center h-6 max-h-6 overflow-hidden"
                 >
-                  {tag}
+                  <span className="block truncate">{tag}</span>
                 </Badge>
               ))}
             </div>
