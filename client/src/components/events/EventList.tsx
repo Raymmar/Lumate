@@ -187,12 +187,11 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                     {rsvpStatus?.isGoing && (
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         onClick={handleAddToCalendar}
-                        className="text-xs px-2 h-6 flex items-center gap-1"
+                        className="text-xs px-2 h-6 flex items-center gap-1 text-muted-foreground hover:text-foreground"
                       >
                         <CalendarPlus className="h-3.5 w-3.5" />
-                        <span>Calendar</span>
                       </Button>
                     )}
                   </div>
@@ -246,12 +245,11 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                 {rsvpStatus?.isGoing && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={handleAddToCalendar}
-                    className="text-xs flex items-center gap-1"
+                    className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
                   >
                     <CalendarPlus className="h-3.5 w-3.5" />
-                    <span>Calendar</span>
                   </Button>
                 )}
               </div>
