@@ -41,13 +41,13 @@ export class StripeService {
         id: session.id,
         status: session.status,
         customerId: session.customer,
-        subscriptionId: session.subscription?.id || null
+        subscriptionId: typeof session.subscription === 'object' ? session.subscription.id : null
       });
 
       // Get the full subscription object if it exists
       let subscriptionDetails = null;
-      if (session.subscription) {
-        const subscription = session.subscription as Stripe.Subscription;
+      if (session.subscription && typeof session.subscription === 'object') {
+        const subscription = session.subscription;
 
         console.log('💳 Subscription details:', {
           id: subscription.id,
@@ -58,23 +58,25 @@ export class StripeService {
         subscriptionDetails = {
           id: subscription.id,
           status: subscription.status,
-          customerId: session.customer as string
+          customerId: typeof session.customer === 'string' ? session.customer : null
         };
 
         // Update user subscription in database
-        const user = await storage.getUserByStripeCustomerId(session.customer as string);
-        if (user) {
-          console.log('✏️ Updating user subscription:', {
-            userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
-          });
+        if (typeof session.customer === 'string') {
+          const user = await storage.getUserByStripeCustomerId(session.customer);
+          if (user) {
+            console.log('✏️ Updating user subscription:', {
+              userId: user.id,
+              subscriptionId: subscription.id,
+              status: subscription.status
+            });
 
-          await storage.updateUserSubscription(
-            user.id,
-            subscription.id,
-            subscription.status
-          );
+            await storage.updateUserSubscription(
+              user.id,
+              subscription.id,
+              subscription.status
+            );
+          }
         }
       }
 
@@ -126,7 +128,7 @@ export class StripeService {
       console.log('✅ Checkout session created:', {
         sessionId: session.id,
         customerId,
-        subscriptionId: session.subscription?.id
+        subscriptionId: typeof session.subscription === 'object' ? session.subscription.id : null
       });
 
       return session;
@@ -173,7 +175,10 @@ export class StripeService {
       console.log('Creating customer portal session for:', customerId);
 
       // Use production URL, fallback to environment URL only in development
-      const returnUrl = 'https://sarasota.tech/settings';
+      const returnUrl = process.env.REPLIT_DEPLOYMENT_URL 
+        ? `${process.env.REPLIT_DEPLOYMENT_URL}/settings`
+        : 'http://localhost:3000/settings';
+
       const session = await stripe.billingPortal.sessions.create({
         customer: customerId,
         return_url: returnUrl,
