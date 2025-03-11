@@ -69,7 +69,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  // First fetch the person details
+  // Fetch person details
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
@@ -92,70 +92,11 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         id: personData.id,
         userName: personData.userName,
         userId: personData.user?.id,
-        userEmail: personData.user?.email
+        userEmail: personData.user?.email,
+        userBadges: personData.user?.badges
       });
       return personData;
     }
-  });
-
-  // Separate query for badges
-  const { data: badges = [], isLoading: badgesLoading, error: badgesError } = useQuery({
-    queryKey: ['/api/users', person?.user?.id, 'badges'],
-    queryFn: async () => {
-      if (!person?.user?.id) {
-        console.log('No user ID available for badge fetch');
-        return [];
-      }
-
-      console.log('Attempting to fetch badges for user:', {
-        userId: person.user.id,
-        userName: person.userName
-      });
-
-      try {
-        // Log the full URL being requested
-        const badgeUrl = `/api/users/${person.user.id}/badges`;
-        console.log('Fetching badges from URL:', badgeUrl);
-
-        const badgesResponse = await fetch(badgeUrl);
-        const responseText = await badgesResponse.text();
-
-        console.log('Raw badges response:', responseText);
-
-        if (!badgesResponse.ok) {
-          console.error('Badge fetch failed:', {
-            userId: person.user.id,
-            status: badgesResponse.status,
-            statusText: badgesResponse.statusText,
-            responseText
-          });
-          return [];
-        }
-
-        // Try to parse the response as JSON
-        let badgesData;
-        try {
-          badgesData = JSON.parse(responseText);
-        } catch (parseError) {
-          console.error('Failed to parse badges response:', {
-            error: parseError,
-            responseText
-          });
-          return [];
-        }
-
-        console.log('Badges successfully fetched:', {
-          userId: person.user.id,
-          badges: badgesData,
-          badgeCount: badgesData.length
-        });
-        return badgesData;
-      } catch (error) {
-        console.error('Error fetching badges:', error);
-        return [];
-      }
-    },
-    enabled: !!person?.user?.id
   });
 
   // Fetch person's stats
@@ -185,7 +126,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
-  const isLoading = personLoading || statsLoading || eventsLoading || badgesLoading;
+  const isLoading = personLoading || statsLoading || eventsLoading;
 
   if (personError) {
     console.error('Error in PersonProfile:', personError);
@@ -215,14 +156,12 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  // Debug logging for full state
-  console.log('PersonProfile - Full state:', {
-    personId: person?.id,
-    userId: person?.user?.id,
-    badges,
-    badgeCount: badges?.length,
-    badgesError,
-    isLoading
+  // Log the profile data for debugging
+  console.log('PersonProfile - Profile data:', {
+    personId: person.id,
+    userId: person.user?.id,
+    userBadges: person.user?.badges,
+    badgeCount: person.user?.badges?.length
   });
 
   return (
@@ -255,7 +194,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {badges && badges.length > 0 && badges.map((badge) => {
+                {person.user?.badges && person.user.badges.length > 0 && person.user.badges.map((badge) => {
                   console.log('Rendering badge:', badge);
                   return (
                     <ProfileBadge
