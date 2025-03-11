@@ -155,7 +155,9 @@ export function EventsTable() {
                   queryClient.invalidateQueries({ queryKey: ["/api/events"] }), // Public events list
                   queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
                   queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/stats`] }),
-                  queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }) // Public stats
+                  queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }), // Public stats
+                  queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }), // Admin dashboard stats
+                  queryClient.invalidateQueries({ queryKey: ["/api/bulletin/stats"] }), // Bulletin board stats
                 ]);
 
                 toast({
@@ -330,7 +332,9 @@ export function EventsTable() {
         queryClient.invalidateQueries({ queryKey: ["/api/events"] }), // Public events list
         queryClient.invalidateQueries({ queryKey: ["/api/events/featured"] }),
         queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/stats`] }),
-        queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }) // Public stats
+        queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] }), // Public stats
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] }), // Admin dashboard stats
+        queryClient.invalidateQueries({ queryKey: ["/api/bulletin/stats"] }), // Bulletin board stats
       ]);
 
       toast({
