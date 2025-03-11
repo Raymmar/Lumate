@@ -94,32 +94,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
-  const handleRoleChange = async (roleName: string) => {
-    try {
-      const result = await apiRequest<{ roles: Role[] }>(
-        `/api/admin/members/${member.id}/roles/${roleName}`,
-        "POST",
-      );
-
-      if (result.roles) {
-        setRoles(result.roles);
-        queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
-
-        toast({
-          title: "Success",
-          description: `Updated roles for ${member.displayName || member.email}`,
-        });
-      }
-    } catch (error) {
-      console.error("Failed to update user roles:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update user roles",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleBadgeAssignment = async (badgeName: string) => {
     try {
       console.log("Starting badge assignment:", {
@@ -185,7 +159,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-16">
@@ -246,52 +219,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                   onCheckedChange={handleAdminToggle}
                 />
                 <Label htmlFor="admin-mode">Admin privileges</Label>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      {roles[0]?.name || "Select a role"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search roles..." />
-                      <CommandEmpty>No roles found.</CommandEmpty>
-                      <CommandGroup>
-                        <CommandItem onSelect={() => handleRoleChange("User")}>
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              roles[0]?.name === "User" ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          User
-                        </CommandItem>
-                        <CommandItem onSelect={() => handleRoleChange("Moderator")}>
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              roles[0]?.name === "Moderator" ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          Moderator
-                        </CommandItem>
-                        <CommandItem onSelect={() => handleRoleChange("Sponsor")}>
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              roles[0]?.name === "Sponsor" ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          Sponsor
-                        </CommandItem>
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
               </div>
 
               <div className="space-y-2">

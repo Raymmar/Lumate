@@ -709,6 +709,38 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { isAdmin } = req.body;
+
+      console.log('Updating admin status:', {
+        userId,
+        isAdmin
+      });
+
+      const result = await db
+        .update(users)
+        .set({ isAdmin })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!result[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      console.log('Successfully updated admin status:', {
+        userId,
+        isAdmin: result[0].isAdmin
+      });
+
+      return res.json(result[0]);
+    } catch (error) {
+      console.error('Failed to update admin status:', error);
+      return res.status(500).json({ error: "Failed to update admin status" });
+    }
+  });
+
   app.get("/api/people/:id", async (req, res) => {
     try {
       const personId = req.params.id;
