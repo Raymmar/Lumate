@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Shield, Star, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Shield, Star, X, Check } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -18,12 +18,11 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
@@ -44,7 +43,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
   const [badges, setBadges] = useState<BadgeType[]>(member.badges || []);
-  const [isSearching, setIsSearching] = useState(false);
+  const [open, setOpen] = useState(false);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -241,50 +240,78 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select
-                  onValueChange={handleRoleChange}
-                  defaultValue={roles[0]?.name || "User"}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="User">User</SelectItem>
-                    <SelectItem value="Moderator">Moderator</SelectItem>
-                    <SelectItem value="Sponsor">Sponsor</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      {roles[0]?.name || "Select a role"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search roles..." />
+                      <CommandEmpty>No roles found.</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem onSelect={() => handleRoleChange("User")}>
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              roles[0]?.name === "User" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          User
+                        </CommandItem>
+                        <CommandItem onSelect={() => handleRoleChange("Moderator")}>
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              roles[0]?.name === "Moderator" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Moderator
+                        </CommandItem>
+                        <CommandItem onSelect={() => handleRoleChange("Sponsor")}>
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              roles[0]?.name === "Sponsor" ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          Sponsor
+                        </CommandItem>
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
                 <Label>Badges</Label>
-                <Command className="rounded-lg border shadow-md">
-                  <CommandInput 
-                    placeholder="Search badges..." 
-                    onFocus={() => setIsSearching(true)}
-                    onBlur={(e) => {
-                      // Only hide if not clicking within the command menu
-                      if (!e.relatedTarget?.closest('.command-menu')) {
-                        setIsSearching(false);
-                      }
-                    }}
-                  />
-                  {isSearching && (
-                    <>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      Select badges
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search badges..." />
                       <CommandEmpty>No badges found.</CommandEmpty>
-                      <CommandGroup className="command-menu">
-                        {availableBadges
-                          .filter(badge => !badges.some(b => b.name === badge.name))
-                          .map((badge) => (
-                            <CommandItem
-                              key={badge.name}
-                              value={badge.name}
-                              onSelect={() => {
-                                handleBadgeAssignment(badge.name);
-                                setIsSearching(false);
-                              }}
-                              className="cursor-pointer"
-                            >
+                      <CommandGroup>
+                        {availableBadges.map((badge) => (
+                          <CommandItem
+                            key={badge.name}
+                            onSelect={() => {
+                              handleBadgeAssignment(badge.name);
+                              setOpen(false);
+                            }}
+                          >
+                            <div className="flex items-center">
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  badges.some(b => b.name === badge.name) ? "opacity-100" : "opacity-0"
+                                )}
+                              />
                               <div className="flex items-center gap-2">
                                 {badge.icon}
                                 <div>
@@ -292,12 +319,13 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                                   <div className="text-xs text-muted-foreground">{badge.description}</div>
                                 </div>
                               </div>
-                            </CommandItem>
-                          ))}
+                            </div>
+                          </CommandItem>
+                        ))}
                       </CommandGroup>
-                    </>
-                  )}
-                </Command>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>
