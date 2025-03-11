@@ -6,7 +6,7 @@ import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,16 +39,6 @@ interface MemberPreviewProps {
   onNavigate?: (member: User & { roles?: Role[]; person?: Person | null }) => void;
 }
 
-// Predefined badges with database-matching icon names
-const availableBadges = [
-  { name: "Founding Board", icon: "sprout", description: "Founding team and organizing committee" },
-  { name: "Founding Member", icon: "badge-dollar-sign", description: "$1,000 contribution to get the group started" },
-  { name: "OG", icon: "hand-metal", description: "Attended one of the first three meetups" },
-  { name: "2025 Summit", icon: "tickets", description: "Attended our inaugural tech summit" },
-  { name: "Volunteer", icon: "heart-handshake", description: "Has volunteered at 3 or more events in the last year" },
-  { name: "Newbie", icon: "loader", description: "Has attended less than 3 events" },
-];
-
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -73,6 +63,16 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const currentIndex = members.findIndex(m => m.id === member.id);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < members.length - 1;
+
+  // Fetch available badges from the API
+  const { data: availableBadges = [] } = useQuery<BadgeType[]>({
+    queryKey: ['/api/admin/badges'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/badges');
+      if (!response.ok) throw new Error('Failed to fetch available badges');
+      return response.json();
+    }
+  });
 
   const handleAdminToggle = async (checked: boolean) => {
     setIsAdmin(checked);
@@ -114,7 +114,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         "POST",
       );
 
-      console.log("Badge assignment response:", result);
       if (result.badges) {
         setBadges(result.badges);
         queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });

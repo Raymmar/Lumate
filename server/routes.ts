@@ -527,6 +527,33 @@ export async function registerRoutes(app: Express) {
   });
 
   // Badge management endpoints
+  app.get("/api/admin/badges", async (_req, res) => {
+    try {
+      console.log('Fetching available badges');
+      
+      const availableBadges = await db
+        .select({
+          id: badges.id,
+          name: badges.name,
+          description: badges.description,
+          icon: badges.icon,
+          isAutomatic: badges.isAutomatic
+        })
+        .from(badges)
+        .orderBy(badges.name);
+
+      console.log('Retrieved badges:', {
+        count: availableBadges.length,
+        badges: availableBadges.map(b => b.name)
+      });
+
+      return res.json(availableBadges);
+    } catch (error) {
+      console.error('Failed to fetch available badges:', error);
+      return res.status(500).json({ error: "Failed to fetch available badges" });
+    }
+  });
+
   app.post("/api/admin/members/:id/badges/:badgeName", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
