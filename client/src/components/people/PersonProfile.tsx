@@ -72,33 +72,44 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   // Enhanced error logging
   console.log('PersonProfile - Attempting to fetch profile for username:', username);
 
-  // Fetch person details with improved error handling
+  // First fetch person details with badges included
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
       console.log('Fetching person details for username:', username);
-      const response = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      // First get the person details
+      const personResponse = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
+      if (!personResponse.ok) {
+        const errorText = await personResponse.text();
         console.error('Failed to fetch person details:', {
-          status: response.status,
-          statusText: response.statusText,
+          status: personResponse.status,
+          statusText: personResponse.statusText,
           errorText,
           username
         });
-        throw new Error(`Failed to fetch person details: ${response.statusText}`);
+        throw new Error(`Failed to fetch person details: ${personResponse.statusText}`);
+      }
+      const personData = await personResponse.json();
+
+      // If we have a user, fetch their badges separately
+      if (personData.user?.id) {
+        const badgesResponse = await fetch(`/api/users/${personData.user.id}/badges`);
+        if (badgesResponse.ok) {
+          const badgesData = await badgesResponse.json();
+          personData.user.badges = badgesData;
+        }
       }
 
-      const data = await response.json();
       console.log('Successfully fetched person details:', {
-        id: data.id,
-        apiId: data.api_id,
-        username: data.userName,
-        user: data.user,
-        badges: data.user?.badges
+        id: personData.id,
+        apiId: personData.api_id,
+        username: personData.userName,
+        user: personData.user,
+        badges: personData.user?.badges
       });
-      return data;
+
+      return personData;
     }
   });
 
