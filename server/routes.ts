@@ -458,6 +458,12 @@ export async function registerRoutes(app: Express) {
       const userId = parseInt(req.params.id);
       const badgeName = req.params.badgeName;
 
+      console.log('Badge assignment request:', {
+        userId,
+        badgeName,
+        params: req.params
+      });
+
       // Verify the user exists
       const user = await db
         .select()
@@ -466,8 +472,14 @@ export async function registerRoutes(app: Express) {
         .limit(1);
 
       if (!user[0]) {
+        console.log('User not found:', userId);
         return res.status(404).json({ error: "User not found" });
       }
+
+      console.log('Found user:', {
+        userId: user[0].id,
+        email: user[0].email
+      });
 
       // Find the badge by name
       const badge = await db
@@ -477,8 +489,14 @@ export async function registerRoutes(app: Express) {
         .limit(1);
 
       if (!badge[0]) {
+        console.log('Badge not found:', badgeName);
         return res.status(404).json({ error: "Badge not found" });
       }
+
+      console.log('Found badge:', {
+        badgeId: badge[0].id,
+        badgeName: badge[0].name
+      });
 
       // Check if the badge is already assigned
       const existingAssignment = await db
@@ -493,12 +511,15 @@ export async function registerRoutes(app: Express) {
         .limit(1);
 
       if (!existingAssignment[0]) {
+        console.log('Assigning new badge to user');
         // Assign the badge
         await db.insert(userBadges).values({
           userId: userId,
           badgeId: badge[0].id,
           assignedAt: new Date().toISOString(),
         });
+      } else {
+        console.log('Badge already assigned');
       }
 
       // Get all badges for the user
@@ -513,6 +534,12 @@ export async function registerRoutes(app: Express) {
         .from(userBadges)
         .innerJoin(badges, eq(badges.id, userBadges.badgeId))
         .where(eq(userBadges.userId, userId));
+
+      console.log('Returning updated badge list:', {
+        userId,
+        badgeCount: userBadgesList.length,
+        badges: userBadgesList.map(b => b.name)
+      });
 
       return res.json({ badges: userBadgesList });
     } catch (error) {

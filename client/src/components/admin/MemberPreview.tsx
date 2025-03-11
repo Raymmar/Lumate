@@ -104,7 +104,12 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const handleBadgeAssignment = async (badgeName: string) => {
     try {
-      console.log("Assigning badge:", badgeName, "to user:", member.id);
+      console.log("Starting badge assignment:", {
+        userId: member.id,
+        badgeName,
+        currentBadges: badges.map(b => b.name)
+      });
+
       const result = await apiRequest<{ badges: BadgeType[] }>(
         `/api/admin/members/${member.id}/badges/${badgeName}`,
         "POST",
