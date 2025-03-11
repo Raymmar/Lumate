@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      // Fetch the associated user data if it exists
+      // Fetch the associated user data if it exists, now including badges
       const user = await db
         .select({
           id: users.id,
@@ -936,16 +936,45 @@ export async function registerRoutes(app: Express) {
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
 
+      // If we found a user, fetch their badges
+      let userWithBadges = user[0];
+      if (userWithBadges) {
+        const userBadges = await db
+          .select({
+            id: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic,
+          })
+          .from(userBadges)
+          .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+          .where(eq(userBadges.userId, userWithBadges.id));
+
+        console.log('Found badges for user:', {
+          userId: userWithBadges.id,
+          email: userWithBadges.email,
+          badgeCount: userBadges.length,
+          badges: userBadges.map(b => b.name)
+        });
+
+        userWithBadges = {
+          ...userWithBadges,
+          badges: userBadges
+        };
+      }
+
       // Attach the user data to the person object
       const personWithUser = {
         ...person,
-        user: user[0] || null
+        user: userWithBadges || null
       };
 
       console.log('API Response - Person found:', {
         username,
         personId: person.id,
-        hasUser: !!user[0],
+        hasUser: !!userWithBadges,
+        userBadges: userWithBadges?.badges?.length || 0,
         apiId: person.api_id
       });
 
