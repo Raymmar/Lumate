@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
-import { Star, Code, Heart, CalendarDays, Users } from 'lucide-react';
+import { Star, Code, Heart, CalendarDays, Users, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
@@ -33,6 +33,14 @@ interface Event {
   url: string | null;
 }
 
+interface Badge {
+  id: number;
+  name: string;
+  description: string | null;
+  icon: string;
+  isAutomatic: boolean;
+}
+
 interface Person {
   id: number;
   api_id: string;
@@ -48,6 +56,7 @@ interface Person {
     displayName: string;
     bio: string;
     isAdmin: boolean;
+    badges?: Badge[];
     [key: string]: any;
   };
 }
@@ -70,6 +79,27 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
     </div>
   );
 }
+
+// Badge icon mapping
+const getBadgeIcon = (badge: Badge) => {
+  // Default badge icons based on badge names
+  switch (badge.name) {
+    case "Founding Board":
+      return <Shield className="h-3 w-3" />;
+    case "Founding Member":
+      return <Star className="h-3 w-3" />;
+    case "OG":
+      return <Star className="h-3 w-3" />;
+    case "Summit Attendee":
+      return <Users className="h-3 w-3" />;
+    case "Volunteer":
+      return <Heart className="h-3 w-3" />;
+    case "Newbie":
+      return <Star className="h-3 w-3" />;
+    default:
+      return <Star className="h-3 w-3" />;
+  }
+};
 
 export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
@@ -100,7 +130,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
       console.log('Successfully fetched person details:', {
         id: data.id,
         apiId: data.api_id,
-        username: data.userName
+        username: data.userName,
+        hasBadges: data.user?.badges?.length > 0
       });
       return data;
     }
@@ -163,12 +194,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  const userBadges = [
-    { name: "Top Contributor", icon: <Star className="h-3 w-3" /> },
-    { name: "Code Mentor", icon: <Code className="h-3 w-3" /> },
-    { name: "Community Leader", icon: <Heart className="h-3 w-3" /> }
-  ];
-
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="md:col-span-2 space-y-4">
@@ -199,11 +224,11 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {userBadges.map((badge, index) => (
+                {person.user?.badges?.map((badge) => (
                   <ProfileBadge
-                    key={index}
+                    key={badge.id}
                     name={badge.name}
-                    icon={badge.icon}
+                    icon={getBadgeIcon(badge)}
                   />
                 ))}
               </div>
