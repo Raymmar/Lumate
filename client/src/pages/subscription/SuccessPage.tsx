@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function SubscriptionSuccessPage() {
   const [location, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session_id');
 
@@ -40,17 +41,21 @@ export default function SubscriptionSuccessPage() {
     retry: 3,
     retryDelay: 1000,
     refetchInterval: (data) => {
-      return data?.status !== 'complete' ? 2000 : false;
+      return !data || data.status !== 'complete' ? 2000 : false;
     }
   });
 
   useEffect(() => {
     if (sessionStatus?.status === 'complete') {
-      console.log('✨ Payment confirmed, redirecting to settings...');
+      console.log('✨ Payment confirmed, invalidating queries...');
+      // Invalidate relevant queries to trigger a refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+
       const timer = setTimeout(() => navigate('/settings'), 3000);
       return () => clearTimeout(timer);
     }
-  }, [sessionStatus, navigate]);
+  }, [sessionStatus, navigate, queryClient]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

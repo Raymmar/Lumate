@@ -81,14 +81,20 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  const { data: subscriptionStatus } = useQuery({
+  // Enhanced subscription status check with proper typing
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
       const response = await fetch('/api/subscription/status');
       if (!response.ok) throw new Error('Failed to fetch subscription status');
-      return response.json();
+      const data = await response.json();
+      return data as { status: string };
     },
     enabled: !!user && !user.isAdmin,
+    // Reduce stale time to ensure fresh data after payment
+    staleTime: 0,
+    // Add retry for better reliability
+    retry: 3,
   });
 
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
@@ -191,7 +197,7 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">{user.displayName || "Settings"}</CardTitle>
+              <CardTitle className="text-2xl font-semibold">{user?.displayName || "Settings"}</CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
@@ -229,6 +235,7 @@ export default function UserSettingsPage() {
                           <div className="relative">
                             <Textarea
                               {...field}
+                              value={field.value || ''}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
@@ -245,7 +252,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription ? (
+                  {!hasActiveSubscription && !isSubscriptionLoading ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">
@@ -537,7 +544,7 @@ export default function UserSettingsPage() {
                   )}
                 </Button>
 
-                {hasActiveSubscription && !user.isAdmin && (
+                {hasActiveSubscription && !user?.isAdmin && (
                   <Button
                     type="button"
                     variant="outline"
