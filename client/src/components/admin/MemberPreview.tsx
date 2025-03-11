@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Shield, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, Shield, Star, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -120,6 +120,32 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
+  const handleBadgeRemoval = async (badgeName: string) => {
+    try {
+      const result = await apiRequest<{ badges: Badge[] }>(
+        `/api/admin/members/${member.id}/badges/${badgeName}`,
+        "DELETE",
+      );
+
+      if (result.badges) {
+        setBadges(result.badges);
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+
+        toast({
+          title: "Success",
+          description: `Removed badge from ${member.displayName || member.email}`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to remove user badge:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove user badge",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNavigate = (nextMember: User & { roles?: Role[]; person?: Person | null }) => {
     if (onNavigate) {
       onNavigate(nextMember);
@@ -163,12 +189,19 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               </BadgeUI>
             ))}
             {badges.map((badge) => (
-              <ProfileBadge
-                key={badge.id}
-                name={badge.name}
-                icon={badge.icon}
-                variant="secondary"
-              />
+              <div key={badge.id} className="relative group">
+                <ProfileBadge
+                  name={badge.name}
+                  icon={availableBadges.find(b => b.name === badge.name)?.icon}
+                  variant="secondary"
+                />
+                <button
+                  onClick={() => handleBadgeRemoval(badge.name)}
+                  className="absolute -top-2 -right-2 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
             ))}
           </div>
 
@@ -215,14 +248,16 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                     <SelectValue placeholder="Select a badge to assign" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableBadges.map((badge) => (
-                      <SelectItem key={badge.name} value={badge.name}>
-                        <div className="flex items-center gap-2">
-                          {badge.icon}
-                          <span>{badge.name}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {availableBadges
+                      .filter(badge => !badges.some(b => b.name === badge.name))
+                      .map((badge) => (
+                        <SelectItem key={badge.name} value={badge.name}>
+                          <div className="flex items-center gap-2">
+                            {badge.icon}
+                            <span>{badge.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
