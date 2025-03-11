@@ -60,27 +60,6 @@ export default function UserSettingsPage() {
     }
   });
 
-  // Update form values when user data is available
-  useEffect(() => {
-    if (user) {
-      form.reset({
-        displayName: user.displayName || "",
-        bio: user.bio || "",
-        featuredImageUrl: user.featuredImageUrl || "",
-        companyName: user.companyName || "",
-        companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
-        phoneNumber: user.phoneNumber || "",
-        isPhonePublic: user.isPhonePublic || false,
-        isEmailPublic: user.isEmailPublic || false,
-        ctaText: user.ctaText || "",
-        customLinks: user.customLinks || [],
-        tags: user.tags || [],
-      });
-      setTags(user.tags || []);
-    }
-  }, [user, form.reset]);
-
   // Enhanced subscription status check with proper typing
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/status'],
@@ -91,22 +70,38 @@ export default function UserSettingsPage() {
       return data as { status: string };
     },
     enabled: !!user && !user.isAdmin,
-    // Reduce staleTime to ensure quicker updates
-    staleTime: 5000,
-    // Add polling to catch subscription changes
-    refetchInterval: 10000,
-    // Keep previous data while revalidating
+    // Remove caching to ensure fresh data always
+    staleTime: 0,
+    cacheTime: 0,
+    // Disable keepPreviousData to prevent showing stale data
     keepPreviousData: false,
     // Add retry for better reliability
     retry: 3,
+    // Poll frequently to catch any changes
+    refetchInterval: 5000,
   });
 
   // Strict subscription check
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
 
-  // If subscription becomes inactive, reset form
+  // Show loading state until we confirm subscription status
+  if (!user?.isAdmin && isSubscriptionLoading) {
+    return (
+      <DashboardLayout>
+        <div className="container max-w-3xl mx-auto pt-3 pb-6">
+          <Card className="border-none shadow-none">
+            <CardContent className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Reset form and block access when subscription is inactive
   useEffect(() => {
-    if (!hasActiveSubscription && !isSubscriptionLoading) {
+    if (!hasActiveSubscription && !user?.isAdmin) {
       form.reset({
         displayName: user?.displayName || "",
         bio: user?.bio || "",
@@ -122,11 +117,11 @@ export default function UserSettingsPage() {
         tags: [],
       });
     }
-  }, [hasActiveSubscription, isSubscriptionLoading, user?.displayName, user?.bio]);
+  }, [hasActiveSubscription, user?.isAdmin, user?.displayName, user?.bio, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
-      // Check subscription status before allowing update
+      // Double-check subscription status before allowing update
       if (!hasActiveSubscription && !user?.isAdmin) {
         throw new Error('Active subscription required to update profile');
       }
@@ -153,7 +148,10 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
+      // Invalidate queries to ensure fresh data
       queryClient.setQueryData(["/api/auth/me"], data);
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+
       toast({
         title: "Success",
         description: "Profile updated successfully"
@@ -282,7 +280,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription && !isSubscriptionLoading ? (
+                  {!hasActiveSubscription && !user?.isAdmin ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">

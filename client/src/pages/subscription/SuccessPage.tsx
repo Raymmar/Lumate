@@ -11,20 +11,10 @@ export default function SubscriptionSuccessPage() {
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session_id');
 
-  // Type the response data
-  type SessionResponse = {
-    status: 'complete' | 'pending';
-    debug?: {
-      sessionStatus: string;
-      paymentStatus: string;
-    };
-  };
-
+  // Verify the session status
   const { data: sessionStatus, isLoading, error } = useQuery({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
-      console.log('🔍 Verifying session:', sessionId);
-
       if (!sessionId) {
         throw new Error('No session ID provided');
       }
@@ -40,6 +30,10 @@ export default function SubscriptionSuccessPage() {
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
+    // Don't cache the result
+    cacheTime: 0,
+    staleTime: 0,
+    // Check frequently until complete
     refetchInterval: (data) => {
       return !data || data.status !== 'complete' ? 2000 : false;
     }
@@ -48,20 +42,24 @@ export default function SubscriptionSuccessPage() {
   useEffect(() => {
     if (sessionStatus?.status === 'complete') {
       console.log('✨ Payment confirmed, invalidating queries...');
-      // Force a refetch of all relevant queries
-      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
 
-      // Prefetch the subscription status to ensure it's ready when we navigate
+      // Remove all existing subscription-related data from cache
+      queryClient.removeQueries({ queryKey: ['/api/subscription/status'] });
+      queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
+
+      // Force a fresh fetch of subscription status
       queryClient.prefetchQuery({
         queryKey: ['/api/subscription/status'],
         queryFn: async () => {
           const response = await fetch('/api/subscription/status');
           if (!response.ok) throw new Error('Failed to fetch subscription status');
           return response.json();
-        }
+        },
+        cacheTime: 0,
+        staleTime: 0
       });
 
+      // Redirect after ensuring fresh data
       const timer = setTimeout(() => navigate('/settings'), 3000);
       return () => clearTimeout(timer);
     }
