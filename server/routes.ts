@@ -191,6 +191,50 @@ export async function registerRoutes(app: Express) {
   app.use('/api/unsplash', unsplashRouter);
   app.use('/api/stripe', stripeRouter);
 
+  app.post("/api/register", async (req, res) => {
+    try {
+      const userData = await insertUserSchema.parseAsync(req.body);
+      const hashedPassword = await hashPassword(userData.password);
+
+      // Create the user
+      const user = await storage.createUser({
+        ...userData,
+        password: hashedPassword,
+      });
+
+      // Start a session for the new user
+      req.session.userId = user.id;
+
+      // Process badges for the new user
+      try {
+        await badgeService.processUserBadges(user);
+        console.log(`Processed badges for new user ${user.email}`);
+      } catch (badgeError) {
+        // Log but don't fail registration if badge processing fails
+        console.error('Failed to process badges for new user:', {
+          userId: user.id,
+          email: user.email,
+          error: badgeError
+        });
+      }
+
+      res.json({ 
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          isAdmin: user.isAdmin
+        }
+      });
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error('Registration error:', error);
+      res.status(500).json({ error: "Failed to register user" });
+    }
+  });
+
   app.post("/api/admin/auto-assign-badges", async (_req: Request, res: Response) => {
     try {
       console.log('Starting automatic badge assignment process');
