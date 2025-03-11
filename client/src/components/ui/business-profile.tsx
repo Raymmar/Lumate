@@ -73,7 +73,7 @@ export function BusinessProfile({
                 <div className="flex items-start gap-2">
                   <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
                   <div className="text-left">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm">
                       {address.formatted_address}
                     </p>
                   </div>
