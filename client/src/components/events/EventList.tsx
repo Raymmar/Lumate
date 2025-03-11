@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, ExternalLink, Users } from "lucide-react";
+import { CalendarDays, ExternalLink, Users, CalendarPlus } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -36,6 +36,29 @@ function formatEventDate(utcDateStr: string, timezone: string | null): string {
     console.error("Invalid date format:", utcDateStr, error);
     return "Date not available";
   }
+}
+
+function generateCalendarUrl(event: Event) {
+  const startDate = new Date(event.startTime + 'Z');
+  const endDate = new Date(event.endTime + 'Z');
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().replace(/-|:|\.\d+/g, '');
+  };
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
+    details: event.description || '',
+    ctz: event.timezone || 'America/New_York',
+  });
+
+  if (event.location?.full_address) {
+    params.append('location', event.location.full_address);
+  }
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (event: Event) => void; compact?: boolean }) {
@@ -115,6 +138,12 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
     }
   };
 
+  const handleAddToCalendar = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(generateCalendarUrl(event), '_blank');
+  };
+
   if (compact) {
     return (
       <div
@@ -145,15 +174,27 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <AuthGuard>
-                  <Button
-                    size="sm"
-                    variant={rsvpStatus?.isGoing ? "outline" : "default"}
-                    onClick={handleRSVP}
-                    disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                    className="text-xs px-2 h-6"
-                  >
-                    {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                      onClick={handleRSVP}
+                      disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                      className="text-xs px-2 h-6"
+                    >
+                      {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+                    </Button>
+                    {rsvpStatus?.isGoing && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAddToCalendar}
+                        className="text-xs px-2 h-6"
+                      >
+                        <CalendarPlus className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </AuthGuard>
                 {!isAttendeesLoading && (
                   <span className="text-xs text-muted-foreground">
