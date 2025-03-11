@@ -1,7 +1,7 @@
 import { useToast } from "@/hooks/use-toast";
 import type { User, Role, Person, Badge } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge as BadgeUI } from "@/components/ui/badge";
+import { BadgeUI } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
@@ -17,6 +17,13 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
