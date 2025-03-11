@@ -55,7 +55,7 @@ export function BusinessProfile({
 
       <CardContent className="space-y-4">
         {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-muted-foreground">{description}</p>
         )}
 
         <div className="space-y-2">
