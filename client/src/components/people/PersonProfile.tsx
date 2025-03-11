@@ -88,13 +88,18 @@ export default function PersonProfile({ username }: PersonProfileProps) {
       }
 
       const personData = await personResponse.json();
-      console.log('Person data received:', personData);
+      console.log('Person data received:', {
+        id: personData.id,
+        userName: personData.userName,
+        userId: personData.user?.id,
+        userEmail: personData.user?.email
+      });
       return personData;
     }
   });
 
-  // Then fetch badges if we have a user ID
-  const { data: badges = [], isLoading: badgesLoading } = useQuery({
+  // Separate query for badges
+  const { data: badges = [], isLoading: badgesLoading, error: badgesError } = useQuery({
     queryKey: ['/api/users', person?.user?.id, 'badges'],
     queryFn: async () => {
       if (!person?.user?.id) {
@@ -108,17 +113,37 @@ export default function PersonProfile({ username }: PersonProfileProps) {
       });
 
       try {
-        const badgesResponse = await fetch(`/api/users/${person.user.id}/badges`);
+        // Log the full URL being requested
+        const badgeUrl = `/api/users/${person.user.id}/badges`;
+        console.log('Fetching badges from URL:', badgeUrl);
+
+        const badgesResponse = await fetch(badgeUrl);
+        const responseText = await badgesResponse.text();
+
+        console.log('Raw badges response:', responseText);
+
         if (!badgesResponse.ok) {
           console.error('Badge fetch failed:', {
             userId: person.user.id,
             status: badgesResponse.status,
-            statusText: badgesResponse.statusText
+            statusText: badgesResponse.statusText,
+            responseText
           });
           return [];
         }
 
-        const badgesData = await badgesResponse.json();
+        // Try to parse the response as JSON
+        let badgesData;
+        try {
+          badgesData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse badges response:', {
+            error: parseError,
+            responseText
+          });
+          return [];
+        }
+
         console.log('Badges successfully fetched:', {
           userId: person.user.id,
           badges: badgesData,
@@ -190,13 +215,14 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  // Debug logging for the full state
+  // Debug logging for full state
   console.log('PersonProfile - Full state:', {
-    person,
+    personId: person?.id,
+    userId: person?.user?.id,
     badges,
     badgeCount: badges?.length,
-    isLoading,
-    userId: person?.user?.id
+    badgesError,
+    isLoading
   });
 
   return (
@@ -229,7 +255,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {/* Show badges if they exist */}
                 {badges && badges.length > 0 && badges.map((badge) => {
                   console.log('Rendering badge:', badge);
                   return (
@@ -256,10 +281,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Show member details whenever we have user data */}
         {person.user && <MemberDetails user={person.user} />}
       </div>
-
       <div>
         <Card>
           <CardContent className="space-y-4 pt-4">
@@ -275,7 +298,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                 icon={<Users className="h-4 w-4 text-foreground" />}
               />
             </div>
-
             {events && events.length > 0 && (
               <div className="space-y-1 mt-4 border-t pt-4">
                 <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
