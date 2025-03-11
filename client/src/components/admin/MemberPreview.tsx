@@ -11,6 +11,18 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Shield, Star, X } from "lucide-react";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectTrigger,
@@ -37,6 +49,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
   const [badges, setBadges] = useState<Badge[]>(member.badges || []);
+  const [open, setOpen] = useState(false);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -104,10 +117,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       if (result.badges) {
         setBadges(result.badges);
         queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+        setOpen(false);
 
         toast({
           title: "Success",
-          description: `Updated badges for ${member.displayName || member.email}`,
+          description: `Added badge for ${member.displayName || member.email}`,
         });
       }
     } catch (error) {
@@ -242,24 +256,44 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               </div>
 
               <div className="space-y-2">
-                <Label>Assign Badge</Label>
-                <Select onValueChange={handleBadgeAssignment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a badge to assign" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableBadges
-                      .filter(badge => !badges.some(b => b.name === badge.name))
-                      .map((badge) => (
-                        <SelectItem key={badge.name} value={badge.name}>
-                          <div className="flex items-center gap-2">
-                            {badge.icon}
-                            <span>{badge.name}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+                <Label>Badges</Label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between"
+                    >
+                      Add badges...
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search badges..." />
+                      <CommandEmpty>No badges found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableBadges
+                          .filter(badge => !badges.some(b => b.name === badge.name))
+                          .map((badge) => (
+                            <CommandItem
+                              key={badge.name}
+                              value={badge.name}
+                              onSelect={() => handleBadgeAssignment(badge.name)}
+                            >
+                              <div className="flex items-center gap-2">
+                                {badge.icon}
+                                <div>
+                                  <div>{badge.name}</div>
+                                  <div className="text-xs text-muted-foreground">{badge.description}</div>
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardContent>
           </Card>
