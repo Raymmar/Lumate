@@ -5,16 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
+import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -36,7 +35,7 @@ export default function UserSettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
-  const [currentTag, setCurrentTag] = useState("");
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     initGoogleMaps();
@@ -72,19 +71,49 @@ export default function UserSettingsPage() {
     enabled: !!user && !user.isAdmin,
     // Remove caching to ensure fresh data always
     staleTime: 0,
-    cacheTime: 0,
-    // Disable keepPreviousData to prevent showing stale data
-    keepPreviousData: false,
-    // Add retry for better reliability
-    retry: 3,
-    // Poll frequently to catch any changes
-    refetchInterval: 5000,
+    refetchInterval: 5000
   });
 
   // Strict subscription check
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
 
-  // Show loading state until we confirm subscription status
+  // Initialize form with user data when available and subscription is active
+  useEffect(() => {
+    if (user && (!isSubscriptionLoading || user.isAdmin)) {
+      const shouldInitializeFullProfile = user.isAdmin || hasActiveSubscription;
+
+      form.reset({
+        displayName: user.displayName || "",
+        bio: user.bio || "",
+        // Only set premium fields if user has access
+        ...(shouldInitializeFullProfile ? {
+          featuredImageUrl: user.featuredImageUrl || "",
+          companyName: user.companyName || "",
+          companyDescription: user.companyDescription || "",
+          address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) : null,
+          phoneNumber: user.phoneNumber || "",
+          isPhonePublic: user.isPhonePublic || false,
+          isEmailPublic: user.isEmailPublic || false,
+          ctaText: user.ctaText || "",
+          customLinks: user.customLinks || [],
+        } : {
+          featuredImageUrl: "",
+          companyName: "",
+          companyDescription: "",
+          address: null,
+          phoneNumber: "",
+          isPhonePublic: false,
+          isEmailPublic: false,
+          ctaText: "",
+          customLinks: [],
+        }),
+        tags: user.tags || [],
+      });
+      setTags(user.tags || []);
+    }
+  }, [user, hasActiveSubscription, isSubscriptionLoading, form]);
+
+  // Show loading state while checking subscription
   if (!user?.isAdmin && isSubscriptionLoading) {
     return (
       <DashboardLayout>
@@ -98,26 +127,6 @@ export default function UserSettingsPage() {
       </DashboardLayout>
     );
   }
-
-  // Reset form and block access when subscription is inactive
-  useEffect(() => {
-    if (!hasActiveSubscription && !user?.isAdmin) {
-      form.reset({
-        displayName: user?.displayName || "",
-        bio: user?.bio || "",
-        featuredImageUrl: "",
-        companyName: "",
-        companyDescription: "",
-        address: null,
-        phoneNumber: "",
-        isPhonePublic: false,
-        isEmailPublic: false,
-        ctaText: "",
-        customLinks: [],
-        tags: [],
-      });
-    }
-  }, [hasActiveSubscription, user?.isAdmin, user?.displayName, user?.bio, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
