@@ -38,26 +38,24 @@ export default function SubscriptionSuccessPage() {
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
-    onSuccess: (data) => {
-      if (data.status === 'complete') {
-        // Invalidate user data to force a refresh with new subscription status
+    refetchInterval: (data) => {
+      // Keep polling until status is complete
+      return data?.status !== 'complete' ? 2000 : false;
+    },
+    onSettled: (data) => {
+      if (data?.status === 'complete') {
+        // Force refresh of user data
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
 
+        // Show success message
         toast({
           title: "Success!",
-          description: "Your subscription has been activated. Redirecting to settings...",
+          description: "Your subscription has been activated.",
         });
 
-        // Quick redirect to settings page
-        setTimeout(() => navigate('/settings'), 1500);
+        // Immediate redirect
+        navigate('/settings');
       }
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to verify subscription status",
-        variant: "destructive",
-      });
     }
   });
 
@@ -85,7 +83,7 @@ export default function SubscriptionSuccessPage() {
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
             <h1 className="text-2xl font-bold mt-4">Subscription Activated!</h1>
             <p className="text-muted-foreground mt-2">
-              Thank you for subscribing. Redirecting you to your settings...
+              Thank you for subscribing. Redirecting to settings...
             </p>
           </div>
         ) : (
