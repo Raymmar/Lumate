@@ -355,8 +355,17 @@ router.get('/subscription-status', async (req, res) => {
       return res.json({ status: 'inactive' });
     }
 
-    const subscriptionStatus = await StripeService.getSubscriptionStatus(user.stripeCustomerId);
-    return res.json(subscriptionStatus);
+    try {
+      const subscriptionStatus = await StripeService.getSubscriptionStatus(user.stripeCustomerId);
+      return res.json(subscriptionStatus);
+    } catch (error: any) {
+      // If customer not found, return inactive status instead of error
+      if (error?.raw?.code === 'resource_missing') {
+        console.log('Customer not found, returning inactive status');
+        return res.json({ status: 'inactive' });
+      }
+      throw error; // Re-throw other errors to be caught by outer catch block
+    }
   } catch (error: any) {
     console.error('Error checking subscription status:', error);
     return res.status(500).json({
