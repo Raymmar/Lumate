@@ -1,6 +1,6 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash } from "lucide-react";
+import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash, CalendarPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,29 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+function generateCalendarUrl(event: Event) {
+  const startDate = new Date(event.startTime + 'Z');
+  const endDate = new Date(event.endTime + 'Z');
+
+  const formatDate = (date: Date) => {
+    return date.toISOString().replace(/-|:|\.\d+/g, '');
+  };
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: event.title,
+    dates: `${formatDate(startDate)}/${formatDate(endDate)}`,
+    details: event.description || '',
+    ctz: event.timezone || 'America/New_York',
+  });
+
+  if (event.location?.full_address) {
+    params.append('location', event.location.full_address);
+  }
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 interface PublicEventPreviewProps {
   event: Event;
   onClose: () => void;
@@ -35,14 +58,14 @@ interface PublicEventPreviewProps {
   showActions?: boolean;
 }
 
-export function PublicEventPreview({ 
-  event, 
-  onClose, 
-  events = [], 
+export function PublicEventPreview({
+  event,
+  onClose,
+  events = [],
   onNavigate,
   onEdit,
   onDelete,
-  showActions = false 
+  showActions = false
 }: PublicEventPreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -229,8 +252,8 @@ export function PublicEventPreview({
                   {/* Tags Section */}
                   <div className="flex gap-2">
                     {event.tags?.map((tag) => (
-                      <Badge 
-                        key={tag} 
+                      <Badge
+                        key={tag}
                         variant="secondary"
                         className="bg-black/30 hover:bg-black/40 text-white border-none"
                       >
@@ -298,25 +321,37 @@ export function PublicEventPreview({
 
             {/* RSVP Section */}
             {user ? (
-              <Button
-                variant={rsvpStatus?.isGoing ? "default" : "outline"}
-                className={`w-full h-12 text-lg ${rsvpStatus?.isGoing && !isEventEnded ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
-                onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
-                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing || isEventEnded}
-              >
-                {rsvpMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Processing...
-                  </>
-                ) : isEventEnded ? (
-                  "Event has ended"
-                ) : rsvpStatus?.isGoing ? (
-                  "You're in"
-                ) : (
-                  "RSVP Now"
+              <div className="space-y-3">
+                <Button
+                  variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                  className={`w-full h-12 text-lg ${rsvpStatus?.isGoing && !isEventEnded ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                  onClick={() => !rsvpStatus?.isGoing && !isEventEnded && rsvpMutation.mutate()}
+                  disabled={rsvpMutation.isPending || rsvpStatus?.isGoing || isEventEnded}
+                >
+                  {rsvpMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : isEventEnded ? (
+                    "Event has ended"
+                  ) : rsvpStatus?.isGoing ? (
+                    "You're in"
+                  ) : (
+                    "RSVP Now"
+                  )}
+                </Button>
+                {rsvpStatus?.isGoing && !isEventEnded && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => window.open(generateCalendarUrl(event), '_blank')}
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Add to Calendar
+                  </Button>
                 )}
-              </Button>
+              </div>
             ) : isSubmitted ? (
               <Card>
                 <CardContent className="p-6">
