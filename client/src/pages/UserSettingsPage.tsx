@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
@@ -29,12 +28,33 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { z } from "zod";
+
+// Form validation schema
+const updateUserProfileSchema = z.object({
+  displayName: z.string().optional(),
+  bio: z.string().optional(),
+  featuredImageUrl: z.string().optional(),
+  companyName: z.string().optional(),
+  companyDescription: z.string().optional(),
+  address: z.any().optional(),
+  phoneNumber: z.string().optional(),
+  isPhonePublic: z.boolean().optional(),
+  isEmailPublic: z.boolean().optional(),
+  ctaText: z.string().optional(),
+  customLinks: z.array(z.object({
+    title: z.string(),
+    url: z.string()
+  })).optional(),
+  tags: z.array(z.string()).optional(),
+});
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState("");
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -77,9 +97,9 @@ export default function UserSettingsPage() {
   // Strict subscription check
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
 
-  // Initialize form with user data when available and subscription is active
+  // Initialize form with user data when available
   useEffect(() => {
-    if (user && (!isSubscriptionLoading || user.isAdmin)) {
+    if (user) {
       const shouldInitializeFullProfile = user.isAdmin || hasActiveSubscription;
 
       form.reset({
@@ -111,9 +131,9 @@ export default function UserSettingsPage() {
       });
       setTags(user.tags || []);
     }
-  }, [user, hasActiveSubscription, isSubscriptionLoading, form]);
+  }, [user, hasActiveSubscription, form]);
 
-  // Show loading state while checking subscription
+  // Show loading state while subscription status is being checked
   if (!user?.isAdmin && isSubscriptionLoading) {
     return (
       <DashboardLayout>
@@ -192,7 +212,7 @@ export default function UserSettingsPage() {
 
       const { url } = await response.json();
       if (!url) {
-        throw new Error('No portal URL received');
+        throw new Error('No checkout URL received');
       }
 
       window.location.href = url;
@@ -309,7 +329,7 @@ export default function UserSettingsPage() {
                     </Card>
                   ) : (
                     <>
-                      {/* Company Information */}
+                      {/* Premium Features */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">Company Information</h3>
 
@@ -338,6 +358,7 @@ export default function UserSettingsPage() {
                               <FormControl>
                                 <Input
                                   {...field}
+                                  value={field.value || ''}
                                   placeholder="Company name"
                                   className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
@@ -355,6 +376,7 @@ export default function UserSettingsPage() {
                               <FormControl>
                                 <Textarea
                                   {...field}
+                                  value={field.value || ''}
                                   placeholder="Describe your company..."
                                   className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
@@ -394,6 +416,7 @@ export default function UserSettingsPage() {
                                 <FormControl>
                                   <Input
                                     {...field}
+                                    value={field.value || ''}
                                     type="tel"
                                     placeholder="Phone number"
                                     className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
