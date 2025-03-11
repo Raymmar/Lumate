@@ -44,6 +44,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
   const [badges, setBadges] = useState<BadgeType[]>(member.badges || []);
+  const [isSearching, setIsSearching] = useState(false);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -103,11 +104,13 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const handleBadgeAssignment = async (badgeName: string) => {
     try {
+      console.log("Assigning badge:", badgeName, "to user:", member.id);
       const result = await apiRequest<{ badges: BadgeType[] }>(
         `/api/admin/members/${member.id}/badges/${badgeName}`,
         "POST",
       );
 
+      console.log("Badge assignment response:", result);
       if (result.badges) {
         setBadges(result.badges);
         queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
@@ -251,27 +254,44 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <div className="space-y-2">
                 <Label>Badges</Label>
                 <Command className="rounded-lg border shadow-md">
-                  <CommandInput placeholder="Search badges..." />
-                  <CommandEmpty>No badges found.</CommandEmpty>
-                  <CommandGroup>
-                    {availableBadges
-                      .filter(badge => !badges.some(b => b.name === badge.name))
-                      .map((badge) => (
-                        <CommandItem
-                          key={badge.name}
-                          value={badge.name}
-                          onSelect={() => handleBadgeAssignment(badge.name)}
-                        >
-                          <div className="flex items-center gap-2">
-                            {badge.icon}
-                            <div>
-                              <div>{badge.name}</div>
-                              <div className="text-xs text-muted-foreground">{badge.description}</div>
-                            </div>
-                          </div>
-                        </CommandItem>
-                      ))}
-                  </CommandGroup>
+                  <CommandInput 
+                    placeholder="Search badges..." 
+                    onFocus={() => setIsSearching(true)}
+                    onBlur={(e) => {
+                      // Only hide if not clicking within the command menu
+                      if (!e.relatedTarget?.closest('.command-menu')) {
+                        setIsSearching(false);
+                      }
+                    }}
+                  />
+                  {isSearching && (
+                    <>
+                      <CommandEmpty>No badges found.</CommandEmpty>
+                      <CommandGroup className="command-menu">
+                        {availableBadges
+                          .filter(badge => !badges.some(b => b.name === badge.name))
+                          .map((badge) => (
+                            <CommandItem
+                              key={badge.name}
+                              value={badge.name}
+                              onSelect={() => {
+                                handleBadgeAssignment(badge.name);
+                                setIsSearching(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2">
+                                {badge.icon}
+                                <div>
+                                  <div>{badge.name}</div>
+                                  <div className="text-xs text-muted-foreground">{badge.description}</div>
+                                </div>
+                              </div>
+                            </CommandItem>
+                          ))}
+                      </CommandGroup>
+                    </>
+                  )}
                 </Command>
               </div>
             </CardContent>

@@ -19,7 +19,7 @@ import { z } from "zod";
 import { sendVerificationEmail } from './email';
 import { hashPassword, comparePasswords } from './auth';
 import { ZodError } from 'zod';
-import { events, attendance } from '@shared/schema';
+import { events, attendance, badges, userBadges } from '@shared/schema';
 import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import { eq, and } from 'drizzle-orm';
@@ -449,6 +449,121 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to fetch people:', error);
       res.status(500).json({ error: "Failed to fetch people" });
+    }
+  });
+
+  // Badge management endpoints
+  app.post("/api/admin/members/:id/badges/:badgeName", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const badgeName = req.params.badgeName;
+
+      // Verify the user exists
+      const user = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user[0]) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Find the badge by name
+      const badge = await db
+        .select()
+        .from(badges)
+        .where(eq(badges.name, badgeName))
+        .limit(1);
+
+      if (!badge[0]) {
+        return res.status(404).json({ error: "Badge not found" });
+      }
+
+      // Check if the badge is already assigned
+      const existingAssignment = await db
+        .select()
+        .from(userBadges)
+        .where(
+          and(
+            eq(userBadges.userId, userId),
+            eq(userBadges.badgeId, badge[0].id)
+          )
+        )
+        .limit(1);
+
+      if (!existingAssignment[0]) {
+        // Assign the badge
+        await db.insert(userBadges).values({
+          userId: userId,
+          badgeId: badge[0].id,
+          assignedAt: new Date().toISOString(),
+        });
+      }
+
+      // Get all badges for the user
+      const userBadgesList = await db
+        .select({
+          id: badges.id,
+          name: badges.name,
+          description: badges.description,
+          icon: badges.icon,
+          isAutomatic: badges.isAutomatic,
+        })
+        .from(userBadges)
+        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+        .where(eq(userBadges.userId, userId));
+
+      return res.json({ badges: userBadgesList });
+    } catch (error) {
+      console.error('Failed to assign badge:', error);
+      return res.status(500).json({ error: "Failed to assign badge" });
+    }
+  });
+
+  app.delete("/api/admin/members/:id/badges/:badgeName", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const badgeName = req.params.badgeName;
+
+      // Find the badge by name
+      const badge = await db
+        .select()
+        .from(badges)
+        .where(eq(badges.name, badgeName))
+        .limit(1);
+
+      if (!badge[0]) {
+        return res.status(404).json({ error: "Badge not found" });
+      }
+
+      // Remove the badge assignment
+      await db
+        .delete(userBadges)
+        .where(
+          and(
+            eq(userBadges.userId, userId),
+            eq(userBadges.badgeId, badge[0].id)
+          )
+        );
+
+      // Get all remaining badges for the user
+      const userBadgesList = await db
+        .select({
+          id: badges.id,
+          name: badges.name,
+          description: badges.description,
+          icon: badges.icon,
+          isAutomatic: badges.isAutomatic,
+        })
+        .from(userBadges)
+        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+        .where(eq(userBadges.userId, userId));
+
+      return res.json({ badges: userBadgesList });
+    } catch (error) {
+      console.error('Failed to remove badge:', error);
+      return res.status(500).json({ error: "Failed to remove badge" });
     }
   });
 
