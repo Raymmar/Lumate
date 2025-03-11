@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -38,6 +38,13 @@ export default function UserSettingsPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
 
+  // Fetch fresh user data when component mounts
+  const { data: freshUserData, isLoading: isUserLoading } = useQuery({
+    queryKey: ['/api/auth/me'],
+    retry: 3,
+    retryDelay: 1000,
+  });
+
   useEffect(() => {
     initGoogleMaps();
   }, []);
@@ -62,34 +69,36 @@ export default function UserSettingsPage() {
 
   // Initialize form with user data when available
   useEffect(() => {
-    if (user) {
+    if (freshUserData || user) {
+      const currentUser = freshUserData || user;
       form.reset({
-        displayName: user.displayName || "",
-        bio: user.bio || "",
-        featuredImageUrl: user.featuredImageUrl || "",
-        companyName: user.companyName || "",
-        companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
-        phoneNumber: user.phoneNumber || "",
-        isPhonePublic: user.isPhonePublic || false,
-        isEmailPublic: user.isEmailPublic || false,
-        ctaText: user.ctaText || "",
-        customLinks: user.customLinks || [],
-        tags: user.tags || [],
+        displayName: currentUser.displayName || "",
+        bio: currentUser.bio || "",
+        featuredImageUrl: currentUser.featuredImageUrl || "",
+        companyName: currentUser.companyName || "",
+        companyDescription: currentUser.companyDescription || "",
+        address: currentUser.address ? (typeof currentUser.address === 'string' ? { address: currentUser.address } : currentUser.address) as Location : null,
+        phoneNumber: currentUser.phoneNumber || "",
+        isPhonePublic: currentUser.isPhonePublic || false,
+        isEmailPublic: currentUser.isEmailPublic || false,
+        ctaText: currentUser.ctaText || "",
+        customLinks: currentUser.customLinks || [],
+        tags: currentUser.tags || [],
       });
-      setTags(user.tags || []);
+      setTags(currentUser.tags || []);
     }
-  }, [user, form.reset]);
+  }, [freshUserData, user, form.reset]);
 
-  // Check subscription status directly from user object
-  const hasActiveSubscription = user?.isAdmin || user?.subscriptionStatus === 'active';
-  const isLoading = !user;
+  // Check subscription status from the most recent user data
+  const currentUser = freshUserData || user;
+  const hasActiveSubscription = currentUser?.isAdmin || currentUser?.subscriptionStatus === 'active';
+  const isLoading = !currentUser || isUserLoading;
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
-        displayName: user?.displayName,
+        displayName: currentUser?.displayName,
         address: data.address || null,
         tags: tags,
       };
@@ -188,7 +197,7 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">{user?.displayName || "Settings"}</CardTitle>
+              <CardTitle className="text-2xl font-semibold">{currentUser?.displayName || "Settings"}</CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
@@ -226,7 +235,6 @@ export default function UserSettingsPage() {
                           <div className="relative">
                             <Textarea
                               {...field}
-                              value={field.value || ''}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
@@ -379,7 +387,7 @@ export default function UserSettingsPage() {
 
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">{user?.email}</p>
+                            <p className="text-sm text-muted-foreground">{currentUser?.email}</p>
                           </div>
                           <FormField
                             control={form.control}
@@ -536,7 +544,7 @@ export default function UserSettingsPage() {
                   )}
                 </Button>
 
-                {hasActiveSubscription && !user?.isAdmin && (
+                {hasActiveSubscription && !currentUser?.isAdmin && (
                   <Button
                     type="button"
                     variant="outline"
