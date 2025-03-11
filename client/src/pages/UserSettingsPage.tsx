@@ -5,14 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput } from "@/components/ui/command";
+import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { type UpdateUserProfile, type Location } from "@shared/schema";
+import { cn } from "@/lib/utils";
+import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -28,26 +30,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { z } from "zod";
-
-// Form validation schema
-const updateUserProfileSchema = z.object({
-  displayName: z.string().optional(),
-  bio: z.string().optional(),
-  featuredImageUrl: z.string().optional(),
-  companyName: z.string().optional(),
-  companyDescription: z.string().optional(),
-  address: z.any().optional(),
-  phoneNumber: z.string().optional(),
-  isPhonePublic: z.boolean().optional(),
-  isEmailPublic: z.boolean().optional(),
-  ctaText: z.string().optional(),
-  customLinks: z.array(z.object({
-    title: z.string(),
-    url: z.string()
-  })).optional(),
-  tags: z.array(z.string()).optional(),
-});
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
@@ -55,7 +37,6 @@ export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
-  const queryClient = useQueryClient();
 
   useEffect(() => {
     initGoogleMaps();
@@ -79,6 +60,27 @@ export default function UserSettingsPage() {
     }
   });
 
+  // Update form values when user data is available
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        displayName: user.displayName || "",
+        bio: user.bio || "",
+        featuredImageUrl: user.featuredImageUrl || "",
+        companyName: user.companyName || "",
+        companyDescription: user.companyDescription || "",
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
+        phoneNumber: user.phoneNumber || "",
+        isPhonePublic: user.isPhonePublic || false,
+        isEmailPublic: user.isEmailPublic || false,
+        ctaText: user.ctaText || "",
+        customLinks: user.customLinks || [],
+        tags: user.tags || [],
+      });
+      setTags(user.tags || []);
+    }
+  }, [user, form.reset]);
+
   // Enhanced subscription status check with proper typing
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/status'],
@@ -89,72 +91,16 @@ export default function UserSettingsPage() {
       return data as { status: string };
     },
     enabled: !!user && !user.isAdmin,
-    // Remove caching to ensure fresh data always
+    // Reduce stale time to ensure fresh data after payment
     staleTime: 0,
-    refetchInterval: 5000
+    // Add retry for better reliability
+    retry: 3,
   });
 
-  // Strict subscription check
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
-
-  // Initialize form with user data when available
-  useEffect(() => {
-    if (user) {
-      const shouldInitializeFullProfile = user.isAdmin || hasActiveSubscription;
-
-      form.reset({
-        displayName: user.displayName || "",
-        bio: user.bio || "",
-        // Only set premium fields if user has access
-        ...(shouldInitializeFullProfile ? {
-          featuredImageUrl: user.featuredImageUrl || "",
-          companyName: user.companyName || "",
-          companyDescription: user.companyDescription || "",
-          address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) : null,
-          phoneNumber: user.phoneNumber || "",
-          isPhonePublic: user.isPhonePublic || false,
-          isEmailPublic: user.isEmailPublic || false,
-          ctaText: user.ctaText || "",
-          customLinks: user.customLinks || [],
-        } : {
-          featuredImageUrl: "",
-          companyName: "",
-          companyDescription: "",
-          address: null,
-          phoneNumber: "",
-          isPhonePublic: false,
-          isEmailPublic: false,
-          ctaText: "",
-          customLinks: [],
-        }),
-        tags: user.tags || [],
-      });
-      setTags(user.tags || []);
-    }
-  }, [user, hasActiveSubscription, form]);
-
-  // Show loading state while subscription status is being checked
-  if (!user?.isAdmin && isSubscriptionLoading) {
-    return (
-      <DashboardLayout>
-        <div className="container max-w-3xl mx-auto pt-3 pb-6">
-          <Card className="border-none shadow-none">
-            <CardContent className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </CardContent>
-          </Card>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
-      // Double-check subscription status before allowing update
-      if (!hasActiveSubscription && !user?.isAdmin) {
-        throw new Error('Active subscription required to update profile');
-      }
-
       const formattedData = {
         ...data,
         displayName: user?.displayName,
@@ -177,10 +123,7 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Invalidate queries to ensure fresh data
       queryClient.setQueryData(["/api/auth/me"], data);
-      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-
       toast({
         title: "Success",
         description: "Profile updated successfully"
@@ -212,7 +155,7 @@ export default function UserSettingsPage() {
 
       const { url } = await response.json();
       if (!url) {
-        throw new Error('No checkout URL received');
+        throw new Error('No portal URL received');
       }
 
       window.location.href = url;
@@ -309,7 +252,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription && !user?.isAdmin ? (
+                  {!hasActiveSubscription && !isSubscriptionLoading ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">
@@ -329,7 +272,7 @@ export default function UserSettingsPage() {
                     </Card>
                   ) : (
                     <>
-                      {/* Premium Features */}
+                      {/* Company Information */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">Company Information</h3>
 
@@ -358,7 +301,6 @@ export default function UserSettingsPage() {
                               <FormControl>
                                 <Input
                                   {...field}
-                                  value={field.value || ''}
                                   placeholder="Company name"
                                   className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
@@ -376,7 +318,6 @@ export default function UserSettingsPage() {
                               <FormControl>
                                 <Textarea
                                   {...field}
-                                  value={field.value || ''}
                                   placeholder="Describe your company..."
                                   className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
@@ -416,7 +357,6 @@ export default function UserSettingsPage() {
                                 <FormControl>
                                   <Input
                                     {...field}
-                                    value={field.value || ''}
                                     type="tel"
                                     placeholder="Phone number"
                                     className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
