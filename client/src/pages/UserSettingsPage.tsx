@@ -41,15 +41,31 @@ export default function UserSettingsPage() {
   // Fetch fresh user data when component mounts
   const { data: freshUserData, isLoading: isUserLoading } = useQuery({
     queryKey: ['/api/auth/me'],
-    enabled: !!user, // Only run if we have a user
-    staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache
-    refetchOnMount: true, // Always refetch on mount
+    enabled: true, // Always enabled
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    onSuccess: (data) => {
+      console.log('User data fetched:', {
+        data,
+        subscriptionStatus: data?.subscriptionStatus,
+        isAdmin: data?.isAdmin
+      });
+    },
+    onError: (error) => {
+      console.error('Error fetching user data:', error);
+    }
   });
 
   useEffect(() => {
+    console.log('Component mounted with user:', {
+      user,
+      freshUserData,
+      isUserLoading
+    });
+
     initGoogleMaps();
-  }, []);
+  }, [user, freshUserData, isUserLoading]);
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
@@ -71,14 +87,14 @@ export default function UserSettingsPage() {
 
   // Initialize form with user data when available
   useEffect(() => {
-    if (freshUserData || user) {
-      const currentUser = freshUserData || user;
-      console.log('Current user data:', {
-        isAdmin: currentUser.isAdmin,
-        subscriptionStatus: currentUser.subscriptionStatus,
-        stripeCustomerId: currentUser.stripeCustomerId
-      });
+    const currentUser = freshUserData || user;
+    console.log('Updating form with user data:', {
+      currentUser,
+      subscriptionStatus: currentUser?.subscriptionStatus,
+      isAdmin: currentUser?.isAdmin
+    });
 
+    if (currentUser) {
       form.reset({
         displayName: currentUser.displayName || "",
         bio: currentUser.bio || "",
@@ -99,14 +115,17 @@ export default function UserSettingsPage() {
 
   // Check subscription status from the most recent user data
   const currentUser = freshUserData || user;
-  const hasActiveSubscription = Boolean(currentUser?.isAdmin || currentUser?.subscriptionStatus === 'active');
-  const isLoading = !currentUser || isUserLoading;
+  const hasActiveSubscription = Boolean(
+    currentUser?.isAdmin || 
+    currentUser?.subscriptionStatus === 'active'
+  );
 
-  console.log('Subscription check:', {
+  console.log('Settings page state:', {
     hasActiveSubscription,
-    isAdmin: currentUser?.isAdmin,
+    currentUser,
+    isUserLoading,
     subscriptionStatus: currentUser?.subscriptionStatus,
-    isLoading
+    isAdmin: currentUser?.isAdmin
   });
 
   const updateProfileMutation = useMutation({
@@ -191,14 +210,17 @@ export default function UserSettingsPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  if (isLoading) {
+  if (isUserLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto" />
             <p className="mt-4 text-sm text-muted-foreground">
-              Loading your profile...
+              Loading profile data...
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Checking subscription status...
             </p>
           </div>
         </div>
