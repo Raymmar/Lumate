@@ -177,10 +177,10 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                      variant="outline"
                       onClick={handleRSVP}
                       disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                      className="text-xs px-2 h-6"
+                      className="text-xs px-2 h-6 bg-white/10 hover:bg-white/20"
                     >
                       {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
                     </Button>
@@ -189,7 +189,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                         size="sm"
                         variant="outline"
                         onClick={handleAddToCalendar}
-                        className="text-xs px-2 h-6 flex items-center gap-1 opacity-70 hover:opacity-100"
+                        className="text-xs px-2 h-6 flex items-center gap-1 bg-white/10 hover:bg-white/20 opacity-70 hover:opacity-100"
                       >
                         <CalendarPlus className="h-3.5 w-3.5" />
                       </Button>
@@ -235,8 +235,8 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="text-xs"
-                  variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                  className="text-xs bg-white/10 hover:bg-white/20"
+                  variant={rsvpStatus?.isGoing ? "outline" : "default"}
                   onClick={handleRSVP}
                   disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
                 >
@@ -247,7 +247,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                     size="sm"
                     variant="outline"
                     onClick={handleAddToCalendar}
-                    className="text-xs flex items-center gap-1 opacity-70 hover:opacity-100"
+                    className="text-xs flex items-center gap-1 bg-white/10 hover:bg-white/20 opacity-70 hover:opacity-100"
                   >
                     <CalendarPlus className="h-3.5 w-3.5" />
                   </Button>
