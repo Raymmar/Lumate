@@ -177,21 +177,21 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant={rsvpStatus?.isGoing ? "default" : "outline"}
                       onClick={handleRSVP}
                       disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                      className="text-xs px-2 h-6 bg-white/10 hover:bg-white/20"
+                      className="text-xs px-2 h-6"
                     >
                       {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
                     </Button>
                     {rsvpStatus?.isGoing && (
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         onClick={handleAddToCalendar}
-                        className="text-xs px-2 h-6 flex items-center gap-1 bg-white/10 hover:bg-white/20 opacity-70 hover:opacity-100"
+                        className="text-xs px-2 h-6 flex items-center gap-1 hover:bg-muted/50"
                       >
-                        <CalendarPlus className="h-3.5 w-3.5" />
+                        <CalendarPlus className="h-3.5 w-3.5 text-foreground/70" />
                       </Button>
                     )}
                   </div>
@@ -235,7 +235,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="text-xs bg-white/10 hover:bg-white/20"
+                  className="text-xs"
                   variant={rsvpStatus?.isGoing ? "outline" : "default"}
                   onClick={handleRSVP}
                   disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
@@ -245,11 +245,11 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                 {rsvpStatus?.isGoing && (
                   <Button
                     size="sm"
-                    variant="outline"
+                    variant="ghost"
                     onClick={handleAddToCalendar}
-                    className="text-xs flex items-center gap-1 bg-white/10 hover:bg-white/20 opacity-70 hover:opacity-100"
+                    className="text-xs flex items-center gap-1 hover:bg-muted/50"
                   >
-                    <CalendarPlus className="h-3.5 w-3.5" />
+                    <CalendarPlus className="h-3.5 w-3.5 text-foreground/70" />
                   </Button>
                 )}
               </div>
