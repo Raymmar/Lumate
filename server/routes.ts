@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      // Fetch the associated user data if it exists, now including badges
+      // Fetch the associated user data if it exists
       const user = await db
         .select({
           id: users.id,
@@ -936,60 +936,20 @@ export async function registerRoutes(app: Express) {
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
 
-      // If we found a user, fetch their badges
-      let userWithBadges = user[0];
-      if (userWithBadges) {
-        try {
-          const userBadges = await db
-            .select({
-              id: badges.id,
-              name: badges.name,
-              description: badges.description,
-              icon: badges.icon,
-              isAutomatic: badges.isAutomatic,
-              createdAt: badges.createdAt
-            })
-            .from(userBadges)
-            .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-            .where(eq(userBadges.userId, userWithBadges.id));
+      // Attach the user data to the person object
+      const personWithUser = {
+        ...person,
+        user: user[0] || null
+      };
 
-          console.log('Found badges for user:', {
-            userId: userWithBadges.id,
-            email: userWithBadges.email,
-            badgeCount: userBadges.length,
-            badges: userBadges.map(b => b.name)
-          });
+      console.log('API Response - Person found:', {
+        username,
+        personId: person.id,
+        hasUser: !!user[0],
+        apiId: person.api_id
+      });
 
-          // Create a new object with the correct shape
-          const userResponse = {
-            ...userWithBadges,
-            badges: userBadges
-          };
-
-          // Attach the user data to the person object
-          const personWithUser = {
-            ...person,
-            user: userResponse
-          };
-
-          console.log('API Response - Person found:', {
-            username,
-            personId: person.id,
-            hasUser: !!userResponse,
-            userBadges: userResponse.badges.length,
-            apiId: person.api_id
-          });
-
-          res.json(personWithUser);
-        } catch (error) {
-          console.error('Error fetching badges:', error);
-          // If there's an error fetching badges, return user without badges
-          res.json({ ...person, user: userWithBadges });
-        }
-      } else {
-        // No user found, return person without user data
-        res.json({ ...person, user: null });
-      }
+      res.json(personWithUser);
     } catch (error) {
       console.error('Failed to fetch person by username:', error);
       res.status(500).json({ 
