@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
-import { Star, Code, Heart, CalendarDays, Users } from 'lucide-react';
+import { Star, CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
@@ -69,20 +69,16 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  // Enhanced error logging
-  console.log('PersonProfile - Attempting to fetch profile for username:', username);
-
-  // First fetch person details with badges included
+  // First fetch the person details
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
       console.log('Fetching person details for username:', username);
-
-      // First get the person details
       const personResponse = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
+
       if (!personResponse.ok) {
         const errorText = await personResponse.text();
-        console.error('Failed to fetch person details:', {
+        console.error('Person fetch failed:', {
           status: personResponse.status,
           statusText: personResponse.statusText,
           errorText,
@@ -90,27 +86,35 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         });
         throw new Error(`Failed to fetch person details: ${personResponse.statusText}`);
       }
+
       const personData = await personResponse.json();
-
-      // If we have a user, fetch their badges separately
-      if (personData.user?.id) {
-        const badgesResponse = await fetch(`/api/users/${personData.user.id}/badges`);
-        if (badgesResponse.ok) {
-          const badgesData = await badgesResponse.json();
-          personData.user.badges = badgesData;
-        }
-      }
-
-      console.log('Successfully fetched person details:', {
-        id: personData.id,
-        apiId: personData.api_id,
-        username: personData.userName,
-        user: personData.user,
-        badges: personData.user?.badges
-      });
-
+      console.log('Person data received:', personData);
       return personData;
     }
+  });
+
+  // Then fetch badges if we have a user ID
+  const { data: badges, isLoading: badgesLoading } = useQuery<BadgeType[]>({
+    queryKey: ['/api/users', person?.user?.id, 'badges'],
+    queryFn: async () => {
+      if (!person?.user?.id) return [];
+      console.log('Fetching badges for user:', person.user.id);
+
+      const badgesResponse = await fetch(`/api/users/${person.user.id}/badges`);
+      if (!badgesResponse.ok) {
+        console.error('Badges fetch failed:', {
+          userId: person.user.id,
+          status: badgesResponse.status,
+          statusText: badgesResponse.statusText
+        });
+        return [];
+      }
+
+      const badgesData = await badgesResponse.json();
+      console.log('Badges received:', badgesData);
+      return badgesData;
+    },
+    enabled: !!person?.user?.id
   });
 
   // Fetch person's stats
@@ -140,7 +144,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
-  const isLoading = personLoading || statsLoading || eventsLoading;
+  const isLoading = personLoading || statsLoading || eventsLoading || badgesLoading;
 
   if (personError) {
     console.error('Error in PersonProfile:', personError);
@@ -170,11 +174,13 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  // Get available badges from the user if it exists
-  const userBadges = person.user?.badges || [];
-
-  console.log('PersonProfile - User badges:', userBadges);
-  console.log('PersonProfile - FULL PERSON DATA:', person);
+  // Log the full state for debugging
+  console.log('PersonProfile - Full state:', {
+    person,
+    badges,
+    isLoading,
+    userId: person?.user?.id
+  });
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -206,8 +212,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {/* Only render badges section if user has badges */}
-                {userBadges.length > 0 && userBadges.map((badge) => (
+                {/* Show badges if they exist */}
+                {badges && badges.length > 0 && badges.map((badge) => (
                   <ProfileBadge
                     key={badge.id}
                     name={badge.name}
