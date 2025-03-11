@@ -12,12 +12,6 @@ import { Button } from "@/components/ui/button";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Sprout,
-  BadgeDollarSign,
-  HandMetal,
-  Tickets,
-  HeartHandshake,
-  Loader,
   X, 
   Check 
 } from "lucide-react";
@@ -37,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import { getBadgeIcon } from "@/lib/badge-icons";
 
 interface MemberPreviewProps {
   member: User & { roles?: Role[]; person?: Person | null; badges?: BadgeType[] };
@@ -44,14 +39,14 @@ interface MemberPreviewProps {
   onNavigate?: (member: User & { roles?: Role[]; person?: Person | null }) => void;
 }
 
-// Predefined badges based on your requirements
+// Predefined badges with database-matching icon names
 const availableBadges = [
-  { name: "Founding Board", icon: <Sprout className="h-3 w-3" />, description: "Founding team and organizing committee" },
-  { name: "Founding Member", icon: <BadgeDollarSign className="h-3 w-3" />, description: "$1,000 contribution to get the group started" },
-  { name: "OG", icon: <HandMetal className="h-3 w-3" />, description: "Attended one of the first three meetups" },
-  { name: "Summit Attendee", icon: <Tickets className="h-3 w-3" />, description: "Attended our inaugural tech summit" },
-  { name: "Volunteer", icon: <HeartHandshake className="h-3 w-3" />, description: "Has volunteered at 3 or more events in the last year" },
-  { name: "Newbie", icon: <Loader className="h-3 w-3" />, description: "Has attended less than 6 events" },
+  { name: "Founding Board", icon: "sprout", description: "Founding team and organizing committee" },
+  { name: "Founding Member", icon: "badge-dollar-sign", description: "$1,000 contribution to get the group started" },
+  { name: "OG", icon: "hand-metal", description: "Attended one of the first three meetups" },
+  { name: "Summit Attendee", icon: "tickets", description: "Attended our inaugural tech summit" },
+  { name: "Volunteer", icon: "heart-handshake", description: "Has volunteered at 3 or more events in the last year" },
+  { name: "Newbie", icon: "loader", description: "Has attended less than 6 events" },
 ];
 
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
@@ -63,7 +58,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .map((n) => n[0])
       .join("") || member.email[0].toUpperCase();
 
-  // Initialize badges state with member.badges and log for debugging
   const [badges, setBadges] = useState<BadgeType[]>(() => {
     console.log("Initializing badges from member:", {
       memberBadges: member.badges,
@@ -76,13 +70,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(member.isAdmin);
 
-  // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < members.length - 1;
 
   const handleAdminToggle = async (checked: boolean) => {
-    // Optimistically update the UI
     setIsAdmin(checked);
 
     try {
@@ -92,7 +84,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         { isAdmin: checked },
       );
 
-      // Invalidate the members cache to trigger a refresh
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
 
       toast({
@@ -100,7 +91,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         description: `Admin status ${checked ? "granted to" : "revoked from"} ${member.displayName || member.email}`,
       });
     } catch (error) {
-      // Revert the optimistic update on error
       setIsAdmin(!checked);
       console.error("Failed to update admin status:", error);
       toast({
@@ -170,12 +160,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
-  const handleNavigate = (nextMember: User & { roles?: Role[]; person?: Person | null }) => {
-    if (onNavigate) {
-      onNavigate(nextMember);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-16">
@@ -206,7 +190,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <div key={badge.id} className="relative group">
                 <ProfileBadge
                   name={badge.name}
-                  icon={availableBadges.find(b => b.name === badge.name)?.icon}
+                  icon={getBadgeIcon(badge.icon)}
                   variant="secondary"
                 />
                 <button
@@ -267,7 +251,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                                 )}
                               />
                               <div className="flex items-center gap-2">
-                                {badge.icon}
+                                {getBadgeIcon(badge.icon)}
                                 <div>
                                   <div>{badge.name}</div>
                                   <div className="text-xs text-muted-foreground">{badge.description}</div>
@@ -295,7 +279,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         </div>
       </div>
 
-      {/* Navigation */}
       {members.length > 1 && onNavigate && (
         <div className="absolute bottom-0 left-0 right-0 border-t bg-background">
           <div className="flex justify-between items-center p-4">

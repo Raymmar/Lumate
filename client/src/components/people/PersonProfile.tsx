@@ -6,20 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
-import { 
-  Sprout, 
-  BadgeDollarSign, 
-  HandMetal, 
-  Tickets, 
-  HeartHandshake, 
-  Loader,
-  CalendarDays, 
-  Users, 
-  Shield 
-} from 'lucide-react';
+import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import { getBadgeIcon } from '@/lib/badge-icons';
 
 interface PersonProfileProps {
   username: string;
@@ -90,35 +81,18 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
   );
 }
 
-// Badge icon mapping
-const getBadgeIcon = (badge: Badge) => {
-  // Default badge icons based on badge names
-  switch (badge.name) {
-    case "Founding Board":
-      return <Sprout className="h-3 w-3" />;
-    case "Founding Member":
-      return <BadgeDollarSign className="h-3 w-3" />;
-    case "OG":
-      return <HandMetal className="h-3 w-3" />;
-    case "Summit Attendee":
-      return <Tickets className="h-3 w-3" />;
-    case "Volunteer":
-      return <HeartHandshake className="h-3 w-3" />;
-    case "Newbie":
-      return <Loader className="h-3 w-3" />;
-    default:
-      return <Shield className="h-3 w-3" />;
-  }
+
+// Update the getBadgeIcon function to use the icon from the database
+const renderBadgeIcon = (badge: Badge) => {
+  return getBadgeIcon(badge.icon);
 };
 
 export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  // Enhanced error logging
   console.log('PersonProfile - Attempting to fetch profile for username:', username);
 
-  // Fetch person details with improved error handling
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
     queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
@@ -147,7 +121,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     }
   });
 
-  // Fetch person's stats
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/people', person?.api_id, 'stats'],
     queryFn: async () => {
@@ -159,7 +132,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     enabled: !!person?.api_id
   });
 
-  // Fetch person's events
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ['/api/people', person?.api_id, 'events'],
     queryFn: async () => {
@@ -238,7 +210,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   <ProfileBadge
                     key={badge.id}
                     name={badge.name}
-                    icon={getBadgeIcon(badge)}
+                    icon={renderBadgeIcon(badge)}
                   />
                 ))}
               </div>
@@ -256,44 +228,43 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Show member details whenever we have user data */}
         {person.user && <MemberDetails user={person.user} />}
       </div>
 
       <div>
         <Card>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-4">
-                  <StatsCard
-                    title="First Seen"
-                    value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
-                    icon={<CalendarDays className="h-4 w-4 text-foreground" />}
-                  />
-                  <StatsCard
-                    title="Events Attended"
-                    value={events?.length || 0}
-                    icon={<Users className="h-4 w-4 text-foreground" />}
-                  />
-                </div>
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-4">
+              <StatsCard
+                title="First Seen"
+                value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
+                icon={<CalendarDays className="h-4 w-4 text-foreground" />}
+              />
+              <StatsCard
+                title="Events Attended"
+                value={events?.length || 0}
+                icon={<Users className="h-4 w-4 text-foreground" />}
+              />
+            </div>
 
-                {events?.length > 0 && (
-                  <div className="space-y-1 mt-4 border-t pt-4">
-                    <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
-                      {events.map((event) => (
-                        <div key={event.api_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                          <div>
-                            <p className="text-sm font-medium">{event.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+            {events?.length > 0 && (
+              <div className="space-y-1 mt-4 border-t pt-4">
+                <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
+                  {events.map((event) => (
+                    <div key={event.api_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                      <div>
+                        <p className="text-sm font-medium">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
