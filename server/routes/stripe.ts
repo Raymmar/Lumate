@@ -47,7 +47,7 @@ router.get('/ping', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Create checkout session
+// Update the create-checkout-session route
 router.post('/create-checkout-session', async (req, res) => {
   try {
     if (!process.env.STRIPE_PRICE_ID) {
@@ -70,16 +70,27 @@ router.post('/create-checkout-session', async (req, res) => {
       user.stripeCustomerId = customer.id;
     }
 
-    const session = await StripeService.createCheckoutSession(
-      user.stripeCustomerId,
-      process.env.STRIPE_PRICE_ID,
-      user.id
-    );
+    // Create a PaymentIntent instead of a Session
+    const paymentIntent = await stripe.paymentIntents.create({
+      customer: user.stripeCustomerId,
+      setup_future_usage: 'off_session',
+      amount: 2000, // Amount in cents
+      currency: 'usd',
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        userId: user.id.toString(),
+      },
+    });
 
-    res.json({ url: session.url });
+    res.json({ 
+      clientSecret: paymentIntent.client_secret,
+      customerId: user.stripeCustomerId 
+    });
   } catch (error: any) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    console.error('Error creating payment intent:', error);
+    res.status(500).json({ error: 'Failed to create payment intent' });
   }
 });
 
