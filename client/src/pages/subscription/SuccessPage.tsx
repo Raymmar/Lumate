@@ -4,16 +4,21 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SubscriptionSuccessPage() {
   const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session_id');
 
-  // Type the response data
   type SessionResponse = {
     status: 'complete' | 'pending';
+    subscription?: {
+      id: string;
+      status: string;
+    };
     debug?: {
       sessionStatus: string;
       paymentStatus: string;
@@ -23,8 +28,6 @@ export default function SubscriptionSuccessPage() {
   const { data: sessionStatus, isLoading, error } = useQuery({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
-      console.log('🔍 Verifying session:', sessionId);
-
       if (!sessionId) {
         throw new Error('No session ID provided');
       }
@@ -35,27 +38,38 @@ export default function SubscriptionSuccessPage() {
         throw new Error(errorData.message || 'Failed to verify payment status');
       }
 
-      return response.json();
+      return response.json() as Promise<SessionResponse>;
     },
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
     refetchInterval: (data) => {
       return !data || data.status !== 'complete' ? 2000 : false;
+    },
+    onSuccess: (data) => {
+      if (data.status === 'complete') {
+        // Invalidate multiple queries to ensure fresh data
+        queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+
+        // Show success toast
+        toast({
+          title: "Subscription Activated",
+          description: "Your subscription has been successfully activated.",
+        });
+
+        // Redirect after a short delay
+        setTimeout(() => navigate('/settings'), 2000);
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Verification Error",
+        description: error instanceof Error ? error.message : "Failed to verify subscription status",
+        variant: "destructive",
+      });
     }
   });
-
-  useEffect(() => {
-    if (sessionStatus?.status === 'complete') {
-      console.log('✨ Payment confirmed, invalidating queries...');
-      // Invalidate relevant queries to trigger a refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
-
-      const timer = setTimeout(() => navigate('/settings'), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [sessionStatus, navigate, queryClient]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -92,11 +106,16 @@ export default function SubscriptionSuccessPage() {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Loader2 className="h-12 w-12 text-yellow-500 mx-auto animate-spin" />
+            <Loader2 className="h-12 w-12 animate-spin mx-auto text-yellow-500" />
             <h1 className="text-2xl font-bold mt-4">Processing Payment</h1>
             <p className="text-muted-foreground mt-2">
               We're confirming your subscription...
             </p>
+            {sessionStatus?.debug && (
+              <p className="text-xs text-muted-foreground mt-4">
+                Status: {sessionStatus.debug.paymentStatus}
+              </p>
+            )}
           </div>
         )}
       </Card>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Lock } from "lucide-react";
+import { Loader2, Plus, X, Lock, AlertCircle } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,44 +60,27 @@ export default function UserSettingsPage() {
     }
   });
 
-  // Update form values when user data is available
-  useEffect(() => {
-    if (user) {
-      form.reset({
-        displayName: user.displayName || "",
-        bio: user.bio || "",
-        featuredImageUrl: user.featuredImageUrl || "",
-        companyName: user.companyName || "",
-        companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
-        phoneNumber: user.phoneNumber || "",
-        isPhonePublic: user.isPhonePublic || false,
-        isEmailPublic: user.isEmailPublic || false,
-        ctaText: user.ctaText || "",
-        customLinks: user.customLinks || [],
-        tags: user.tags || [],
-      });
-      setTags(user.tags || []);
-    }
-  }, [user, form.reset]);
-
-  // Enhanced subscription status check with proper typing
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
+  // Enhanced subscription status check with proper typing and reliability
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading, error: subscriptionError } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
       const response = await fetch('/api/subscription/status');
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
-      const data = await response.json();
-      return data as { status: string };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch subscription status');
+      }
+      return response.json() as Promise<{ status: string }>;
     },
     enabled: !!user && !user.isAdmin,
-    // Reduce stale time to ensure fresh data after payment
     staleTime: 0,
-    // Add retry for better reliability
     retry: 3,
+    retryDelay: 1000,
+    refetchInterval: 5000, // Poll every 5 seconds to keep status current
+    refetchOnWindowFocus: true,
   });
 
   const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+  const isLoading = !user || isSubscriptionLoading;
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -181,11 +164,31 @@ export default function UserSettingsPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  if (!user) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Verifying account status...
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (subscriptionError) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
+            <p className="mt-4 text-sm text-muted-foreground">
+              Error verifying account status. Please refresh the page.
+            </p>
+          </div>
         </div>
       </DashboardLayout>
     );
