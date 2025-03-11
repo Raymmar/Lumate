@@ -16,10 +16,36 @@ export class BadgeService {
   }
 
   private async getBadgeByName(name: string) {
+    console.log('Looking up badge:', { searchName: name });
+
+    // Handle common badge name variations
+    const badgeNameMap: { [key: string]: string } = {
+      'Summit Attendee': '2025 Summit',
+      '2025 Summit': '2025 Summit',
+    };
+
+    const searchName = badgeNameMap[name] || name;
+
     const [badge] = await db
       .select()
       .from(badges)
-      .where(eq(badges.name, name));
+      .where(sql`LOWER(name) = LOWER(${searchName})`);
+
+    if (!badge) {
+      console.log('Badge not found in database:', { 
+        searchName,
+        originalName: name,
+        mapped: !!badgeNameMap[name]
+      });
+    } else {
+      console.log('Found badge:', { 
+        id: badge.id, 
+        name: badge.name,
+        searchName,
+        originalName: name 
+      });
+    }
+
     return badge;
   }
 
@@ -42,19 +68,38 @@ export class BadgeService {
   }
 
   private async assignBadge(userId: number, badgeId: number) {
-    return db
-      .insert(userBadges)
-      .values({
+    console.log('Assigning badge:', { userId, badgeId });
+
+    try {
+      const [assignment] = await db
+        .insert(userBadges)
+        .values({
+          userId,
+          badgeId,
+          assignedAt: new Date().toISOString(),
+        })
+        .returning();
+
+      console.log('Successfully assigned badge:', {
         userId,
         badgeId,
-        assignedAt: new Date().toISOString(),
-      })
-      .returning();
+        assignment
+      });
+
+      return assignment;
+    } catch (error) {
+      console.error('Failed to assign badge:', {
+        userId,
+        badgeId,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      throw error;
+    }
   }
 
   public async processUserBadges(user: any) {
     console.log(`Processing badges for user ${user.email}`);
-    
+
     const userAttendance = await this.getUserAttendance(user.email);
     console.log(`Found ${userAttendance.length} attendance records`);
 
@@ -64,7 +109,7 @@ export class BadgeService {
     const hasSummitAttendance = userAttendance.some(record => 
       record.eventApiId === 'evt-7mHZuVCKYfqARWL'
     );
-    
+
     // OG Badge
     const ogEvents = [
       'evt-KUEx5csMUv6otHD',
@@ -81,7 +126,7 @@ export class BadgeService {
 
     // Get badge definitions
     const [summitBadge, ogBadge, newbieBadge] = await Promise.all([
-      this.getBadgeByName('Summit Attendee'),
+      this.getBadgeByName('2025 Summit'),
       this.getBadgeByName('OG'),
       this.getBadgeByName('Newbie')
     ]);
@@ -91,7 +136,7 @@ export class BadgeService {
 
     if (hasSummitAttendance && summitBadge && !this.hasBadge(existingBadges, summitBadge.id)) {
       assignments.push(this.assignBadge(user.id, summitBadge.id));
-      console.log(`Assigning Summit Attendee badge to ${user.email}`);
+      console.log(`Assigning Summit badge to ${user.email}`);
     }
 
     if (hasOgAttendance && ogBadge && !this.hasBadge(existingBadges, ogBadge.id)) {
@@ -114,7 +159,7 @@ export class BadgeService {
 
   public async runDailyBadgeAssignment() {
     console.log('Starting daily badge assignment process');
-    
+
     try {
       const allUsers = await db.select().from(users);
       console.log(`Processing ${allUsers.length} users for badge assignment`);
