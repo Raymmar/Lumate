@@ -660,11 +660,11 @@ export async function registerRoutes(app: Express) {
 
       // Remove the badge assignment
       await db
-        .delete(userBadges)
+        .delete(userBadgesTable)
         .where(
           and(
-            eq(userBadges.userId, userId),
-            eq(userBadges.badgeId, badge[0].id)
+            eq(userBadgesTable.userId, userId),
+            eq(userBadgesTable.badgeId, badge[0].id)
           )
         );
 
@@ -726,7 +726,6 @@ export async function registerRoutes(app: Express) {
       const usersWithBadgesAndProfile = await Promise.all(
         allUsers.map(async (user) => {
           // Fetch badges for this user
-          const userBadgesTable = userBadges;
           const assignedBadges = await db
             .select({
               id: badges.id,
@@ -1259,9 +1258,9 @@ export async function registerRoutes(app: Express) {
           icon: badges.icon,
           isAutomatic: badges.isAutomatic,
         })
-        .from(userBadges)
-        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-        .where(eq(userBadges.userId, userId));
+        .from(userBadgesTable)
+        .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+        .where(eq(userBadgesTable.userId, userId));
 
       console.log('Retrieved user badges:', {
         userId,
