@@ -5,6 +5,7 @@ import session from 'express-session';
 import connectPg from 'connect-pg-simple';
 import unsplashRoutes from './routes/unsplash';
 import stripeRoutes from './routes/stripe';
+import { badgeService } from './services/BadgeService';
 
 const app = express();
 
@@ -68,6 +69,27 @@ app.use(session({
     console.error('Server error:', err);
     res.status(err.status || 500).json({ message: err.message || "Internal Server Error" });
   });
+
+  // Schedule daily badge assignment
+  // Run it immediately when the server starts
+  try {
+    console.log('Running initial badge assignment...');
+    await badgeService.runDailyBadgeAssignment();
+    console.log('Initial badge assignment completed');
+  } catch (error) {
+    console.error('Failed to run initial badge assignment:', error);
+  }
+
+  // Then schedule it to run every 24 hours
+  setInterval(async () => {
+    try {
+      console.log('Running scheduled badge assignment...');
+      await badgeService.runDailyBadgeAssignment();
+      console.log('Scheduled badge assignment completed');
+    } catch (error) {
+      console.error('Failed to run scheduled badge assignment:', error);
+    }
+  }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
 
   // Start server
   const port = 5000;
