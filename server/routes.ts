@@ -16,7 +16,7 @@ import {
   updateUserProfileSchema,
   attendance,
   badges,
-  userBadges,
+  userBadges as userBadgesTable,
   posts,
   tags,
   postTags,
@@ -575,11 +575,11 @@ export async function registerRoutes(app: Express) {
       // Check if the badge is already assigned
       const existingAssignment = await db
         .select()
-        .from(userBadges)
+        .from(userBadgesTable)
         .where(
           and(
-            eq(userBadges.userId, userId),
-            eq(userBadges.badgeId, badge[0].id)
+            eq(userBadgesTable.userId, userId),
+            eq(userBadgesTable.badgeId, badge[0].id)
           )
         )
         .limit(1);
@@ -594,7 +594,7 @@ export async function registerRoutes(app: Express) {
         try {
           // Assign the badge
           const [insertedBadge] = await db
-            .insert(userBadges)
+            .insert(userBadgesTable)
             .values({
               userId: userId,
               badgeId: badge[0].id,
@@ -621,9 +621,9 @@ export async function registerRoutes(app: Express) {
             icon: badges.icon,
             isAutomatic: badges.isAutomatic,
           })
-          .from(userBadges)
-          .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-          .where(eq(userBadges.userId, userId));
+          .from(userBadgesTable)
+          .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .where(eq(userBadgesTable.userId, userId));
 
         console.log('Retrieved updated badge list:', {
           userId,
@@ -677,9 +677,9 @@ export async function registerRoutes(app: Express) {
           icon: badges.icon,
           isAutomatic: badges.isAutomatic,
         })
-        .from(userBadges)
-        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-        .where(eq(userBadges.userId, userId));
+        .from(userBadgesTable)
+        .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+        .where(eq(userBadgesTable.userId, userId));
 
       return res.json({ badges: userBadgesList });
     } catch (error) {
@@ -939,7 +939,8 @@ export async function registerRoutes(app: Express) {
       // If we found a user, fetch their badges
       let userWithBadges = null;
       if (user[0]) {
-        const userBadges = await db
+        // Fetch badges for this user
+        const userBadgesList = await db
           .select({
             id: badges.id,
             name: badges.name,
@@ -947,14 +948,20 @@ export async function registerRoutes(app: Express) {
             icon: badges.icon,
             isAutomatic: badges.isAutomatic,
           })
-          .from(userBadges)
-          .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-          .where(eq(userBadges.userId, user[0].id));
+          .from(userBadgesTable)
+          .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .where(eq(userBadgesTable.userId, user[0].id));
 
         userWithBadges = {
           ...user[0],
-          badges: userBadges
+          badges: userBadgesList
         };
+
+        console.log('Found badges for user:', {
+          userId: user[0].id,
+          badgeCount: userBadgesList.length,
+          badges: userBadgesList.map(badge => badge.name)
+        });
       }
 
       // Attach the user data to the person object
