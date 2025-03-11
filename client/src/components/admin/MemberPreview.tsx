@@ -63,6 +63,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(member.isAdmin);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -70,6 +71,9 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const hasNext = currentIndex < members.length - 1;
 
   const handleAdminToggle = async (checked: boolean) => {
+    // Optimistically update the UI
+    setIsAdmin(checked);
+
     try {
       await apiRequest(
         `/api/admin/members/${member.id}/admin-status`,
@@ -85,6 +89,8 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         description: `Admin status ${checked ? "granted to" : "revoked from"} ${member.displayName || member.email}`,
       });
     } catch (error) {
+      // Revert the optimistic update on error
+      setIsAdmin(!checked);
       console.error("Failed to update admin status:", error);
       toast({
         title: "Error",
@@ -179,7 +185,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
             <Badge variant={member.isVerified ? "default" : "secondary"}>
               {member.isVerified ? "Verified" : "Pending"}
             </Badge>
-            {member.isAdmin && <Badge variant="default">Admin</Badge>}
+            {isAdmin && <Badge variant="default">Admin</Badge>}
             {roles.map((role) => (
               <Badge key={role.id} variant="outline">
                 {role.name}
@@ -215,7 +221,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <div className="flex items-center space-x-2">
                 <Switch
                   id="admin-mode"
-                  checked={member.isAdmin}
+                  checked={isAdmin}
                   onCheckedChange={handleAdminToggle}
                 />
                 <Label htmlFor="admin-mode">Admin privileges</Label>
