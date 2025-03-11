@@ -17,18 +17,6 @@ import {
   CommandInput,
   CommandItem,
 } from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectTrigger,
-  SelectValue,
-  SelectItem,
-} from "@/components/ui/select";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
@@ -49,7 +37,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
   const [badges, setBadges] = useState<Badge[]>(member.badges || []);
-  const [open, setOpen] = useState(false);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -117,7 +104,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       if (result.badges) {
         setBadges(result.badges);
         queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
-        setOpen(false);
 
         toast({
           title: "Success",
@@ -257,43 +243,29 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
               <div className="space-y-2">
                 <Label>Badges</Label>
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={open}
-                      className="w-full justify-between"
-                    >
-                      Add badges...
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search badges..." />
-                      <CommandEmpty>No badges found.</CommandEmpty>
-                      <CommandGroup>
-                        {availableBadges
-                          .filter(badge => !badges.some(b => b.name === badge.name))
-                          .map((badge) => (
-                            <CommandItem
-                              key={badge.name}
-                              value={badge.name}
-                              onSelect={() => handleBadgeAssignment(badge.name)}
-                            >
-                              <div className="flex items-center gap-2">
-                                {badge.icon}
-                                <div>
-                                  <div>{badge.name}</div>
-                                  <div className="text-xs text-muted-foreground">{badge.description}</div>
-                                </div>
-                              </div>
-                            </CommandItem>
-                          ))}
-                      </CommandGroup>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <Command className="rounded-lg border shadow-md">
+                  <CommandInput placeholder="Search badges..." />
+                  <CommandEmpty>No badges found.</CommandEmpty>
+                  <CommandGroup>
+                    {availableBadges
+                      .filter(badge => !badges.some(b => b.name === badge.name))
+                      .map((badge) => (
+                        <CommandItem
+                          key={badge.name}
+                          value={badge.name}
+                          onSelect={() => handleBadgeAssignment(badge.name)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {badge.icon}
+                            <div>
+                              <div>{badge.name}</div>
+                              <div className="text-xs text-muted-foreground">{badge.description}</div>
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                  </CommandGroup>
+                </Command>
               </div>
             </CardContent>
           </Card>
