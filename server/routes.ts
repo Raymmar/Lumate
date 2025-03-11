@@ -538,12 +538,6 @@ export async function registerRoutes(app: Express) {
         params: req.params
       });
 
-      // Normalize badge name to match database format
-      // This handles cases like "Summit Attendee" mapping to "2025 Summit"
-      if (badgeName === "Summit Attendee") {
-        badgeName = "2025 Summit";
-      }
-
       // Verify the user exists
       const user = await db
         .select()
