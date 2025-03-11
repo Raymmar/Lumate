@@ -189,9 +189,9 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                         size="sm"
                         variant="ghost"
                         onClick={handleAddToCalendar}
-                        className="text-xs px-2 h-6 flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                        className="text-xs px-2 h-6 flex items-center gap-1 hover:bg-muted/50"
                       >
-                        <CalendarPlus className="h-3.5 w-3.5" />
+                        <CalendarPlus className="h-3.5 w-3.5 text-foreground/70" />
                       </Button>
                     )}
                   </div>
@@ -247,9 +247,9 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                     size="sm"
                     variant="ghost"
                     onClick={handleAddToCalendar}
-                    className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                    className="text-xs flex items-center gap-1 hover:bg-muted/50"
                   >
-                    <CalendarPlus className="h-3.5 w-3.5" />
+                    <CalendarPlus className="h-3.5 w-3.5 text-foreground/70" />
                   </Button>
                 )}
               </div>
