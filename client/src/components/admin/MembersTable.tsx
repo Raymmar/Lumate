@@ -18,7 +18,7 @@ import {
 
 interface Member extends User {
   person?: Person | null;
-  badges: Badge[]; // Changed to non-optional
+  badges?: Badge[]; // Make badges optional to match API response
 }
 
 interface MembersResponse {
