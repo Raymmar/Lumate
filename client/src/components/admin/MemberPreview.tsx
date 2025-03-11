@@ -41,8 +41,17 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       ?.split(" ")
       .map((n) => n[0])
       .join("") || member.email[0].toUpperCase();
+
+  // Initialize badges state with member.badges and log for debugging
+  const [badges, setBadges] = useState<BadgeType[]>(() => {
+    console.log("Initializing badges from member:", {
+      memberBadges: member.badges,
+      memberId: member.id
+    });
+    return member.badges || [];
+  });
+
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
-  const [badges, setBadges] = useState<BadgeType[]>(member.badges || []);
   const [open, setOpen] = useState(false);
 
   // Find current member index and determine if we have prev/next
