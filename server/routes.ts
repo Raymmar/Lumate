@@ -511,35 +511,52 @@ export async function registerRoutes(app: Express) {
         .limit(1);
 
       if (!existingAssignment[0]) {
-        console.log('Assigning new badge to user');
-        // Assign the badge
-        await db.insert(userBadges).values({
-          userId: userId,
+        console.log('Attempting to assign new badge to user:', {
+          userId,
           badgeId: badge[0].id,
-          assignedAt: new Date().toISOString(),
+          assignedAt: new Date().toISOString()
         });
+
+        try {
+          // Assign the badge
+          await db.insert(userBadges).values({
+            userId: userId,
+            badgeId: badge[0].id,
+            assignedAt: new Date().toISOString(),
+          });
+          console.log('Successfully assigned badge to user');
+        } catch (insertError) {
+          console.error('Failed to insert badge assignment:', insertError);
+          throw insertError;
+        }
       } else {
         console.log('Badge already assigned');
       }
 
       // Get all badges for the user
-      const userBadgesList = await db
-        .select({
-          id: badges.id,
-          name: badges.name,
-          description: badges.description,
-          icon: badges.icon,
-          isAutomatic: badges.isAutomatic,
-        })
-        .from(userBadges)
-        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-        .where(eq(userBadges.userId, userId));
+      let userBadgesList;
+      try {
+        userBadgesList = await db
+          .select({
+            id: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic,
+          })
+          .from(userBadges)
+          .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+          .where(eq(userBadges.userId, userId));
 
-      console.log('Returning updated badge list:', {
-        userId,
-        badgeCount: userBadgesList.length,
-        badges: userBadgesList.map(b => b.name)
-      });
+        console.log('Retrieved updated badge list:', {
+          userId,
+          badgeCount: userBadgesList.length,
+          badges: userBadgesList.map(b => b.name)
+        });
+      } catch (queryError) {
+        console.error('Failed to query user badges:', queryError);
+        throw queryError;
+      }
 
       return res.json({ badges: userBadgesList });
     } catch (error) {
