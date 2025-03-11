@@ -177,7 +177,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                      variant={rsvpStatus?.isGoing ? "default" : "outline"}
                       onClick={handleRSVP}
                       disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
                       className="text-xs px-2 h-6"
@@ -189,9 +189,10 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                         size="sm"
                         variant="outline"
                         onClick={handleAddToCalendar}
-                        className="text-xs px-2 h-6"
+                        className="text-xs px-2 h-6 flex items-center gap-1"
                       >
                         <CalendarPlus className="h-3.5 w-3.5" />
+                        <span>Calendar</span>
                       </Button>
                     )}
                   </div>
