@@ -11,9 +11,10 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput } from "@/components/ui/command";
+import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { type UpdateUserProfile, type Location } from "@shared/schema";
+import { cn } from "@/lib/utils";
+import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -21,7 +22,6 @@ import { Sun, Moon, Monitor } from "lucide-react";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { updateUserProfileSchema } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -38,34 +38,9 @@ export default function UserSettingsPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
 
-  // Fetch fresh user data when component mounts
-  const { data: freshUserData, isLoading: isUserLoading } = useQuery({
-    queryKey: ['/api/auth/me'],
-    enabled: true, // Always enabled
-    staleTime: 0,
-    cacheTime: 0,
-    refetchOnMount: true,
-    onSuccess: (data) => {
-      console.log('User data fetched:', {
-        data,
-        subscriptionStatus: data?.subscriptionStatus,
-        isAdmin: data?.isAdmin
-      });
-    },
-    onError: (error) => {
-      console.error('Error fetching user data:', error);
-    }
-  });
-
   useEffect(() => {
-    console.log('Component mounted with user:', {
-      user,
-      freshUserData,
-      isUserLoading
-    });
-
     initGoogleMaps();
-  }, [user, freshUserData, isUserLoading]);
+  }, []);
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
@@ -85,54 +60,50 @@ export default function UserSettingsPage() {
     }
   });
 
-  // Initialize form with user data when available
+  // Update form values when user data is available
   useEffect(() => {
-    const currentUser = freshUserData || user;
-    console.log('Updating form with user data:', {
-      currentUser,
-      subscriptionStatus: currentUser?.subscriptionStatus,
-      isAdmin: currentUser?.isAdmin
-    });
-
-    if (currentUser) {
+    if (user) {
       form.reset({
-        displayName: currentUser.displayName || "",
-        bio: currentUser.bio || "",
-        featuredImageUrl: currentUser.featuredImageUrl || "",
-        companyName: currentUser.companyName || "",
-        companyDescription: currentUser.companyDescription || "",
-        address: currentUser.address ? (typeof currentUser.address === 'string' ? { address: currentUser.address } : currentUser.address) as Location : null,
-        phoneNumber: currentUser.phoneNumber || "",
-        isPhonePublic: currentUser.isPhonePublic || false,
-        isEmailPublic: currentUser.isEmailPublic || false,
-        ctaText: currentUser.ctaText || "",
-        customLinks: currentUser.customLinks || [],
-        tags: currentUser.tags || [],
+        displayName: user.displayName || "",
+        bio: user.bio || "",
+        featuredImageUrl: user.featuredImageUrl || "",
+        companyName: user.companyName || "",
+        companyDescription: user.companyDescription || "",
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
+        phoneNumber: user.phoneNumber || "",
+        isPhonePublic: user.isPhonePublic || false,
+        isEmailPublic: user.isEmailPublic || false,
+        ctaText: user.ctaText || "",
+        customLinks: user.customLinks || [],
+        tags: user.tags || [],
       });
-      setTags(currentUser.tags || []);
+      setTags(user.tags || []);
     }
-  }, [freshUserData, user, form.reset]);
+  }, [user, form.reset]);
 
-  // Check subscription status from the most recent user data
-  const currentUser = freshUserData || user;
-  const hasActiveSubscription = Boolean(
-    currentUser?.isAdmin || 
-    currentUser?.subscriptionStatus === 'active'
-  );
-
-  console.log('Settings page state:', {
-    hasActiveSubscription,
-    currentUser,
-    isUserLoading,
-    subscriptionStatus: currentUser?.subscriptionStatus,
-    isAdmin: currentUser?.isAdmin
+  // Enhanced subscription status check with proper typing
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
+    queryKey: ['/api/subscription/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/subscription/status');
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      const data = await response.json();
+      return data as { status: string };
+    },
+    enabled: !!user && !user.isAdmin,
+    // Reduce stale time to ensure fresh data after payment
+    staleTime: 0,
+    // Add retry for better reliability
+    retry: 3,
   });
+
+  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
-        displayName: currentUser?.displayName,
+        displayName: user?.displayName,
         address: data.address || null,
         tags: tags,
       };
@@ -210,19 +181,11 @@ export default function UserSettingsPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  if (isUserLoading) {
+  if (!user) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto" />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Loading profile data...
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Checking subscription status...
-            </p>
-          </div>
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </DashboardLayout>
     );
@@ -234,7 +197,7 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">{currentUser?.displayName || "Settings"}</CardTitle>
+              <CardTitle className="text-2xl font-semibold">{user?.displayName || "Settings"}</CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
@@ -272,6 +235,7 @@ export default function UserSettingsPage() {
                           <div className="relative">
                             <Textarea
                               {...field}
+                              value={field.value || ''}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
@@ -288,7 +252,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription ? (
+                  {!hasActiveSubscription && !isSubscriptionLoading ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">
@@ -308,7 +272,6 @@ export default function UserSettingsPage() {
                     </Card>
                   ) : (
                     <>
-                      {/* Premium Features */}
                       {/* Company Information */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">Company Information</h3>
@@ -424,7 +387,7 @@ export default function UserSettingsPage() {
 
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">{currentUser?.email}</p>
+                            <p className="text-sm text-muted-foreground">{user?.email}</p>
                           </div>
                           <FormField
                             control={form.control}
@@ -581,7 +544,7 @@ export default function UserSettingsPage() {
                   )}
                 </Button>
 
-                {hasActiveSubscription && !currentUser?.isAdmin && (
+                {hasActiveSubscription && !user?.isAdmin && (
                   <Button
                     type="button"
                     variant="outline"
