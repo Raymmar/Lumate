@@ -38,9 +38,9 @@ export function BusinessProfile({
   tags = []
 }: BusinessProfileProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden rounded-xl">
       {featuredImageUrl && (
-        <div className="relative h-48 w-full">
+        <div className="relative h-[98px] w-full">
           <img
             src={featuredImageUrl}
             alt={name}
@@ -62,7 +62,7 @@ export function BusinessProfile({
           {address?.formatted_address && (
             <Button 
               variant="secondary"
-              className="w-full h-auto p-4 justify-start"
+              className="w-full h-auto p-4 justify-start rounded-lg"
               asChild
             >
               <a
@@ -86,7 +86,7 @@ export function BusinessProfile({
             <Button
               key={index}
               variant="secondary"
-              className="w-full justify-start gap-2"
+              className="w-full justify-start gap-2 rounded-lg"
               asChild
             >
               <a href={link.url} target="_blank" rel="noopener noreferrer">
@@ -103,7 +103,7 @@ export function BusinessProfile({
           {phone && (
             <Button
               variant="secondary"
-              className="w-full justify-start gap-2"
+              className="w-full justify-start gap-2 rounded-lg"
               asChild
             >
               <a href={`tel:${phone}`}>
@@ -116,7 +116,7 @@ export function BusinessProfile({
           {email && (
             <Button
               variant="secondary"
-              className="w-full justify-start gap-2"
+              className="w-full justify-start gap-2 rounded-lg"
               asChild
             >
               <a href={`mailto:${email}`}>
@@ -131,7 +131,7 @@ export function BusinessProfile({
           <div className="pt-4 border-t">
             <div className="flex flex-wrap gap-1">
               {tags.map((tag, index) => (
-                <Badge key={index} variant="secondary">
+                <Badge key={index} variant="secondary" className="rounded-lg">
                   {tag}
                 </Badge>
               ))}
