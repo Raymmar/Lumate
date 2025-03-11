@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/form";
 
 export default function UserSettingsPage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
@@ -40,9 +40,7 @@ export default function UserSettingsPage() {
 
   useEffect(() => {
     initGoogleMaps();
-    // Refresh user data when component mounts
-    refreshUser();
-  }, [refreshUser]);
+  }, []);
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
@@ -81,7 +79,7 @@ export default function UserSettingsPage() {
       });
       setTags(user.tags || []);
     }
-  }, [user]);
+  }, [user, form.reset]);
 
   // Check subscription status directly from user object
   const hasActiveSubscription = user?.isAdmin || user?.subscriptionStatus === 'active';
@@ -190,7 +188,7 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">{user.displayName || "Settings"}</CardTitle>
+              <CardTitle className="text-2xl font-semibold">{user?.displayName || "Settings"}</CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
