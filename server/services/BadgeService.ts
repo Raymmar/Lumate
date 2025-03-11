@@ -81,7 +81,7 @@ export class BadgeService {
 
     // Get badge definitions
     const [summitBadge, ogBadge, newbieBadge] = await Promise.all([
-      this.getBadgeByName('Summit Attendee'),
+      this.getBadgeByName('2025 Summit'),
       this.getBadgeByName('OG'),
       this.getBadgeByName('Newbie')
     ]);
