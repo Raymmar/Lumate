@@ -229,12 +229,12 @@ export default function UserSettingsPage() {
                           <div className="relative">
                             <Textarea
                               {...field}
-                              placeholder="Add your custom greeting here"
+                              placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
-                              maxLength={200}
+                              maxLength={140}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                              {(field.value?.length || 0)}/200
+                              {(field.value?.length || 0)}/140
                             </div>
                           </div>
                         </FormControl>

@@ -429,7 +429,7 @@ export const updateUserProfileSchema = z.object({
     .transform(val => val === "" ? null : val)
     .pipe(
       z.string()
-        .max(200, "Bio must not exceed 200 characters")
+        .max(140, "Bio must not exceed 140 characters")
         .nullable()
     ),
   companyName: z.string()
