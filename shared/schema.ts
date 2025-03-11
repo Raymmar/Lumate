@@ -158,6 +158,10 @@ export const postTags = pgTable("post_tags", {
   tagId: serial("tag_id").references(() => tags.id).notNull(),
 });
 
+export const insertPostTagSchema = createInsertSchema(postTags).omit({
+  id: true,
+});
+
 export const roles = pgTable("roles", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 50 }).notNull().unique(),
@@ -190,6 +194,23 @@ export const rolePermissions = pgTable("role_permissions", {
   permissionId: serial("permission_id").references(() => permissions.id).notNull(),
   grantedBy: serial("granted_by").references(() => users.id),
   grantedAt: timestamp("granted_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const badges = pgTable("badges", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull().unique(),
+  icon: varchar("icon", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  isAutomatic: boolean("is_automatic").notNull().default(false),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const userBadges = pgTable("user_badges", {
+  id: serial("id").primaryKey(),
+  userId: serial("user_id").references(() => users.id).notNull(),
+  badgeId: serial("badge_id").references(() => badges.id).notNull(),
+  assignedBy: serial("assigned_by").references(() => users.id),
+  assignedAt: timestamp("assigned_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
 export const insertTagSchema = createInsertSchema(tags).omit({
@@ -231,6 +252,7 @@ export type User = typeof users.$inferSelect & {
   api_id?: string;
   roles?: Role[];
   permissions?: Permission[];
+  badges?: Badge[];
 };
 // Update insert schema
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -432,3 +454,20 @@ export const updateUserProfileSchema = z.object({
 });
 
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
+
+// Add insert schemas for badges and user_badges
+export const insertBadgeSchema = createInsertSchema(badges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
+  id: true,
+  assignedAt: true,
+});
+
+// Add types for badges and user_badges
+export type Badge = typeof badges.$inferSelect;
+export type InsertBadge = z.infer<typeof insertBadgeSchema>;
+export type UserBadge = typeof userBadges.$inferSelect;
+export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
