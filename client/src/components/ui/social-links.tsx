@@ -36,7 +36,7 @@ export const socialLinks = [
 
 export function SocialLinks({ className, iconClassName }: SocialLinksProps) {
   return (
-    <div className={cn("flex gap-6", className)}>
+    <div className={cn("flex gap-4", className)}>
       {socialLinks.map(({ Icon, href, label }) => (
         <a
           key={label}
@@ -48,7 +48,7 @@ export function SocialLinks({ className, iconClassName }: SocialLinksProps) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          <Icon className="w-6 h-6" />
+          <Icon className="w-4 h-4" />
           <span className="sr-only">{label}</span>
         </a>
       ))}
