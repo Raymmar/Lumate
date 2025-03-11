@@ -519,12 +519,15 @@ export async function registerRoutes(app: Express) {
 
         try {
           // Assign the badge
-          await db.insert(userBadges).values({
-            userId: userId,
-            badgeId: badge[0].id,
-            assignedAt: new Date().toISOString(),
-          });
-          console.log('Successfully assigned badge to user');
+          const [insertedBadge] = await db
+            .insert(userBadges)
+            .values({
+              userId: userId,
+              badgeId: badge[0].id,
+              assignedAt: new Date().toISOString(),
+            })
+            .returning();
+          console.log('Successfully inserted badge assignment:', insertedBadge);
         } catch (insertError) {
           console.error('Failed to insert badge assignment:', insertError);
           throw insertError;
