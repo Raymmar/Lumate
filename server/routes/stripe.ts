@@ -47,7 +47,7 @@ router.get('/ping', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Update the create-checkout-session route
+// Create checkout session
 router.post('/create-checkout-session', async (req, res) => {
   try {
     if (!process.env.STRIPE_PRICE_ID) {
@@ -64,6 +64,7 @@ router.post('/create-checkout-session', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Create a new customer if one doesn't exist
     if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
       const customer = await StripeService.createCustomer(user.email, user.id);
       await storage.setStripeCustomerId(user.id, customer.id);

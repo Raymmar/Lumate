@@ -26,6 +26,7 @@ export default function SubscriptionCheckout() {
           throw new Error('No checkout URL returned');
         }
       } catch (error) {
+        console.error('Checkout error:', error);
         toast({
           title: "Error",
           description: "Failed to initialize checkout session. Please try again.",
