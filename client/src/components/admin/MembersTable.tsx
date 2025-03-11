@@ -15,10 +15,11 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useToast } from "@/hooks/use-toast";
 
 interface Member extends User {
   person?: Person | null;
-  badges?: Badge[]; // Make badges optional to match API response
+  badges?: Badge[];
 }
 
 interface MembersResponse {
@@ -31,35 +32,48 @@ export function MembersTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
+  const { toast } = useToast();
 
   const itemsPerPage = 100;
 
-  const { data, isLoading, isFetching } = useQuery<MembersResponse>({
+  const { data, isLoading, isFetching, error } = useQuery<MembersResponse>({
     queryKey: ["/api/admin/members", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
-      console.log('Fetching members with params:', {
-        page: currentPage,
-        limit: itemsPerPage,
-        search: debouncedSearch
-      });
+      try {
+        console.log('Fetching members with params:', {
+          page: currentPage,
+          limit: itemsPerPage,
+          search: debouncedSearch
+        });
 
-      const response = await fetch(
-        `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
-      );
+        const response = await fetch(
+          `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
+        );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch members");
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API Error:', errorText);
+          throw new Error(`Failed to fetch members: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('Received members data:', {
+          totalUsers: data.total,
+          returnedUsers: data.users?.length,
+          firstUserEmail: data.users?.[0]?.email
+        });
+        return data;
+      } catch (err) {
+        console.error('Error fetching members:', err);
+        toast({
+          title: "Error",
+          description: "Failed to load members. Please try again.",
+          variant: "destructive",
+        });
+        throw err;
       }
-
-      const data = await response.json();
-      console.log('Received members data:', {
-        totalUsers: data.total,
-        returnedUsers: data.users.length,
-        firstUserEmail: data.users[0]?.email,
-        firstUserBadges: data.users[0]?.badges?.length
-      });
-      return data;
     },
+    retry: 1,
   });
 
   const users = data?.users || [];
@@ -98,31 +112,24 @@ export function MembersTable() {
     {
       label: "View Profile",
       onClick: (member: Member) => {
-        console.log('Selected member:', {
-          id: member.id,
-          email: member.email,
-          badgeCount: member.badges?.length
-        });
         setSelectedMember(member);
       },
     },
   ];
 
-  const onRowClick = (member: Member) => {
-    setSelectedMember(member);
-  };
-
-  const handlePreviousPage = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
-  };
-
-  const handleNavigate = (member: Member) => {
-    setSelectedMember(member);
-  };
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-destructive">Failed to load members</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-2 text-primary hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -162,44 +169,46 @@ export function MembersTable() {
             data={users}
             columns={columns}
             actions={actions}
-            onRowClick={onRowClick}
+            onRowClick={(member) => setSelectedMember(member)}
           />
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <p className="text-sm text-muted-foreground">
-          Showing {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
-        </p>
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                onClick={handlePreviousPage}
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-            <PaginationItem>
-              <span className="px-4">
-                Page {currentPage} of {totalPages}
-              </span>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext
-                onClick={handleNextPage}
-                className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-muted-foreground">
+            Showing {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} entries
+          </p>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => currentPage > 1 && setCurrentPage(prev => prev - 1)}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="px-4">
+                  Page {currentPage} of {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => currentPage < totalPages && setCurrentPage(prev => prev + 1)}
+                  className={currentPage >= totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
 
       <PreviewSidebar open={!!selectedMember} onOpenChange={() => setSelectedMember(null)}>
         {selectedMember && (
           <MemberPreview 
             member={selectedMember} 
             members={users}
-            onNavigate={handleNavigate}
+            onNavigate={(member) => setSelectedMember(member)}
           />
         )}
       </PreviewSidebar>
