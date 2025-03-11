@@ -131,7 +131,7 @@ export function BusinessProfile({
           <div className="pt-4 border-t">
             <div className="flex flex-wrap gap-1">
               {tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="rounded-lg">
+                <Badge key={index} variant="secondary" className="rounded-lg whitespace-nowrap">
                   {tag}
                 </Badge>
               ))}
