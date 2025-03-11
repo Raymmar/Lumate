@@ -639,7 +639,7 @@ export async function registerRoutes(app: Express) {
 
       console.log(`Found ${allUsers.length} users matching search criteria`);
 
-      // For each user, fetch their badges
+      // For each user, fetch their badges and person profile
       interface UserBadgeResult {
         id: number;
         name: string;
@@ -649,10 +649,10 @@ export async function registerRoutes(app: Express) {
         assignedAt: string;
       }
 
-      const usersWithBadges = await Promise.all(
+      const usersWithBadgesAndProfile = await Promise.all(
         allUsers.map(async (user) => {
-          // Fetch badges for this user by joining against user_badges table
-          const userBadgesTable = userBadges; // Alias to avoid naming conflicts
+          // Fetch badges for this user
+          const userBadgesTable = userBadges;
           const assignedBadges = await db
             .select({
               id: badges.id,
@@ -669,27 +669,31 @@ export async function registerRoutes(app: Express) {
             )
             .where(eq(userBadgesTable.userId, user.id)) as UserBadgeResult[];
 
-          console.log('Retrieved badges for user:', {
+          // Fetch associated person profile
+          const person = await storage.getPersonByEmail(user.email.toLowerCase());
+
+          console.log('Retrieved user data:', {
             userId: user.id,
             email: user.email,
             badgeCount: assignedBadges.length,
-            badges: assignedBadges.map((b) => b.name)
+            badges: assignedBadges.map((b) => b.name),
+            hasPerson: !!person
           });
 
-          // Return user with their badges
           return {
             ...user,
-            badges: assignedBadges
+            badges: assignedBadges,
+            person: person || null
           };
         })
       );
 
       // Calculate pagination
       const start = (page - 1) * limit;
-      const paginatedUsers = usersWithBadges.slice(start, start + limit);
+      const paginatedUsers = usersWithBadgesAndProfile.slice(start, start + limit);
 
-      console.log('Returning paginated users with badges:', {
-        totalUsers: usersWithBadges.length,
+      console.log('Returning paginated users with badges and profiles:', {
+        totalUsers: usersWithBadgesAndProfile.length,
         returnedUsers: paginatedUsers.length,
         page,
         limit
@@ -697,7 +701,7 @@ export async function registerRoutes(app: Express) {
 
       res.json({
         users: paginatedUsers,
-        total: usersWithBadges.length
+        total: usersWithBadgesAndProfile.length
       });
     } catch (error) {
       console.error('Failed to fetch members:', error);
