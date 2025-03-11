@@ -151,4 +151,65 @@ export class StripeService {
       throw error;
     }
   }
+  static async getSubscriptionStatus(customerId: string) {
+    try {
+      if (!customerId) {
+        throw new Error('Customer ID is required');
+      }
+
+      console.log('🔍 Checking subscription status for customer:', customerId);
+
+      const subscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        limit: 1,
+        status: 'active',
+      });
+
+      if (subscriptions.data.length === 0) {
+        console.log('❌ No active subscription found for customer:', customerId);
+        return { status: 'inactive' };
+      }
+
+      const subscription = subscriptions.data[0];
+      console.log('✅ Found subscription:', {
+        id: subscription.id,
+        status: subscription.status,
+        currentPeriodEnd: subscription.current_period_end
+      });
+
+      return {
+        status: subscription.status,
+        currentPeriodEnd: subscription.current_period_end,
+        subscriptionId: subscription.id
+      };
+    } catch (error) {
+      console.error('❌ Error checking subscription status:', error);
+      throw error;
+    }
+  }
+
+  static async cancelSubscription(subscriptionId: string) {
+    try {
+      if (!subscriptionId) {
+        throw new Error('Subscription ID is required');
+      }
+
+      console.log('🔄 Cancelling subscription:', subscriptionId);
+
+      const subscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true
+      });
+
+      console.log('✅ Subscription cancelled:', {
+        id: subscription.id,
+        status: subscription.status,
+        cancelAt: subscription.cancel_at
+      });
+
+      return subscription;
+    } catch (error) {
+      console.error('❌ Error cancelling subscription:', error);
+      throw error;
+    }
+  }
 }

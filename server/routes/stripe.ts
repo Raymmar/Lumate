@@ -334,4 +334,36 @@ router.post('/create-portal-session', async (req, res) => {
   }
 });
 
+router.get('/subscription-status', async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // If user is admin, they always have access
+    if (user.isAdmin) {
+      return res.json({ status: 'active' });
+    }
+
+    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
+      return res.json({ status: 'inactive' });
+    }
+
+    const subscriptionStatus = await StripeService.getSubscriptionStatus(user.stripeCustomerId);
+    return res.json(subscriptionStatus);
+  } catch (error: any) {
+    console.error('Error checking subscription status:', error);
+    return res.status(500).json({
+      error: 'Failed to check subscription status',
+      message: error.message
+    });
+  }
+});
+
 export default router;
