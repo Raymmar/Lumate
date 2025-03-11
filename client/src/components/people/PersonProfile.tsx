@@ -163,6 +163,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const userBadges = person.user?.badges || [];
 
   console.log('PersonProfile - User badges:', userBadges);
+  console.log('PersonProfile - FULL PERSON DATA:', person);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -200,6 +201,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     key={badge.id}
                     name={badge.name}
                     icon={<Star className="h-3 w-3" />}
+                    variant="default"
                   />
                 ))}
               </div>
@@ -223,38 +225,38 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
       <div>
         <Card>
-              <CardContent className="space-y-4 pt-4">
-                <div className="space-y-4">
-                  <StatsCard
-                    title="First Seen"
-                    value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
-                    icon={<CalendarDays className="h-4 w-4 text-foreground" />}
-                  />
-                  <StatsCard
-                    title="Events Attended"
-                    value={events?.length || 0}
-                    icon={<Users className="h-4 w-4 text-foreground" />}
-                  />
-                </div>
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-4">
+              <StatsCard
+                title="First Seen"
+                value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
+                icon={<CalendarDays className="h-4 w-4 text-foreground" />}
+              />
+              <StatsCard
+                title="Events Attended"
+                value={events?.length || 0}
+                icon={<Users className="h-4 w-4 text-foreground" />}
+              />
+            </div>
 
-                {events && events.length > 0 && (
-                  <div className="space-y-1 mt-4 border-t pt-4">
-                    <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
-                      {events.map((event) => (
-                        <div key={event.api_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                          <div>
-                            <p className="text-sm font-medium">{event.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
+            {events && events.length > 0 && (
+              <div className="space-y-1 mt-4 border-t pt-4">
+                <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
+                  {events.map((event) => (
+                    <div key={event.api_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                      <div>
+                        <p className="text-sm font-medium">{event.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
