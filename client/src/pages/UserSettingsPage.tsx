@@ -11,10 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
+import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -22,6 +21,7 @@ import { Sun, Moon, Monitor } from "lucide-react";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { updateUserProfileSchema } from "@shared/schema";
 import {
   Form,
   FormControl,
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/form";
 
 export default function UserSettingsPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
@@ -40,7 +40,27 @@ export default function UserSettingsPage() {
 
   useEffect(() => {
     initGoogleMaps();
-  }, []);
+    // Refresh user data when component mounts
+    refreshUser();
+  }, [refreshUser]);
+
+  const form = useForm<UpdateUserProfile>({
+    resolver: zodResolver(updateUserProfileSchema),
+    defaultValues: {
+      displayName: "",
+      bio: "",
+      featuredImageUrl: "",
+      companyName: "",
+      companyDescription: "",
+      address: null,
+      phoneNumber: "",
+      isPhonePublic: false,
+      isEmailPublic: false,
+      ctaText: "",
+      customLinks: [],
+      tags: [],
+    }
+  });
 
   // Initialize form with user data when available
   useEffect(() => {
@@ -63,25 +83,7 @@ export default function UserSettingsPage() {
     }
   }, [user]);
 
-  const form = useForm<UpdateUserProfile>({
-    resolver: zodResolver(updateUserProfileSchema),
-    defaultValues: {
-      displayName: "",
-      bio: "",
-      featuredImageUrl: "",
-      companyName: "",
-      companyDescription: "",
-      address: null,
-      phoneNumber: "",
-      isPhonePublic: false,
-      isEmailPublic: false,
-      ctaText: "",
-      customLinks: [],
-      tags: [],
-    }
-  });
-
-  // Directly check subscription status from user object
+  // Check subscription status directly from user object
   const hasActiveSubscription = user?.isAdmin || user?.subscriptionStatus === 'active';
   const isLoading = !user;
 
@@ -182,7 +184,6 @@ export default function UserSettingsPage() {
     );
   }
 
-
   return (
     <DashboardLayout>
       <div className="container max-w-3xl mx-auto pt-3 pb-6">
@@ -264,6 +265,7 @@ export default function UserSettingsPage() {
                     </Card>
                   ) : (
                     <>
+                      {/* Premium Features */}
                       {/* Company Information */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">Company Information</h3>
