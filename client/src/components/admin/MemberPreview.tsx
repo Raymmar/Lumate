@@ -1,7 +1,7 @@
 import { useToast } from "@/hooks/use-toast";
-import type { User, Role, Person } from "@shared/schema";
+import type { User, Role, Person, Badge } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+import { Badge as BadgeUI } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Shield, Star } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/select";
 import { useState } from "react";
 import { RelatedPeople } from "./RelatedPeople";
+import { ProfileBadge } from "@/components/ui/profile-badge";
 
 interface MemberPreviewProps {
-  member: User & { roles?: Role[]; person?: Person | null };
+  member: User & { roles?: Role[]; person?: Person | null; badges?: Badge[] };
   members?: (User & { roles?: Role[]; person?: Person | null })[];
   onNavigate?: (member: User & { roles?: Role[]; person?: Person | null }) => void;
 }
@@ -35,6 +36,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .map((n) => n[0])
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
+  const [badges, setBadges] = useState<Badge[]>(member.badges || []);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -92,11 +94,47 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
+  const handleBadgeAssignment = async (badgeName: string) => {
+    try {
+      const result = await apiRequest<{ badges: Badge[] }>(
+        `/api/admin/members/${member.id}/badges/${badgeName}`,
+        "POST",
+      );
+
+      if (result.badges) {
+        setBadges(result.badges);
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+
+        toast({
+          title: "Success",
+          description: `Updated badges for ${member.displayName || member.email}`,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update user badges:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user badges",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNavigate = (nextMember: User & { roles?: Role[]; person?: Person | null }) => {
     if (onNavigate) {
       onNavigate(nextMember);
     }
   };
+
+  // Predefined badges based on your requirements
+  const availableBadges = [
+    { name: "Founding Board", icon: <Shield className="h-3 w-3" />, description: "Founding team and organizing committee" },
+    { name: "Founding Member", icon: <Star className="h-3 w-3" />, description: "$1,000 contribution to get the group started" },
+    { name: "OG", icon: <Star className="h-3 w-3" />, description: "Attended one of the first three meetups" },
+    { name: "Summit Attendee", icon: <Star className="h-3 w-3" />, description: "Attended our inaugural tech summit" },
+    { name: "Volunteer", icon: <Star className="h-3 w-3" />, description: "Has volunteered at 3 or more events in the last year" },
+    { name: "Newbie", icon: <Star className="h-3 w-3" />, description: "Has attended less than 6 events" },
+  ];
 
   return (
     <div className="flex flex-col h-full">
@@ -114,15 +152,23 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Badge variant={member.isVerified ? "default" : "secondary"}>
+          <div className="flex items-center space-x-2 flex-wrap gap-2">
+            <BadgeUI variant={member.isVerified ? "default" : "secondary"}>
               {member.isVerified ? "Verified" : "Pending"}
-            </Badge>
-            {member.isAdmin && <Badge variant="default">Admin</Badge>}
+            </BadgeUI>
+            {member.isAdmin && <BadgeUI variant="default">Admin</BadgeUI>}
             {roles.map((role) => (
-              <Badge key={role.id} variant="outline">
+              <BadgeUI key={role.id} variant="outline">
                 {role.name}
-              </Badge>
+              </BadgeUI>
+            ))}
+            {badges.map((badge) => (
+              <ProfileBadge
+                key={badge.id}
+                name={badge.name}
+                icon={badge.icon}
+                variant="secondary"
+              />
             ))}
           </div>
 
@@ -158,6 +204,25 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                     <SelectItem value="User">User</SelectItem>
                     <SelectItem value="Moderator">Moderator</SelectItem>
                     <SelectItem value="Sponsor">Sponsor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Assign Badge</Label>
+                <Select onValueChange={handleBadgeAssignment}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a badge to assign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableBadges.map((badge) => (
+                      <SelectItem key={badge.name} value={badge.name}>
+                        <div className="flex items-center gap-2">
+                          {badge.icon}
+                          <span>{badge.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
