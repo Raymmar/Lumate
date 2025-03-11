@@ -33,6 +33,16 @@ interface MemberPreviewProps {
   onNavigate?: (member: User & { roles?: Role[]; person?: Person | null }) => void;
 }
 
+// Predefined badges based on your requirements
+const availableBadges = [
+  { name: "Founding Board", icon: <Shield className="h-3 w-3" />, description: "Founding team and organizing committee" },
+  { name: "Founding Member", icon: <Star className="h-3 w-3" />, description: "$1,000 contribution to get the group started" },
+  { name: "OG", icon: <Star className="h-3 w-3" />, description: "Attended one of the first three meetups" },
+  { name: "Summit Attendee", icon: <Star className="h-3 w-3" />, description: "Attended our inaugural tech summit" },
+  { name: "Volunteer", icon: <Star className="h-3 w-3" />, description: "Has volunteered at 3 or more events in the last year" },
+  { name: "Newbie", icon: <Star className="h-3 w-3" />, description: "Has attended less than 6 events" },
+];
+
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -175,15 +185,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
-  // Predefined badges based on your requirements
-  const availableBadges = [
-    { name: "Founding Board", icon: <Shield className="h-3 w-3" />, description: "Founding team and organizing committee" },
-    { name: "Founding Member", icon: <Star className="h-3 w-3" />, description: "$1,000 contribution to get the group started" },
-    { name: "OG", icon: <Star className="h-3 w-3" />, description: "Attended one of the first three meetups" },
-    { name: "Summit Attendee", icon: <Star className="h-3 w-3" />, description: "Attended our inaugural tech summit" },
-    { name: "Volunteer", icon: <Star className="h-3 w-3" />, description: "Has volunteered at 3 or more events in the last year" },
-    { name: "Newbie", icon: <Star className="h-3 w-3" />, description: "Has attended less than 6 events" },
-  ];
 
   return (
     <div className="flex flex-col h-full">

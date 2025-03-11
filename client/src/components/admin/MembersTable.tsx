@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-import type { User, Person } from "@shared/schema";
+import type { User, Person, BadgeType } from "@shared/schema"; // Added BadgeType import
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
@@ -21,7 +21,10 @@ interface MembersResponse {
 }
 
 export function MembersTable() {
-  const [selectedMember, setSelectedMember] = useState<User & { person?: Person | null } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<User & { 
+    person?: Person | null;
+    badges?: BadgeType[];  // Add badges to the type
+  } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);

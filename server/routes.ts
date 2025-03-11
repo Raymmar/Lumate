@@ -614,6 +614,78 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/admin/members", async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const searchQuery = (req.query.search as string || '').toLowerCase();
+
+      console.log('Fetching members with badges:', {
+        page,
+        limit,
+        searchQuery
+      });
+
+      // First get all users with search filter
+      const allUsers = await db
+        .select()
+        .from(users)
+        .where(
+          searchQuery
+            ? sql`(LOWER(email) LIKE ${`%${searchQuery}%`} OR LOWER(display_name) LIKE ${`%${searchQuery}%`})`
+            : sql`1=1`
+        );
+
+      // For each user, fetch their badges
+      const usersWithBadges = await Promise.all(
+        allUsers.map(async (user) => {
+          const userBadges = await db
+            .select({
+              id: badges.id,
+              name: badges.name,
+              description: badges.description,
+              icon: badges.icon,
+              isAutomatic: badges.isAutomatic,
+            })
+            .from(userBadges)
+            .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+            .where(eq(userBadges.userId, user.id));
+
+          console.log('Retrieved badges for user:', {
+            userId: user.id,
+            email: user.email,
+            badgeCount: userBadges.length,
+            badges: userBadges.map(b => b.name)
+          });
+
+          return {
+            ...user,
+            badges: userBadges
+          };
+        })
+      );
+
+      // Calculate pagination
+      const start = (page - 1) * limit;
+      const paginatedUsers = usersWithBadges.slice(start, start + limit);
+
+      console.log('Returning paginated users with badges:', {
+        totalUsers: usersWithBadges.length,
+        returnedUsers: paginatedUsers.length,
+        page,
+        limit
+      });
+
+      res.json({
+        users: paginatedUsers,
+        total: usersWithBadges.length
+      });
+    } catch (error) {
+      console.error('Failed to fetch members:', error);
+      res.status(500).json({ error: "Failed to fetch members" });
+    }
+  });
+
   app.get("/api/people/:id", async (req, res) => {
     try {
       const personId = req.params.id;
@@ -991,6 +1063,57 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Failed to claim profile:', error);
       res.status(500).json({ error: "Failed to process profile claim" });
+    }
+  });
+
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      console.log('Fetching user data with badges:', { userId });
+
+      const user = await db
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          isAdmin: users.isAdmin,
+          // Add other user fields as needed
+        })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user[0]) {
+        console.log('User not found:', userId);
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Fetch user's badges
+      const userBadgesList = await db
+        .select({
+          id: badges.id,
+          name: badges.name,
+          description: badges.description,
+          icon: badges.icon,
+          isAutomatic: badges.isAutomatic,
+        })
+        .from(userBadges)
+        .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+        .where(eq(userBadges.userId, userId));
+
+      console.log('Retrieved user badges:', {
+        userId,
+        badgeCount: userBadgesList.length,
+        badges: userBadgesList.map(b => b.name)
+      });
+
+      return res.json({
+        ...user[0],
+        badges: userBadgesList
+      });
+    } catch (error) {
+      console.error('Failed to fetch user with badges:', error);
+      return res.status(500).json({ error: "Failed to fetch user" });
     }
   });
 
