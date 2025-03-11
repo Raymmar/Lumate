@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  X, 
-  Check 
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Check
 } from "lucide-react";
 import {
   Command,
@@ -44,9 +44,9 @@ const availableBadges = [
   { name: "Founding Board", icon: "sprout", description: "Founding team and organizing committee" },
   { name: "Founding Member", icon: "badge-dollar-sign", description: "$1,000 contribution to get the group started" },
   { name: "OG", icon: "hand-metal", description: "Attended one of the first three meetups" },
-  { name: "Summit Attendee", icon: "tickets", description: "Attended our inaugural tech summit" },
+  { name: "2025 Summit", icon: "tickets", description: "Attended our inaugural tech summit" },
   { name: "Volunteer", icon: "heart-handshake", description: "Has volunteered at 3 or more events in the last year" },
-  { name: "Newbie", icon: "loader", description: "Has attended less than 6 events" },
+  { name: "Newbie", icon: "loader", description: "Has attended less than 3 events" },
 ];
 
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
@@ -110,7 +110,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       });
 
       const result = await apiRequest<{ badges: BadgeType[] }>(
-        `/api/admin/members/${member.id}/badges/${badgeName}`,
+        `/api/admin/members/${member.id}/badges/${encodeURIComponent(badgeName)}`,
         "POST",
       );
 
@@ -121,14 +121,14 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
         toast({
           title: "Success",
-          description: `Added badge for ${member.displayName || member.email}`,
+          description: `Added ${badgeName} badge for ${member.displayName || member.email}`,
         });
       }
     } catch (error) {
       console.error("Failed to update user badges:", error);
       toast({
         title: "Error",
-        description: "Failed to update user badges",
+        description: `Failed to assign ${badgeName} badge. Please try again.`,
         variant: "destructive",
       });
     }
@@ -136,8 +136,14 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const handleBadgeRemoval = async (badgeName: string) => {
     try {
+      console.log("Starting badge removal:", {
+        userId: member.id,
+        badgeName,
+        currentBadges: badges.map(b => b.name)
+      });
+
       const result = await apiRequest<{ badges: BadgeType[] }>(
-        `/api/admin/members/${member.id}/badges/${badgeName}`,
+        `/api/admin/members/${member.id}/badges/${encodeURIComponent(badgeName)}`,
         "DELETE",
       );
 
@@ -147,16 +153,22 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
         toast({
           title: "Success",
-          description: `Removed badge from ${member.displayName || member.email}`,
+          description: `Removed ${badgeName} badge from ${member.displayName || member.email}`,
         });
       }
     } catch (error) {
       console.error("Failed to remove user badge:", error);
       toast({
         title: "Error",
-        description: "Failed to remove user badge",
+        description: `Failed to remove ${badgeName} badge. Please try again.`,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleNavigate = (nextMember: typeof member) => {
+    if (onNavigate) {
+      onNavigate(nextMember);
     }
   };
 
