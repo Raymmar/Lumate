@@ -59,6 +59,12 @@ export default function SubscriptionSuccessPage() {
     }
   });
 
+  const handleManualRedirect = () => {
+    // Force refresh user data before redirecting
+    queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    navigate('/settings');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <Card className="w-full max-w-md p-6">
@@ -66,6 +72,13 @@ export default function SubscriptionSuccessPage() {
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-4 text-lg">Verifying your subscription...</p>
+            <Button 
+              onClick={handleManualRedirect}
+              variant="outline" 
+              className="mt-6"
+            >
+              Return to Settings
+            </Button>
           </div>
         ) : error ? (
           <div className="text-center py-8">
@@ -74,7 +87,7 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               {error instanceof Error ? error.message : 'Failed to verify payment status'}
             </p>
-            <Button onClick={() => navigate('/settings')} className="mt-4">
+            <Button onClick={handleManualRedirect} className="mt-4">
               Return to Settings
             </Button>
           </div>
@@ -85,6 +98,13 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               Thank you for subscribing. Redirecting to settings...
             </p>
+            <Button 
+              onClick={handleManualRedirect}
+              variant="outline" 
+              className="mt-6"
+            >
+              Go to Settings Now
+            </Button>
           </div>
         ) : (
           <div className="text-center py-8">
@@ -93,6 +113,13 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               We're confirming your subscription...
             </p>
+            <Button 
+              onClick={handleManualRedirect}
+              variant="outline" 
+              className="mt-6"
+            >
+              Return to Settings
+            </Button>
           </div>
         )}
       </Card>
