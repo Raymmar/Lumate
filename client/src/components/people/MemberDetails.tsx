@@ -60,7 +60,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
 
   return (
     <div className="space-y-4">
-      <BusinessProfile {...businessData} />
+      <BusinessProfile {...businessData} className="text-base" />
     </div>
   );
 };

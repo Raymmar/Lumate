@@ -419,6 +419,7 @@ export const locationSchema = z.object({
 export type Location = z.infer<typeof locationSchema>;
 
 // Update user profile schema with enhanced validation
+// Update the updateUserProfileSchema with character limit
 export const updateUserProfileSchema = z.object({
   displayName: z.string().min(1, "Display name is required"),
   featuredImageUrl: z.string()
@@ -426,7 +427,11 @@ export const updateUserProfileSchema = z.object({
     .pipe(z.string().url("Featured image must be a valid URL").nullable()),
   bio: z.string()
     .transform(val => val === "" ? null : val)
-    .nullable(),
+    .pipe(
+      z.string()
+        .max(200, "Bio must not exceed 200 characters")
+        .nullable()
+    ),
   companyName: z.string()
     .transform(val => val === "" ? null : val)
     .nullable(),

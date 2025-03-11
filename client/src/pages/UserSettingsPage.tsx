@@ -226,11 +226,17 @@ export default function UserSettingsPage() {
                     render={({ field }) => (
                       <FormItem className="space-y-1">
                         <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="Add your custom greeting here"
-                            className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
-                          />
+                          <div className="relative">
+                            <Textarea
+                              {...field}
+                              placeholder="Add your custom greeting here"
+                              className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
+                              maxLength={200}
+                            />
+                            <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                              {(field.value?.length || 0)}/200
+                            </div>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
