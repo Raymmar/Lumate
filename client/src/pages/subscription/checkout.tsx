@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -8,16 +8,16 @@ import { apiRequest } from "@/lib/queryClient";
 export default function SubscriptionCheckout() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initializeCheckout = async () => {
       try {
-        console.log('Initializing checkout session...');
+        console.log('Starting checkout process...');
         const response = await apiRequest('POST', '/api/stripe/create-checkout-session');
 
         if (!response.ok) {
-          throw new Error('Failed to initialize checkout');
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to initialize checkout');
         }
 
         const data = await response.json();
@@ -31,10 +31,9 @@ export default function SubscriptionCheckout() {
         console.error('Checkout error:', error);
         toast({
           title: "Error",
-          description: "Failed to initialize checkout session. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to initialize checkout session. Please try again.",
           variant: "destructive",
         });
-        setIsLoading(false);
       }
     };
 
