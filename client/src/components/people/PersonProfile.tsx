@@ -10,7 +10,7 @@ import { Star, Code, Heart, CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
-import type { User } from "@shared/schema";
+import type { User, Badge as BadgeType } from "@shared/schema";
 
 interface PersonProfileProps {
   username: string;
@@ -43,7 +43,7 @@ interface Person {
   role: string | null;
   isAdmin?: boolean;
   subscriptionStatus?: string;
-  user?: User;
+  user?: User & { badges?: BadgeType[] };
 }
 
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
@@ -94,7 +94,9 @@ export default function PersonProfile({ username }: PersonProfileProps) {
       console.log('Successfully fetched person details:', {
         id: data.id,
         apiId: data.api_id,
-        username: data.userName
+        username: data.userName,
+        user: data.user,
+        badges: data.user?.badges
       });
       return data;
     }
@@ -160,6 +162,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   // Get available badges from the user if it exists
   const userBadges = person.user?.badges || [];
 
+  console.log('PersonProfile - User badges:', userBadges);
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <div className="md:col-span-2 space-y-4">
@@ -195,7 +199,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   <ProfileBadge
                     key={badge.id}
                     name={badge.name}
-                    icon={badge.icon ? <Star className="h-3 w-3" /> : undefined}
+                    icon={<Star className="h-3 w-3" />}
                   />
                 ))}
               </div>
