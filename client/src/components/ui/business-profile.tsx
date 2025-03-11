@@ -40,7 +40,7 @@ export function BusinessProfile({
   return (
     <Card className="overflow-hidden rounded-xl">
       {featuredImageUrl && (
-        <div className="relative h-[98px] w-full">
+        <div className="relative h-[300px] w-full">
           <img
             src={featuredImageUrl}
             alt={name}
