@@ -94,25 +94,41 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   });
 
   // Then fetch badges if we have a user ID
-  const { data: badges, isLoading: badgesLoading } = useQuery<BadgeType[]>({
+  const { data: badges = [], isLoading: badgesLoading } = useQuery({
     queryKey: ['/api/users', person?.user?.id, 'badges'],
     queryFn: async () => {
-      if (!person?.user?.id) return [];
-      console.log('Fetching badges for user:', person.user.id);
-
-      const badgesResponse = await fetch(`/api/users/${person.user.id}/badges`);
-      if (!badgesResponse.ok) {
-        console.error('Badges fetch failed:', {
-          userId: person.user.id,
-          status: badgesResponse.status,
-          statusText: badgesResponse.statusText
-        });
+      if (!person?.user?.id) {
+        console.log('No user ID available for badge fetch');
         return [];
       }
 
-      const badgesData = await badgesResponse.json();
-      console.log('Badges received:', badgesData);
-      return badgesData;
+      console.log('Attempting to fetch badges for user:', {
+        userId: person.user.id,
+        userName: person.userName
+      });
+
+      try {
+        const badgesResponse = await fetch(`/api/users/${person.user.id}/badges`);
+        if (!badgesResponse.ok) {
+          console.error('Badge fetch failed:', {
+            userId: person.user.id,
+            status: badgesResponse.status,
+            statusText: badgesResponse.statusText
+          });
+          return [];
+        }
+
+        const badgesData = await badgesResponse.json();
+        console.log('Badges successfully fetched:', {
+          userId: person.user.id,
+          badges: badgesData,
+          badgeCount: badgesData.length
+        });
+        return badgesData;
+      } catch (error) {
+        console.error('Error fetching badges:', error);
+        return [];
+      }
     },
     enabled: !!person?.user?.id
   });
@@ -174,10 +190,11 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  // Log the full state for debugging
+  // Debug logging for the full state
   console.log('PersonProfile - Full state:', {
     person,
     badges,
+    badgeCount: badges?.length,
     isLoading,
     userId: person?.user?.id
   });
@@ -213,14 +230,17 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   </Badge>
                 )}
                 {/* Show badges if they exist */}
-                {badges && badges.length > 0 && badges.map((badge) => (
-                  <ProfileBadge
-                    key={badge.id}
-                    name={badge.name}
-                    icon={<Star className="h-3 w-3" />}
-                    variant="default"
-                  />
-                ))}
+                {badges && badges.length > 0 && badges.map((badge) => {
+                  console.log('Rendering badge:', badge);
+                  return (
+                    <ProfileBadge
+                      key={badge.id}
+                      name={badge.name}
+                      icon={<Star className="h-3 w-3" />}
+                      variant="default"
+                    />
+                  );
+                })}
               </div>
             </div>
           </div>
