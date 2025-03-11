@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Lock, AlertCircle } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { Loader2, Plus, X, Lock } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -42,6 +42,27 @@ export default function UserSettingsPage() {
     initGoogleMaps();
   }, []);
 
+  // Initialize form with user data when available
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        displayName: user.displayName || "",
+        bio: user.bio || "",
+        featuredImageUrl: user.featuredImageUrl || "",
+        companyName: user.companyName || "",
+        companyDescription: user.companyDescription || "",
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
+        phoneNumber: user.phoneNumber || "",
+        isPhonePublic: user.isPhonePublic || false,
+        isEmailPublic: user.isEmailPublic || false,
+        ctaText: user.ctaText || "",
+        customLinks: user.customLinks || [],
+        tags: user.tags || [],
+      });
+      setTags(user.tags || []);
+    }
+  }, [user]);
+
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
@@ -60,27 +81,9 @@ export default function UserSettingsPage() {
     }
   });
 
-  // Enhanced subscription status check with proper typing and reliability
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading, error: subscriptionError } = useQuery({
-    queryKey: ['/api/subscription/status'],
-    queryFn: async () => {
-      const response = await fetch('/api/subscription/status');
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch subscription status');
-      }
-      return response.json() as Promise<{ status: string }>;
-    },
-    enabled: !!user && !user.isAdmin,
-    staleTime: 0,
-    retry: 3,
-    retryDelay: 1000,
-    refetchInterval: 5000, // Poll every 5 seconds to keep status current
-    refetchOnWindowFocus: true,
-  });
-
-  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
-  const isLoading = !user || isSubscriptionLoading;
+  // Directly check subscription status from user object
+  const hasActiveSubscription = user?.isAdmin || user?.subscriptionStatus === 'active';
+  const isLoading = !user;
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -171,7 +174,7 @@ export default function UserSettingsPage() {
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto" />
             <p className="mt-4 text-sm text-muted-foreground">
-              Verifying account status...
+              Loading your profile...
             </p>
           </div>
         </div>
@@ -179,20 +182,6 @@ export default function UserSettingsPage() {
     );
   }
 
-  if (subscriptionError) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <div className="text-center">
-            <AlertCircle className="h-8 w-8 mx-auto text-destructive" />
-            <p className="mt-4 text-sm text-muted-foreground">
-              Error verifying account status. Please refresh the page.
-            </p>
-          </div>
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
@@ -200,7 +189,7 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">{user?.displayName || "Settings"}</CardTitle>
+              <CardTitle className="text-2xl font-semibold">{user.displayName || "Settings"}</CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
@@ -255,7 +244,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription && !isSubscriptionLoading ? (
+                  {!hasActiveSubscription ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">

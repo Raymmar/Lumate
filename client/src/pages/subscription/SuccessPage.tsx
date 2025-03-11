@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -7,7 +6,7 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function SubscriptionSuccessPage() {
-  const [location, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const params = new URLSearchParams(window.location.search);
@@ -18,10 +17,6 @@ export default function SubscriptionSuccessPage() {
     subscription?: {
       id: string;
       status: string;
-    };
-    debug?: {
-      sessionStatus: string;
-      paymentStatus: string;
     };
   };
 
@@ -43,28 +38,23 @@ export default function SubscriptionSuccessPage() {
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
-    refetchInterval: (data) => {
-      return !data || data.status !== 'complete' ? 2000 : false;
-    },
     onSuccess: (data) => {
       if (data.status === 'complete') {
-        // Invalidate multiple queries to ensure fresh data
-        queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
+        // Invalidate user data to force a refresh with new subscription status
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
 
-        // Show success toast
         toast({
-          title: "Subscription Activated",
-          description: "Your subscription has been successfully activated.",
+          title: "Success!",
+          description: "Your subscription has been activated. Redirecting to settings...",
         });
 
-        // Redirect after a short delay
-        setTimeout(() => navigate('/settings'), 2000);
+        // Quick redirect to settings page
+        setTimeout(() => navigate('/settings'), 1500);
       }
     },
     onError: (error) => {
       toast({
-        title: "Verification Error",
+        title: "Error",
         description: error instanceof Error ? error.message : "Failed to verify subscription status",
         variant: "destructive",
       });
@@ -78,9 +68,6 @@ export default function SubscriptionSuccessPage() {
           <div className="text-center py-8">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-4 text-lg">Verifying your subscription...</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Please wait while we confirm your payment
-            </p>
           </div>
         ) : error ? (
           <div className="text-center py-8">
@@ -98,10 +85,7 @@ export default function SubscriptionSuccessPage() {
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
             <h1 className="text-2xl font-bold mt-4">Subscription Activated!</h1>
             <p className="text-muted-foreground mt-2">
-              Thank you for subscribing. You now have access to all premium features.
-            </p>
-            <p className="text-sm text-muted-foreground mt-4">
-              Redirecting to settings...
+              Thank you for subscribing. Redirecting you to your settings...
             </p>
           </div>
         ) : (
@@ -111,11 +95,6 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               We're confirming your subscription...
             </p>
-            {sessionStatus?.debug && (
-              <p className="text-xs text-muted-foreground mt-4">
-                Status: {sessionStatus.debug.paymentStatus}
-              </p>
-            )}
           </div>
         )}
       </Card>
