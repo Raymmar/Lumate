@@ -634,33 +634,52 @@ export async function registerRoutes(app: Express) {
           searchQuery
             ? sql`(LOWER(email) LIKE ${`%${searchQuery}%`} OR LOWER(display_name) LIKE ${`%${searchQuery}%`})`
             : sql`1=1`
-        );
+        )
+        .orderBy(sql`created_at DESC`);
+
+      console.log(`Found ${allUsers.length} users matching search criteria`);
 
       // For each user, fetch their badges
+      interface UserBadgeResult {
+        id: number;
+        name: string;
+        description: string | null;
+        icon: string;
+        isAutomatic: boolean;
+        assignedAt: string;
+      }
+
       const usersWithBadges = await Promise.all(
         allUsers.map(async (user) => {
-          const userBadges = await db
+          // Fetch badges for this user by joining against user_badges table
+          const userBadgesTable = userBadges; // Alias to avoid naming conflicts
+          const assignedBadges = await db
             .select({
               id: badges.id,
               name: badges.name,
               description: badges.description,
               icon: badges.icon,
               isAutomatic: badges.isAutomatic,
+              assignedAt: sql<string>`${userBadgesTable}.assigned_at`,
             })
-            .from(userBadges)
-            .innerJoin(badges, eq(badges.id, userBadges.badgeId))
-            .where(eq(userBadges.userId, user.id));
+            .from(userBadgesTable)
+            .innerJoin(
+              badges,
+              eq(badges.id, userBadgesTable.badgeId)
+            )
+            .where(eq(userBadgesTable.userId, user.id)) as UserBadgeResult[];
 
           console.log('Retrieved badges for user:', {
             userId: user.id,
             email: user.email,
-            badgeCount: userBadges.length,
-            badges: userBadges.map(b => b.name)
+            badgeCount: assignedBadges.length,
+            badges: assignedBadges.map((b) => b.name)
           });
 
+          // Return user with their badges
           return {
             ...user,
-            badges: userBadges
+            badges: assignedBadges
           };
         })
       );

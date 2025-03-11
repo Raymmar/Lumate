@@ -18,7 +18,7 @@ import {
 
 interface Member extends User {
   person?: Person | null;
-  badges?: Badge[];
+  badges: Badge[]; // Changed to non-optional
 }
 
 interface MembersResponse {
@@ -46,11 +46,16 @@ export function MembersTable() {
       const response = await fetch(
         `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
-      if (!response.ok) throw new Error("Failed to fetch members");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch members");
+      }
+
       const data = await response.json();
       console.log('Received members data:', {
         totalUsers: data.total,
         returnedUsers: data.users.length,
+        firstUserEmail: data.users[0]?.email,
         firstUserBadges: data.users[0]?.badges?.length
       });
       return data;
@@ -76,6 +81,11 @@ export function MembersTable() {
       key: "isVerified",
       header: "Status",
       cell: (row: Member) => (row.isVerified ? "Verified" : "Pending"),
+    },
+    {
+      key: "badges",
+      header: "Badges",
+      cell: (row: Member) => row.badges?.length || 0,
     },
     {
       key: "createdAt",
