@@ -13,14 +13,16 @@ export default function SubscriptionCheckout() {
   useEffect(() => {
     const initializeCheckout = async () => {
       try {
+        console.log('Initializing checkout session...');
         const response = await apiRequest('POST', '/api/stripe/create-checkout-session');
+
         if (!response.ok) {
           throw new Error('Failed to initialize checkout');
         }
 
         const data = await response.json();
         if (data.url) {
-          // Redirect to Stripe Checkout
+          console.log('Redirecting to Stripe checkout:', data.url);
           window.location.href = data.url;
         } else {
           throw new Error('No checkout URL returned');
