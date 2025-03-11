@@ -70,27 +70,16 @@ router.post('/create-checkout-session', async (req, res) => {
       user.stripeCustomerId = customer.id;
     }
 
-    // Create a PaymentIntent instead of a Session
-    const paymentIntent = await stripe.paymentIntents.create({
-      customer: user.stripeCustomerId,
-      setup_future_usage: 'off_session',
-      amount: 2000, // Amount in cents
-      currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      metadata: {
-        userId: user.id.toString(),
-      },
-    });
+    const session = await StripeService.createCheckoutSession(
+      user.stripeCustomerId,
+      process.env.STRIPE_PRICE_ID,
+      user.id
+    );
 
-    res.json({ 
-      clientSecret: paymentIntent.client_secret,
-      customerId: user.stripeCustomerId 
-    });
+    res.json({ url: session.url });
   } catch (error: any) {
-    console.error('Error creating payment intent:', error);
-    res.status(500).json({ error: 'Failed to create payment intent' });
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ error: 'Failed to create checkout session' });
   }
 });
 

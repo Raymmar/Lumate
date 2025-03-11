@@ -1,121 +1,42 @@
 import { useEffect, useState } from 'react';
-import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-// Initialize Stripe outside component to avoid recreating on every render
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-
-function CheckoutForm() {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/subscription/success`,
-        },
-      });
-
-      if (error) {
-        toast({
-          title: "Payment Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred during payment processing.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-6">
-        <PaymentElement />
-        <Button 
-          type="submit" 
-          disabled={!stripe || isProcessing}
-          className="w-full"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            "Subscribe Now"
-          )}
-        </Button>
-      </div>
-    </form>
-  );
-}
-
 export default function SubscriptionCheckout() {
-  const [clientSecret, setClientSecret] = useState<string>();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initializePayment = async () => {
+    const initializeCheckout = async () => {
       try {
         const response = await apiRequest('POST', '/api/stripe/create-checkout-session');
         if (!response.ok) {
-          throw new Error('Failed to initialize payment');
+          throw new Error('Failed to initialize checkout');
         }
 
         const data = await response.json();
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
+        if (data.url) {
+          // Redirect to Stripe Checkout
+          window.location.href = data.url;
         } else {
-          throw new Error('No client secret returned');
+          throw new Error('No checkout URL returned');
         }
       } catch (error) {
         toast({
           title: "Error",
-          description: "Failed to initialize payment session. Please try again.",
+          description: "Failed to initialize checkout session. Please try again.",
           variant: "destructive",
         });
+        setIsLoading(false);
       }
     };
 
-    initializePayment();
-  }, [toast]);
-
-  if (!clientSecret) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
+    initializeCheckout();
+  }, [toast, setLocation]);
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
@@ -123,13 +44,11 @@ export default function SubscriptionCheckout() {
         <CardHeader>
           <CardTitle>Complete Your Subscription</CardTitle>
           <CardDescription>
-            Subscribe to access premium features and support our community
+            Redirecting to secure checkout...
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <CheckoutForm />
-          </Elements>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </CardContent>
       </Card>
     </div>
