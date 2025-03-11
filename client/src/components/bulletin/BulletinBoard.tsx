@@ -44,7 +44,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
   if (isLoading) {
     return (
-      <Card className="border relative overflow-hidden h-[300px] group">
+      <Card className="border relative overflow-hidden h-[360px] group">
         <div className="absolute inset-0 bg-muted animate-pulse" />
       </Card>
     );
@@ -59,7 +59,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const backgroundImage = currentPost.featuredImage || fallbackImage;
 
   return (
-    <Card className="relative overflow-hidden h-[300px] group cursor-pointer" onClick={() => onSelect(currentPost)}>
+    <Card className="relative overflow-hidden h-[360px] group cursor-pointer" onClick={() => onSelect(currentPost)}>
       <img
         src={backgroundImage}
         alt=""
@@ -189,7 +189,6 @@ function LinksSection() {
     </Card>
   );
 }
-
 
 
 function SponsorsSection() {
