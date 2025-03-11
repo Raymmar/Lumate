@@ -1,7 +1,7 @@
 import { useToast } from "@/hooks/use-toast";
-import type { User, Role, Person, Badge } from "@shared/schema";
+import type { User, Role, Person, Badge as BadgeType } from "@shared/schema";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { BadgeUI } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Switch } from "@/components/ui/switch";
@@ -29,7 +29,7 @@ import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
 
 interface MemberPreviewProps {
-  member: User & { roles?: Role[]; person?: Person | null; badges?: Badge[] };
+  member: User & { roles?: Role[]; person?: Person | null; badges?: BadgeType[] };
   members?: (User & { roles?: Role[]; person?: Person | null })[];
   onNavigate?: (member: User & { roles?: Role[]; person?: Person | null }) => void;
 }
@@ -43,7 +43,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .map((n) => n[0])
       .join("") || member.email[0].toUpperCase();
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
-  const [badges, setBadges] = useState<Badge[]>(member.badges || []);
+  const [badges, setBadges] = useState<BadgeType[]>(member.badges || []);
 
   // Find current member index and determine if we have prev/next
   const currentIndex = members.findIndex(m => m.id === member.id);
@@ -103,7 +103,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const handleBadgeAssignment = async (badgeName: string) => {
     try {
-      const result = await apiRequest<{ badges: Badge[] }>(
+      const result = await apiRequest<{ badges: BadgeType[] }>(
         `/api/admin/members/${member.id}/badges/${badgeName}`,
         "POST",
       );
@@ -129,7 +129,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const handleBadgeRemoval = async (badgeName: string) => {
     try {
-      const result = await apiRequest<{ badges: Badge[] }>(
+      const result = await apiRequest<{ badges: BadgeType[] }>(
         `/api/admin/members/${member.id}/badges/${badgeName}`,
         "DELETE",
       );
@@ -186,14 +186,14 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
           </div>
 
           <div className="flex items-center space-x-2 flex-wrap gap-2">
-            <BadgeUI variant={member.isVerified ? "default" : "secondary"}>
+            <Badge variant={member.isVerified ? "default" : "secondary"}>
               {member.isVerified ? "Verified" : "Pending"}
-            </BadgeUI>
-            {member.isAdmin && <BadgeUI variant="default">Admin</BadgeUI>}
+            </Badge>
+            {member.isAdmin && <Badge variant="default">Admin</Badge>}
             {roles.map((role) => (
-              <BadgeUI key={role.id} variant="outline">
+              <Badge key={role.id} variant="outline">
                 {role.name}
-              </BadgeUI>
+              </Badge>
             ))}
             {badges.map((badge) => (
               <div key={badge.id} className="relative group">
