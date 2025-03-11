@@ -936,17 +936,43 @@ export async function registerRoutes(app: Express) {
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
 
+      // If we found a user, fetch their badges
+      let userWithBadges = null;
+      if (user[0]) {
+        const userBadges = await db
+          .select({
+            id: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic,
+          })
+          .from(userBadges)
+          .innerJoin(badges, eq(badges.id, userBadges.badgeId))
+          .where(eq(userBadges.userId, user[0].id));
+
+        userWithBadges = {
+          ...user[0],
+          badges: userBadges
+        };
+      }
+
       // Attach the user data to the person object
       const personWithUser = {
         ...person,
-        user: user[0] || null
+        user: userWithBadges
       };
 
-      console.log('API Response - Person found:', {
-        username,
+      console.log('API Response - Person with user data:', {
         personId: person.id,
-        hasUser: !!user[0],
-        apiId: person.api_id
+        hasUser: !!userWithBadges,
+        userData: userWithBadges ? {
+          id: userWithBadges.id,
+          email: userWithBadges.email,
+          companyName: userWithBadges.companyName,
+          badges: userWithBadges.badges?.map(b => b.name),
+          badgeCount: userWithBadges.badges?.length
+        } : null
       });
 
       res.json(personWithUser);
