@@ -233,15 +233,28 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
 
           <div className="absolute bottom-2 left-2 flex gap-2">
             <AuthGuard>
-              <Button
-                size="sm"
-                className="text-xs"
-                variant={rsvpStatus?.isGoing ? "outline" : "default"}
-                onClick={handleRSVP}
-                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-              >
-                {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                  onClick={handleRSVP}
+                  disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                >
+                  {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+                </Button>
+                {rsvpStatus?.isGoing && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddToCalendar}
+                    className="text-xs flex items-center gap-1"
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                    <span>Calendar</span>
+                  </Button>
+                )}
+              </div>
             </AuthGuard>
           </div>
         </div>
