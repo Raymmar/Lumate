@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, varchar, json, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, json, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -205,11 +205,12 @@ export const badges = pgTable("badges", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+// Update the userBadges table schema to fix the serial fields
 export const userBadges = pgTable("user_badges", {
   id: serial("id").primaryKey(),
-  userId: serial("user_id").references(() => users.id).notNull(),
-  badgeId: serial("badge_id").references(() => badges.id).notNull(),
-  assignedBy: serial("assigned_by").references(() => users.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  badgeId: integer("badge_id").notNull().references(() => badges.id),
+  assignedBy: integer("assigned_by").references(() => users.id),
   assignedAt: timestamp("assigned_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -461,6 +462,7 @@ export const insertBadgeSchema = createInsertSchema(badges).omit({
   createdAt: true,
 });
 
+// Update insert schema for user badges
 export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
   id: true,
   assignedAt: true,
