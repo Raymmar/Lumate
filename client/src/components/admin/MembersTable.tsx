@@ -1,12 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-import type { User, Person, BadgeType } from "@shared/schema"; // Added BadgeType import
+import type { User, Person, Badge } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Pagination,
   PaginationContent,
@@ -15,16 +16,18 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
+interface Member extends User {
+  person?: Person | null;
+  badges?: Badge[];
+}
+
 interface MembersResponse {
-  users: (User & { person?: Person | null })[];
+  users: Member[];
   total: number;
 }
 
 export function MembersTable() {
-  const [selectedMember, setSelectedMember] = useState<User & { 
-    person?: Person | null;
-    badges?: BadgeType[];  // Add badges to the type
-  } | null>(null);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -34,11 +37,23 @@ export function MembersTable() {
   const { data, isLoading, isFetching } = useQuery<MembersResponse>({
     queryKey: ["/api/admin/members", currentPage, itemsPerPage, debouncedSearch],
     queryFn: async () => {
+      console.log('Fetching members with params:', {
+        page: currentPage,
+        limit: itemsPerPage,
+        search: debouncedSearch
+      });
+
       const response = await fetch(
         `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
       );
       if (!response.ok) throw new Error("Failed to fetch members");
-      return response.json();
+      const data = await response.json();
+      console.log('Received members data:', {
+        totalUsers: data.total,
+        returnedUsers: data.users.length,
+        firstUserBadges: data.users[0]?.badges?.length
+      });
+      return data;
     },
   });
 
@@ -50,41 +65,40 @@ export function MembersTable() {
     {
       key: "email",
       header: "Email",
-      cell: (row: User) => row.email,
+      cell: (row: Member) => row.email,
     },
     {
       key: "displayName",
       header: "Display Name",
-      cell: (row: User) => row.displayName || "—",
+      cell: (row: Member) => row.displayName || "—",
     },
     {
       key: "isVerified",
       header: "Status",
-      cell: (row: User) => (row.isVerified ? "Verified" : "Pending"),
+      cell: (row: Member) => (row.isVerified ? "Verified" : "Pending"),
     },
     {
       key: "createdAt",
       header: "Joined",
-      cell: (row: User) => format(new Date(row.createdAt), "PPP"),
+      cell: (row: Member) => format(new Date(row.createdAt), "PPP"),
     },
   ];
 
   const actions = [
     {
       label: "View Profile",
-      onClick: (member: User & { person?: Person | null }) => {
+      onClick: (member: Member) => {
+        console.log('Selected member:', {
+          id: member.id,
+          email: member.email,
+          badgeCount: member.badges?.length
+        });
         setSelectedMember(member);
-      },
-    },
-    {
-      label: "Edit",
-      onClick: (member: User) => {
-        console.log("Edit member:", member);
       },
     },
   ];
 
-  const onRowClick = (member: User & { person?: Person | null }) => {
+  const onRowClick = (member: Member) => {
     setSelectedMember(member);
   };
 
@@ -96,9 +110,25 @@ export function MembersTable() {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
-  const handleNavigate = (member: User & { person?: Person | null }) => {
+  const handleNavigate = (member: Member) => {
     setSelectedMember(member);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-10 w-64" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
