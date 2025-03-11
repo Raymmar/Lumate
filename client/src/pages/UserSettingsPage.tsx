@@ -91,13 +91,21 @@ export default function UserSettingsPage() {
       return data as { status: string };
     },
     enabled: !!user && !user.isAdmin,
-    // Reduce stale time to ensure fresh data after payment
-    staleTime: 0,
+    // Increase staleTime to prevent unnecessary refetches
+    staleTime: 30000,
+    // Cache the successful result
+    cacheTime: 1000 * 60 * 5, // 5 minutes
+    // Keep previous data while revalidating
+    keepPreviousData: true,
     // Add retry for better reliability
     retry: 3,
   });
 
-  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+  // Memoize the subscription status to prevent flickering
+  const hasActiveSubscription = user?.isAdmin || 
+    subscriptionStatus?.status === 'active' || 
+    // Keep showing premium features while loading if we previously had access
+    (isSubscriptionLoading && form.getValues().companyName !== "");
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {

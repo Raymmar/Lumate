@@ -48,9 +48,19 @@ export default function SubscriptionSuccessPage() {
   useEffect(() => {
     if (sessionStatus?.status === 'complete') {
       console.log('✨ Payment confirmed, invalidating queries...');
-      // Invalidate relevant queries to trigger a refresh
+      // Force a refetch of all relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+
+      // Prefetch the subscription status to ensure it's ready when we navigate
+      queryClient.prefetchQuery({
+        queryKey: ['/api/subscription/status'],
+        queryFn: async () => {
+          const response = await fetch('/api/subscription/status');
+          if (!response.ok) throw new Error('Failed to fetch subscription status');
+          return response.json();
+        }
+      });
 
       const timer = setTimeout(() => navigate('/settings'), 3000);
       return () => clearTimeout(timer);
