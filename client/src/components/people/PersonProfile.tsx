@@ -239,9 +239,9 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         <Card>
           <CardContent className="py-4 pt-4">
             {person.user?.bio ? (
-              <p className="text-sm text-muted-foreground">{person.user.bio}</p>
+              <p className="text-base text-muted-foreground">{person.user.bio}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">No bio available</p>
+              <p className="text-base text-muted-foreground">No bio available</p>
             )}
           </CardContent>
         </Card>
