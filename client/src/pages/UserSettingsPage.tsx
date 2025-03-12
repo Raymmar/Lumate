@@ -31,13 +31,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Update subscription status type and check
-interface SubscriptionStatus {
-  status: string;
-  currentPeriodEnd?: number;
-  subscriptionId?: string;
-}
-
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -76,7 +69,7 @@ export default function UserSettingsPage() {
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) : null,
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
         phoneNumber: user.phoneNumber || "",
         isPhonePublic: user.isPhonePublic || false,
         isEmailPublic: user.isEmailPublic || false,
@@ -88,35 +81,23 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery<SubscriptionStatus>({
+  // Enhanced subscription status check with proper typing
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
       const response = await fetch('/api/subscription/status');
       if (!response.ok) throw new Error('Failed to fetch subscription status');
-      return response.json();
+      const data = await response.json();
+      return data as { status: string };
     },
     enabled: !!user && !user.isAdmin,
+    // Reduce stale time to ensure fresh data after payment
     staleTime: 0,
+    // Add retry for better reliability
     retry: 3,
   });
 
-
-  // Check for active subscription with better status handling
-  const hasActiveSubscription = Boolean(
-    user?.isAdmin || 
-    (subscriptionStatus?.status && ['active', 'trialing'].includes(subscriptionStatus.status))
-  );
-
-  // Show loading state while checking subscription and user data
-  if (!user || isSubscriptionLoading) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </DashboardLayout>
-    );
-  }
+  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -200,6 +181,15 @@ export default function UserSettingsPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  if (!user) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -233,10 +223,7 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                form.handleSubmit(updateProfileMutation.mutate)(e);
-              }} className="space-y-3">
+              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-3">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
                   <FormField
