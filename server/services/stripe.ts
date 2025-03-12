@@ -159,26 +159,42 @@ export class StripeService {
 
       console.log('🔍 Checking subscription status for customer:', customerId);
 
+      // List all subscriptions for the customer
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
+        status: 'all', // Get all subscriptions to check various statuses
         limit: 1,
-        status: 'active',
+        expand: ['data.default_payment_method']
       });
 
+      // No subscriptions found
       if (subscriptions.data.length === 0) {
-        console.log('❌ No active subscription found for customer:', customerId);
+        console.log('❌ No subscription found for customer:', customerId);
         return { status: 'inactive' };
       }
 
       const subscription = subscriptions.data[0];
-      console.log('✅ Found subscription:', {
-        id: subscription.id,
-        status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end
+      const status = subscription.status;
+
+      // Map Stripe subscription status to our application status
+      let applicationStatus = 'inactive';
+      if (status === 'active' || status === 'trialing') {
+        applicationStatus = 'active';
+      } else if (status === 'past_due') {
+        applicationStatus = 'past_due';
+      } else if (status === 'canceled' || status === 'unpaid') {
+        applicationStatus = 'inactive';
+      }
+
+      console.log('✅ Subscription status retrieved:', {
+        customerId,
+        stripeStatus: status,
+        applicationStatus,
+        subscriptionId: subscription.id
       });
 
       return {
-        status: subscription.status,
+        status: applicationStatus,
         currentPeriodEnd: subscription.current_period_end,
         subscriptionId: subscription.id
       };
