@@ -13,7 +13,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandInput } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { type UpdateUserProfile, type Location } from "@shared/schema";
+import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -41,8 +41,7 @@ export default function UserSettingsPage() {
   const hasActiveSubscription = !!(
     user?.isAdmin || // Admin always has access
     (user?.subscriptionStatus === 'active' && // Must have active status
-      user?.subscriptionId?.startsWith('sub_') && // Must have valid subscription ID
-      user?.stripeCustomerId?.startsWith('cus_')) // Must have valid customer ID
+      user?.subscriptionId?.startsWith('sub_')) // Must have valid subscription ID
   );
 
   useEffect(() => {
@@ -51,8 +50,7 @@ export default function UserSettingsPage() {
       user: {
         isAdmin: user?.isAdmin,
         status: user?.subscriptionStatus,
-        subId: user?.subscriptionId,
-        cusId: user?.stripeCustomerId
+        subId: user?.subscriptionId
       }
     });
   }, [user, hasActiveSubscription]);
@@ -98,22 +96,18 @@ export default function UserSettingsPage() {
       });
       setTags(user.tags || []);
     }
-  }, [user, form.reset]);
+  }, [user, form]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
-      const formattedData = {
-        ...data,
-        displayName: user?.displayName,
-        address: data.address || null,
-        tags: tags,
-      };
-
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
-        body: JSON.stringify(formattedData),
+        body: JSON.stringify({
+          ...data,
+          tags,
+        }),
       });
 
       if (!response.ok) {
@@ -139,7 +133,7 @@ export default function UserSettingsPage() {
     },
   });
 
-  const startSubscription = async () => {
+  const startSubscription = () => {
     window.location.href = '/subscription/checkout';
   };
 
@@ -197,7 +191,7 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-3">
+              <form onSubmit={form.handleSubmit((data) => updateProfileMutation.mutate(data))} className="space-y-3">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
                   <FormField
@@ -208,11 +202,11 @@ export default function UserSettingsPage() {
                         <FormControl>
                           <div className="relative">
                             <Textarea
-                              {...field}
-                              value={field.value || ''}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
+                              {...field}
+                              value={field.value || ''}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
                               {(field.value?.length || 0)}/140
@@ -275,9 +269,10 @@ export default function UserSettingsPage() {
                             <FormItem className="space-y-1">
                               <FormControl>
                                 <Input
-                                  {...field}
                                   placeholder="Company name"
                                   className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  {...field}
+                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -291,9 +286,10 @@ export default function UserSettingsPage() {
                             <FormItem className="space-y-1">
                               <FormControl>
                                 <Textarea
-                                  {...field}
                                   placeholder="Describe your company..."
                                   className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  {...field}
+                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -311,7 +307,7 @@ export default function UserSettingsPage() {
                               <FormControl>
                                 <LocationPicker
                                   defaultValue={field.value}
-                                  onLocationSelect={field.onChange}
+                                  onLocationSelect={(location) => field.onChange(location)}
                                   className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
                                 />
                               </FormControl>
@@ -327,10 +323,11 @@ export default function UserSettingsPage() {
                               <FormItem className="flex-1 space-y-1">
                                 <FormControl>
                                   <Input
-                                    {...field}
                                     type="tel"
                                     placeholder="Phone number"
                                     className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    {...field}
+                                    value={field.value || ''}
                                   />
                                 </FormControl>
                                 <FormMessage />
