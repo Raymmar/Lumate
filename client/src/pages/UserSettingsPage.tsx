@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,7 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Update the subscription status query to handle errors better
+  // Update the subscription status query with better caching and validation
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading, isError: isSubscriptionError } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
@@ -90,25 +90,46 @@ export default function UserSettingsPage() {
         const error = await response.json();
         throw new Error(error.error || 'Failed to fetch subscription status');
       }
-      return response.json() as Promise<{ status: string }>;
+      return response.json() as Promise<{ status: string; customerId?: string; }>;
     },
     enabled: !!user && !user.isAdmin,
-    // Reduce stale time to ensure fresh data after payment
-    staleTime: 0,
-    // Add retry for better reliability
-    retry: 3,
-    // Add error handling
+    // Add proper caching to prevent unnecessary refetches
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    // Retry configuration
+    retry: (failureCount, error) => {
+      // Only retry network errors, not validation errors
+      return failureCount < 3 && !error.message.includes('validation');
+    },
+    // Better error handling
     onError: (error) => {
       console.error('Subscription status check failed:', error);
-      // In case of error, assume user has access to prevent incorrect lockout
-      return { status: 'active' };
+      // Only fallback to subscription check if we have a subscriptionId
+      if (user?.subscriptionId) {
+        queryClient.setQueryData(['/api/subscription/status'], {
+          status: 'active',
+          customerId: user.stripeCustomerId
+        });
+      }
     }
   });
 
-  // Update the hasActiveSubscription check to be more defensive
-  const hasActiveSubscription = user?.isAdmin || 
-    (subscriptionStatus?.status === 'active' && !isSubscriptionError) || 
-    (isSubscriptionError && user?.subscriptionId); // Fallback if status check fails
+  // More robust subscription validation
+  const hasActiveSubscription = useMemo(() => {
+    // Admin always has access
+    if (user?.isAdmin) return true;
+
+    // If we're loading or have an error and no fallback data, assume no access
+    if (isSubscriptionLoading || (isSubscriptionError && !subscriptionStatus)) return false;
+
+    // Check for active subscription status
+    const isActive = subscriptionStatus?.status === 'active';
+
+    // Validate subscription matches user
+    const hasValidSubscription = user?.subscriptionId && user?.stripeCustomerId === subscriptionStatus?.customerId;
+
+    return isActive && hasValidSubscription;
+  }, [user, subscriptionStatus, isSubscriptionLoading, isSubscriptionError]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
