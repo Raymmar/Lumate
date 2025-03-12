@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -81,75 +81,11 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Subscription status check with improved caching and error handling
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
-    queryKey: ['/api/subscription/status'],
-    queryFn: async () => {
-      console.log('🔄 Fetching subscription status...');
-      const response = await fetch('/api/subscription/status');
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('❌ Subscription status error:', error);
-        throw new Error(error.error || 'Failed to fetch subscription status');
-      }
-      const data = await response.json();
-      console.log('✅ Subscription status response:', data);
-      return data as { status: string; customerId?: string; };
-    },
-    enabled: !!user && !user.isAdmin,
-    // Keep cached data for longer to prevent flicker
-    staleTime: 30 * 1000, // 30 seconds
-    // Don't refetch on window focus to prevent flicker
-    refetchOnWindowFocus: false,
-    // Add retry with backoff
-    retry: (failureCount, error) => {
-      if (failureCount < 3) {
-        console.log(`🔄 Retrying subscription check (attempt ${failureCount + 1})`);
-        return true;
-      }
-      console.error('❌ Max retries reached for subscription check:', error);
-      return false;
-    },
-  });
-
-  // Determine subscription status with proper fallbacks
-  const hasActiveSubscription = useMemo(() => {
-    // Always grant access to admins
-    if (user?.isAdmin) {
-      console.log('👑 Admin user, granting access');
-      return true;
-    }
-
-    // While loading, maintain previous state to prevent flicker
-    if (isSubscriptionLoading) {
-      console.log('⏳ Loading subscription status...');
-      return true; // Optimistically show content while loading
-    }
-
-    // If we have subscription data, validate it
-    if (subscriptionStatus) {
-      const isActive = subscriptionStatus.status === 'active';
-      const hasValidCustomerId = user?.stripeCustomerId === subscriptionStatus.customerId;
-
-      console.log('🔍 Subscription validation:', {
-        isActive,
-        hasValidCustomerId,
-        userCustomerId: user?.stripeCustomerId,
-        responseCustomerId: subscriptionStatus.customerId
-      });
-
-      return isActive && hasValidCustomerId;
-    }
-
-    // If we have a subscription ID but no status, assume active
-    if (user?.subscriptionId) {
-      console.log('ℹ️ No status but has subscription ID, assuming active');
-      return true;
-    }
-
-    console.log('❌ No active subscription found');
-    return false;
-  }, [user, subscriptionStatus, isSubscriptionLoading]);
+  // Simplified subscription check - use database state as source of truth
+  const hasActiveSubscription = user?.isAdmin || (
+    !!user?.subscriptionId && 
+    !!user?.stripeCustomerId
+  );
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -192,25 +128,7 @@ export default function UserSettingsPage() {
 
   const startSubscription = async () => {
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({})
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      if (!url) {
-        throw new Error('No portal URL received');
-      }
-
-      window.location.href = url;
+        window.location.href = '/subscription/checkout';
     } catch (error) {
       console.error('Subscription error:', error);
       toast({
@@ -304,7 +222,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription && !isSubscriptionLoading ? (
+                  {!hasActiveSubscription ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">
@@ -315,7 +233,10 @@ export default function UserSettingsPage() {
                               Upgrade your account to unlock additional premium profile features including company details,
                               location, contact information, and custom links.
                             </p>
-                            <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black">
+                            <Button 
+                              onClick={startSubscription} 
+                              className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black"
+                            >
                               Upgrade to Premium
                             </Button>
                           </div>
