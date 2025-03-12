@@ -88,40 +88,27 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Update the subscription status check and logging
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery<SubscriptionStatus>({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
-      console.log('Fetching subscription status...');
       const response = await fetch('/api/subscription/status');
       if (!response.ok) throw new Error('Failed to fetch subscription status');
-      const data = await response.json();
-      console.log('Subscription status response:', data);
-      return data;
+      return response.json();
     },
     enabled: !!user && !user.isAdmin,
-    // Reduce stale time to ensure fresh data after payment
     staleTime: 0,
-    // Add retry for better reliability
     retry: 3,
   });
 
-  // Debug logs for subscription check
-  console.log('User:', user);
-  console.log('Subscription status:', subscriptionStatus);
-  console.log('Is loading:', isSubscriptionLoading);
 
   // Check for active subscription with better status handling
   const hasActiveSubscription = Boolean(
     user?.isAdmin || 
-    (!isSubscriptionLoading && subscriptionStatus?.status && 
-      ['active', 'trialing'].includes(subscriptionStatus.status))
+    (subscriptionStatus?.status && ['active', 'trialing'].includes(subscriptionStatus.status))
   );
 
-  console.log('Has active subscription:', hasActiveSubscription);
-
-  // Show loading state while checking subscription
-  if (isSubscriptionLoading) {
+  // Show loading state while checking subscription and user data
+  if (!user || isSubscriptionLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
@@ -213,15 +200,6 @@ export default function UserSettingsPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  if (!user) {
-    return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
