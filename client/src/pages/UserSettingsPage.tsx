@@ -42,21 +42,15 @@ export default function UserSettingsPage() {
     initGoogleMaps();
   }, []);
 
-  // Log user data when component mounts or user changes
+  // Log initial state
   useEffect(() => {
-    if (user) {
-      console.log('🔍 UserSettingsPage - Current user state:', {
-        id: user.id,
-        isAdmin: user.isAdmin,
-        subscriptionStatus: user.subscriptionStatus,
-        hasSubscription: !!(user.subscriptionId && user.subscriptionStatus === 'active'),
-        stripeIds: {
-          customerId: user.stripeCustomerId,
-          subscriptionId: user.subscriptionId
-        }
-      });
-    }
-  }, [user]);
+    console.log('🔍 UserSettingsPage - Initial render:', {
+      userId: user?.id,
+      isAdmin: user?.isAdmin,
+      subscriptionStatus: user?.subscriptionStatus,
+      subscriptionId: user?.subscriptionId
+    });
+  }, []);
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
@@ -85,7 +79,7 @@ export default function UserSettingsPage() {
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) : null,
         phoneNumber: user.phoneNumber || "",
         isPhonePublic: user.isPhonePublic || false,
         isEmailPublic: user.isEmailPublic || false,
@@ -97,20 +91,15 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Simplified subscription check using database status
-  const hasActiveSubscription = Boolean(
-    user?.isAdmin ||
-    (user?.subscriptionStatus === 'active' && user?.subscriptionId)
-  );
+  // Simple subscription check based on user's subscription status
+  const hasActiveSubscription = Boolean(user?.isAdmin || user?.subscriptionStatus === 'active');
 
-  // Log subscription check result
+  // Log subscription state changes
   useEffect(() => {
-    console.log('🔍 Subscription check result:', {
+    console.log('🔍 Subscription state:', {
       hasActiveSubscription,
       isAdmin: user?.isAdmin,
-      subscriptionStatus: user?.subscriptionStatus,
-      subscriptionId: user?.subscriptionId,
-      stripeCustomerId: user?.stripeCustomerId
+      subscriptionStatus: user?.subscriptionStatus
     });
   }, [hasActiveSubscription, user]);
 
@@ -154,16 +143,7 @@ export default function UserSettingsPage() {
   });
 
   const startSubscription = async () => {
-    try {
-      window.location.href = '/subscription/checkout';
-    } catch (error) {
-      console.error('Subscription error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to start subscription process. Please try again.",
-        variant: "destructive",
-      });
-    }
+    window.location.href = '/subscription/checkout';
   };
 
   const handleSelectTag = (tag: string) => {
