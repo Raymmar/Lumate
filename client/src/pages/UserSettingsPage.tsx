@@ -31,6 +31,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+// Update subscription status type and check
+interface SubscriptionStatus {
+  status: string;
+  currentPeriodEnd?: number;
+  subscriptionId?: string;
+}
+
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -69,7 +76,7 @@ export default function UserSettingsPage() {
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) : null,
         phoneNumber: user.phoneNumber || "",
         isPhonePublic: user.isPhonePublic || false,
         isEmailPublic: user.isEmailPublic || false,
@@ -82,13 +89,12 @@ export default function UserSettingsPage() {
   }, [user, form.reset]);
 
   // Enhanced subscription status check with proper typing
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery<SubscriptionStatus>({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
       const response = await fetch('/api/subscription/status');
       if (!response.ok) throw new Error('Failed to fetch subscription status');
-      const data = await response.json();
-      return data as { status: string };
+      return response.json();
     },
     enabled: !!user && !user.isAdmin,
     // Reduce stale time to ensure fresh data after payment
@@ -97,7 +103,8 @@ export default function UserSettingsPage() {
     retry: 3,
   });
 
-  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+  // Check for active subscription with better status handling
+  const hasActiveSubscription = user?.isAdmin || (subscriptionStatus?.status && ['active', 'trialing'].includes(subscriptionStatus.status));
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -223,7 +230,10 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-3">
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                form.handleSubmit(updateProfileMutation.mutate)(e);
+              }} className="space-y-3">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
                   <FormField
