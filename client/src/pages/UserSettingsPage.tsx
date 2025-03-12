@@ -11,10 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandInput } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
-import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
+import { type UpdateUserProfile, type Location } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -38,18 +37,28 @@ export default function UserSettingsPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
 
+  // Direct check for valid subscription based on database values
+  const hasActiveSubscription = !!(
+    user?.isAdmin || // Admin always has access
+    (user?.subscriptionStatus === 'active' && // Must have active status
+      user?.subscriptionId?.startsWith('sub_') && // Must have valid subscription ID
+      user?.stripeCustomerId?.startsWith('cus_')) // Must have valid customer ID
+  );
+
+  useEffect(() => {
+    console.log('🔍 Subscription Check:', {
+      result: hasActiveSubscription,
+      user: {
+        isAdmin: user?.isAdmin,
+        status: user?.subscriptionStatus,
+        subId: user?.subscriptionId,
+        cusId: user?.stripeCustomerId
+      }
+    });
+  }, [user, hasActiveSubscription]);
+
   useEffect(() => {
     initGoogleMaps();
-  }, []);
-
-  // Log initial state
-  useEffect(() => {
-    console.log('🔍 UserSettingsPage - Initial render:', {
-      userId: user?.id,
-      isAdmin: user?.isAdmin,
-      subscriptionStatus: user?.subscriptionStatus,
-      subscriptionId: user?.subscriptionId
-    });
   }, []);
 
   const form = useForm<UpdateUserProfile>({
@@ -90,18 +99,6 @@ export default function UserSettingsPage() {
       setTags(user.tags || []);
     }
   }, [user, form.reset]);
-
-  // Simple subscription check based on user's subscription status
-  const hasActiveSubscription = Boolean(user?.isAdmin || user?.subscriptionStatus === 'active');
-
-  // Log subscription state changes
-  useEffect(() => {
-    console.log('🔍 Subscription state:', {
-      hasActiveSubscription,
-      isAdmin: user?.isAdmin,
-      subscriptionStatus: user?.subscriptionStatus
-    });
-  }, [hasActiveSubscription, user]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -252,10 +249,9 @@ export default function UserSettingsPage() {
                     </Card>
                   ) : (
                     <>
-                      {/* Company Information */}
+                      {/* Premium Features */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">Company Information</h3>
-
                         <FormField
                           control={form.control}
                           name="featuredImageUrl"
@@ -272,7 +268,6 @@ export default function UserSettingsPage() {
                             </FormItem>
                           )}
                         />
-
                         <FormField
                           control={form.control}
                           name="companyName"
@@ -289,7 +284,6 @@ export default function UserSettingsPage() {
                             </FormItem>
                           )}
                         />
-
                         <FormField
                           control={form.control}
                           name="companyDescription"
@@ -307,8 +301,6 @@ export default function UserSettingsPage() {
                           )}
                         />
                       </div>
-
-                      {/* Contact Information */}
                       <div className="space-y-2">
                         <FormField
                           control={form.control}
@@ -327,7 +319,6 @@ export default function UserSettingsPage() {
                             </FormItem>
                           )}
                         />
-
                         <div className="flex items-center gap-4">
                           <FormField
                             control={form.control}
@@ -364,7 +355,6 @@ export default function UserSettingsPage() {
                             )}
                           />
                         </div>
-
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
                             <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -388,8 +378,6 @@ export default function UserSettingsPage() {
                           />
                         </div>
                       </div>
-
-                      {/* Tags */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
@@ -428,8 +416,6 @@ export default function UserSettingsPage() {
                           </Command>
                         </div>
                       </div>
-
-                      {/* Custom Links */}
                       <FormField
                         control={form.control}
                         name="customLinks"
@@ -523,7 +509,6 @@ export default function UserSettingsPage() {
                     "Save Changes"
                   )}
                 </Button>
-
                 {hasActiveSubscription && !user?.isAdmin && (
                   <Button
                     type="button"

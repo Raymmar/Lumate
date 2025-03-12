@@ -30,7 +30,6 @@ function useLogoutMutation() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/me"], null);
-      // Also invalidate subscription status when logging out
       queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
 
       toast({
@@ -58,30 +57,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
-      console.log('🔄 Fetching user data...');
+      console.log('🔄 Auth Hook - Fetching user data...');
       const response = await fetch("/api/auth/me", {
         credentials: 'include'
       });
+
       if (!response.ok) {
         if (response.status === 401) return null;
         throw new Error("Failed to fetch user");
       }
+
       const data = await response.json();
-      console.log('✅ User data fetched:', {
+
+      // Debug log the exact response data
+      console.log('✅ Auth Hook - User data received:', {
         id: data.id,
         email: data.email,
+        subscriptionStatus: {
+          value: data.subscriptionStatus,
+          type: typeof data.subscriptionStatus,
+          rawValue: String(data.subscriptionStatus)
+        },
+        subscriptionId: data.subscriptionId,
+        stripeCustomerId: data.stripeCustomerId,
         isAdmin: data.isAdmin,
-        subscriptionStatus: data.subscriptionStatus,
-        hasSubscription: !!(data.subscriptionId && data.subscriptionStatus === 'active'),
-        stripeIds: {
-          customerId: data.stripeCustomerId,
-          subscriptionId: data.subscriptionId
-        }
+        fullData: data // Log complete response
       });
+
       return data;
     },
-    staleTime: 30 * 1000, // Cache for 30 seconds
-    cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    staleTime: 0, // Don't cache the data
     refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 
@@ -101,23 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       const userData = data.user || data;
-      console.log('✅ Login successful:', {
-        userId: userData.id,
-        isAdmin: userData.isAdmin,
-        subscriptionStatus: userData.subscriptionStatus,
-        hasSubscription: !!(userData.subscriptionId && userData.subscriptionStatus === 'active'),
-      });
+      console.log('✅ Login successful - user data:', userData);
 
-      // Update both user data and subscription status
       queryClient.setQueryData(["/api/auth/me"], userData);
-      if (userData.subscriptionId) {
-        queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
-      }
-
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      });
     },
     onError: (error: Error) => {
       console.error('❌ Login error:', error);
@@ -129,8 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const logoutMutation = useLogoutMutation();
-
   const login = async (email: string, password: string) => {
     await loginMutation.mutateAsync({ email, password });
   };
@@ -138,29 +127,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = (userData: User) => {
     console.log('🔄 Updating user data:', {
       id: userData.id,
-      isAdmin: userData.isAdmin,
       subscriptionStatus: userData.subscriptionStatus,
-      hasSubscription: !!(userData.subscriptionId && userData.subscriptionStatus === 'active'),
-      stripeIds: {
-        customerId: userData.stripeCustomerId,
-        subscriptionId: userData.subscriptionId
-      }
+      subscriptionId: userData.subscriptionId,
+      stripeCustomerId: userData.stripeCustomerId
     });
     queryClient.setQueryData(["/api/auth/me"], userData);
-    // Also update subscription status if needed
-    if (userData.subscriptionId) {
-      queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
-    }
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user: user ?? null,
+        user,
         isLoading,
         error,
         login,
-        logoutMutation,
+        logoutMutation: useLogoutMutation(),
         updateUser,
       }}
     >
