@@ -28,68 +28,6 @@ export class StripeService {
     }
   }
 
-  static async verifySession(sessionId: string) {
-    try {
-      console.log('🔍 Verifying session:', sessionId);
-
-      // Retrieve session with expanded subscription data
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['subscription']
-      });
-
-      console.log('📦 Session details:', {
-        id: session.id,
-        status: session.status,
-        customerId: session.customer,
-        subscriptionId: session.subscription?.id || null
-      });
-
-      // Get the full subscription object if it exists
-      let subscriptionDetails = null;
-      if (session.subscription) {
-        const subscription = session.subscription as Stripe.Subscription;
-
-        console.log('💳 Subscription details:', {
-          id: subscription.id,
-          status: subscription.status,
-          customerId: session.customer
-        });
-
-        subscriptionDetails = {
-          id: subscription.id,
-          status: subscription.status,
-          customerId: session.customer as string
-        };
-
-        // Update user subscription in database
-        const user = await storage.getUserByStripeCustomerId(session.customer as string);
-        if (user) {
-          console.log('✏️ Updating user subscription:', {
-            userId: user.id,
-            subscriptionId: subscription.id,
-            status: subscription.status
-          });
-
-          await storage.updateUserSubscription(
-            user.id,
-            subscription.id,
-            subscription.status
-          );
-        }
-      }
-
-      return {
-        isValid: true,
-        status: session.status,
-        paymentStatus: session.payment_status,
-        subscriptionDetails
-      };
-    } catch (error) {
-      console.error('❌ Error verifying session:', error);
-      throw error;
-    }
-  }
-
   static async createCheckoutSession(customerId: string, priceId: string, userId: number) {
     try {
       if (!customerId) {
@@ -119,13 +57,11 @@ export class StripeService {
           userId: userId.toString(),
         },
         allow_promotion_codes: true,
-        expand: ['subscription']
       });
 
       console.log('✅ Checkout session created:', {
         sessionId: session.id,
         customerId,
-        subscriptionId: session.subscription?.id
       });
 
       return session;
@@ -135,14 +71,90 @@ export class StripeService {
     }
   }
 
-  static async getSubscriptionStatus(customerId: string) {
+  static async verifySession(sessionId: string) {
+    try {
+      console.log('🔍 Verifying session:', sessionId);
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['subscription']
+      });
+
+      console.log('📦 Session details:', {
+        id: session.id,
+        status: session.status,
+        customerId: session.customer,
+        subscriptionId: session.subscription
+      });
+
+      if (session.subscription && typeof session.subscription === 'object') {
+        const subscription = session.subscription;
+
+        if (typeof session.customer === 'string') {
+          const user = await storage.getUserByStripeCustomerId(session.customer);
+          if (user) {
+            await storage.updateUserSubscription(
+              user.id,
+              subscription.id,
+              subscription.status
+            );
+          }
+        }
+
+        return {
+          isValid: true,
+          status: session.status,
+          paymentStatus: session.payment_status,
+          subscriptionDetails: {
+            id: subscription.id,
+            status: subscription.status,
+            customerId: typeof session.customer === 'string' ? session.customer : null
+          }
+        };
+      }
+
+      return {
+        isValid: true,
+        status: session.status,
+        paymentStatus: session.payment_status,
+        subscriptionDetails: null
+      };
+    } catch (error) {
+      console.error('❌ Error verifying session:', error);
+      throw error;
+    }
+  }
+  static async createCustomerPortalSession(customerId: string) {
     try {
       if (!customerId) {
         throw new Error('Customer ID is required');
       }
 
-      if (customerId === 'NULL') {
-        return { status: 'inactive' };
+      console.log('Creating customer portal session for:', customerId);
+
+      // Use production URL, fallback to environment URL only in development
+      const returnUrl = process.env.REPLIT_DEPLOYMENT_URL 
+        ? `${process.env.REPLIT_DEPLOYMENT_URL}/settings`
+        : 'http://localhost:3000/settings';
+
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: returnUrl,
+      });
+
+      console.log('✅ Customer portal session created:', {
+        sessionId: session.id,
+        url: session.url
+      });
+
+      return session;
+    } catch (error) {
+      console.error('❌ Error creating customer portal session:', error);
+      throw error;
+    }
+  }
+  static async getSubscriptionStatus(customerId: string) {
+    try {
+      if (!customerId) {
+        throw new Error('Customer ID is required');
       }
 
       console.log('🔍 Checking subscription status for customer:', customerId);
@@ -172,9 +184,6 @@ export class StripeService {
       };
     } catch (error) {
       console.error('❌ Error checking subscription status:', error);
-      if (error instanceof Stripe.errors.StripeError && error.code === 'resource_missing') {
-        return { status: 'inactive' };
-      }
       throw error;
     }
   }
@@ -187,42 +196,19 @@ export class StripeService {
 
       console.log('🔄 Cancelling subscription:', subscriptionId);
 
-      const subscription = await stripe.subscriptions.cancel(subscriptionId);
+      const subscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true
+      });
 
       console.log('✅ Subscription cancelled:', {
         id: subscription.id,
-        status: subscription.status
+        status: subscription.status,
+        cancelAt: subscription.cancel_at
       });
 
       return subscription;
     } catch (error) {
       console.error('❌ Error cancelling subscription:', error);
-      throw error;
-    }
-  }
-
-  static async createCustomerPortalSession(customerId: string) {
-    try {
-      if (!customerId) {
-        throw new Error('Customer ID is required');
-      }
-
-      console.log('Creating customer portal session for:', customerId);
-
-      const baseUrl = process.env.REPLIT_DEPLOYMENT_URL || 'http://localhost:3000';
-      const session = await stripe.billingPortal.sessions.create({
-        customer: customerId,
-        return_url: `${baseUrl}/settings`,
-      });
-
-      console.log('✅ Customer portal session created:', {
-        sessionId: session.id,
-        url: session.url
-      });
-
-      return session;
-    } catch (error) {
-      console.error('❌ Error creating customer portal session:', error);
       throw error;
     }
   }

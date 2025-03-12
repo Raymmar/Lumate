@@ -11,21 +11,16 @@ export default function SubscriptionSuccessPage() {
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session_id');
 
-  // Type the response data to match our API
+  // Type the response data
   type SessionResponse = {
     status: 'complete' | 'pending';
-    subscription?: {
-      id: string;
-      status: string;
-      customerId: string;
-    };
     debug?: {
       sessionStatus: string;
       paymentStatus: string;
     };
   };
 
-  const { data: sessionStatus, isLoading, error } = useQuery<SessionResponse>({
+  const { data: sessionStatus, isLoading, error } = useQuery({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
       console.log('🔍 Verifying session:', sessionId);
@@ -46,7 +41,6 @@ export default function SubscriptionSuccessPage() {
     retry: 3,
     retryDelay: 1000,
     refetchInterval: (data) => {
-      // Keep polling until we get a complete status
       return !data || data.status !== 'complete' ? 2000 : false;
     }
   });
@@ -55,10 +49,9 @@ export default function SubscriptionSuccessPage() {
     if (sessionStatus?.status === 'complete') {
       console.log('✨ Payment confirmed, invalidating queries...');
       // Invalidate relevant queries to trigger a refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/stripe/subscription-status'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
 
-      // Redirect to settings page after a short delay
       const timer = setTimeout(() => navigate('/settings'), 3000);
       return () => clearTimeout(timer);
     }

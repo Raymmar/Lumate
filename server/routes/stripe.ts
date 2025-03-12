@@ -15,7 +15,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia'
 });
 
-// Add proper debug logging
+// Add proper debug logging at the top of the file
 router.use((req, res, next) => {
   const startTime = Date.now();
   console.log('🔄 Stripe route request received:', {
@@ -26,6 +26,7 @@ router.use((req, res, next) => {
     sessionId: req.query.session_id
   });
 
+  // Add response logging
   res.on('finish', () => {
     const duration = Date.now() - startTime;
     console.log('🔄 Stripe route response sent:', {
@@ -84,6 +85,7 @@ router.post('/create-checkout-session', async (req, res) => {
 });
 
 // Webhook handler
+// Important: Use raw body parsing for Stripe webhooks
 router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
   const sig = req.headers['stripe-signature'];
 
@@ -116,6 +118,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
         });
 
         if (session.subscription && session.customer) {
+          // Get full subscription details
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string,
             {
@@ -129,6 +132,7 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
             customerId: subscription.customer
           });
 
+          // Find and update user subscription
           const user = await storage.getUserByStripeCustomerId(session.customer as string);
           if (!user) {
             console.error('❌ No user found for customer:', session.customer);
@@ -148,6 +152,12 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
           );
 
           console.log('✅ Subscription updated successfully');
+        } else {
+          console.warn('⚠️ Missing subscription or customer in session:', {
+            sessionId: session.id,
+            subscription: session.subscription,
+            customer: session.customer
+          });
         }
         break;
       }
@@ -169,6 +179,8 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
             subscription.status
           );
           console.log('✅ Subscription status updated for user:', user.id);
+        } else {
+          console.warn('⚠️ No user found for subscription update:', subscription.customer);
         }
         break;
       }
@@ -180,39 +192,6 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
     return res.status(400).json({
       error: 'Webhook error',
       details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// Get subscription status
-router.get('/subscription-status', async (req, res) => {
-  try {
-    const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    // If user is admin, they always have access
-    if (user.isAdmin) {
-      return res.json({ status: 'active' });
-    }
-
-    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
-      return res.json({ status: 'inactive' });
-    }
-
-    const status = await StripeService.getSubscriptionStatus(user.stripeCustomerId);
-    res.json(status);
-  } catch (error: any) {
-    console.error('Error checking subscription status:', error);
-    res.status(500).json({
-      error: 'Failed to check subscription status',
-      message: error.message
     });
   }
 });
@@ -242,6 +221,7 @@ router.get('/session-status', async (req, res) => {
       paymentStatus: sessionDetails.paymentStatus
     });
 
+    // If payment is confirmed, return complete status
     if (sessionDetails.paymentStatus === 'paid') {
       console.log('💳 Payment confirmed as paid');
       return res.json({ 
@@ -250,6 +230,7 @@ router.get('/session-status', async (req, res) => {
       });
     }
 
+    // If payment is still processing, return pending status
     console.log('⏳ Payment pending:', sessionDetails.paymentStatus);
     return res.json({
       status: 'pending',
@@ -272,6 +253,55 @@ router.get('/session-status', async (req, res) => {
       error: 'Failed to verify session status',
       message: error.message,
       type: error.type
+    });
+  }
+});
+
+// Cancel subscription
+router.post('/cancel-subscription', async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (!user.stripeSubscriptionId || user.stripeSubscriptionId === 'NULL') {
+      return res.status(400).json({ error: 'No active subscription found' });
+    }
+
+    console.log('🔄 Cancelling subscription:', {
+      userId,
+      subscriptionId: user.stripeSubscriptionId
+    });
+
+    const cancelledSubscription = await StripeService.cancelSubscription(user.stripeSubscriptionId);
+
+    console.log('✅ Subscription cancelled:', {
+      subscriptionId: cancelledSubscription.id,
+      status: cancelledSubscription.status
+    });
+
+    // Update the user's subscription status in the database
+    await storage.updateUserSubscription(
+      user.id,
+      cancelledSubscription.id,
+      cancelledSubscription.status
+    );
+
+    res.json({
+      status: 'success',
+      message: 'Subscription cancelled successfully'
+    });
+  } catch (error: any) {
+    console.error('❌ Error cancelling subscription:', error);
+    res.status(500).json({
+      error: 'Failed to cancel subscription',
+      message: error.message
     });
   }
 });
@@ -304,8 +334,7 @@ router.post('/create-portal-session', async (req, res) => {
   }
 });
 
-// Cancel subscription
-router.post('/cancel-subscription', async (req, res) => {
+router.get('/subscription-status', async (req, res) => {
   try {
     const userId = req.session?.userId;
     if (!userId) {
@@ -317,37 +346,30 @@ router.post('/cancel-subscription', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.subscriptionId || user.subscriptionId === 'NULL') {
-      return res.status(400).json({ error: 'No active subscription found' });
+    // If user is admin, they always have access
+    if (user.isAdmin) {
+      return res.json({ status: 'active' });
     }
 
-    console.log('🔄 Cancelling subscription:', {
-      userId,
-      subscriptionId: user.subscriptionId
-    });
+    if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
+      return res.json({ status: 'inactive' });
+    }
 
-    const cancelledSubscription = await StripeService.cancelSubscription(user.subscriptionId);
-
-    console.log('✅ Subscription cancelled:', {
-      subscriptionId: cancelledSubscription.id,
-      status: cancelledSubscription.status
-    });
-
-    // Update the user's subscription status in the database
-    await storage.updateUserSubscription(
-      user.id,
-      cancelledSubscription.id,
-      cancelledSubscription.status
-    );
-
-    res.json({
-      status: 'success',
-      message: 'Subscription cancelled successfully'
-    });
+    try {
+      const subscriptionStatus = await StripeService.getSubscriptionStatus(user.stripeCustomerId);
+      return res.json(subscriptionStatus);
+    } catch (error: any) {
+      // If customer not found, return inactive status instead of error
+      if (error?.raw?.code === 'resource_missing') {
+        console.log('Customer not found, returning inactive status');
+        return res.json({ status: 'inactive' });
+      }
+      throw error; // Re-throw other errors to be caught by outer catch block
+    }
   } catch (error: any) {
-    console.error('❌ Error cancelling subscription:', error);
-    res.status(500).json({
-      error: 'Failed to cancel subscription',
+    console.error('Error checking subscription status:', error);
+    return res.status(500).json({
+      error: 'Failed to check subscription status',
       message: error.message
     });
   }
