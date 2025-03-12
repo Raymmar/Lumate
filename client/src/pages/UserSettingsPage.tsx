@@ -42,6 +42,22 @@ export default function UserSettingsPage() {
     initGoogleMaps();
   }, []);
 
+  // Log user data when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 UserSettingsPage - Current user state:', {
+        id: user.id,
+        isAdmin: user.isAdmin,
+        subscriptionStatus: user.subscriptionStatus,
+        hasSubscription: !!(user.subscriptionId && user.subscriptionStatus === 'active'),
+        stripeIds: {
+          customerId: user.stripeCustomerId,
+          subscriptionId: user.subscriptionId
+        }
+      });
+    }
+  }, [user]);
+
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
@@ -83,9 +99,20 @@ export default function UserSettingsPage() {
 
   // Simplified subscription check using database status
   const hasActiveSubscription = Boolean(
-    user?.isAdmin || 
+    user?.isAdmin ||
     (user?.subscriptionStatus === 'active' && user?.subscriptionId)
   );
+
+  // Log subscription check result
+  useEffect(() => {
+    console.log('🔍 Subscription check result:', {
+      hasActiveSubscription,
+      isAdmin: user?.isAdmin,
+      subscriptionStatus: user?.subscriptionStatus,
+      subscriptionId: user?.subscriptionId,
+      stripeCustomerId: user?.stripeCustomerId
+    });
+  }, [hasActiveSubscription, user]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -128,7 +155,7 @@ export default function UserSettingsPage() {
 
   const startSubscription = async () => {
     try {
-        window.location.href = '/subscription/checkout';
+      window.location.href = '/subscription/checkout';
     } catch (error) {
       console.error('Subscription error:', error);
       toast({
@@ -233,8 +260,8 @@ export default function UserSettingsPage() {
                               Upgrade your account to unlock additional premium profile features including company details,
                               location, contact information, and custom links.
                             </p>
-                            <Button 
-                              onClick={startSubscription} 
+                            <Button
+                              onClick={startSubscription}
                               className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black"
                             >
                               Upgrade to Premium

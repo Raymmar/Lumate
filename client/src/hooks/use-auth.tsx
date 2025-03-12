@@ -70,7 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('✅ User data fetched:', {
         id: data.id,
         email: data.email,
-        hasStripeIds: !!(data.stripeCustomerId && data.subscriptionId),
+        isAdmin: data.isAdmin,
+        subscriptionStatus: data.subscriptionStatus,
+        hasSubscription: !!(data.subscriptionId && data.subscriptionStatus === 'active'),
         stripeIds: {
           customerId: data.stripeCustomerId,
           subscriptionId: data.subscriptionId
@@ -99,6 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       const userData = data.user || data;
+      console.log('✅ Login successful:', {
+        userId: userData.id,
+        isAdmin: userData.isAdmin,
+        subscriptionStatus: userData.subscriptionStatus,
+        hasSubscription: !!(userData.subscriptionId && userData.subscriptionStatus === 'active'),
+      });
+
       // Update both user data and subscription status
       queryClient.setQueryData(["/api/auth/me"], userData);
       if (userData.subscriptionId) {
@@ -111,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     onError: (error: Error) => {
+      console.error('❌ Login error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -128,7 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = (userData: User) => {
     console.log('🔄 Updating user data:', {
       id: userData.id,
-      hasStripeIds: !!(userData.stripeCustomerId && userData.subscriptionId),
+      isAdmin: userData.isAdmin,
+      subscriptionStatus: userData.subscriptionStatus,
+      hasSubscription: !!(userData.subscriptionId && userData.subscriptionStatus === 'active'),
       stripeIds: {
         customerId: userData.stripeCustomerId,
         subscriptionId: userData.subscriptionId
