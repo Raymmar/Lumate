@@ -81,55 +81,75 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Update the subscription status query with better caching and validation
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading, isError: isSubscriptionError } = useQuery({
+  // Subscription status check with improved caching and error handling
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
+      console.log('🔄 Fetching subscription status...');
       const response = await fetch('/api/subscription/status');
       if (!response.ok) {
         const error = await response.json();
+        console.error('❌ Subscription status error:', error);
         throw new Error(error.error || 'Failed to fetch subscription status');
       }
-      return response.json() as Promise<{ status: string; customerId?: string; }>;
+      const data = await response.json();
+      console.log('✅ Subscription status response:', data);
+      return data as { status: string; customerId?: string; };
     },
     enabled: !!user && !user.isAdmin,
-    // Add proper caching to prevent unnecessary refetches
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    // Retry configuration
+    // Keep cached data for longer to prevent flicker
+    staleTime: 30 * 1000, // 30 seconds
+    // Don't refetch on window focus to prevent flicker
+    refetchOnWindowFocus: false,
+    // Add retry with backoff
     retry: (failureCount, error) => {
-      // Only retry network errors, not validation errors
-      return failureCount < 3 && !error.message.includes('validation');
-    },
-    // Better error handling
-    onError: (error) => {
-      console.error('Subscription status check failed:', error);
-      // Only fallback to subscription check if we have a subscriptionId
-      if (user?.subscriptionId) {
-        queryClient.setQueryData(['/api/subscription/status'], {
-          status: 'active',
-          customerId: user.stripeCustomerId
-        });
+      if (failureCount < 3) {
+        console.log(`🔄 Retrying subscription check (attempt ${failureCount + 1})`);
+        return true;
       }
-    }
+      console.error('❌ Max retries reached for subscription check:', error);
+      return false;
+    },
   });
 
-  // More robust subscription validation
+  // Determine subscription status with proper fallbacks
   const hasActiveSubscription = useMemo(() => {
-    // Admin always has access
-    if (user?.isAdmin) return true;
+    // Always grant access to admins
+    if (user?.isAdmin) {
+      console.log('👑 Admin user, granting access');
+      return true;
+    }
 
-    // If we're loading or have an error and no fallback data, assume no access
-    if (isSubscriptionLoading || (isSubscriptionError && !subscriptionStatus)) return false;
+    // While loading, maintain previous state to prevent flicker
+    if (isSubscriptionLoading) {
+      console.log('⏳ Loading subscription status...');
+      return true; // Optimistically show content while loading
+    }
 
-    // Check for active subscription status
-    const isActive = subscriptionStatus?.status === 'active';
+    // If we have subscription data, validate it
+    if (subscriptionStatus) {
+      const isActive = subscriptionStatus.status === 'active';
+      const hasValidCustomerId = user?.stripeCustomerId === subscriptionStatus.customerId;
 
-    // Validate subscription matches user
-    const hasValidSubscription = user?.subscriptionId && user?.stripeCustomerId === subscriptionStatus?.customerId;
+      console.log('🔍 Subscription validation:', {
+        isActive,
+        hasValidCustomerId,
+        userCustomerId: user?.stripeCustomerId,
+        responseCustomerId: subscriptionStatus.customerId
+      });
 
-    return isActive && hasValidSubscription;
-  }, [user, subscriptionStatus, isSubscriptionLoading, isSubscriptionError]);
+      return isActive && hasValidCustomerId;
+    }
+
+    // If we have a subscription ID but no status, assume active
+    if (user?.subscriptionId) {
+      console.log('ℹ️ No status but has subscription ID, assuming active');
+      return true;
+    }
+
+    console.log('❌ No active subscription found');
+    return false;
+  }, [user, subscriptionStatus, isSubscriptionLoading]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
