@@ -81,10 +81,10 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Simplified subscription check - use database state as source of truth
-  const hasActiveSubscription = user?.isAdmin || (
-    !!user?.subscriptionId && 
-    !!user?.stripeCustomerId
+  // Simplified subscription check using database status
+  const hasActiveSubscription = Boolean(
+    user?.isAdmin || 
+    (user?.subscriptionStatus === 'active' && user?.subscriptionId)
   );
 
   const updateProfileMutation = useMutation({
