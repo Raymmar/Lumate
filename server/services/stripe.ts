@@ -159,6 +159,12 @@ export class StripeService {
 
       console.log('🔍 Checking subscription status for customer:', customerId);
 
+      // Verify this is a customer ID, not a subscription ID
+      if (customerId.startsWith('sub_')) {
+        console.error('❌ Invalid customer ID format:', customerId);
+        return { status: 'inactive' };
+      }
+
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
         limit: 1,
@@ -182,8 +188,13 @@ export class StripeService {
         currentPeriodEnd: subscription.current_period_end,
         subscriptionId: subscription.id
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error checking subscription status:', error);
+      // If the customer ID is invalid, return inactive instead of throwing
+      if (error?.raw?.code === 'resource_missing') {
+        console.log('Customer not found, returning inactive status');
+        return { status: 'inactive' };
+      }
       throw error;
     }
   }

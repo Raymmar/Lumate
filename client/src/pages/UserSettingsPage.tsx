@@ -81,23 +81,34 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Enhanced subscription status check with proper typing
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
+  // Update the subscription status query to handle errors better
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading, isError: isSubscriptionError } = useQuery({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
       const response = await fetch('/api/subscription/status');
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
-      const data = await response.json();
-      return data as { status: string };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to fetch subscription status');
+      }
+      return response.json() as Promise<{ status: string }>;
     },
     enabled: !!user && !user.isAdmin,
     // Reduce stale time to ensure fresh data after payment
     staleTime: 0,
     // Add retry for better reliability
     retry: 3,
+    // Add error handling
+    onError: (error) => {
+      console.error('Subscription status check failed:', error);
+      // In case of error, assume user has access to prevent incorrect lockout
+      return { status: 'active' };
+    }
   });
 
-  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+  // Update the hasActiveSubscription check to be more defensive
+  const hasActiveSubscription = user?.isAdmin || 
+    (subscriptionStatus?.status === 'active' && !isSubscriptionError) || 
+    (isSubscriptionError && user?.subscriptionId); // Fallback if status check fails
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {

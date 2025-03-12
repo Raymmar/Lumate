@@ -270,16 +270,16 @@ router.post('/cancel-subscription', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.stripeSubscriptionId || user.stripeSubscriptionId === 'NULL') {
+    if (!user.subscriptionId || user.subscriptionId === 'NULL') {
       return res.status(400).json({ error: 'No active subscription found' });
     }
 
     console.log('🔄 Cancelling subscription:', {
       userId,
-      subscriptionId: user.stripeSubscriptionId
+      subscriptionId: user.subscriptionId
     });
 
-    const cancelledSubscription = await StripeService.cancelSubscription(user.stripeSubscriptionId);
+    const cancelledSubscription = await StripeService.cancelSubscription(user.subscriptionId);
 
     console.log('✅ Subscription cancelled:', {
       subscriptionId: cancelledSubscription.id,
