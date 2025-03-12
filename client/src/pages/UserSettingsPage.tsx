@@ -88,13 +88,16 @@ export default function UserSettingsPage() {
     }
   }, [user, form.reset]);
 
-  // Enhanced subscription status check with proper typing
+  // Update the subscription status check and logging
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery<SubscriptionStatus>({
     queryKey: ['/api/subscription/status'],
     queryFn: async () => {
+      console.log('Fetching subscription status...');
       const response = await fetch('/api/subscription/status');
       if (!response.ok) throw new Error('Failed to fetch subscription status');
-      return response.json();
+      const data = await response.json();
+      console.log('Subscription status response:', data);
+      return data;
     },
     enabled: !!user && !user.isAdmin,
     // Reduce stale time to ensure fresh data after payment
@@ -103,8 +106,30 @@ export default function UserSettingsPage() {
     retry: 3,
   });
 
+  // Debug logs for subscription check
+  console.log('User:', user);
+  console.log('Subscription status:', subscriptionStatus);
+  console.log('Is loading:', isSubscriptionLoading);
+
   // Check for active subscription with better status handling
-  const hasActiveSubscription = user?.isAdmin || (subscriptionStatus?.status && ['active', 'trialing'].includes(subscriptionStatus.status));
+  const hasActiveSubscription = Boolean(
+    user?.isAdmin || 
+    (!isSubscriptionLoading && subscriptionStatus?.status && 
+      ['active', 'trialing'].includes(subscriptionStatus.status))
+  );
+
+  console.log('Has active subscription:', hasActiveSubscription);
+
+  // Show loading state while checking subscription
+  if (isSubscriptionLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
