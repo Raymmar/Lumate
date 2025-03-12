@@ -7,11 +7,16 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, fallback }: AuthGuardProps) {
-  const { user } = useAuth();
-  
+  const { user, isLoading } = useAuth();
+
+  // While loading, show children to prevent flicker
+  if (isLoading) {
+    return <>{children}</>;
+  }
+
   if (!user) {
     return fallback || null;
   }
-  
+
   return <>{children}</>;
 }

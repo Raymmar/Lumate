@@ -10,7 +10,7 @@ type AuthContextType = {
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
   logoutMutation: ReturnType<typeof useLogoutMutation>;
-  updateUser: (userData: User) => void; // Add the updateUser function type
+  updateUser: (userData: User) => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -30,7 +30,8 @@ function useLogoutMutation() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Also invalidate subscription status when logging out
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
 
       toast({
         title: "Success",
@@ -57,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
+      console.log('🔄 Fetching user data...');
       const response = await fetch("/api/auth/me", {
         credentials: 'include'
       });
@@ -65,8 +67,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Failed to fetch user");
       }
       const data = await response.json();
+      console.log('✅ User data fetched:', {
+        id: data.id,
+        email: data.email,
+        hasStripeIds: !!(data.stripeCustomerId && data.subscriptionId),
+        stripeIds: {
+          customerId: data.stripeCustomerId,
+          subscriptionId: data.subscriptionId
+        }
+      });
       return data;
     },
+    staleTime: 30 * 1000, // Cache for 30 seconds
+    cacheTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 
   const loginMutation = useMutation({
@@ -85,8 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       const userData = data.user || data;
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      // Update both user data and subscription status
       queryClient.setQueryData(["/api/auth/me"], userData);
+      if (userData.subscriptionId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
+      }
 
       toast({
         title: "Success",
@@ -108,9 +125,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loginMutation.mutateAsync({ email, password });
   };
 
-  // Add the updateUser function implementation
   const updateUser = (userData: User) => {
+    console.log('🔄 Updating user data:', {
+      id: userData.id,
+      hasStripeIds: !!(userData.stripeCustomerId && userData.subscriptionId),
+      stripeIds: {
+        customerId: userData.stripeCustomerId,
+        subscriptionId: userData.subscriptionId
+      }
+    });
     queryClient.setQueryData(["/api/auth/me"], userData);
+    // Also update subscription status if needed
+    if (userData.subscriptionId) {
+      queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
+    }
   };
 
   return (
@@ -121,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error,
         login,
         logoutMutation,
-        updateUser, // Include the updateUser function in the context
+        updateUser,
       }}
     >
       {children}
