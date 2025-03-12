@@ -5,14 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Plus, X, Lock } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandInput } from "@/components/ui/command";
+import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
@@ -36,24 +37,6 @@ export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
-
-  // Direct check for valid subscription based on database values
-  const hasActiveSubscription = !!(
-    user?.isAdmin || // Admin always has access
-    (user?.subscriptionStatus === 'active' && // Must have active status
-      user?.subscriptionId?.startsWith('sub_')) // Must have valid subscription ID
-  );
-
-  useEffect(() => {
-    console.log('🔍 Subscription Check:', {
-      result: hasActiveSubscription,
-      user: {
-        isAdmin: user?.isAdmin,
-        status: user?.subscriptionStatus,
-        subId: user?.subscriptionId
-      }
-    });
-  }, [user, hasActiveSubscription]);
 
   useEffect(() => {
     initGoogleMaps();
@@ -86,7 +69,7 @@ export default function UserSettingsPage() {
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) : null,
+        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
         phoneNumber: user.phoneNumber || "",
         isPhonePublic: user.isPhonePublic || false,
         isEmailPublic: user.isEmailPublic || false,
@@ -96,18 +79,40 @@ export default function UserSettingsPage() {
       });
       setTags(user.tags || []);
     }
-  }, [user, form]);
+  }, [user, form.reset]);
+
+  // Enhanced subscription status check with proper typing
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
+    queryKey: ['/api/subscription/status'],
+    queryFn: async () => {
+      const response = await fetch('/api/subscription/status');
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      const data = await response.json();
+      return data as { status: string };
+    },
+    enabled: !!user && !user.isAdmin,
+    // Reduce stale time to ensure fresh data after payment
+    staleTime: 0,
+    // Add retry for better reliability
+    retry: 3,
+  });
+
+  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
+      const formattedData = {
+        ...data,
+        displayName: user?.displayName,
+        address: data.address || null,
+        tags: tags,
+      };
+
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: 'include',
-        body: JSON.stringify({
-          ...data,
-          tags,
-        }),
+        body: JSON.stringify(formattedData),
       });
 
       if (!response.ok) {
@@ -133,8 +138,35 @@ export default function UserSettingsPage() {
     },
   });
 
-  const startSubscription = () => {
-    window.location.href = '/subscription/checkout';
+  const startSubscription = async () => {
+    try {
+      const response = await fetch('/api/stripe/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      if (!url) {
+        throw new Error('No portal URL received');
+      }
+
+      window.location.href = url;
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start subscription process. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSelectTag = (tag: string) => {
@@ -191,7 +223,7 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => updateProfileMutation.mutate(data))} className="space-y-3">
+              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-3">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
                   <FormField
@@ -202,11 +234,11 @@ export default function UserSettingsPage() {
                         <FormControl>
                           <div className="relative">
                             <Textarea
+                              {...field}
+                              value={field.value || ''}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
-                              {...field}
-                              value={field.value || ''}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
                               {(field.value?.length || 0)}/140
@@ -220,7 +252,7 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {!hasActiveSubscription ? (
+                  {!hasActiveSubscription && !isSubscriptionLoading ? (
                     <Card className="border-2 border-dashed">
                       <CardContent className="py-8">
                         <div className="text-center space-y-4">
@@ -231,10 +263,7 @@ export default function UserSettingsPage() {
                               Upgrade your account to unlock additional premium profile features including company details,
                               location, contact information, and custom links.
                             </p>
-                            <Button
-                              onClick={startSubscription}
-                              className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black"
-                            >
+                            <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black">
                               Upgrade to Premium
                             </Button>
                           </div>
@@ -243,9 +272,10 @@ export default function UserSettingsPage() {
                     </Card>
                   ) : (
                     <>
-                      {/* Premium Features */}
+                      {/* Company Information */}
                       <div className="space-y-2">
                         <h3 className="text-lg font-medium">Company Information</h3>
+
                         <FormField
                           control={form.control}
                           name="featuredImageUrl"
@@ -262,6 +292,7 @@ export default function UserSettingsPage() {
                             </FormItem>
                           )}
                         />
+
                         <FormField
                           control={form.control}
                           name="companyName"
@@ -269,16 +300,16 @@ export default function UserSettingsPage() {
                             <FormItem className="space-y-1">
                               <FormControl>
                                 <Input
+                                  {...field}
                                   placeholder="Company name"
                                   className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  {...field}
-                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+
                         <FormField
                           control={form.control}
                           name="companyDescription"
@@ -286,10 +317,9 @@ export default function UserSettingsPage() {
                             <FormItem className="space-y-1">
                               <FormControl>
                                 <Textarea
+                                  {...field}
                                   placeholder="Describe your company..."
                                   className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  {...field}
-                                  value={field.value || ''}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -297,6 +327,8 @@ export default function UserSettingsPage() {
                           )}
                         />
                       </div>
+
+                      {/* Contact Information */}
                       <div className="space-y-2">
                         <FormField
                           control={form.control}
@@ -307,7 +339,7 @@ export default function UserSettingsPage() {
                               <FormControl>
                                 <LocationPicker
                                   defaultValue={field.value}
-                                  onLocationSelect={(location) => field.onChange(location)}
+                                  onLocationSelect={field.onChange}
                                   className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
                                 />
                               </FormControl>
@@ -315,6 +347,7 @@ export default function UserSettingsPage() {
                             </FormItem>
                           )}
                         />
+
                         <div className="flex items-center gap-4">
                           <FormField
                             control={form.control}
@@ -323,11 +356,10 @@ export default function UserSettingsPage() {
                               <FormItem className="flex-1 space-y-1">
                                 <FormControl>
                                   <Input
+                                    {...field}
                                     type="tel"
                                     placeholder="Phone number"
                                     className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    {...field}
-                                    value={field.value || ''}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -352,6 +384,7 @@ export default function UserSettingsPage() {
                             )}
                           />
                         </div>
+
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
                             <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -375,6 +408,8 @@ export default function UserSettingsPage() {
                           />
                         </div>
                       </div>
+
+                      {/* Tags */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
@@ -413,6 +448,8 @@ export default function UserSettingsPage() {
                           </Command>
                         </div>
                       </div>
+
+                      {/* Custom Links */}
                       <FormField
                         control={form.control}
                         name="customLinks"
@@ -506,6 +543,7 @@ export default function UserSettingsPage() {
                     "Save Changes"
                   )}
                 </Button>
+
                 {hasActiveSubscription && !user?.isAdmin && (
                   <Button
                     type="button"

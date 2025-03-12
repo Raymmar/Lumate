@@ -270,16 +270,16 @@ router.post('/cancel-subscription', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    if (!user.subscriptionId || user.subscriptionId === 'NULL') {
+    if (!user.stripeSubscriptionId || user.stripeSubscriptionId === 'NULL') {
       return res.status(400).json({ error: 'No active subscription found' });
     }
 
     console.log('🔄 Cancelling subscription:', {
       userId,
-      subscriptionId: user.subscriptionId
+      subscriptionId: user.stripeSubscriptionId
     });
 
-    const cancelledSubscription = await StripeService.cancelSubscription(user.subscriptionId);
+    const cancelledSubscription = await StripeService.cancelSubscription(user.stripeSubscriptionId);
 
     console.log('✅ Subscription cancelled:', {
       subscriptionId: cancelledSubscription.id,
@@ -346,62 +346,28 @@ router.get('/subscription-status', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    console.log('🔍 Checking subscription status for user:', {
-      userId,
-      stripeCustomerId: user.stripeCustomerId,
-      subscriptionId: user.subscriptionId,
-      isAdmin: user.isAdmin
-    });
-
     // If user is admin, they always have access
     if (user.isAdmin) {
-      return res.json({ 
-        status: 'active',
-        customerId: user.stripeCustomerId
-      });
+      return res.json({ status: 'active' });
     }
 
     if (!user.stripeCustomerId || user.stripeCustomerId === 'NULL') {
-      console.log('❌ No Stripe customer ID found for user:', userId);
-      return res.json({ 
-        status: 'inactive',
-        customerId: null
-      });
+      return res.json({ status: 'inactive' });
     }
 
     try {
       const subscriptionStatus = await StripeService.getSubscriptionStatus(user.stripeCustomerId);
-      console.log('✅ Retrieved subscription status:', {
-        userId,
-        status: subscriptionStatus.status,
-        customerId: user.stripeCustomerId
-      });
-
-      return res.json({
-        ...subscriptionStatus,
-        customerId: user.stripeCustomerId
-      });
+      return res.json(subscriptionStatus);
     } catch (error: any) {
       // If customer not found, return inactive status instead of error
       if (error?.raw?.code === 'resource_missing') {
-        console.log('❌ Customer not found in Stripe, returning inactive status');
-        return res.json({ 
-          status: 'inactive',
-          customerId: null
-        });
+        console.log('Customer not found, returning inactive status');
+        return res.json({ status: 'inactive' });
       }
       throw error; // Re-throw other errors to be caught by outer catch block
     }
   } catch (error: any) {
-    console.error('❌ Error checking subscription status:', error);
-    // If user has valid subscription ID but status check fails, assume active
-    if (user?.subscriptionId && user?.stripeCustomerId) {
-      console.log('⚠️ Subscription check failed but user has valid IDs, assuming active');
-      return res.json({
-        status: 'active',
-        customerId: user.stripeCustomerId
-      });
-    }
+    console.error('Error checking subscription status:', error);
     return res.status(500).json({
       error: 'Failed to check subscription status',
       message: error.message

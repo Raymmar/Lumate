@@ -10,7 +10,7 @@ type AuthContextType = {
   error: Error | null;
   login: (email: string, password: string) => Promise<void>;
   logoutMutation: ReturnType<typeof useLogoutMutation>;
-  updateUser: (userData: User) => void;
+  updateUser: (userData: User) => void; // Add the updateUser function type
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -30,7 +30,7 @@ function useLogoutMutation() {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.invalidateQueries({ queryKey: ["/api/subscription/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
 
       toast({
         title: "Success",
@@ -57,37 +57,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null>({
     queryKey: ["/api/auth/me"],
     queryFn: async () => {
-      console.log('🔄 Auth Hook - Fetching user data...');
       const response = await fetch("/api/auth/me", {
         credentials: 'include'
       });
-
       if (!response.ok) {
         if (response.status === 401) return null;
         throw new Error("Failed to fetch user");
       }
-
       const data = await response.json();
-
-      // Debug log the exact response data
-      console.log('✅ Auth Hook - User data received:', {
-        id: data.id,
-        email: data.email,
-        subscriptionStatus: {
-          value: data.subscriptionStatus,
-          type: typeof data.subscriptionStatus,
-          rawValue: String(data.subscriptionStatus)
-        },
-        subscriptionId: data.subscriptionId,
-        stripeCustomerId: data.stripeCustomerId,
-        isAdmin: data.isAdmin,
-        fullData: data // Log complete response
-      });
-
       return data;
     },
-    staleTime: 0, // Don't cache the data
-    refetchOnWindowFocus: false, // Prevent unnecessary refetches
   });
 
   const loginMutation = useMutation({
@@ -106,12 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       const userData = data.user || data;
-      console.log('✅ Login successful - user data:', userData);
-
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       queryClient.setQueryData(["/api/auth/me"], userData);
+
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
     },
     onError: (error: Error) => {
-      console.error('❌ Login error:', error);
       toast({
         title: "Error",
         description: error.message,
@@ -120,29 +102,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const logoutMutation = useLogoutMutation();
+
   const login = async (email: string, password: string) => {
     await loginMutation.mutateAsync({ email, password });
   };
 
+  // Add the updateUser function implementation
   const updateUser = (userData: User) => {
-    console.log('🔄 Updating user data:', {
-      id: userData.id,
-      subscriptionStatus: userData.subscriptionStatus,
-      subscriptionId: userData.subscriptionId,
-      stripeCustomerId: userData.stripeCustomerId
-    });
     queryClient.setQueryData(["/api/auth/me"], userData);
   };
 
   return (
     <AuthContext.Provider
       value={{
-        user,
+        user: user ?? null,
         isLoading,
         error,
         login,
-        logoutMutation: useLogoutMutation(),
-        updateUser,
+        logoutMutation,
+        updateUser, // Include the updateUser function in the context
       }}
     >
       {children}

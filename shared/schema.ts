@@ -254,10 +254,6 @@ export type User = typeof users.$inferSelect & {
   roles?: Role[];
   permissions?: Permission[];
   badges?: Badge[];
-  // Ensure subscription fields are properly typed
-  subscriptionStatus: string | null;
-  stripeCustomerId: string | null;
-  subscriptionId: string | null;
 };
 // Update insert schema
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -265,10 +261,7 @@ export const insertUserSchema = createInsertSchema(users).omit({
   isVerified: true,
   createdAt: true,
   updatedAt: true,
-  isAdmin: true,
-  subscriptionStatus: true, // Don't allow direct setting of subscription status
-  stripeCustomerId: true,  // Don't allow direct setting of stripe customer id
-  subscriptionId: true     // Don't allow direct setting of subscription id
+  isAdmin: true
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
