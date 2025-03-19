@@ -230,13 +230,18 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <img 
-              src="https://placehold.co/1140x400" 
-              alt="Sarasota Tech" 
-              className="w-full rounded-lg object-cover -mt-20"
-            />
+            <div className="relative mt-12">
+              <img 
+                src="https://placehold.co/1140x400" 
+                alt="Sarasota Tech" 
+                className="w-full rounded-lg object-cover"
+              />
+              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-20">
+                <JoinUsCard showHeader={false} />
+              </div>
+            </div>
 
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-4 mt-12">
               <h2 className="text-3xl font-bold">Join us on the 3rd Thursday of every month</h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Every month we bounce around to
