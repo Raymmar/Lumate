@@ -83,7 +83,7 @@ export function NavBar({ hideDirectoryLink = false }: NavBarProps) {
       )}
       <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
-          <AdminBadge className="mr-2" asLink />
+          <AdminBadge className="mr-2 hidden sm:flex" asLink />
         )}
         {user ? (
           <DropdownMenu>
