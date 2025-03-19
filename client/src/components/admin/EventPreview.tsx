@@ -197,199 +197,197 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto pb-20">
-        <div className="space-y-4 sm:space-y-6">
-          {event.coverUrl && (
-            <div className="relative w-full aspect-video mb-2 sm:mb-4">
-              <img
-                src={event.coverUrl}
-                alt={event.title}
-                className="w-full h-full object-cover rounded-lg"
-              />
-              <div className="absolute bottom-4 left-4 flex gap-2">
-                {event.url && (
-                  <Button
-                    variant="default"
-                    className="bg-black hover:bg-black/90 text-white text-sm sm:text-base"
-                    onClick={() => event.url && window.open(event.url, '_blank')}
-                  >
-                    Manage event
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-4 sm:space-y-6 px-1">
-            <div>
-              <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">{event.title}</h2>
-              {event.description && (
-                <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mb-3 sm:mb-4">{event.description}</p>
-              )}
-
-              <div className="space-y-2">
+      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 pb-16">
+        {event.coverUrl && (
+          <div className="relative w-full aspect-video mb-2 sm:mb-4">
+            <img
+              src={event.coverUrl}
+              alt={event.title}
+              className="w-full h-full object-cover rounded-lg"
+            />
+            <div className="absolute bottom-4 left-4 flex gap-2">
+              {event.url && (
                 <Button
                   variant="default"
-                  className="w-full bg-black hover:bg-black/90 text-white"
-                  onClick={handleSyncAttendees}
-                  disabled={isSyncing}
+                  className="bg-black hover:bg-black/90 text-white text-sm sm:text-base"
+                  onClick={() => event.url && window.open(event.url, '_blank')}
                 >
-                  {isSyncing ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Syncing Attendees...
-                    </>
-                  ) : syncStatus ? (
-                    "Re-sync Attendees"
-                  ) : (
-                    "Sync Attendees"
-                  )}
+                  Manage event
                 </Button>
-
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleClearAttendance}
-                  disabled={isSyncing || !hasSyncedAttendees}
-                >
-                  Clear Attendance
-                </Button>
-
-                <div className="flex items-center justify-center">
-                  <Badge variant={syncStatus ? "outline" : "secondary"}>
-                    {syncStatus ? (
-                      <>
-                        Synced
-                        <span className="ml-1 text-xs text-muted-foreground">
-                          ({formatLastSyncTime(lastSyncTime)})
-                        </span>
-                      </>
-                    ) : (
-                      "Not synced"
-                    )}
-                  </Badge>
-                </div>
-              </div>
-            </div>
-
-            <Card>
-              <CardContent className="p-4 sm:p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
-                  <div>
-                    <p className="font-medium text-sm sm:text-base">
-                      {formatInTimeZone(
-                        new Date(event.startTime + 'Z'),
-                        event.timezone || 'America/New_York',
-                        'EEEE, MMMM d, yyyy'
-                      )}
-                    </p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} -
-                      {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
-                      {event.timezone && ` (${event.timezone})`}
-                    </p>
-                  </div>
-                </div>
-
-                {event.location && (
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
-                    <div className="min-w-0">
-                      {event.location.full_address && (
-                        <p className="font-medium text-sm sm:text-base truncate">{event.location.full_address}</p>
-                      )}
-                      {event.location.city && (
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                          {[
-                            event.location.city,
-                            event.location.region,
-                            event.location.country,
-                          ]
-                            .filter(Boolean)
-                            .join(", ")}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-sm sm:text-base">Event Attendees</h3>
-                  <Badge variant="secondary">{attendeeCount} registered</Badge>
-                </div>
-
-                {isLoadingAttendees ? (
-                  <div className="space-y-2">
-                    {[...Array(3)].map((_, i) => (
-                      <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
-                    ))}
-                  </div>
-                ) : attendees.length > 0 ? (
-                  <div className="space-y-2">
-                    {attendees.map((person: Person) => {
-                      const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
-                      return (
-                        <Link
-                          key={person.id}
-                          href={profilePath}
-                          className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
-                        >
-                          <Avatar className="h-8 w-8">
-                            {person.avatarUrl ? (
-                              <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
-                            ) : (
-                              <AvatarFallback>
-                                {person.userName?.split(" ").map((n: string) => n[0]).join("") || "?"}
-                              </AvatarFallback>
-                            )}
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate">{person.userName || "Anonymous"}</p>
-                            <p className="text-xs text-muted-foreground truncate">{person.email}</p>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No attendees found</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        {events.length > 1 && onNavigate && (
-          <div className="fixed bottom-0 left-0 right-0 border-t bg-background p-4"> {/* Added padding here */}
-            <div className="flex justify-between items-center max-w-[480px] mx-auto">
-              <Button
-                variant="ghost"
-                disabled={!hasPrevious}
-                onClick={() => handleNavigate(events[currentIndex - 1])}
-                className="text-sm"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1 sm:mr-2" />
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={!hasNext}
-                onClick={() => handleNavigate(events[currentIndex + 1])}
-                className="text-sm"
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1 sm:ml-2" />
-              </Button>
+              )}
             </div>
           </div>
         )}
+
+        <div className="space-y-4 sm:space-y-6 px-1">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">{event.title}</h2>
+            {event.description && (
+              <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mb-3 sm:mb-4">{event.description}</p>
+            )}
+
+            <div className="space-y-2">
+              <Button
+                variant="default"
+                className="w-full bg-black hover:bg-black/90 text-white"
+                onClick={handleSyncAttendees}
+                disabled={isSyncing}
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Syncing Attendees...
+                  </>
+                ) : syncStatus ? (
+                  "Re-sync Attendees"
+                ) : (
+                  "Sync Attendees"
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleClearAttendance}
+                disabled={isSyncing || !hasSyncedAttendees}
+              >
+                Clear Attendance
+              </Button>
+
+              <div className="flex items-center justify-center">
+                <Badge variant={syncStatus ? "outline" : "secondary"}>
+                  {syncStatus ? (
+                    <>
+                      Synced
+                      <span className="ml-1 text-xs text-muted-foreground">
+                        ({formatLastSyncTime(lastSyncTime)})
+                      </span>
+                    </>
+                  ) : (
+                    "Not synced"
+                  )}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <Card>
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                <div>
+                  <p className="font-medium text-sm sm:text-base">
+                    {formatInTimeZone(
+                      new Date(event.startTime + 'Z'),
+                      event.timezone || 'America/New_York',
+                      'EEEE, MMMM d, yyyy'
+                    )}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} -
+                    {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
+                    {event.timezone && ` (${event.timezone})`}
+                  </p>
+                </div>
+              </div>
+
+              {event.location && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0">
+                    {event.location.full_address && (
+                      <p className="font-medium text-sm sm:text-base truncate">{event.location.full_address}</p>
+                    )}
+                    {event.location.city && (
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                        {[
+                          event.location.city,
+                          event.location.region,
+                          event.location.country,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-sm sm:text-base">Event Attendees</h3>
+                <Badge variant="secondary">{attendeeCount} registered</Badge>
+              </div>
+
+              {isLoadingAttendees ? (
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
+                  ))}
+                </div>
+              ) : attendees.length > 0 ? (
+                <div className="space-y-2">
+                  {attendees.map((person: Person) => {
+                    const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
+                    return (
+                      <Link
+                        key={person.id}
+                        href={profilePath}
+                        className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
+                      >
+                        <Avatar className="h-8 w-8">
+                          {person.avatarUrl ? (
+                            <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
+                          ) : (
+                            <AvatarFallback>
+                              {person.userName?.split(" ").map((n: string) => n[0]).join("") || "?"}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{person.userName || "Anonymous"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No attendees found</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
+
+      {/* Navigation */}
+      {events.length > 1 && onNavigate && (
+        <div className="absolute bottom-0 left-0 right-0 border-t bg-background">
+          <div className="flex justify-between items-center p-3 sm:p-4">
+            <Button
+              variant="ghost"
+              disabled={!hasPrevious}
+              onClick={() => handleNavigate(events[currentIndex - 1])}
+              className="text-sm"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1 sm:mr-2" />
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!hasNext}
+              onClick={() => handleNavigate(events[currentIndex + 1])}
+              className="text-sm"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1 sm:ml-2" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
