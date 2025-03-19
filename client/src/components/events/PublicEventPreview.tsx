@@ -514,13 +514,13 @@ export function PublicEventPreview({
 
         {/* Navigation Section - Fixed to bottom */}
         {events.length > 1 && onNavigate && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+          <div className="absolute bottom-0 left-0 right-0 px-3 py-2 border-t bg-background">
             <div className="flex justify-between items-center max-w-full">
               <Button
                 variant="ghost"
                 disabled={!hasPrevious}
                 onClick={() => handleNavigate(events[currentIndex - 1])}
-                className="min-w-[100px]"
+                className="min-w-[100px] h-8"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous
@@ -529,7 +529,7 @@ export function PublicEventPreview({
                 variant="ghost"
                 disabled={!hasNext}
                 onClick={() => handleNavigate(events[currentIndex + 1])}
-                className="min-w-[100px]"
+                className="min-w-[100px] h-8"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
