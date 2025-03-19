@@ -242,7 +242,7 @@ export default function UserSettingsPage() {
                     render={({ field }) => (
                       <FormItem className="space-y-1">
                         <FormLabel className="text-sm text-muted-foreground">
-                          Bio <span className="text-red-500">*</span>
+                          Bio
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
@@ -250,10 +250,7 @@ export default function UserSettingsPage() {
                               {...field}
                               value={field.value || ''} // Handle null value
                               placeholder="Add your custom greeting here (max 140 characters)"
-                              className={cn(
-                                "resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit",
-                                form.formState.errors.bio && "border-red-500"
-                              )}
+                              className="resize-none h-20 min-h-[80px] border-0 bg-muted/50 text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
