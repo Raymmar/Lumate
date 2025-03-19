@@ -172,15 +172,21 @@ function LinksSection() {
               About Sarasota Tech
             </Button>
           </Link>
-          <a href="https://lu.ma/sarasota.tech" target="_blank" rel="noopener noreferrer" className="block">
+          <a href="https://lu.ma/SarasotaTech" target="_blank" rel="noopener noreferrer" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
               Event Calendar
               <ExternalLinkIcon className="h-4 w-4 ml-2" />
             </Button>
           </a>
-          <a href="https://github.com/sarasota-tech/resources" target="_blank" rel="noopener noreferrer" className="block">
+          <a href="https://airtable.com/applDXoTdj4LPUUVc/shr31QX5QxxBUFrQM" target="_blank" rel="noopener noreferrer" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
-              Resources
+              Get More Involved
+              <ExternalLinkIcon className="h-4 w-4 ml-2" />
+            </Button>
+          </a>
+          <a href="https://raymmar.notion.site/ST-Media-Kit-1277f5136ac18006aa35c8ccf66ac43a" target="_blank" rel="noopener noreferrer" className="block">
+            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+              Media Kit
               <ExternalLinkIcon className="h-4 w-4 ml-2" />
             </Button>
           </a>
@@ -189,6 +195,7 @@ function LinksSection() {
     </Card>
   );
 }
+
 
 
 export function BulletinBoard() {
