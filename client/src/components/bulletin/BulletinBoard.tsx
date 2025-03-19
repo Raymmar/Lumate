@@ -191,29 +191,6 @@ function LinksSection() {
 }
 
 
-function SponsorsSection() {
-  return (
-    <Card className="border">
-      <CardHeader className="pb-3">
-        <CardTitle>Sponsors</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="aspect-square bg-muted/50 rounded-lg border border-dashed flex items-center justify-center text-muted-foreground"
-            >
-              Sponsor {i}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-
 export function BulletinBoard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -322,7 +299,6 @@ export function BulletinBoard() {
         />
       )}
 
-      <SponsorsSection />
     </div>
   );
 }
