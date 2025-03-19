@@ -82,7 +82,6 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 }
 
 
-// Update the getBadgeIcon function to use the icon from the database
 const renderBadgeIcon = (badge: Badge) => {
   return getBadgeIcon(badge.icon);
 };
@@ -164,7 +163,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         <Skeleton className="h-12 w-12 rounded-full" />
         <Skeleton className="h-8 w-[200px]" />
         <Skeleton className="h-32 w-full" />
@@ -177,11 +176,11 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      <div className="md:col-span-2 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
+    <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
+      <div className="md:col-span-2 space-y-4 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
+            <Avatar className="h-20 w-20 flex-shrink-0">
               {person.avatarUrl ? (
                 <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
               ) : (
@@ -195,14 +194,14 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                 </AvatarFallback>
               )}
             </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold mb-2">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold mb-2 truncate">
                 {person.userName || "Anonymous"}
               </h1>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isProfileAdmin && <AdminBadge />}
                 {person.role && (
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="truncate max-w-full">
                     {person.role}
                   </Badge>
                 )}
@@ -218,10 +217,10 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </div>
         </div>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardContent className="py-4 pt-4">
             {person.user?.bio ? (
-              <p className="text-lg text-muted-foreground">{person.user.bio}</p>
+              <p className="text-lg text-muted-foreground break-words">{person.user.bio}</p>
             ) : (
               <p className="text-lg text-muted-foreground">No bio available</p>
             )}
@@ -231,7 +230,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         {person.user && <MemberDetails user={person.user} />}
       </div>
 
-      <div>
+      <div className="w-full">
         <Card>
           <CardContent className="space-y-4 pt-4">
             <div className="space-y-4">
@@ -247,13 +246,13 @@ export default function PersonProfile({ username }: PersonProfileProps) {
               />
             </div>
 
-            {events?.length > 0 && (
+            {events && events.length > 0 && (
               <div className="space-y-1 mt-4 border-t pt-4">
                 <div className="max-h-[40vh] overflow-y-auto pr-2" style={{ scrollbarGutter: 'stable' }}>
                   {events.map((event) => (
                     <div key={event.api_id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                      <div>
-                        <p className="text-sm font-medium">{event.title}</p>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{event.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {format(new Date(event.startTime), 'MMM d, yyyy, h:mm a')}
                         </p>

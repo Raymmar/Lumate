@@ -65,9 +65,9 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
   console.log('MemberDetails - Final business data:', businessData);
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-full space-y-4 overflow-hidden">
       <SEO title={seoTitle} description={seoDescription} image={seoImage} />
-      <BusinessProfile {...businessData} className="text-base" />
+      <BusinessProfile {...businessData} containerClassName="w-full max-w-full" />
     </div>
   );
 };
