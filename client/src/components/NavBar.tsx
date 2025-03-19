@@ -81,9 +81,9 @@ export function NavBar({ hideDirectoryLink = false }: NavBarProps) {
           </Button>
         </Link>
       )}
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
-          <AdminBadge className="mr-1" asLink />
+          <AdminBadge className="mr-2" asLink />
         )}
         {user ? (
           <DropdownMenu>
