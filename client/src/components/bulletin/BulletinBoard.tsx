@@ -158,7 +158,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
 function LinksSection() {
   return (
-    <Card className="border">
+    <Card className="border-none shadow-none">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
@@ -195,8 +195,6 @@ function LinksSection() {
     </Card>
   );
 }
-
-
 
 export function BulletinBoard() {
   const queryClient = useQueryClient();
