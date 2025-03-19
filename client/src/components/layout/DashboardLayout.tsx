@@ -55,7 +55,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <EventList compact />
               </div>
             </div>
-            <div className="p-4 min-h-[calc(100vh-57px)]">
+            <div className="p-4 min-h-[calc(100vh-57px)] !shadow-none !border-none">
               {children}
             </div>
           </main>
