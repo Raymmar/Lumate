@@ -25,7 +25,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
   const backgroundImage = post.featuredImage || fallbackImage;
 
   return (
-    <Card className="border h-full cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onSelect(post)}>
+    <Card className="border cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onSelect(post)}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
@@ -39,8 +39,8 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
         </div>
       </CardHeader>
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
-      <CardContent className="p-0 flex flex-col flex-1">
-        <div className="relative flex-1 mx-[1px] mb-[1px] overflow-hidden rounded-md">
+      <CardContent className="p-0">
+        <div className="relative h-[200px] mx-[1px] mb-[1px] overflow-hidden rounded-md">
           <img
             src={backgroundImage}
             alt=""
