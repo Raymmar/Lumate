@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarDays, ExternalLink, Users, CalendarPlus } from "lucide-react";
+import { Calendar, ExternalLink, Users, CalendarPlus, CalendarDays } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -180,7 +180,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
                       variant={rsvpStatus?.isGoing ? "default" : "outline"}
                       onClick={handleRSVP}
                       disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                      className="text-xs px-2 h-6"
+                      className={`text-xs px-2 h-6 ${rsvpStatus?.isGoing ? 'bg-primary/90 hover:bg-primary/80' : ''}`}
                     >
                       {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
                     </Button>
@@ -230,29 +230,17 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
             )}
           </AspectRatio>
 
-          <div className="absolute bottom-2 left-2 flex gap-2">
+          <div className="absolute bottom-2 left-2">
             <AuthGuard>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="text-xs"
-                  variant={rsvpStatus?.isGoing ? "outline" : "default"}
-                  onClick={handleRSVP}
-                  disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                >
-                  {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
-                </Button>
-                {rsvpStatus?.isGoing && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleAddToCalendar}
-                    className="text-xs flex items-center gap-1 bg-background"
-                  >
-                    <CalendarPlus className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </div>
+              <Button
+                size="sm"
+                className={`text-xs ${rsvpStatus?.isGoing ? 'bg-primary/90 hover:bg-primary/80' : ''}`}
+                variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                onClick={handleRSVP}
+                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+              >
+                {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+              </Button>
             </AuthGuard>
           </div>
         </div>
@@ -303,6 +291,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
 }
 
 export default function EventList({ compact }: EventListProps) {
+  const { user } = useAuth();
   const { data, isLoading, error } = useQuery<EventsResponse>({
     queryKey: ["/api/events"],
     queryFn: async () => {
@@ -315,7 +304,27 @@ export default function EventList({ compact }: EventListProps) {
     staleTime: 30000,
     refetchOnWindowFocus: true
   });
+
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const now = new Date();
+  const eventsArray = data?.events || [];
+  const upcomingEvent = eventsArray
+    .filter(event => new Date(event.startTime) > now)
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+  const isEventEnded = upcomingEvent && new Date(upcomingEvent.endTime) < now;
+
+  // Add RSVP status query for the upcoming event
+  const { data: rsvpStatus } = useQuery({
+    queryKey: ['/api/events/check-rsvp', upcomingEvent?.api_id],
+    queryFn: async () => {
+      const response = await fetch(`/api/events/check-rsvp?event_api_id=${upcomingEvent?.api_id}`);
+      if (!response.ok) {
+        throw new Error('Failed to check RSVP status');
+      }
+      return response.json();
+    },
+    enabled: !!user && !!upcomingEvent?.api_id
+  });
 
   if (error) {
     return (
@@ -325,26 +334,21 @@ export default function EventList({ compact }: EventListProps) {
     );
   }
 
-  const now = new Date();
-  const eventsArray = data?.events || [];
-
-  const upcomingEvent = eventsArray
-    .filter(event => new Date(event.startTime) > now)
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium">Next Event</h2>
-        <a
-          href="https://lu.ma/SarasotaTech"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors"
-        >
-          <span>View Full Calendar</span>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        {upcomingEvent && rsvpStatus?.isGoing && !isEventEnded && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => window.open(generateCalendarUrl(upcomingEvent), '_blank')}
+            className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors"
+          >
+            <span>Add to Calendar</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
