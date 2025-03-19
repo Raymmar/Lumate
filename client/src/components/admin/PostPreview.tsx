@@ -74,6 +74,7 @@ export function PostPreview({
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < availablePosts.length - 1;
 
+  // Handle navigation
   const handleNavigate = async (nextPost: Post) => {
     try {
       // Check if post is members-only
@@ -93,18 +94,6 @@ export function PostPreview({
         description: "Failed to navigate to post",
         variant: "destructive"
       });
-    }
-  };
-
-  const handlePrevious = () => {
-    if (hasPrevious) {
-      handleNavigate(availablePosts[currentIndex - 1]);
-    }
-  };
-
-  const handleNext = () => {
-    if (hasNext) {
-      handleNavigate(availablePosts[currentIndex + 1]);
     }
   };
 
@@ -227,11 +216,6 @@ export function PostPreview({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      showNavigation={availablePosts.length > 1 && !!onNavigate}
-      onPrevious={handlePrevious}
-      onNext={handleNext}
-      hasPrevious={hasPrevious}
-      hasNext={hasNext}
     >
       {/* Show members-only overlay for unauthorized users */}
       {post?.membersOnly && !user ? (
@@ -396,8 +380,31 @@ export function PostPreview({
             </div>
           </div>
 
-          {/* Navigation Section - Handled by PreviewSidebar */}
-
+          {/* Navigation Section - Fixed to bottom */}
+          {availablePosts.length > 1 && onNavigate && (
+            <div className="absolute bottom-0 left-0 right-0 px-3 py-2 border-t bg-background">
+              <div className="flex justify-between items-center max-w-full">
+                <Button
+                  variant="ghost"
+                  disabled={!hasPrevious}
+                  onClick={() => handleNavigate(availablePosts[currentIndex - 1])}
+                  className="min-w-[100px] h-8"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={!hasNext}
+                  onClick={() => handleNavigate(availablePosts[currentIndex + 1])}
+                  className="min-w-[100px] h-8"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
