@@ -219,7 +219,7 @@ export function PostPreview({
     >
       {/* Show members-only overlay for unauthorized users */}
       {post?.membersOnly && !user ? (
-        <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
+        <div className="flex flex-col items-center justify-center h-full gap-4 p-4 sm:p-6">
           <div className="flex items-center gap-2">
             <Lock className="w-8 h-8" />
             <h2 className="text-xl font-semibold">Members Only Content</h2>
@@ -236,18 +236,18 @@ export function PostPreview({
       ) : (
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-y-auto pb-16">
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Title Section */}
               {post?.title && (
-                <div>
-                  <h2 className="text-2xl font-semibold leading-tight">{post.title}</h2>
+                <div className="px-1">
+                  <h2 className="text-xl sm:text-2xl font-semibold leading-tight">{post.title}</h2>
                   {post.summary && (
-                    <p className="text-base text-muted-foreground mt-2">{post.summary}</p>
+                    <p className="text-sm sm:text-base text-muted-foreground mt-2">{post.summary}</p>
                   )}
 
                   {/* Author and timestamp info */}
                   {post.createdAt && (
-                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-2 mt-2 text-xs sm:text-sm text-muted-foreground">
                       <span>Published by {post.creator?.displayName || 'Unknown'}</span>
                       <span>•</span>
                       <span>{timeAgo.format(new Date(post.createdAt))}</span>
@@ -277,7 +277,7 @@ export function PostPreview({
 
               {/* Featured Image Section */}
               {post?.featuredImage && (
-                <div className="relative w-full aspect-video max-h-[300px] bg-muted rounded-lg overflow-hidden mt-4 group">
+                <div className="relative w-full aspect-video max-h-[250px] sm:max-h-[300px] bg-muted rounded-lg overflow-hidden group">
                   <img
                     src={post.featuredImage}
                     alt={post.title}
@@ -292,7 +292,7 @@ export function PostPreview({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-sm"
+                            className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/20 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-sm"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
@@ -323,7 +323,7 @@ export function PostPreview({
                           <Badge
                             key={tag}
                             variant="secondary"
-                            className="bg-black/40 hover:bg-black/60 text-white border border-white/20 shadow-sm"
+                            className="bg-black/40 hover:bg-black/60 text-white border border-white/20 shadow-sm text-xs"
                           >
                             {tag}
                           </Badge>
@@ -336,7 +336,7 @@ export function PostPreview({
 
               {/* Show tags outside image only if there's no featured image */}
               {post?.tags && post.tags.length > 0 && !post?.featuredImage && (
-                <div className="flex flex-wrap gap-2 mt-4">
+                <div className="flex flex-wrap gap-2 mt-4 px-1">
                   {post.tags.map((tag: string) => (
                     <Badge key={tag} variant="outline" className="text-xs">
                       {tag}
@@ -347,21 +347,23 @@ export function PostPreview({
 
               {/* CTA Section */}
               {post?.ctaLink && (
-                <Button
-                  variant="outline"
-                  className="w-full mt-4"
-                  onClick={() => {
-                    if (post.ctaLink) window.open(post.ctaLink, '_blank');
-                  }}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  {post.ctaLabel || 'Learn More'}
-                </Button>
+                <div className="px-1">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      if (post.ctaLink) window.open(post.ctaLink, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    {post.ctaLabel || 'Learn More'}
+                  </Button>
+                </div>
               )}
 
               {/* Video Section */}
               {videoEmbedUrl && (
-                <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-4">
+                <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                   <iframe
                     src={videoEmbedUrl}
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -373,7 +375,7 @@ export function PostPreview({
 
               {/* Rich Text Content Section */}
               {editor && (
-                <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-4">
+                <div className="prose prose-sm sm:prose-base lg:prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 px-1">
                   <EditorContent editor={editor} />
                 </div>
               )}
@@ -382,23 +384,25 @@ export function PostPreview({
 
           {/* Navigation Section - Fixed to bottom */}
           {availablePosts.length > 1 && onNavigate && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
+            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 border-t bg-background">
               <div className="flex justify-between items-center">
                 <Button
                   variant="ghost"
                   disabled={!hasPrevious}
                   onClick={() => handleNavigate(availablePosts[currentIndex - 1])}
+                  className="text-sm"
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  <ChevronLeft className="h-4 w-4 mr-1 sm:mr-2" />
                   Previous
                 </Button>
                 <Button
                   variant="ghost"
                   disabled={!hasNext}
                   onClick={() => handleNavigate(availablePosts[currentIndex + 1])}
+                  className="text-sm"
                 >
                   Next
-                  <ChevronRight className="h-4 w-4 ml-2" />
+                  <ChevronRight className="h-4 w-4 ml-1 sm:ml-2" />
                 </Button>
               </div>
             </div>
