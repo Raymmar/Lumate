@@ -39,7 +39,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
         </div>
       </CardHeader>
       <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
-      <CardContent className="p-0 flex-1 flex flex-col">
+      <CardContent className="p-0 flex flex-col flex-1">
         <div className="relative flex-1 mx-[1px] mb-[1px] overflow-hidden rounded-md">
           <img
             src={backgroundImage}
