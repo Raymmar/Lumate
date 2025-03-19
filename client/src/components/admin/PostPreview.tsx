@@ -247,35 +247,29 @@ export function PostPreview({
 
                   {/* Author and timestamp info */}
                   {post.createdAt && (
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2 text-sm text-muted-foreground">
-                      {post.creator?.displayName && (
-                        <div className="flex items-center gap-2">
-                          <span>{post.creator.displayName}</span>
-                          <span className="hidden sm:inline">•</span>
-                        </div>
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <span>Published by {post.creator?.displayName || 'Unknown'}</span>
+                      <span>•</span>
+                      <span>{timeAgo.format(new Date(post.createdAt))}</span>
+                      {!readOnly && (
+                        <>
+                          {post?.isPinned && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary">Featured</Badge>
+                            </>
+                          )}
+                          {post?.membersOnly && (
+                            <>
+                              <span>•</span>
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                Members Only
+                              </Badge>
+                            </>
+                          )}
+                        </>
                       )}
-                      <div className="flex items-center gap-2">
-                        <span>{timeAgo.format(new Date(post.createdAt))}</span>
-                        {!readOnly && (
-                          <>
-                            {post?.isPinned && (
-                              <>
-                                <span className="hidden sm:inline">•</span>
-                                <Badge variant="secondary">Featured</Badge>
-                              </>
-                            )}
-                            {post?.membersOnly && (
-                              <>
-                                <span className="hidden sm:inline">•</span>
-                                <Badge variant="secondary" className="flex items-center gap-1">
-                                  <Lock className="w-3 h-3" />
-                                  Members Only
-                                </Badge>
-                              </>
-                            )}
-                          </>
-                        )}
-                      </div>
                     </div>
                   )}
                 </div>
