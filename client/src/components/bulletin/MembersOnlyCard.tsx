@@ -25,8 +25,8 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
   const backgroundImage = post.featuredImage || fallbackImage;
 
   return (
-    <Card className="border cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => onSelect(post)}>
-      <CardHeader className="pb-3">
+    <Card className="h-full border cursor-pointer hover:bg-muted/50 transition-colors flex flex-col" onClick={() => onSelect(post)}>
+      <CardHeader className="pb-3 flex-none">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <CardTitle className="text-lg truncate">
@@ -38,16 +38,16 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
           </Badge>
         </div>
       </CardHeader>
-      <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
-      <CardContent className="p-0">
-        <div className="relative h-[200px] mx-[1px] mb-[1px] overflow-hidden rounded-md">
+      <div className="absolute inset-x-0 h-[1px] bg-border/50" />
+      <CardContent className="p-0 flex-1 flex">
+        <div className="relative flex-1 overflow-hidden rounded-md m-[1px]">
           <img
             src={backgroundImage}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+          <div className="absolute inset-0 p-6 flex flex-col justify-end text-white">
             <h3 className="font-semibold text-xl mb-2 text-balance text-pretty break-normal hyphens-auto">{post.title}</h3>
             <div className="flex items-center gap-2 text-xs text-white/70">
               {post.creator?.displayName && (
