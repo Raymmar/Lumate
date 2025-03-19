@@ -283,6 +283,7 @@ export function BulletinBoard() {
 
       <PinnedPostsCarousel onSelect={handleSelectPost} />
 
+      {/* Posts Section */}
       <PublicPostsTable
         onSelect={handleSelectPost}
         onCreatePost={() => setIsCreating(true)}
