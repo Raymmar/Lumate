@@ -117,8 +117,8 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
           ) : (
             <>
               <CardTitle>Sarasota.Tech</CardTitle>
-              <p className="text-muted-foreground mt-1">
-                Connecting Sarasota's tech community and driving the city forward.
+              <p className="text-muted-foreground text-wrap-balanced mt-1">
+                We're connecting Sarasota's tech community and driving the city forward.
               </p>
             </>
           )}
@@ -171,7 +171,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
               ) : !featuredEvent ? (
                 "No upcoming events available at the moment."
               ) : (
-                "Enter your email to join our community. If you've attended before, we'll help you claim your profile."
+                "Enter your email for an invite to our next event. If you've attended before, we'll send you a link to claim your directory profile."
               )}
             </p>
           </form>

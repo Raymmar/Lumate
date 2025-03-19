@@ -41,6 +41,7 @@ function TimelineSection() {
   return (
     <div className="space-y-12 max-w-[960px] py-12 md:py-24 mx-auto">
       <div className="space-y-12 md:space-y-24">
+        <h2 className="text-3xl font-bold text-center">Sarasota Tech Timeline</h2>
         {events.map((event, index) => (
           <div
             key={index}
@@ -89,7 +90,7 @@ function BoardMembersSection() {
       position: "Treasurer",
       linkedIn: "https://www.linkedin.com/in/vladimir-ljesevic/",
     },
-
+   
   ];
 
   return (
@@ -117,9 +118,9 @@ function BoardMembersSection() {
         ))}
       </div>
       <img 
-        src="https://file-upload.replit.app/api/storage/images%2F1742361429915-Mask%20group.png" 
+        src="https://file-upload.replit.app/api/storage/images%2F1742362765806-LAS-105%201.png" 
         alt="Sarasota Tech Founding Board Members" 
-        className="w-full rounded-lg object-cover"
+        className="w-full max-h-[50vh] rounded-lg object-cover"
       />
     </div>
   );
@@ -166,18 +167,18 @@ function TestimonialsSection() {
         `Great event! I've been to events in another city and it was never about building up the community/tech scene. People here seem to genuinely want to help each other where in other places it was more about 'what can you do for me?'`,
     },
     {
-      name: "Jane Smith",
+      name: "Thomas Waples",
       position: "Product Manager",
       company: "StartupX",
       quote:
-        `The monthly meetups are a highlight! It's amazing to see how the tech scene in Sarasota has grown through these events.`,
+        `Raymmar and the rest of the team do an amazing job of bringing the Sarasota Tech community together and as an outsider who works in media, they make me feel welcome every time! Congrats to another great event. Can't wait till the next one!`,
     },
     {
-      name: "Mike Johnson",
+      name: "Rox",
       position: "CTO",
       company: "Innovation Labs",
       quote:
-        `As a company leader, these events have helped us find great local talent and build meaningful partnerships.`,
+        `Tonight was a gem for the Sarasota tech scene, truly a golden nugget! The balance between networking and inspirational talks hit the mark. Impressive work, gentlemen. Looking forward to more!`,
     },
   ];
 
@@ -192,9 +193,9 @@ function TestimonialsSection() {
               </blockquote>
               <div>
                 <p className="font-medium">{testimonial.name}</p>
-                <p className="text-sm text-muted-foreground">
+                {/* <p className="text-sm text-muted-foreground">
                   {testimonial.position} @ {testimonial.company}
-                </p>
+                </p> */}
               </div>
             </CardContent>
           </Card>
@@ -230,9 +231,9 @@ export default function AboutPage() {
 
             <div className="relative py-8">
               <img 
-                src="https://placehold.co/1140x400" 
-                alt="Sarasota Tech" 
-                className="w-full rounded-lg object-cover"
+                src="https://file-upload.replit.app/api/storage/images%2F1742362143660-STS_Jan'25-25%20compressed.jpeg" 
+                alt="Sarasota Tech Summit 2025" 
+                className="w-full max-h-[50vh] rounded-lg object-cover"
               />
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-20">
                 <JoinUsCard showHeader={false} />
