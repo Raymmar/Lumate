@@ -65,16 +65,6 @@ export function NavBar() {
           </DrawerContent>
         </Drawer>
       </div>
-      {isAdminPage && (
-        <Link href="/">
-          <Button 
-            variant="secondary"
-            className="ml-4"
-          >
-            View Directory
-          </Button>
-        </Link>
-      )}
       <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
           <AdminBadge className="mr-2" asLink />
