@@ -257,7 +257,7 @@ export function BulletinBoard() {
         )}
       </div>
 
-      <div className="grid gap-3 grid-cols-2">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-3">
         <StatCard
           title="Events"
           value={statsData?.events || 0}
