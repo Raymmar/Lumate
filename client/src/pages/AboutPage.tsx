@@ -1,13 +1,7 @@
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  SiLinkedin,
-  SiFacebook,
-  SiInstagram,
-  SiWhatsapp,
-} from "react-icons/si";
-import { FaTwitter } from "react-icons/fa";
+import { SiLinkedin } from "react-icons/si";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
@@ -78,32 +72,52 @@ function BoardMembersSection() {
     {
       name: "Raymmar Tirado",
       position: "Chair",
+      linkedIn: "https://www.linkedin.com/in/raymmar/",
     },
     {
       name: "Pete Petersen",
       position: "Vice Chair",
+      linkedIn: "https://www.linkedin.com/in/petepetersen/",
     },
     {
       name: "Vlad Ljesevic",
       position: "Treasurer",
+      linkedIn: "https://www.linkedin.com/in/vladljesevic/",
     },
     {
       name: "Toli Marchuk",
       position: "Secretary",
+      linkedIn: "https://www.linkedin.com/in/tolimarchuk/",
     },
   ];
 
   return (
     <div className="space-y-12">
+      <img 
+        src="https://placehold.co/1140x400" 
+        alt="Board Members" 
+        className="w-full rounded-lg object-cover"
+      />
       <h2 className="text-3xl font-bold text-center">Founding Board Members</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
-          <Card key={member.name}>
-            <CardContent className="text-center pt-6">
-              <h3 className="font-semibold text-lg">{member.name}</h3>
-              <p className="text-muted-foreground">{member.position}</p>
-            </CardContent>
-          </Card>
+          <a 
+            key={member.name}
+            href={member.linkedIn}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block transition-transform hover:scale-105"
+          >
+            <Card className="h-full">
+              <CardContent className="text-center pt-6">
+                <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
+                  {member.name}
+                  <SiLinkedin className="text-[#0A66C2]" />
+                </h3>
+                <p className="text-muted-foreground">{member.position}</p>
+              </CardContent>
+            </Card>
+          </a>
         ))}
       </div>
     </div>
@@ -202,6 +216,11 @@ export default function AboutPage() {
       <div className="flex-1">
         <div className="relative py-12 overflow-hidden">
           <PageContainer className="relative z-10 space-y-4 text-center max-w-[1140px]">
+            <img 
+              src="https://placehold.co/1140x400" 
+              alt="Sarasota Tech" 
+              className="w-full rounded-lg object-cover mb-12"
+            />
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
