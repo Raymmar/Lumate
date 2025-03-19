@@ -39,41 +39,49 @@ export function NavBar({ hideDirectoryLink = false }: NavBarProps) {
     '';
 
   return (
-    <nav className="flex h-16 items-center pl-2 pr-4 w-full min-w-full">
-      <div className="flex items-center flex-1 min-w-0">
-        <Link href="/">
-          <div className="flex items-center">
-            <img 
-              src="/256x256.png" 
-              alt="Luma Logo" 
-              className="h-14 w-14 object-contain"
-            />
-          </div>
-        </Link>
-        {!hideDirectoryLink && (
-          <div className="lg:hidden ml-2">
-            <Drawer open={isOpen} onOpenChange={setIsOpen}>
-              <DrawerTrigger asChild>
-                <Button variant="outline" size="sm">
-                  Directory
-                </Button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
-                  <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
-                    <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
-                      <div className="flex-1 overflow-hidden min-h-0">
-                        <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
-                      </div>
+    <nav className="flex h-16 items-center pl-2 pr-4 w-full">
+      <Link href="/">
+        <div className="flex items-center">
+          <img 
+            src="/256x256.png" 
+            alt="Luma Logo" 
+            className="h-14 w-14 object-contain"
+          />
+        </div>
+      </Link>
+      {!hideDirectoryLink && (
+        <div className="lg:hidden ml-2">
+          <Drawer open={isOpen} onOpenChange={setIsOpen}>
+            <DrawerTrigger asChild>
+              <Button variant="outline" size="sm">
+                Directory
+              </Button>
+            </DrawerTrigger>
+            <DrawerContent>
+              <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
+                <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
+                  <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+                    <div className="flex-1 overflow-hidden min-h-0">
+                      <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
                     </div>
                   </div>
                 </div>
-              </DrawerContent>
-            </Drawer>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+              </div>
+            </DrawerContent>
+          </Drawer>
+        </div>
+      )}
+      {isAdminPage && (
+        <Link href="/">
+          <Button 
+            variant="secondary"
+            className="ml-4"
+          >
+            View Directory
+          </Button>
+        </Link>
+      )}
+      <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
           <AdminBadge className="mr-2 hidden sm:flex" asLink />
         )}
