@@ -216,11 +216,6 @@ export default function AboutPage() {
       <div className="flex-1">
         <div className="relative py-12 overflow-hidden">
           <PageContainer className="relative z-10 space-y-4 text-center max-w-[1140px]">
-            <img 
-              src="https://placehold.co/1140x400" 
-              alt="Sarasota Tech" 
-              className="w-full rounded-lg object-cover mb-12"
-            />
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
@@ -228,7 +223,12 @@ export default function AboutPage() {
               We're on a mission to connect the local tech community and drive
               Sarasota forward.
             </p>
-            <div className="flex flex-col items-center space-y-6 pt-6">
+            <img 
+              src="https://placehold.co/1140x400" 
+              alt="Sarasota Tech" 
+              className="w-full rounded-lg object-cover my-12"
+            />
+            <div className="flex flex-col items-center space-y-6">
               <SocialLinks />
               <div className="w-full max-w-md">
                 <JoinUsCard showHeader={false} />
