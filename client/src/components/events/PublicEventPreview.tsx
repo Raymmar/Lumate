@@ -56,6 +56,7 @@ interface PublicEventPreviewProps {
   onEdit?: (event: Event) => void;
   onDelete?: (event: Event) => void;
   showActions?: boolean;
+  title?: string;
 }
 
 export function PublicEventPreview({
@@ -65,7 +66,8 @@ export function PublicEventPreview({
   onNavigate,
   onEdit,
   onDelete,
-  showActions = false
+  showActions = false,
+  title = "Event Preview"
 }: PublicEventPreviewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -233,10 +235,10 @@ export function PublicEventPreview({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      className="ring-0 focus:ring-0 outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+      title={title}
     >
       <DialogTitle className="sr-only">Event Preview</DialogTitle>
-      <div className="flex flex-col h-full outline-none focus:outline-none">
+      <div className="flex flex-col h-full relative">
         <div className="flex-1 overflow-y-auto pb-16">
           {event.coverUrl && (
             <div className="relative w-full aspect-video mb-4 group">
@@ -513,11 +515,12 @@ export function PublicEventPreview({
         {/* Navigation Section - Fixed to bottom */}
         {events.length > 1 && onNavigate && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-background">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center max-w-full">
               <Button
                 variant="ghost"
                 disabled={!hasPrevious}
                 onClick={() => handleNavigate(events[currentIndex - 1])}
+                className="min-w-[100px]"
               >
                 <ChevronLeft className="h-4 w-4 mr-2" />
                 Previous
@@ -526,6 +529,7 @@ export function PublicEventPreview({
                 variant="ghost"
                 disabled={!hasNext}
                 onClick={() => handleNavigate(events[currentIndex + 1])}
+                className="min-w-[100px]"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-2" />
