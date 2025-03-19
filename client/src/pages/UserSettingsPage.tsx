@@ -250,7 +250,7 @@ export default function UserSettingsPage() {
                               {...field}
                               value={field.value || ''} // Handle null value
                               placeholder="Add your custom greeting here (max 140 characters)"
-                              className="resize-none h-20 min-h-[80px] border-0 bg-muted/50 text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
+                              className="resize-none h-20 min-h-[80px] border bg-muted/50 text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
@@ -315,7 +315,7 @@ export default function UserSettingsPage() {
                                 <Input
                                   {...field}
                                   placeholder="Company name"
-                                  className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -332,7 +332,7 @@ export default function UserSettingsPage() {
                                 <Textarea
                                   {...field}
                                   placeholder="Describe your company..."
-                                  className="resize-none min-h-[100px] border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  className="resize-none min-h-[100px] border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -353,7 +353,7 @@ export default function UserSettingsPage() {
                                 <LocationPicker
                                   defaultValue={field.value}
                                   onLocationSelect={field.onChange}
-                                  className="w-full [&_.combobox-input]:border-0 [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
+                                  className="w-full [&_.combobox-input]:border [&_.combobox-input]:bg-muted/50 [&_.combobox-input]:focus-visible:ring-0 [&_.combobox-input]:focus-visible:ring-offset-0"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -372,7 +372,7 @@ export default function UserSettingsPage() {
                                     {...field}
                                     type="tel"
                                     placeholder="Phone number"
-                                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -504,7 +504,7 @@ export default function UserSettingsPage() {
                                         newLinks[index] = { ...newLinks[index], title: e.target.value };
                                         field.onChange(newLinks);
                                       }}
-                                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                      className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     />
                                     <Input
                                       placeholder="https://..."
@@ -515,7 +515,7 @@ export default function UserSettingsPage() {
                                         newLinks[index] = { ...newLinks[index], url: e.target.value };
                                         field.onChange(newLinks);
                                       }}
-                                      className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                      className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                                     />
                                   </div>
                                   <Button
