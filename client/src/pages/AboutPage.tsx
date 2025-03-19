@@ -90,7 +90,6 @@ function BoardMembersSection() {
       position: "Treasurer",
       linkedIn: "https://www.linkedin.com/in/vladimir-ljesevic/",
     },
-   
   ];
 
   return (
@@ -98,7 +97,7 @@ function BoardMembersSection() {
       <h2 className="text-3xl font-bold text-center">Founding Board Members</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
-          <a 
+          <a
             key={member.name}
             href={member.linkedIn}
             target="_blank"
@@ -117,9 +116,9 @@ function BoardMembersSection() {
           </a>
         ))}
       </div>
-      <img 
-        src="https://file-upload.replit.app/api/storage/images%2F1742362765806-LAS-105%201.png" 
-        alt="Sarasota Tech Founding Board Members" 
+      <img
+        src="https://file-upload.replit.app/api/storage/images%2F1742362765806-LAS-105%201.png"
+        alt="Sarasota Tech Founding Board Members"
         className="w-full max-h-[50vh] rounded-lg object-cover"
       />
     </div>
@@ -211,7 +210,6 @@ export default function AboutPage() {
       <div className="sticky top-0 w-full bg-background/80 backdrop-blur-sm supports-[backdrop-filter]:bg-background/40 z-50">
         <PageContainer className="max-w-[1140px]">
           <NavBar />
-          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-border/50" />
         </PageContainer>
       </div>
 
@@ -230,9 +228,9 @@ export default function AboutPage() {
             </div>
 
             <div className="relative py-8">
-              <img 
-                src="https://file-upload.replit.app/api/storage/images%2F1742362143660-STS_Jan'25-25%20compressed.jpeg" 
-                alt="Sarasota Tech Summit 2025" 
+              <img
+                src="https://file-upload.replit.app/api/storage/images%2F1742362143660-STS_Jan'25-25%20compressed.jpeg"
+                alt="Sarasota Tech Summit 2025"
                 className="w-full max-h-[50vh] rounded-lg object-cover"
               />
               <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-20">

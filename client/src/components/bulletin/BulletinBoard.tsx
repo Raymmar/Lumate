@@ -158,7 +158,7 @@ function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
 
 function LinksSection() {
   return (
-    <Card className="border-none shadow-none">
+    <Card className="border">
       <CardHeader className="pb-3">
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
