@@ -225,7 +225,7 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-col items-center space-y-6 pt-6">
               <SocialLinks />
-              <div className="w-full max-w-md">
+              <div className="w-full max-w-md relative z-10">
                 <JoinUsCard showHeader={false} />
               </div>
             </div>
@@ -233,7 +233,7 @@ export default function AboutPage() {
             <img 
               src="https://placehold.co/1140x400" 
               alt="Sarasota Tech" 
-              className="w-full rounded-lg object-cover my-12"
+              className="w-full rounded-lg object-cover -mt-20"
             />
 
             <div className="text-center space-y-4">
