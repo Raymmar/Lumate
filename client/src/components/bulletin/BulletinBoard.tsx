@@ -250,12 +250,16 @@ export function BulletinBoard() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 h-full">
         <LinksSection />
         {user && mostRecentMembersOnlyPost ? (
-          <MembersOnlyCard post={mostRecentMembersOnlyPost} onSelect={handleSelectPost} />
+          <div className="h-full">
+            <MembersOnlyCard post={mostRecentMembersOnlyPost} onSelect={handleSelectPost} />
+          </div>
         ) : (
-          <JoinUsCard />
+          <div className="h-full">
+            <JoinUsCard />
+          </div>
         )}
       </div>
 
