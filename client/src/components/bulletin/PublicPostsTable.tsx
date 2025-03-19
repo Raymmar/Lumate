@@ -141,7 +141,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                 {post.membersOnly && !user && (
                   <div className="absolute inset-0 backdrop-blur-sm bg-background/80 z-10 flex flex-col items-center justify-center gap-4">
                     <div className="flex items-center gap-2">
-                      <Lock className="w-5 h-5" />
+                      <Lock className="h-5 w-5" />
                       <span className="font-medium">Members Only Content</span>
                     </div>
                     <Link href="/login">
@@ -152,18 +152,18 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
                   </div>
                 )}
 
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   {post.featuredImage ? (
-                    <div className="w-20 h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <div className="w-full sm:w-20 h-auto sm:h-20 rounded-md overflow-hidden bg-muted flex-shrink-0">
                       <img
                         src={post.featuredImage}
                         alt=""
                         className="w-full h-full object-cover"
-                        style={{ aspectRatio: '1 / 1' }}
+                        style={{ aspectRatio: '16 / 9' }}
                       />
                     </div>
                   ) : (
-                    <div className="w-20 h-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
+                    <div className="w-full sm:w-20 h-auto sm:h-20 rounded-md bg-muted flex items-center justify-center flex-shrink-0" style={{ aspectRatio: '16 / 9' }}>
                       <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
                     </div>
                   )}
