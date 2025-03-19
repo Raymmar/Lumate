@@ -13,20 +13,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatUsernameForUrl } from "@/lib/utils";
 
 interface EventPreviewProps {
-  event: Event & {
-    isSynced?: boolean;
+  event: Event & { 
+    isSynced?: boolean; 
     lastSyncedAt?: string | null;
     lastAttendanceSync?: string | null;
   };
-  events?: (Event & {
-    isSynced?: boolean;
+  events?: (Event & { 
+    isSynced?: boolean; 
     lastSyncedAt?: string | null;
     lastAttendanceSync?: string | null;
   })[];
   onSync?: (eventId: string) => void;
   onStartSync?: (eventId: string) => void;
-  onNavigate?: (event: Event & {
-    isSynced?: boolean;
+  onNavigate?: (event: Event & { 
+    isSynced?: boolean; 
     lastSyncedAt?: string | null;
     lastAttendanceSync?: string | null;
   }) => void;
@@ -171,8 +171,8 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
         lastSyncedAt: event.lastAttendanceSync
       });
 
-      await queryClient.invalidateQueries({
-        queryKey: [`/api/admin/events/${event.api_id}/attendees`]
+      await queryClient.invalidateQueries({ 
+        queryKey: [`/api/admin/events/${event.api_id}/attendees`] 
       });
     }
   };
@@ -185,8 +185,8 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < events.length - 1;
 
-  const handleNavigate = (nextEvent: Event & {
-    isSynced?: boolean;
+  const handleNavigate = (nextEvent: Event & { 
+    isSynced?: boolean; 
     lastSyncedAt?: string | null;
     lastAttendanceSync?: string | null;
   }) => {
@@ -197,9 +197,9 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto space-y-4 sm:space-y-6 pb-16">
+      <div className="flex-1 overflow-y-auto space-y-6 pb-16">
         {event.coverUrl && (
-          <div className="relative w-full aspect-video mb-2 sm:mb-4">
+          <div className="relative w-full aspect-video mb-4">
             <img
               src={event.coverUrl}
               alt={event.title}
@@ -207,9 +207,9 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
             />
             <div className="absolute bottom-4 left-4 flex gap-2">
               {event.url && (
-                <Button
-                  variant="default"
-                  className="bg-black hover:bg-black/90 text-white text-sm sm:text-base"
+                <Button 
+                  variant="default" 
+                  className="bg-black hover:bg-black/90 text-white"
                   onClick={() => event.url && window.open(event.url, '_blank')}
                 >
                   Manage event
@@ -219,11 +219,11 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
           </div>
         )}
 
-        <div className="space-y-4 sm:space-y-6 px-1">
+        <div className="space-y-6">
           <div>
-            <h2 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">{event.title}</h2>
+            <h2 className="text-2xl font-semibold mb-4">{event.title}</h2>
             {event.description && (
-              <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mb-3 sm:mb-4">{event.description}</p>
+              <p className="text-muted-foreground line-clamp-2 mb-4">{event.description}</p>
             )}
 
             <div className="space-y-2">
@@ -272,19 +272,19 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
           </div>
 
           <Card>
-            <CardContent className="p-4 sm:p-6 space-y-4">
+            <CardContent className="p-6 space-y-4">
               <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
                 <div>
-                  <p className="font-medium text-sm sm:text-base">
+                  <p className="font-medium">
                     {formatInTimeZone(
                       new Date(event.startTime + 'Z'),
                       event.timezone || 'America/New_York',
                       'EEEE, MMMM d, yyyy'
                     )}
                   </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} -
+                  <p className="text-sm text-muted-foreground">
+                    {formatInTimeZone(new Date(event.startTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')} - 
                     {formatInTimeZone(new Date(event.endTime + 'Z'), event.timezone || 'America/New_York', 'h:mm a')}
                     {event.timezone && ` (${event.timezone})`}
                   </p>
@@ -293,13 +293,13 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
 
               {event.location && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
-                  <div className="min-w-0">
+                  <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
+                  <div>
                     {event.location.full_address && (
-                      <p className="font-medium text-sm sm:text-base truncate">{event.location.full_address}</p>
+                      <p className="font-medium">{event.location.full_address}</p>
                     )}
                     {event.location.city && (
-                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                      <p className="text-sm text-muted-foreground">
                         {[
                           event.location.city,
                           event.location.region,
@@ -316,9 +316,9 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
           </Card>
 
           <Card>
-            <CardContent className="p-4 sm:p-6">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-sm sm:text-base">Event Attendees</h3>
+                <h3 className="font-semibold">Event Attendees</h3>
                 <Badge variant="secondary">{attendeeCount} registered</Badge>
               </div>
 
@@ -330,11 +330,11 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
                 </div>
               ) : attendees.length > 0 ? (
                 <div className="space-y-2">
-                  {attendees.map((person: Person) => {
+                  {attendees.map((person) => {
                     const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
                     return (
-                      <Link
-                        key={person.id}
+                      <Link 
+                        key={person.id} 
                         href={profilePath}
                         className="flex items-center gap-3 p-2 hover:bg-muted/50 rounded-md transition-colors"
                       >
@@ -347,9 +347,9 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
                             </AvatarFallback>
                           )}
                         </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">{person.userName || "Anonymous"}</p>
-                          <p className="text-xs text-muted-foreground truncate">{person.email}</p>
+                        <div>
+                          <p className="font-medium">{person.userName || "Anonymous"}</p>
+                          <p className="text-xs text-muted-foreground">{person.email}</p>
                         </div>
                       </Link>
                     );
@@ -366,24 +366,22 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
       {/* Navigation */}
       {events.length > 1 && onNavigate && (
         <div className="absolute bottom-0 left-0 right-0 border-t bg-background">
-          <div className="flex justify-between items-center p-3 sm:p-4">
+          <div className="flex justify-between items-center p-4">
             <Button
               variant="ghost"
               disabled={!hasPrevious}
               onClick={() => handleNavigate(events[currentIndex - 1])}
-              className="text-sm"
             >
-              <ChevronLeft className="h-4 w-4 mr-1 sm:mr-2" />
+              <ChevronLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
             <Button
               variant="ghost"
               disabled={!hasNext}
               onClick={() => handleNavigate(events[currentIndex + 1])}
-              className="text-sm"
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1 sm:ml-2" />
+              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </div>

@@ -16,7 +16,7 @@ export function PreviewSidebar({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
-        className="w-full sm:w-[480px] sm:max-w-[480px] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 z-[9999999] p-4 sm:p-6"
+        className="w-[480px] sm:max-w-[480px] overflow-y-auto outline-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 z-[9999999]"
         role="dialog"
         aria-modal="true"
         onOpenAutoFocus={(e) => {
@@ -29,9 +29,7 @@ export function PreviewSidebar({
             <h2 className="text-lg font-semibold">{title}</h2>
           </SheetHeader>
         )}
-        <div className="w-full">
-          {children}
-        </div>
+        {children}
       </SheetContent>
     </Sheet>
   );
