@@ -4,8 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, Home } from "lucide-react";
-import { Link } from "wouter";
+import { Menu } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -34,31 +33,23 @@ export function AdminLayout({ children, title }: AdminLayoutProps) {
           <div className="border-b">
             <div className="max-w-[1440px] mx-auto">
               <PageContainer>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <NavBar hideDirectoryLink />
-                    <div className="md:hidden ml-2">
-                      <Drawer open={isOpen} onOpenChange={setIsOpen}>
-                        <DrawerTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Menu className="h-5 w-5" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DrawerTrigger>
-                        <DrawerContent>
-                          <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
-                            <SidebarContent />
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
-                    </div>
+                <div className="flex items-center">
+                  <NavBar />
+                  <div className="md:hidden ml-2">
+                    <Drawer open={isOpen} onOpenChange={setIsOpen}>
+                      <DrawerTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <Menu className="h-5 w-5" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DrawerTrigger>
+                      <DrawerContent>
+                        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto">
+                          <SidebarContent />
+                        </div>
+                      </DrawerContent>
+                    </Drawer>
                   </div>
-                  <Link href="/">
-                    <Button variant="ghost" size="sm" className="hidden sm:flex">
-                      <Home className="h-4 w-4 mr-2" />
-                      View Directory
-                    </Button>
-                  </Link>
                 </div>
               </PageContainer>
             </div>

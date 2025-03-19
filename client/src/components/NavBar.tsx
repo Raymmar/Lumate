@@ -22,11 +22,7 @@ import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { useState } from "react";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
 
-interface NavBarProps {
-  hideDirectoryLink?: boolean;
-}
-
-export function NavBar({ hideDirectoryLink = false }: NavBarProps) {
+export function NavBar() {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const isAdmin = Boolean(user?.isAdmin);
@@ -49,28 +45,26 @@ export function NavBar({ hideDirectoryLink = false }: NavBarProps) {
           />
         </div>
       </Link>
-      {!hideDirectoryLink && (
-        <div className="lg:hidden ml-2">
-          <Drawer open={isOpen} onOpenChange={setIsOpen}>
-            <DrawerTrigger asChild>
-              <Button variant="outline" size="sm">
-                Directory
-              </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-              <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
-                <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
-                  <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
-                    <div className="flex-1 overflow-hidden min-h-0">
-                      <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
-                    </div>
+      <div className="lg:hidden ml-2">
+        <Drawer open={isOpen} onOpenChange={setIsOpen}>
+          <DrawerTrigger asChild>
+            <Button variant="outline" size="sm">
+              Directory
+            </Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
+              <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
+                <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
+                  <div className="flex-1 overflow-hidden min-h-0">
+                    <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
                   </div>
                 </div>
               </div>
-            </DrawerContent>
-          </Drawer>
-        </div>
-      )}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      </div>
       {isAdminPage && (
         <Link href="/">
           <Button 
