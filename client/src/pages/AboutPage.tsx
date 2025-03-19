@@ -225,9 +225,6 @@ export default function AboutPage() {
             </p>
             <div className="flex flex-col items-center space-y-6 pt-6">
               <SocialLinks />
-              <div className="w-full max-w-md relative z-10">
-                <JoinUsCard showHeader={false} />
-              </div>
             </div>
 
             <div className="relative mt-12">
