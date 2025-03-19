@@ -323,15 +323,15 @@ export default function EventList({ compact }: EventListProps) {
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between py-1">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between pb-1">
         <h2 className="text-sm font-medium">Next Event</h2>
         {upcomingEvent && rsvpStatus?.isGoing && !isEventEnded && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => window.open(generateCalendarUrl(upcomingEvent), '_blank')}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors p-0 h-auto"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2 h-7"
           >
             <span>Add to Calendar</span>
             <ExternalLink className="h-3.5 w-3.5" />
