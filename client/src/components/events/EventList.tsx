@@ -150,7 +150,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
         onClick={() => onSelect(event)}
         className="cursor-pointer"
       >
-        <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
+        <div className="rounded-lg border bg-card text-card-foreground hover:bg-muted/50 transition-colors group">
           <div className="p-4 flex gap-4 items-center">
             <div className="w-16 h-16 flex-shrink-0 relative rounded-md overflow-hidden">
               {event.coverUrl ? (
@@ -174,27 +174,15 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <AuthGuard>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={rsvpStatus?.isGoing ? "default" : "outline"}
-                      onClick={handleRSVP}
-                      disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                      className={`text-xs px-2 h-6 ${rsvpStatus?.isGoing ? 'bg-primary/90 hover:bg-primary/80' : ''}`}
-                    >
-                      {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
-                    </Button>
-                    {rsvpStatus?.isGoing && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleAddToCalendar}
-                        className="text-xs px-2 h-6 flex items-center gap-1 hover:bg-muted/50"
-                      >
-                        <CalendarPlus className="h-3.5 w-3.5 text-foreground/70" />
-                      </Button>
-                    )}
-                  </div>
+                  <Button
+                    size="sm"
+                    variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                    onClick={handleRSVP}
+                    disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                    className={`text-xs px-2 h-6 ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                  >
+                    {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+                  </Button>
                 </AuthGuard>
                 {!isAttendeesLoading && (
                   <span className="text-xs text-muted-foreground">
@@ -214,7 +202,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
       onClick={() => onSelect(event)}
       className="cursor-pointer"
     >
-      <div className="rounded-lg border bg-card text-card-foreground hover:border-primary transition-colors group">
+      <div className="rounded-lg border bg-card text-card-foreground hover:bg-muted/50 transition-colors group">
         <div className="w-full relative">
           <AspectRatio ratio={16 / 9}>
             {event.coverUrl ? (
@@ -234,8 +222,8 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
             <AuthGuard>
               <Button
                 size="sm"
-                className={`text-xs ${rsvpStatus?.isGoing ? 'bg-primary/90 hover:bg-primary/80' : ''}`}
-                variant={rsvpStatus?.isGoing ? "outline" : "default"}
+                className={`text-xs ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                variant={rsvpStatus?.isGoing ? "default" : "outline"}
                 onClick={handleRSVP}
                 disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
               >
@@ -336,14 +324,14 @@ export default function EventList({ compact }: EventListProps) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between py-1">
         <h2 className="text-sm font-medium">Next Event</h2>
         {upcomingEvent && rsvpStatus?.isGoing && !isEventEnded && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => window.open(generateCalendarUrl(upcomingEvent), '_blank')}
-            className="inline-flex items-center gap-1.5 text-sm text-foreground hover:text-foreground/80 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors p-0 h-auto"
           >
             <span>Add to Calendar</span>
             <ExternalLink className="h-3.5 w-3.5" />
