@@ -74,17 +74,15 @@ export default function AdminDashboard() {
         </div>
       </div>
     }>
-      {/* Stats Grid - Responsive layout */}
-      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 mb-6">
-        <div className="col-span-2 sm:col-span-1">
-          <StatCard
-            title="Events"
-            value={statsData?.events || 0}
-            icon={Calendar}
-            isLoading={isLoading}
-            description="Since August 2023"
-          />
-        </div>
+      {/* Stats Grid - 2 columns layout */}
+      <div className="grid gap-3 grid-cols-2 mb-6">
+        <StatCard
+          title="Events"
+          value={statsData?.events || 0}
+          icon={Calendar}
+          isLoading={isLoading}
+          description="Since August 2023"
+        />
         <StatCard
           title="Tickets"
           value={statsData?.totalAttendees || 0}
