@@ -46,7 +46,7 @@ export default function UserSettingsPage() {
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
       displayName: "",
-      bio: "",  // Changed from null to empty string
+      bio: "",
       featuredImageUrl: "",
       companyName: "",
       companyDescription: "",
@@ -65,7 +65,7 @@ export default function UserSettingsPage() {
     if (user) {
       form.reset({
         displayName: user.displayName || "",
-        bio: user.bio || "",  // Changed from potentially null to empty string
+        bio: user.bio || "",
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
@@ -106,7 +106,7 @@ export default function UserSettingsPage() {
         displayName: user?.displayName,
         address: data.address || null,
         tags: tags,
-        bio: data.bio || "",  // Ensure bio is never null
+        bio: data.bio || "",
       };
 
       const response = await fetch("/api/auth/update-profile", {
@@ -248,7 +248,7 @@ export default function UserSettingsPage() {
                           <div className="relative">
                             <Textarea
                               {...field}
-                              value={field.value || ''} // Handle null value
+                              value={field.value || ''}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border bg-muted/50 text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
@@ -293,12 +293,18 @@ export default function UserSettingsPage() {
                           control={form.control}
                           name="featuredImageUrl"
                           render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
+                            <FormItem className="space-y-3">
+                              <div>
+                                <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  This image will be displayed as a banner at the top of your company profile
+                                </p>
+                              </div>
                               <FormControl>
                                 <UnsplashPicker
                                   value={field.value || ""}
                                   onChange={field.onChange}
+                                  className="min-h-[300px]"
                                 />
                               </FormControl>
                               <FormMessage />
