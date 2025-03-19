@@ -26,7 +26,7 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
 
   return (
     <Card className="h-full border cursor-pointer hover:bg-muted/50 transition-colors flex flex-col" onClick={() => onSelect(post)}>
-      <CardHeader className="pb-3 flex-none border-b">
+      <CardHeader className="pb-3 flex-none">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <CardTitle className="text-lg truncate">
