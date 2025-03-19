@@ -235,7 +235,7 @@ export function PostPreview({
         </div>
       ) : (
         <div className="flex flex-col h-full">
-          <div className="flex-1 overflow-y-auto pb-16">
+          <div className="flex-1 overflow-y-auto pb-20">
             <div className="space-y-4 sm:space-y-6">
               {/* Title Section */}
               {post?.title && (
@@ -384,8 +384,8 @@ export function PostPreview({
 
           {/* Navigation Section - Fixed to bottom */}
           {availablePosts.length > 1 && onNavigate && (
-            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 border-t bg-background">
-              <div className="flex justify-between items-center">
+            <div className="fixed bottom-0 left-0 right-0 p-3 sm:p-4 border-t bg-background">
+              <div className="flex justify-between items-center max-w-[480px] mx-auto">
                 <Button
                   variant="ghost"
                   disabled={!hasPrevious}
