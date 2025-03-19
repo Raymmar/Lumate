@@ -53,18 +53,19 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout title={
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Dashboard Overview</h1>
         <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuJw79D', '_blank')}
+            className="text-sm"
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             Manage Calendar
           </Button>
           <Button 
-            className="bg-primary hover:bg-primary/90"
+            className="bg-primary hover:bg-primary/90 text-sm"
             onClick={() => setIsCreating(true)}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -73,15 +74,17 @@ export default function AdminDashboard() {
         </div>
       </div>
     }>
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <StatCard
-          title="Events"
-          value={statsData?.events || 0}
-          icon={Calendar}
-          isLoading={isLoading}
-          description="Since August 2023"
-        />
+      {/* Stats Grid - Responsive layout */}
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 mb-6">
+        <div className="col-span-2 sm:col-span-1">
+          <StatCard
+            title="Events"
+            value={statsData?.events || 0}
+            icon={Calendar}
+            isLoading={isLoading}
+            description="Since August 2023"
+          />
+        </div>
         <StatCard
           title="Tickets"
           value={statsData?.totalAttendees || 0}
@@ -122,7 +125,11 @@ export default function AdminDashboard() {
       {/* Posts Section */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Posts</h2>
-        <PostsTable onSelect={setSelectedPost} />
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="min-w-full inline-block align-middle">
+            <PostsTable onSelect={setSelectedPost} />
+          </div>
+        </div>
         {(selectedPost || isCreating) && (
           <PostPreview
             post={selectedPost || undefined}
