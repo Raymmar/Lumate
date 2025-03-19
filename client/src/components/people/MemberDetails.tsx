@@ -50,33 +50,16 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
   const seoDescription = user.bio || user.companyDescription || 'Sarasota Tech Community Member';
   const seoImage = user.featuredImageUrl || undefined;
 
-  // Format address to ensure proper wrapping
-  const formatAddress = (address: any) => {
-    if (!address) return undefined;
-
-    // Ensure address is treated as an object
-    const addressObj = typeof address === 'string' ? { street: address } : address;
-
-    return {
-      ...addressObj,
-      // Add a class to force line break before city/state/zip
-      formattedDisplay: addressObj.street ? 
-        `${addressObj.street}\n${[addressObj.city, addressObj.state, addressObj.zip].filter(Boolean).join(' ')}` : 
-        undefined
-    };
-  };
-
   // Always construct business data using available fields
   const businessData = {
     name: user.companyName || user.displayName || 'Business Profile',
     description: user.companyDescription || user.bio || '',
-    address: formatAddress(user.address),
+    address: typeof user.address === 'object' ? user.address : undefined,
     phone: user.isPhonePublic ? user.phoneNumber : undefined,
     email: user.isEmailPublic ? user.email : undefined,
     customLinks: user.customLinks?.filter(link => link.url && link.title) || [],
     featuredImageUrl: user.featuredImageUrl,
-    tags: user.tags,
-    className: "whitespace-pre-wrap break-words"
+    tags: user.tags
   };
 
   console.log('MemberDetails - Final business data:', businessData);
@@ -84,10 +67,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
   return (
     <div className="w-full max-w-full space-y-4 overflow-hidden">
       <SEO title={seoTitle} description={seoDescription} image={seoImage} />
-      <BusinessProfile 
-        {...businessData} 
-        containerClassName="w-full max-w-full"
-      />
+      <BusinessProfile {...businessData} containerClassName="w-full max-w-full" />
     </div>
   );
 };
