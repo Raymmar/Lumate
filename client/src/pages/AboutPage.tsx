@@ -89,7 +89,7 @@ function BoardMembersSection() {
       position: "Treasurer",
       linkedIn: "https://www.linkedin.com/in/vladimir-ljesevic/",
     },
-   
+
   ];
 
   return (
@@ -121,28 +121,6 @@ function BoardMembersSection() {
         alt="Sarasota Tech Founding Board Members" 
         className="w-full rounded-lg object-cover"
       />
-      <h2 className="text-3xl font-bold text-center">Founding Board Members</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {members.map((member) => (
-          <a 
-            key={member.name}
-            href={member.linkedIn}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block transition-transform hover:scale-105"
-          >
-            <Card className="h-full">
-              <CardContent className="text-center pt-6">
-                <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
-                  {member.name}
-                  <SiLinkedin className="text-[#0A66C2]" />
-                </h3>
-                <p className="text-muted-foreground">{member.position}</p>
-              </CardContent>
-            </Card>
-          </a>
-        ))}
-      </div>
     </div>
   );
 }
