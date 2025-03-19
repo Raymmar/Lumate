@@ -26,7 +26,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-muted/10 relative" style={{ outline: 'none' }}>
+    <div className="min-h-screen relative" style={{ outline: 'none' }}>
       {/* Fixed header nav with full-width background */}
       <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
         <div className="w-full">
@@ -48,7 +48,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </aside>
 
           {/* Main content area */}
-          <main className="flex-1 overflow-y-auto bg-muted/10">
+          <main className="flex-1 overflow-y-auto">
             {/* Mobile Events List - only visible when sidebar is hidden */}
             <div className="lg:hidden">
               <div className="bg-background p-4">
