@@ -30,9 +30,7 @@ export function PreviewSidebar({
           </SheetHeader>
         )}
         <div className="relative flex flex-col h-full">
-          <div className="flex-1 pb-20">
-            {children}
-          </div>
+          {children}
         </div>
       </SheetContent>
     </Sheet>
