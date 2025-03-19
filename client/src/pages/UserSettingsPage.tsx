@@ -46,7 +46,7 @@ export default function UserSettingsPage() {
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
       displayName: "",
-      bio: "",
+      bio: "",  // Changed from null to empty string
       featuredImageUrl: "",
       companyName: "",
       companyDescription: "",
@@ -65,7 +65,7 @@ export default function UserSettingsPage() {
     if (user) {
       form.reset({
         displayName: user.displayName || "",
-        bio: user.bio || "",
+        bio: user.bio || "",  // Changed from potentially null to empty string
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
@@ -106,6 +106,7 @@ export default function UserSettingsPage() {
         displayName: user?.displayName,
         address: data.address || null,
         tags: tags,
+        bio: data.bio || "",  // Ensure bio is never null
       };
 
       const response = await fetch("/api/auth/update-profile", {
@@ -136,6 +137,15 @@ export default function UserSettingsPage() {
         variant: "destructive"
       });
     },
+  });
+
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      await updateProfileMutation.mutateAsync(data);
+    } catch (error) {
+      // Error handling is done in mutation's onError
+      console.error('Form submission error:', error);
+    }
   });
 
   const startSubscription = async () => {
@@ -223,7 +233,7 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(updateProfileMutation.mutate)} className="space-y-3">
+              <form onSubmit={onSubmit} className="space-y-3">
                 {/* Basic Information - Always Available */}
                 <div className="space-y-2">
                   <FormField
@@ -231,13 +241,19 @@ export default function UserSettingsPage() {
                     name="bio"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
+                        <FormLabel className="text-sm text-muted-foreground">
+                          Bio <span className="text-red-500">*</span>
+                        </FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Textarea
                               {...field}
-                              value={field.value || ''}
+                              value={field.value || ''} // Handle null value
                               placeholder="Add your custom greeting here (max 140 characters)"
-                              className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
+                              className={cn(
+                                "resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit",
+                                form.formState.errors.bio && "border-red-500"
+                              )}
                               maxLength={140}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
@@ -532,7 +548,7 @@ export default function UserSettingsPage() {
                 <Button
                   type="submit"
                   className="w-full mt-4"
-                  disabled={updateProfileMutation.isPending}
+                  disabled={updateProfileMutation.isPending || !form.formState.isValid}
                 >
                   {updateProfileMutation.isPending ? (
                     <>
@@ -543,6 +559,19 @@ export default function UserSettingsPage() {
                     "Save Changes"
                   )}
                 </Button>
+
+                {Object.keys(form.formState.errors).length > 0 && (
+                  <div className="mt-4 p-4 border border-red-200 rounded-md bg-red-50">
+                    <p className="text-sm font-medium text-red-800">Please fix the following errors:</p>
+                    <ul className="mt-2 text-sm text-red-700">
+                      {Object.entries(form.formState.errors).map(([field, error]) => (
+                        <li key={field}>
+                          {field.charAt(0).toUpperCase() + field.slice(1)}: {error?.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 {hasActiveSubscription && !user?.isAdmin && (
                   <Button
