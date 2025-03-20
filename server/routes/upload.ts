@@ -47,7 +47,25 @@ router.post('/file', upload.single('file'), async (req, res) => {
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`Upload failed: ${response.statusText}`);
+      
+      // Try to parse the error message from the API
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.log('Parsed error response:', errorJson);
+        
+        // Check for specific error types based on the API update
+        if (errorJson.message === 'File too large') {
+          throw new Error('The file exceeds the maximum allowed size. Please upload a smaller file.');
+        } else if (errorJson.message) {
+          throw new Error(errorJson.message);
+        } else {
+          throw new Error(`Upload failed: ${response.statusText}`);
+        }
+      } catch (parseError) {
+        console.error('Error parsing response as JSON:', parseError);
+        // If we can't parse the error as JSON, use the status text
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
     }
 
     const data = await response.json() as UploadResponse;

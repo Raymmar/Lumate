@@ -71,7 +71,14 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
       })
 
       if (!response.ok) {
-        throw new Error('Upload failed')
+        let errorMessage = 'Upload failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || 'Upload failed';
+        } catch (e) {
+          // If response cannot be parsed as JSON, use default error message
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json()
@@ -85,7 +92,7 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
       console.error('Upload error:', error)
       toast({
         title: "Error",
-        description: "Failed to upload image",
+        description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive"
       })
     }
