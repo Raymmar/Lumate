@@ -559,7 +559,7 @@ export async function registerRoutes(app: Express) {
         return res.json({ message: "If an account exists, a password reset email will be sent" });
       }
 
-      console.log("Processing password reset request for email:", email);
+      console.log('Processing password reset request for email:', email);
 
       // Delete any existing reset tokens for this email
       await storage.deletePasswordResetTokensByEmail(email);
@@ -568,7 +568,7 @@ export async function registerRoutes(app: Express) {
       const token = await generateResetToken();
       const verificationToken = await storage.createPasswordResetToken(email, token);
       
-      console.log("Created password reset token:", {
+      console.log('Created password reset token:', {
         email,
         tokenId: verificationToken.id,
         expiresAt: verificationToken.expiresAt
@@ -580,7 +580,7 @@ export async function registerRoutes(app: Express) {
         throw new Error("Failed to send password reset email");
       }
 
-      console.log("Password reset email sent successfully");
+      console.log('Password reset email sent successfully');
       res.json({ message: "If an account exists, a password reset email will be sent" });
     } catch (error) {
       console.error("Password reset request error:", error);
