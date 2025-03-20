@@ -240,8 +240,8 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
       ) : (
         <div className="text-center p-4 space-y-2">
           <p className="text-sm text-muted-foreground">
-            {searchQuery 
-              ? "No matching verified members found" 
+            {searchQuery
+              ? "No matching verified members found"
               : "No verified members available"}
           </p>
           <p className="text-xs text-muted-foreground">
