@@ -200,6 +200,9 @@ export async function registerRoutes(app: Express) {
   app.use("/api/upload", uploadRouter);
   app.use("/api/unsplash", unsplashRouter);
   app.use("/api/stripe", stripeRouter);
+  
+  // Register SEO routes for social media link previews
+  await registerSeoRoutes(app);
 
   app.post("/api/register", async (req, res) => {
     try {
