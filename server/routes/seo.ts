@@ -42,18 +42,17 @@ export async function registerSeoRoutes(app: any) {
       };
       
       // Try to get additional user data if available
-      if (person.userId) {
-        const userData = await storage.getUserById(person.userId);
+      // A person may have an associated user
+      const userData = person.user || (person.id ? await storage.getUserWithPerson(person.id) : null);
+      
+      if (userData) {
+        metadata = {
+          title: `${userData.displayName || displayName} | Sarasota Tech`,
+          description: userData.bio || userBio || `Member of the Sarasota Tech Community`,
+          image: userData.featuredImageUrl || avatarUrl || "https://file-upload.replit.app/api/storage/images%2F1741407871857-STS_Jan%2725-109%20compressed.jpeg"
+        };
         
-        if (userData) {
-          metadata = {
-            title: `${userData.displayName || displayName} | Sarasota Tech`,
-            description: userData.bio || userBio || `Member of the Sarasota Tech Community`,
-            image: userData.featuredImageUrl || avatarUrl || "https://file-upload.replit.app/api/storage/images%2F1741407871857-STS_Jan%2725-109%20compressed.jpeg"
-          };
-          
-          console.log(`Enhanced metadata with user data for ${userData.displayName || displayName}`);
-        }
+        console.log(`Enhanced metadata with user data for ${userData.displayName || displayName}`);
       }
       
       // Generate HTML with meta tags for the crawler

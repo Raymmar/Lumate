@@ -7,6 +7,7 @@ import { sendPasswordResetEmail } from "./email";
 import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
+import { registerSeoRoutes } from "./routes/seo";
 import {
   insertUserSchema,
   people,
