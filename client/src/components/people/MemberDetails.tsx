@@ -1,7 +1,6 @@
 import React from 'react';
 import { BusinessProfile } from "@/components/ui/business-profile";
 import { User } from "@shared/schema";
-import { SEO } from "@/components/ui/seo";
 
 interface MemberDetailsProps {
   user?: User | null;
@@ -14,12 +13,12 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     hasCompanyName: Boolean(user?.companyName),
     hasDisplayName: Boolean(user?.displayName),
     hasBio: Boolean(user?.bio),
-    hasCustomLinks: Boolean(user?.customLinks?.length > 0),
+    hasCustomLinks: Boolean(user?.customLinks && user?.customLinks?.length > 0),
     hasAddress: Boolean(user?.address),
     hasPhone: Boolean(user?.phoneNumber),
     hasEmail: Boolean(user?.email),
     hasFeaturedImage: Boolean(user?.featuredImageUrl),
-    hasTags: Boolean(user?.tags?.length > 0)
+    hasTags: Boolean(user?.tags && user?.tags?.length > 0)
   });
 
   if (!user) {
@@ -45,11 +44,6 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
     return null;
   }
 
-  // SEO metadata
-  const seoTitle = user.displayName || 'Member Profile';
-  const seoDescription = user.bio || user.companyDescription || 'Sarasota Tech Community Member';
-  const seoImage = user.featuredImageUrl || undefined;
-
   // Always construct business data using available fields
   const businessData = {
     name: user.companyName || user.displayName || 'Business Profile',
@@ -66,8 +60,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
 
   return (
     <div className="w-full max-w-full space-y-4 overflow-hidden">
-      <SEO title={seoTitle} description={seoDescription} image={seoImage} />
-      <BusinessProfile {...businessData} containerClassName="w-full max-w-full" />
+      <BusinessProfile {...businessData} />
     </div>
   );
 };

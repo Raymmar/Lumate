@@ -247,7 +247,9 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {person.user && <MemberDetails user={person.user} />}
+        {/* Pass the user details to MemberDetails, but as any because the person.user structure 
+           is not exactly matching the User type defined in the schema */}
+        {person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">
