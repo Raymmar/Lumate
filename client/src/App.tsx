@@ -8,6 +8,7 @@ import Dashboard from "@/pages/Dashboard";
 import PersonProfilePage from "@/pages/PersonProfilePage";
 import VerifyPage from "@/pages/VerifyPage";
 import LoginPage from "@/pages/LoginPage";
+import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UserSettingsPage from "@/pages/UserSettingsPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminMembersPage from "@/pages/admin/AdminMembersPage";
@@ -27,6 +28,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/about" component={AboutPage} />
           <Route path="/login" component={LoginPage} />
+          <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/settings" component={UserSettingsPage} />
           <Route path="/people/:username" component={PersonProfilePage} />
           <Route path="/verify" component={VerifyPage} />
