@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Add validation for phone numbers
-export const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+export const phoneRegex = /^\+?[0-9\-\s()]+$/;
 
 // Update the userCustomLink schema with better URL validation
 export const userCustomLink = z.object({
@@ -458,7 +458,7 @@ export const updateUserProfileSchema = z.object({
     .transform(val => (!val || val === "" ? null : val))
     .pipe(
       z.string()
-        .regex(phoneRegex, "Please enter a valid phone number")
+        .regex(/^\+?[0-9\-\s()]+$/, "Please enter a valid phone number with only numbers, spaces, hyphens, parentheses and optionally a + prefix")
         .nullable()
         .optional()
     ),

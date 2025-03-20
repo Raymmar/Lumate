@@ -58,7 +58,8 @@ export default function UserSettingsPage() {
       ctaText: "",
       customLinks: [],
       tags: [],
-    }
+    },
+    mode: "onChange" // Enable real-time validation
   });
 
   // Update form values when user data is available
@@ -386,7 +387,10 @@ export default function UserSettingsPage() {
                                     {...field}
                                     type="tel"
                                     placeholder="Phone number"
-                                    className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    className={cn(
+                                      "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
+                                      form.formState.errors.phoneNumber && "border-destructive"
+                                    )}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -489,7 +493,8 @@ export default function UserSettingsPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  if (field.value.length >= 5) {
+                                  const currentLinks = field.value || [];
+                                  if (currentLinks.length >= 5) {
                                     toast({
                                       title: "Error",
                                       description: "Maximum 5 custom links allowed",
@@ -497,9 +502,9 @@ export default function UserSettingsPage() {
                                     });
                                     return;
                                   }
-                                  field.onChange([...field.value, { title: "", url: "" }]);
+                                  field.onChange([...currentLinks, { title: "", url: "" }]);
                                 }}
-                                disabled={field.value.length >= 5}
+                                disabled={field.value?.length >= 5}
                                 className="h-8"
                               >
                                 <Plus className="h-4 w-4 mr-2" />
@@ -507,37 +512,57 @@ export default function UserSettingsPage() {
                               </Button>
                             </div>
                             <div className="space-y-2">
-                              {field.value.map((link, index) => (
+                              {field.value?.map((link, index) => (
                                 <div key={index} className="flex gap-2 items-start">
                                   <div className="flex-1 flex gap-2">
-                                    <Input
-                                      placeholder="Link title"
-                                      value={link.title}
-                                      onChange={(e) => {
-                                        const newLinks = [...field.value];
-                                        newLinks[index] = { ...newLinks[index], title: e.target.value };
-                                        field.onChange(newLinks);
-                                      }}
-                                      className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    />
-                                    <Input
-                                      placeholder="https://..."
-                                      type="url"
-                                      value={link.url}
-                                      onChange={(e) => {
-                                        const newLinks = [...field.value];
-                                        newLinks[index] = { ...newLinks[index], url: e.target.value };
-                                        field.onChange(newLinks);
-                                      }}
-                                      className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    />
+                                    <div className="flex-1">
+                                      <Input
+                                        placeholder="Link title"
+                                        value={link.title}
+                                        onChange={(e) => {
+                                          const newLinks = [...(field.value || [])];
+                                          newLinks[index] = { ...newLinks[index], title: e.target.value };
+                                          field.onChange(newLinks);
+                                        }}
+                                        className={cn(
+                                          "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
+                                          form.formState.errors.customLinks?.[index]?.title && "border-destructive"
+                                        )}
+                                      />
+                                      {form.formState.errors.customLinks?.[index]?.title && (
+                                        <p className="text-sm text-destructive mt-1">
+                                          {form.formState.errors.customLinks[index]?.title?.message}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex-1">
+                                      <Input
+                                        placeholder="https://..."
+                                        type="url"
+                                        value={link.url}
+                                        onChange={(e) => {
+                                          const newLinks = [...(field.value || [])];
+                                          newLinks[index] = { ...newLinks[index], url: e.target.value };
+                                          field.onChange(newLinks);
+                                        }}
+                                        className={cn(
+                                          "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
+                                          form.formState.errors.customLinks?.[index]?.url && "border-destructive"
+                                        )}
+                                      />
+                                      {form.formState.errors.customLinks?.[index]?.url && (
+                                        <p className="text-sm text-destructive mt-1">
+                                          {form.formState.errors.customLinks[index]?.url?.message}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => {
-                                      const newLinks = [...field.value];
+                                      const newLinks = [...(field.value || [])];
                                       newLinks.splice(index, 1);
                                       field.onChange(newLinks);
                                     }}
