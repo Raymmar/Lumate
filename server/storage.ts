@@ -580,11 +580,11 @@ export class PostgresStorage implements IStorage {
         })
         .where(eq(users.id, userId))
         .returning();
-    
+
       if (!updatedUser) {
         throw new Error(`User with ID ${userId} not found`);
       }
-    
+
       return updatedUser;
     } catch (error) {
       console.error('Failed to update user password:', error);
@@ -1753,28 +1753,6 @@ export class PostgresStorage implements IStorage {
         .where(eq(verificationTokens.email, email.toLowerCase()));
     } catch (error) {
       console.error('Failed to delete password reset tokens for email:', email, error);
-      throw error;
-    }
-  }
-
-  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
-    try {
-      const [updatedUser] = await db
-        .update(users)
-        .set({ 
-          password: hashedPassword,
-          updatedAt: new Date().toISOString()
-        })
-        .where(eq(users.id, userId))
-        .returning();
-
-      if (!updatedUser) {
-        throw new Error(`User with ID ${userId} not found`);
-      }
-
-      return updatedUser;
-    } catch (error) {
-      console.error('Failed to update user password:', error);
       throw error;
     }
   }
