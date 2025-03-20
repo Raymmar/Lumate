@@ -60,22 +60,29 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   const { data, isLoading, error } = useQuery<PeopleResponse>({
     queryKey: ['/api/people', currentPage, pageSize, searchQuery],
     queryFn: async () => {
+      console.log('Fetching people with params:', { currentPage, pageSize, searchQuery });
       const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events`);
       if (!response.ok) throw new Error('Failed to fetch people');
-      return response.json();
+      const data = await response.json();
+      console.log('People data received:', data);
+      return data;
     }
   });
 
   // Filter and sort people array to show only those with linked user accounts
   const sortedPeople = React.useMemo(() => {
     if (!data?.people) return [];
-    return data.people
-      .filter(person => person.user) // Only include profiles with linked user accounts
-      .sort((a, b) => {
-        if (a.api_id === data.currentUserId) return -1;
-        if (b.api_id === data.currentUserId) return 1;
-        return 0;
-      });
+    console.log('Processing people data:', data.people.length, 'total records');
+    const filteredPeople = data.people.filter(person => {
+      console.log('Checking person:', person.userName, 'has user:', !!person.user);
+      return person.user !== null && person.user !== undefined;
+    });
+    console.log('Filtered to', filteredPeople.length, 'verified members');
+    return filteredPeople.sort((a, b) => {
+      if (a.api_id === data.currentUserId) return -1;
+      if (b.api_id === data.currentUserId) return 1;
+      return 0;
+    });
   }, [data?.people, data?.currentUserId]);
 
   useEffect(() => {
@@ -154,6 +161,10 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           <Skeleton className="h-11" />
           <Skeleton className="h-11" />
           <Skeleton className="h-11" />
+        </div>
+      ) : error ? (
+        <div className="rounded-lg border bg-destructive/10 p-3">
+          <p className="text-xs text-destructive">Failed to load people directory</p>
         </div>
       ) : sortedPeople && sortedPeople.length > 0 ? (
         <>
