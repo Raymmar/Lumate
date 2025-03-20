@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Plus, X, Lock } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Plus, X, Lock, AlertCircle } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -232,6 +233,13 @@ export default function UserSettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="px-6">
+            <Alert variant="warning" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Your display name, profile picture, and email address are managed through Lu.ma. 
+                To update these fields, please visit your <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-primary">Lu.ma settings</a>.
+              </AlertDescription>
+            </Alert>
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-3">
                 {/* Basic Information - Always Available */}
