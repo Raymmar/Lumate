@@ -15,7 +15,7 @@ export const profileMetaTags = async (req: Request, res: Response, next: NextFun
       // Only process HTML responses
       if (typeof body === 'string' && body.includes('<!DOCTYPE html>')) {
         // Check if this is a person profile page
-        const profilePattern = /\/person\/([^/?#]+)/;
+        const profilePattern = /\/people\/([^/?#]+)/;
         const match = req.originalUrl.match(profilePattern);
         
         if (match && match[1]) {
