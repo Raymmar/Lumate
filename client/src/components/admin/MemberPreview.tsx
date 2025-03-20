@@ -51,7 +51,8 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const [badges, setBadges] = useState<BadgeType[]>(() => {
     console.log("Initializing badges from member:", {
       memberBadges: member.badges,
-      memberId: member.id
+      memberId: member.id,
+      badgeCount: member.badges?.length
     });
     return member.badges || [];
   });
@@ -60,17 +61,26 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(member.isAdmin);
 
-  const currentIndex = members.findIndex(m => m.id === member.id);
-  const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex < members.length - 1;
-
-  // Fetch available badges from the API
-  const { data: availableBadges = [] } = useQuery<BadgeType[]>({
+  // Enhanced error handling and logging for badge fetching
+  const { data: availableBadges = [], error: badgeError } = useQuery<BadgeType[]>({
     queryKey: ['/api/admin/badges'],
     queryFn: async () => {
+      console.log("Fetching available badges...");
       const response = await fetch('/api/admin/badges');
-      if (!response.ok) throw new Error('Failed to fetch available badges');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to fetch badges:", {
+          status: response.status,
+          error: errorText
+        });
+        throw new Error(`Failed to fetch badges: ${errorText}`);
+      }
+      const data = await response.json();
+      console.log("Received available badges:", {
+        count: data.length,
+        badges: data.map((b: BadgeType) => b.name)
+      });
+      return data;
     }
   });
 
@@ -101,6 +111,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
+  // Enhanced error handling in badge assignment
   const handleBadgeAssignment = async (badgeName: string) => {
     try {
       console.log("Starting badge assignment:", {
@@ -115,6 +126,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       );
 
       if (result.badges) {
+        console.log("Badge assignment successful:", {
+          userId: member.id,
+          badgeName,
+          newBadges: result.badges.map(b => b.name)
+        });
         setBadges(result.badges);
         queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
 
@@ -147,6 +163,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       );
 
       if (result.badges) {
+        console.log("Badge removal successful:", {
+          userId: member.id,
+          badgeName,
+          remainingBadges: result.badges.map(b => b.name)
+        });
         setBadges(result.badges);
         queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
 
@@ -238,7 +259,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start">
-                      Select badges
+                      {availableBadges.length > 0 ? "Select badges" : "Loading badges..."}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
