@@ -72,7 +72,11 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
       const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events`);
       if (!response.ok) throw new Error('Failed to fetch people');
       const data = await response.json();
-      console.log('People data received:', data);
+      console.log('People data received:', {
+        totalRecords: data.people.length,
+        sample: data.people[0],
+        hasCurrentUser: !!data.currentUserId
+      });
       return data;
     }
   });
@@ -82,9 +86,15 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     if (!data?.people) return [];
     console.log('Processing people data:', data.people.length, 'total records');
     const filteredPeople = data.people.filter(person => {
-      console.log('Checking person:', person.userName, 'has user:', !!person.user, 'isVerified:', person.user?.isVerified);
+      console.log('Checking person:', {
+        userName: person.userName,
+        hasUser: !!person.user,
+        userId: person.user?.id,
+        userApiId: person.user?.api_id,
+        isVerified: person.user?.isVerified
+      });
       // Only include profiles that have a linked user account and are verified
-      return person.user?.isVerified === true;
+      return person.user && person.user.api_id && person.user.isVerified === true;
     });
     console.log('Filtered to', filteredPeople.length, 'verified members');
     return filteredPeople.sort((a, b) => {
