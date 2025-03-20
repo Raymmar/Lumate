@@ -7,8 +7,15 @@ import unsplashRoutes from "./routes/unsplash";
 import stripeRoutes from "./routes/stripe";
 import { badgeService } from "./services/BadgeService";
 import { startEventSyncService } from "./services/eventSyncService";
+import path, { dirname } from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
+const isProduction = process.env.NODE_ENV === "production";
 
 // Raw body handling for Stripe webhooks must come first
 app.post(
@@ -24,13 +31,17 @@ app.post(
   },
 );
 
+// Add health check endpoint
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // Regular body parsing for everything else
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Set up session handling
 const PostgresStore = connectPg(session);
-const isProduction = process.env.NODE_ENV === "production";
 
 app.use(
   session({
@@ -55,20 +66,44 @@ app.use(
 );
 
 (async () => {
+  // Log startup configuration
+  console.log("[Server] Starting with configuration:", {
+    nodeEnv: process.env.NODE_ENV,
+    port: process.env.PORT || "5000",
+    dirname: __dirname,
+    isProduction,
+    publicPath: isProduction ? path.resolve(__dirname, "../dist/public") : path.resolve(__dirname, "public"),
+  });
+
   // First ensure database tables exist
   const { ensureTablesExist } = await import("./db");
   await ensureTablesExist();
 
-  // Mount API routes - Stripe routes first to ensure webhook handling
+  // Mount API routes
   app.use("/api/stripe", stripeRoutes);
   app.use("/api/unsplash", unsplashRoutes);
   await registerRoutes(app);
 
   // Set up Vite or serve static files
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") {
+    console.log("[Server] Setting up Vite development server");
     await setupVite(app);
   } else {
-    serveStatic(app);
+    const staticDir = path.resolve(__dirname, "../dist/public");
+    console.log("[Server] Setting up static file serving from:", staticDir);
+
+    // Check if the directory exists
+    if (!fs.existsSync(staticDir)) {
+      console.error(`[Server] Static directory not found: ${staticDir}`);
+      throw new Error(`Could not find the build directory: ${staticDir}, make sure to build the client first`);
+    }
+
+    app.use(express.static(staticDir));
+
+    // For routes that don't match a file, send index.html
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(staticDir, "index.html"));
+    });
   }
 
   // Error handling
@@ -80,7 +115,6 @@ app.use(
   });
 
   // Schedule daily badge assignment
-  // Run it immediately when the server starts
   try {
     console.log("Running initial badge assignment...");
     await badgeService.runDailyBadgeAssignment();
@@ -105,13 +139,23 @@ app.use(
 
   startEventSyncService(false); // pass true if you want to sync future events immediately
 
-  // Start server
+  // Start server with improved logging
   const port = parseInt(process.env.PORT || "5000");
-  app.listen(port, "0.0.0.0", () => {
-    console.log(`Server running on port ${port} and bound to 0.0.0.0`);
-    console.log(
-      `Webhook endpoint: ${process.env.NODE_ENV === 'production' ? 
-        process.env.APP_URL : `http://localhost:${port}`}/api/stripe/webhook`,
-    );
+  const server = app.listen(port, "0.0.0.0", () => {
+    console.log(`[Server] Starting in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`[Server] Listening on port ${port} bound to 0.0.0.0`);
+    if (isProduction) {
+      console.log(`[Server] Production webhook endpoint: ${process.env.APP_URL}/api/stripe/webhook`);
+    } else {
+      console.log(`[Server] Development webhook endpoint: http://localhost:${port}/api/stripe/webhook`);
+    }
+  });
+
+  // Add error handling for the server
+  server.on('error', (error: any) => {
+    console.error('[Server] Error:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`[Server] Port ${port} is already in use`);
+    }
   });
 })();
