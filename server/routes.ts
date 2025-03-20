@@ -462,12 +462,17 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 50;
       const searchQuery = ((req.query.search as string) || "").toLowerCase();
       const sort = req.query.sort as string;
+      const verifiedOnly = req.query.verifiedOnly === "true";
 
       console.log(
-        "Fetching people from storage with search:",
-        searchQuery,
-        "sort:",
-        sort,
+        "Fetching people from storage:",
+        {
+          search: searchQuery,
+          sort,
+          verifiedOnly,
+          page,
+          limit
+        }
       );
 
       const attendanceCounts = await db.execute(sql`
@@ -487,13 +492,32 @@ export async function registerRoutes(app: Express) {
       );
 
       let query = db
-        .select()
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          email: people.email,
+          userName: people.userName,
+          fullName: people.fullName,
+          avatarUrl: people.avatarUrl,
+          role: people.role,
+          organizationName: people.organizationName,
+          jobTitle: people.jobTitle,
+          stats: people.stats,
+          createdAt: people.createdAt,
+          isVerified: users.isVerified
+        })
         .from(people)
-        .where(
-          searchQuery
-            ? sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
-            : sql`1=1`,
+        .leftJoin(users, sql`LOWER(${people.email}) = LOWER(${users.email})`);
+
+      if (verifiedOnly) {
+        query = query.where(sql`${users.isVerified} = true`);
+      }
+      
+      if (searchQuery) {
+        query = query.where(
+          sql`(LOWER(${people.userName}) LIKE ${`%${searchQuery}%`} OR LOWER(${people.email}) LIKE ${`%${searchQuery}%`})`
         );
+      }
 
       if (sort === "events") {
         const allPeople = await query;
