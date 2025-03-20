@@ -27,7 +27,7 @@ export interface Person {
   bio: string | null;
   organizationName: string | null;
   jobTitle: string | null;
-  stats: {
+  stats?: {
     totalEventsAttended: number;
     lastEventDate: string | null;
     firstEventDate: string | null;
@@ -98,7 +98,9 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
       if (b.api_id === data.currentUserId) return 1;
 
       // Then sort by total events attended
-      return (b.stats?.totalEventsAttended || 0) - (a.stats?.totalEventsAttended || 0);
+      const aCount = a.stats?.totalEventsAttended || 0;
+      const bCount = b.stats?.totalEventsAttended || 0;
+      return bCount - aCount;
     });
   }, [data?.people, data?.currentUserId]);
 
@@ -225,7 +227,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
                       )}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {person.stats.totalEventsAttended} events attended
+                      {person.stats?.totalEventsAttended || 0} events attended
                     </p>
                   </div>
                 </div>
