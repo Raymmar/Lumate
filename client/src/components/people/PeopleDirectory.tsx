@@ -169,14 +169,6 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
-  if (error) {
-    return (
-      <div className="rounded-lg border bg-destructive/10 p-3">
-        <p className="text-xs text-destructive">Failed to load people directory</p>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex flex-col">
       <div className="flex-none relative mb-2">
