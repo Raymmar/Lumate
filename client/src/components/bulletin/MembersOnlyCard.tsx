@@ -29,8 +29,8 @@ export function MembersOnlyCard({ post, onSelect }: MembersOnlyCardProps) {
       <CardHeader className="pb-3 flex-none">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <CardTitle className="text-lg truncate">
-              Welcome {firstName}!
+            <CardTitle className="pb-2">
+              👋🏽 Welcome {firstName}!
             </CardTitle>
           </div>
           <Badge variant="secondary" className="w-6 h-6 p-0.5 flex items-center justify-center flex-shrink-0">
