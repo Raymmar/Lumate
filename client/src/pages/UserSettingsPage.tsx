@@ -59,7 +59,8 @@ export default function UserSettingsPage() {
       customLinks: [],
       tags: [],
     },
-    mode: "onChange" // Enable real-time validation
+    mode: "onBlur", // Only validate when user leaves a field
+    reValidateMode: "onBlur" // Re-validate on blur instead of every change
   });
 
   // Update form values when user data is available
@@ -389,7 +390,7 @@ export default function UserSettingsPage() {
                                     placeholder="Phone number"
                                     className={cn(
                                       "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
-                                      form.formState.errors.phoneNumber && "border-destructive"
+                                      form.formState.errors.phoneNumber && form.getFieldState('phoneNumber').isTouched && "border-destructive"
                                     )}
                                   />
                                 </FormControl>
@@ -526,10 +527,13 @@ export default function UserSettingsPage() {
                                         }}
                                         className={cn(
                                           "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
-                                          form.formState.errors.customLinks?.[index]?.title && "border-destructive"
+                                          form.formState.errors.customLinks?.[index]?.title && 
+                                          form.getFieldState(`customLinks.${index}.title`).isTouched && 
+                                          "border-destructive"
                                         )}
                                       />
-                                      {form.formState.errors.customLinks?.[index]?.title && (
+                                      {form.formState.errors.customLinks?.[index]?.title && 
+                                       form.getFieldState(`customLinks.${index}.title`).isTouched && (
                                         <p className="text-sm text-destructive mt-1">
                                           {form.formState.errors.customLinks[index]?.title?.message}
                                         </p>
@@ -547,10 +551,13 @@ export default function UserSettingsPage() {
                                         }}
                                         className={cn(
                                           "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
-                                          form.formState.errors.customLinks?.[index]?.url && "border-destructive"
+                                          form.formState.errors.customLinks?.[index]?.url && 
+                                          form.getFieldState(`customLinks.${index}.url`).isTouched && 
+                                          "border-destructive"
                                         )}
                                       />
-                                      {form.formState.errors.customLinks?.[index]?.url && (
+                                      {form.formState.errors.customLinks?.[index]?.url && 
+                                       form.getFieldState(`customLinks.${index}.url`).isTouched && (
                                         <p className="text-sm text-destructive mt-1">
                                           {form.formState.errors.customLinks[index]?.url?.message}
                                         </p>
@@ -584,7 +591,7 @@ export default function UserSettingsPage() {
                 <Button
                   type="submit"
                   className="w-full mt-4"
-                  disabled={updateProfileMutation.isPending || !form.formState.isValid}
+                  disabled={updateProfileMutation.isPending || (form.formState.isSubmitted && !form.formState.isValid)}
                 >
                   {updateProfileMutation.isPending ? (
                     <>
@@ -596,7 +603,7 @@ export default function UserSettingsPage() {
                   )}
                 </Button>
 
-                {Object.keys(form.formState.errors).length > 0 && (
+                {form.formState.isSubmitted && Object.keys(form.formState.errors).length > 0 && (
                   <div className="mt-4 p-4 border border-red-200 rounded-md bg-red-50">
                     <p className="text-sm font-medium text-red-800">Please fix the following errors:</p>
                     <ul className="mt-2 text-sm text-red-700">
