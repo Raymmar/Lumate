@@ -64,7 +64,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   });
 
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
-  const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(member.isAdmin);
 
   // Enhanced error handling and logging for badge fetching
@@ -131,6 +130,8 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   // Enhanced error handling in badge assignment
   const handleBadgeAssignment = async (badgeName: string) => {
+    console.log("Attempting badge assignment:", { badgeName, userId: member.id });
+
     try {
       console.log("Starting badge assignment:", {
         userId: member.id,
@@ -210,17 +211,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
-  // Log whenever the dropdown state changes
-  const handleOpenChange = (newOpen: boolean) => {
-    console.log("Badge dropdown state changing:", {
-      from: open,
-      to: newOpen,
-      availableBadgesCount: availableBadges.length,
-      isLoading: isLoadingBadges
-    });
-    setOpen(newOpen);
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-16">
@@ -285,14 +275,14 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
               <div className="space-y-2">
                 <Label>Badges</Label>
-                <Popover onOpenChange={handleOpenChange}>
+                <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      aria-expanded={open}
                       className="w-full justify-between"
                       disabled={isLoadingBadges}
+                      onClick={() => console.log("Badge dropdown button clicked")}
                     >
                       {isLoadingBadges ? (
                         "Loading badges..."
@@ -313,8 +303,8 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                           <CommandItem
                             key={badge.id}
                             onSelect={() => {
+                              console.log("Badge selected:", badge.name);
                               handleBadgeAssignment(badge.name);
-                              setOpen(false);
                             }}
                             className="flex items-center"
                           >
