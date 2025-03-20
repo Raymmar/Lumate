@@ -3,7 +3,7 @@ import { MailService } from '@sendgrid/mail';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
 
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'noreply@sarasota.tech';
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 
 if (process.env.SENDGRID_API_KEY) {
   mailService.setApiKey(process.env.SENDGRID_API_KEY);
@@ -13,6 +13,10 @@ if (process.env.SENDGRID_API_KEY) {
   throw new Error("SENDGRID_API_KEY environment variable must be set in production");
 } else {
   console.warn("SENDGRID_API_KEY not set. Email functionality will be mocked in development.");
+}
+
+if (!FROM_EMAIL) {
+  throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
 }
 
 export async function sendVerificationEmail(

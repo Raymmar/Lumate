@@ -577,13 +577,18 @@ export async function registerRoutes(app: Express) {
       // Send password reset email
       const emailSent = await sendPasswordResetEmail(email, token);
       if (!emailSent) {
+        console.error('Failed to send password reset email to:', email);
         throw new Error("Failed to send password reset email");
       }
 
       console.log('Password reset email sent successfully');
       res.json({ message: "If an account exists, a password reset email will be sent" });
-    } catch (error) {
-      console.error("Password reset request error:", error);
+    } catch (error: any) {
+      console.error("Password reset request error:", {
+        error: error.message,
+        code: error.code,
+        response: error.response?.body,
+      });
       res.status(500).json({ error: "Failed to process password reset request" });
     }
   });
