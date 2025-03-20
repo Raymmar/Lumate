@@ -103,14 +103,15 @@ app.use(
     24 * 60 * 60 * 1000,
   ); // 24 hours in milliseconds
 
-  startEventSyncService(true); // pass true if you want to sync future events immediately
+  startEventSyncService(false); // pass true if you want to sync future events immediately
 
   // Start server
-  const port = process.env.PORT || 5000;
+  const port = parseInt(process.env.PORT || "5000");
   app.listen(port, "0.0.0.0", () => {
-    console.log(`Server running on port ${port}`);
+    console.log(`Server running on port ${port} and bound to 0.0.0.0`);
     console.log(
-      `For local webhook testing, use: http://localhost:${port}/api/stripe/webhook`,
+      `Webhook endpoint: ${process.env.NODE_ENV === 'production' ? 
+        process.env.APP_URL : `http://localhost:${port}`}/api/stripe/webhook`,
     );
   });
 })();
