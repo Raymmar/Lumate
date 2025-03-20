@@ -95,22 +95,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   const sortedPeople = React.useMemo(() => {
     if (!data?.people) return [];
     console.log('Processing people data:', data.people.length, 'total records');
-    const filteredPeople = data.people.filter(person => {
-      // Check for verified user accounts with complete profile data
-      const hasVerifiedUser = person.user && 
-                            person.user.api_id && 
-                            person.user.isVerified === true;
-
-      console.log('Person verification check:', {
-        userName: person.userName,
-        hasUser: !!person.user,
-        userApiId: person.user?.api_id,
-        isVerified: person.user?.isVerified,
-        passed: hasVerifiedUser
-      });
-
-      return hasVerifiedUser;
-    });
+    const filteredPeople = data.people.filter(person => person.user?.isVerified === true);
     console.log('Filtered to', filteredPeople.length, 'verified members');
     return filteredPeople.sort((a, b) => {
       if (a.api_id === data.currentUserId) return -1;
