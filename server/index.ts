@@ -107,17 +107,10 @@ app.use(
 
   // Start server
   const port = 5000;
-  app.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      console.log(`Server running on port ${port}`);
-      console.log(
-        `For local webhook testing, use: http://localhost:${port}/api/stripe/webhook`,
-      );
-    },
-  );
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`Server running on port ${port}`);
+    console.log(
+      `For local webhook testing, use: http://localhost:${port}/api/stripe/webhook`,
+    );
+  });
 })();
