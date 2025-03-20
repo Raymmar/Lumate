@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
-  Check
+  Check,
+  ChevronsUpDown
 } from "lucide-react";
 import {
   Command,
@@ -67,7 +68,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const [isAdmin, setIsAdmin] = useState(member.isAdmin);
 
   // Enhanced error handling and logging for badge fetching
-  const { data: availableBadges = [], error: badgeError } = useQuery<BadgeType[]>({
+  const { data: availableBadges = [], isLoading: isLoadingBadges, error: badgeError } = useQuery<BadgeType[]>({
     queryKey: ['/api/admin/badges'],
     queryFn: async () => {
       console.log("Fetching available badges...");
@@ -263,8 +264,21 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                 <Label>Badges</Label>
                 <Popover open={open} onOpenChange={setOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start">
-                      {availableBadges.length > 0 ? "Select badges" : "Loading badges..."}
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between"
+                      disabled={isLoadingBadges}
+                    >
+                      {isLoadingBadges ? (
+                        "Loading badges..."
+                      ) : (
+                        <>
+                          Select badges
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </>
+                      )}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] p-0">
@@ -279,17 +293,18 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                               handleBadgeAssignment(badge.name);
                               setOpen(false);
                             }}
+                            className="flex items-center"
                           >
-                            <div className="flex items-center">
+                            <div className="flex items-center w-full">
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
                                   badges.some(b => b.name === badge.name) ? "opacity-100" : "opacity-0"
                                 )}
                               />
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-1">
                                 {getBadgeIcon(badge.icon)}
-                                <div>
+                                <div className="flex-1">
                                   <div>{badge.name}</div>
                                   <div className="text-xs text-muted-foreground">{badge.description}</div>
                                 </div>
