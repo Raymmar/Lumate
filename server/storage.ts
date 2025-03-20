@@ -123,7 +123,7 @@ export interface IStorage {
   updatePost(postId: number, data: Partial<Post>): Promise<Post>;
 
   // Password reset
-  createPasswordResetToken(email: string): Promise<VerificationToken>;
+  createPasswordResetToken(email: string, token: string): Promise<VerificationToken>;
   validatePasswordResetToken(token: string): Promise<VerificationToken | null>;
   deletePasswordResetToken(token: string): Promise<void>;
   deletePasswordResetTokensByEmail(email: string): Promise<void>;
@@ -958,7 +958,7 @@ export class PostgresStorage implements IStorage {
         .limit(1);
 
       return result.length > 0 ? result[0] : null;
-    } catch (error) {
+    }catch (error) {
       console.error('Failed to get featured event:', error);
       throw error;
     }
@@ -1676,11 +1676,9 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  async createPasswordResetToken(email: string): Promise<VerificationToken> {
+  async createPasswordResetToken(email: string, token: string): Promise<VerificationToken> {
     try {
       console.log('Creating password reset token for email:', email);
-      // Generate a secure random token
-      const token = crypto.randomBytes(32).toString('hex');
 
       // Set expiration to 24 hours from now
       const expiresAt = new Date();
@@ -1690,7 +1688,7 @@ export class PostgresStorage implements IStorage {
         .insert(verificationTokens)
         .values({
           token,
-          email,
+          email: email.toLowerCase(),
           expiresAt: expiresAt.toISOString(),
         })
         .returning();

@@ -5,6 +5,7 @@ const mailService = new MailService();
 
 if (process.env.SENDGRID_API_KEY) {
   mailService.setApiKey(process.env.SENDGRID_API_KEY);
+  console.log('SendGrid API key configured successfully');
 } else if (!isDevelopment) {
   throw new Error("SENDGRID_API_KEY environment variable must be set in production");
 } else {
@@ -30,7 +31,7 @@ export async function sendVerificationEmail(
 
     await mailService.send({
       to: email,
-      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com',
+      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@sarasota.tech',
       subject: 'Verify your Sarasota Tech member profile',
       text: `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`,
       html: `
@@ -59,8 +60,16 @@ export async function sendPasswordResetEmail(
   token: string
 ): Promise<boolean> {
   try {
-    console.log('Sending password reset email to:', email);
+    console.log('Starting password reset email process for:', email);
     const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+
+    // Log configuration details
+    console.log('Email configuration:', {
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@sarasota.tech',
+      isDevelopment,
+      resetUrl
+    });
 
     // In development, just log the reset URL
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
@@ -71,9 +80,9 @@ export async function sendPasswordResetEmail(
       return true;
     }
 
-    await mailService.send({
+    const msg = {
       to: email,
-      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com',
+      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@sarasota.tech',
       subject: 'Reset your Sarasota Tech password',
       text: `Click the following link to reset your Sarasota Tech password: ${resetUrl}. This link will expire in 24 hours.`,
       html: `
@@ -89,12 +98,22 @@ export async function sendPasswordResetEmail(
           <p style="color:#666;">If you didn't request this password reset, you can safely ignore this email.</p>
         </div>
       `,
-    });
+    };
+
+    console.log('Attempting to send password reset email...');
+    await mailService.send(msg);
 
     console.log('Password reset email sent successfully to:', email);
     return true;
   } catch (error) {
     console.error('Failed to send password reset email:', error);
+    if (error.response) {
+      console.error('SendGrid API Error:', {
+        statusCode: error.response.statusCode,
+        body: error.response.body,
+        headers: error.response.headers,
+      });
+    }
     return false;
   }
 }
