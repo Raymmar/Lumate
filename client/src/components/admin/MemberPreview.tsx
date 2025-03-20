@@ -128,7 +128,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
-  // Enhanced error handling in badge assignment
   const handleBadgeAssignment = async (badgeName: string) => {
     console.log("Attempting badge assignment:", { badgeName, userId: member.id });
 
@@ -275,7 +274,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
               <div className="space-y-2">
                 <Label>Badges</Label>
-                <div className="relative">
+                <div className="relative z-50">
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -295,7 +294,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0" align="start">
+                    <PopoverContent className="w-[300px] p-0" align="start" side="bottom">
                       <Command>
                         <CommandInput placeholder="Search badges..." />
                         <CommandEmpty>No badges found.</CommandEmpty>
