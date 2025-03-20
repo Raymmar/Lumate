@@ -106,7 +106,7 @@ app.use(
   startEventSyncService(true); // pass true if you want to sync future events immediately
 
   // Start server
-  const port = 5000;
+  const port = process.env.PORT || 5000;
   app.listen(port, "0.0.0.0", () => {
     console.log(`Server running on port ${port}`);
     console.log(
