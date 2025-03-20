@@ -42,35 +42,12 @@ router.post('/file', upload.single('file'), async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      
-      // Try to parse the error message from the API
-      try {
-        const errorJson = JSON.parse(errorText);
-        
-        // Check for specific error types based on the API update
-        if (errorJson.message === 'File too large') {
-          return res.status(413).json({
-            error: true,
-            message: 'The file exceeds the maximum allowed size. Please upload a smaller file.'
-          });
-        } else if (errorJson.message) {
-          return res.status(response.status).json({
-            error: true,
-            message: errorJson.message
-          });
-        } else {
-          return res.status(response.status).json({
-            error: true,
-            message: `Upload failed: ${response.statusText}`
-          });
-        }
-      } catch (parseError) {
-        // If we can't parse the error as JSON, use the status text
-        return res.status(response.status).json({
-          error: true,
-          message: `Upload failed: ${response.statusText}`
-        });
-      }
+      console.error('Upload service error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`Upload failed: ${response.statusText}`);
     }
 
     const data = await response.json() as UploadResponse;
@@ -92,22 +69,9 @@ router.post('/file', upload.single('file'), async (req, res) => {
     res.json({ url: fullUrl });
   } catch (error) {
     console.error('File upload error:', error);
-    let errorMessage = 'Failed to upload file';
-    let status = 500;
-    
-    // Extract the specific error message
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      
-      // Adjust the status code for specific cases
-      if (errorMessage.includes('too large')) {
-        status = 413; // Payload Too Large
-      }
-    }
-    
-    res.status(status).json({ 
-      error: true,
-      message: errorMessage
+    res.status(500).json({ 
+      error: 'Failed to upload file',
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
