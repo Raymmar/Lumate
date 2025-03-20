@@ -421,42 +421,58 @@ export type Location = z.infer<typeof locationSchema>;
 // Update user profile schema with enhanced validation
 // Update the updateUserProfileSchema with character limit
 export const updateUserProfileSchema = z.object({
-  displayName: z.string().min(1, "Display name is required"),
+  displayName: z.string()
+    .min(1, "Display name is required")
+    .transform(val => val?.trim() || val),
   featuredImageUrl: z.string()
-    .transform(val => val === "" ? null : val)
-    .pipe(z.string().url("Featured image must be a valid URL").nullable()),
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
+    .optional(),
   bio: z.string()
-    .transform(val => val === "" ? null : val)
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
     .pipe(
       z.string()
         .max(140, "Bio must not exceed 140 characters")
         .nullable()
+        .optional()
     ),
   companyName: z.string()
-    .transform(val => val === "" ? null : val)
-    .nullable(),
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
+    .optional(),
   companyDescription: z.string()
-    .transform(val => val === "" ? null : val)
-    .nullable(),
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
+    .optional(),
   address: z.union([
     locationSchema,
+    z.string(),
     z.null(),
-    z.string().transform(val => val === "" ? null : val)
-  ]).nullable(),
+  ])
+  .nullable()
+  .optional()
+  .transform(val => (!val || val === "" ? null : val)),
   phoneNumber: z.string()
-    .transform(val => val === "" ? null : val)
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
     .pipe(
       z.string()
         .regex(phoneRegex, "Please enter a valid phone number")
         .nullable()
+        .optional()
     ),
   isPhonePublic: z.boolean().default(false),
   isEmailPublic: z.boolean().default(false),
   ctaText: z.string()
-    .transform(val => val === "" ? null : val)
-    .nullable(),
-  customLinks: z.array(userCustomLink).max(5, "Maximum 5 custom links allowed").default([]),
-  tags: z.array(z.string()).default([])
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
+    .optional(),
+  customLinks: z.array(userCustomLink)
+    .max(5, "Maximum 5 custom links allowed")
+    .default([])
+    .optional(),
+  tags: z.array(z.string()).default([]).optional()
 });
 
 export type UpdateUserProfile = z.infer<typeof updateUserProfileSchema>;
