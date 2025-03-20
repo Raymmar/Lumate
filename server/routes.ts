@@ -456,6 +456,82 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/people/by-username/:username", async (req, res) => {
+    try {
+      const username = decodeURIComponent(req.params.username);
+      console.log('Looking up person by username:', {
+        originalUsername: username,
+        decodedUsername: username
+      });
+
+      // First try exact match
+      let person = await db
+        .select()
+        .from(people)
+        .where(sql`LOWER(user_name) = ${username.toLowerCase()}`)
+        .limit(1);
+
+      // If no exact match, try normalized version (remove accents)
+      if (!person[0]) {
+        const normalizedUsername = username
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toLowerCase();
+
+        console.log('Trying normalized username lookup:', {
+          normalizedUsername,
+          originalUsername: username
+        });
+
+        person = await db
+          .select()
+          .from(people)
+          .where(sql`LOWER(UNACCENT(user_name)) = ${normalizedUsername}`)
+          .limit(1);
+      }
+
+      if (!person[0]) {
+        console.log('Person not found for username:', {
+          username,
+          normalized: username.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        });
+        return res.status(404).json({ error: "Person not found" });
+      }
+
+      // Get associated user data if it exists
+      const userData = await db
+        .select()
+        .from(users)
+        .where(eq(users.personId, person[0].id))
+        .limit(1);
+
+      if (userData[0]) {
+        // Get badges for the user
+        const userBadges = await db
+          .select({
+            id: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic,
+          })
+          .from(userBadgesTable)
+          .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .where(eq(userBadgesTable.userId, userData[0].id));
+
+        person[0].user = {
+          ...userData[0],
+          badges: userBadges
+        };
+      }
+
+      res.json(person[0]);
+    } catch (error) {
+      console.error('Error looking up person by username:', error);
+      res.status(500).json({ error: "Failed to fetch person details" });
+    }
+  });
+
   app.get("/api/people", async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
