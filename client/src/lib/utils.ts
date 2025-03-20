@@ -11,29 +11,32 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
 
   console.log('Original username:', username);
 
-  // Special handling for titles (Dr., Mr., Mrs., etc.)
+  // Special handling for titles and accented characters
   let processed = username
     .replace(/Dr\./i, 'dr') // Replace "Dr." with "dr"
+    .replace(/Mr\./i, 'mr') // Handle Mr. prefix
+    .replace(/Mrs\./i, 'mrs') // Handle Mrs. prefix
+    .replace(/Ms\./i, 'ms') // Handle Ms. prefix
     .replace(/\./g, '') // Remove remaining periods
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
+    .normalize('NFKD') // Normalize Unicode characters (decompose)
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
     .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces, keep hyphens
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-'); // Replace spaces with hyphens
 
-  console.log('Processed username:', processed);
+  console.log('After normalization and accent removal:', processed);
 
   // If normalized string is empty after processing, use fallback format
-  if (!processed) return `u-${fallbackId}`;
+  if (!processed) {
+    console.log('Empty processed string, using fallback');
+    return `u-${fallbackId}`;
+  }
 
   // Clean up any multiple hyphens and trim from ends
   processed = processed
     .replace(/-{2,}/g, '-') // Collapse multiple hyphens
     .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
-
-  // Note: The API ID will be appended by the server only if this username 
-  // conflicts with an older account
 
   console.log('Final processed username:', processed);
   return processed;
