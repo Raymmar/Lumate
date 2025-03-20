@@ -87,9 +87,22 @@ router.post('/file', upload.single('file'), async (req, res) => {
     res.json({ url: fullUrl });
   } catch (error) {
     console.error('File upload error:', error);
-    res.status(500).json({ 
+    let errorMessage = 'Failed to upload file';
+    let status = 500;
+    
+    // Extract the specific error message
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Adjust the status code for specific cases
+      if (errorMessage.includes('too large')) {
+        status = 413; // Payload Too Large
+      }
+    }
+    
+    res.status(status).json({ 
       error: 'Failed to upload file',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: errorMessage
     });
   }
 });

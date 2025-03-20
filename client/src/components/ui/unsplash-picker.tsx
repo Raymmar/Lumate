@@ -70,18 +70,24 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
         body: formData,
       })
 
-      if (!response.ok) {
-        let errorMessage = 'Upload failed';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || 'Upload failed';
-        } catch (e) {
-          // If response cannot be parsed as JSON, use default error message
+      let data;
+      try {
+        data = await response.json();
+        
+        // Check if the response contains an error message
+        if (!response.ok || data.error) {
+          // If we have an error message in the response, use it
+          const errorMessage = data.message || data.error || 'Upload failed';
+          console.log('Upload error response:', data);
+          throw new Error(errorMessage);
         }
-        throw new Error(errorMessage);
+      } catch (e) {
+        if (e instanceof Error) {
+          throw e; // Re-throw if it's already an Error with message
+        }
+        // If parsing fails or other error occurs
+        throw new Error('Failed to process server response')
       }
-
-      const data = await response.json()
       onChange?.(data.url)
       setOpen(false)
       toast({
