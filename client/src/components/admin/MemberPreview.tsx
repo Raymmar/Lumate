@@ -48,6 +48,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .map((n) => n[0])
       .join("") || member.email[0].toUpperCase();
 
+  // Calculate navigation state
+  const currentIndex = members.findIndex(m => m.id === member.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < members.length - 1;
+
   const [badges, setBadges] = useState<BadgeType[]>(() => {
     console.log("Initializing badges from member:", {
       memberBadges: member.badges,
