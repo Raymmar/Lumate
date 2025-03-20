@@ -56,12 +56,6 @@ export function UnsplashPicker({ value, onChange, className, error }: UnsplashPi
     enabled: open && debouncedSearch.length > 0
   })
 
-  const handleSelect = (image: UnsplashImage) => {
-    onChange?.(image.urls.regular)
-    setOpen(false)
-    setValidationError("")
-  }
-
   const validateFile = (file: File): boolean => {
     setValidationError("")
 
@@ -80,6 +74,12 @@ export function UnsplashPicker({ value, onChange, className, error }: UnsplashPi
     }
 
     return true
+  }
+
+  const handleSelect = (image: UnsplashImage) => {
+    onChange?.(image.urls.regular)
+    setOpen(false)
+    setValidationError("")
   }
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,8 +228,13 @@ export function UnsplashPicker({ value, onChange, className, error }: UnsplashPi
           </ScrollArea>
         </DialogContent>
       </Dialog>
-      {(error || validationError) && (
-        <FormMessage>{error || validationError}</FormMessage>
+      {/* Always show validation error message if present */}
+      {validationError && (
+        <div className="text-sm font-medium text-destructive">{validationError}</div>
+      )}
+      {/* Show passed error from form validation if present */}
+      {error && !validationError && (
+        <div className="text-sm font-medium text-destructive">{error}</div>
       )}
     </div>
   )
