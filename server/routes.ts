@@ -462,12 +462,15 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 50;
       const searchQuery = ((req.query.search as string) || "").toLowerCase();
       const sort = req.query.sort as string;
+      const verifiedOnly = req.query.verifiedOnly === 'true';
 
       console.log(
         "Fetching people from storage with search:",
         searchQuery,
         "sort:",
         sort,
+        "verifiedOnly:",
+        verifiedOnly
       );
 
       const attendanceCounts = await db.execute(sql`
@@ -487,17 +490,38 @@ export async function registerRoutes(app: Express) {
       );
 
       let query = db
-        .select()
-        .from(people)
-        .where(
-          searchQuery
-            ? sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
-            : sql`1=1`,
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          email: people.email,
+          userName: people.userName,
+          fullName: people.fullName, 
+          avatarUrl: people.avatarUrl,
+          role: people.role,
+          phoneNumber: people.phoneNumber,
+          bio: people.bio,
+          organizationName: people.organizationName,
+          jobTitle: people.jobTitle
+        })
+        .from(people);
+
+      // Add join with users table if verifiedOnly is true
+      if (verifiedOnly) {
+        query = query
+          .innerJoin(users, eq(users.personId, people.id))
+          .where(eq(users.isVerified, true));
+      }
+
+      // Add search filter if provided
+      if (searchQuery) {
+        query = query.where(
+          sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
         );
+      }
+
+      const allPeople = await query.orderBy(people.id);
 
       if (sort === "events") {
-        const allPeople = await query;
-
         const sortedPeople = allPeople.sort((a, b) => {
           const aCount = countMap.get(a.email.toLowerCase())?.event_count || 0;
           const bCount = countMap.get(b.email.toLowerCase())?.event_count || 0;
@@ -518,7 +542,7 @@ export async function registerRoutes(app: Express) {
         const paginatedPeople = sortedPeople.slice(start, end);
 
         console.log(
-          `Returning sorted people from index ${start} to ${end - 1}`,
+          `Returning sorted verified people from index ${start} to ${end - 1}, total: ${sortedPeople.length}`
         );
 
         res.json({
@@ -528,10 +552,13 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      const allPeople = await query.orderBy(people.id);
       const start = (page - 1) * limit;
       const end = start + limit;
       const paginatedPeople = allPeople.slice(start, end);
+
+      console.log(
+        `Returning paginated verified people, total: ${allPeople.length}`
+      );
 
       res.json({
         people: paginatedPeople,

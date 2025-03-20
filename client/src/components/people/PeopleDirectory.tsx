@@ -35,13 +35,19 @@ export interface Person {
     lastUpdated: string;
   };
   isCurrentUser?: boolean;
-  isVerified?: boolean; // Add this field to match backend response
+  isVerified?: boolean;
 }
 
 interface PeopleResponse {
   people: Person[];
   total: number;
   currentUserId?: string;
+}
+
+interface ApiError {
+  error: string;
+  message?: string;
+  status?: number;
 }
 
 interface PeopleDirectoryProps {
@@ -57,13 +63,28 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   const params = useParams<{ username: string }>();
   const pageSize = 50;
 
-  const { data, isLoading, error } = useQuery<PeopleResponse>({
+  const { data, isLoading, error } = useQuery<PeopleResponse, ApiError>({
     queryKey: ['/api/people', currentPage, pageSize, searchQuery],
     queryFn: async () => {
       const response = await fetch(
-        `/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events&verifiedOnly=true`
+        `/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events&verifiedOnly=true`,
+        {
+          credentials: 'include', // Add credentials to include session cookie
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
       );
-      if (!response.ok) throw new Error('Failed to fetch people');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw {
+          error: errorData.error || 'Failed to fetch people',
+          message: errorData.message,
+          status: response.status
+        };
+      }
+
       return response.json();
     }
   });
@@ -131,10 +152,20 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
+  // Show auth error if unauthorized
+  if (error?.status === 401) {
+    return (
+      <div className="rounded-lg border bg-destructive/10 p-3">
+        <p className="text-xs text-destructive">Please log in to view the member directory</p>
+      </div>
+    );
+  }
+
+  // Show general error
   if (error) {
     return (
       <div className="rounded-lg border bg-destructive/10 p-3">
-        <p className="text-xs text-destructive">Failed to load people directory</p>
+        <p className="text-xs text-destructive">Failed to load people directory: {error.message || error.error}</p>
       </div>
     );
   }
