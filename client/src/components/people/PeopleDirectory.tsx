@@ -37,9 +37,13 @@ export interface Person {
   isCurrentUser?: boolean;
   user?: {
     id: number;
+    api_id: string;
+    email: string;
+    displayName: string;
+    bio: string;
+    isAdmin: boolean;
     isVerified: boolean;
-    [key: string]: any;
-  }; // Added to accommodate the filter
+  };
 }
 
 interface PeopleResponse {
@@ -78,9 +82,9 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     if (!data?.people) return [];
     console.log('Processing people data:', data.people.length, 'total records');
     const filteredPeople = data.people.filter(person => {
-      console.log('Checking person:', person.userName, 'has user:', !!person.user);
-      // Changed filtering logic to be more specific
-      return person.user?.id != null;
+      console.log('Checking person:', person.userName, 'has user:', !!person.user, 'isVerified:', person.user?.isVerified);
+      // Only include profiles that have a linked user account and are verified
+      return person.user?.isVerified === true;
     });
     console.log('Filtered to', filteredPeople.length, 'verified members');
     return filteredPeople.sort((a, b) => {
