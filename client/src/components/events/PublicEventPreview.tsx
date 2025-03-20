@@ -235,9 +235,7 @@ export function PublicEventPreview({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
-      title={title}
     >
-      <DialogTitle className="sr-only">Event Preview</DialogTitle>
       <div className="flex flex-col h-full relative">
         <div className="flex-1 overflow-y-auto pb-16">
           {event.coverUrl && (
