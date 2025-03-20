@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import { sendPasswordResetEmail } from "./email";
+import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
 import {
@@ -25,7 +27,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
-import { hashPassword, comparePasswords } from "./auth";
+import { comparePasswords } from "./auth";
 import { ZodError } from "zod";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
@@ -542,6 +544,81 @@ export async function registerRoutes(app: Express) {
   });
 
   // Badge management endpoints
+  // Password reset routes
+  app.post("/api/password-reset/request", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email.toLowerCase());
+      if (!user) {
+        // Don't reveal if user exists or not
+        return res.json({ message: "If an account exists, a password reset email will be sent" });
+      }
+
+      // Delete any existing reset tokens for this email
+      await storage.deletePasswordResetTokensByEmail(email);
+
+      // Generate and store new reset token
+      const token = await generateResetToken();
+      await storage.createPasswordResetToken(email);
+
+      // Send password reset email
+      const emailSent = await sendPasswordResetEmail(email, token);
+      if (!emailSent) {
+        throw new Error("Failed to send password reset email");
+      }
+
+      res.json({ message: "If an account exists, a password reset email will be sent" });
+    } catch (error) {
+      console.error("Password reset request error:", error);
+      res.status(500).json({ error: "Failed to process password reset request" });
+    }
+  });
+
+  app.post("/api/password-reset/reset", async (req, res) => {
+    try {
+      const { token, password } = req.body;
+
+      // Validate the new password
+      try {
+        await updatePasswordSchema.parseAsync({ password });
+      } catch (error) {
+        return res.status(400).json({ 
+          error: "Invalid password",
+          details: error instanceof Error ? error.message : "Password validation failed"
+        });
+      }
+
+      // Validate token
+      const verificationToken = await storage.validatePasswordResetToken(token);
+      if (!verificationToken) {
+        return res.status(400).json({ error: "Invalid or expired reset token" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(verificationToken.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Hash new password and update user
+      const hashedPassword = await hashPassword(password);
+      await storage.updateUserPassword(user.id, hashedPassword);
+
+      // Delete the used token
+      await storage.deletePasswordResetToken(token);
+
+      res.json({ message: "Password successfully reset" });
+    } catch (error) {
+      console.error("Password reset error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
   app.get("/api/admin/badges", async (_req, res) => {
     try {
       console.log("Fetching available badges");

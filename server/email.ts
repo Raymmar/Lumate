@@ -53,3 +53,48 @@ export async function sendVerificationEmail(
     return false;
   }
 }
+
+export async function sendPasswordResetEmail(
+  email: string,
+  token: string
+): Promise<boolean> {
+  try {
+    console.log('Sending password reset email to:', email);
+    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+
+    // In development, just log the reset URL
+    if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+      console.log('Development mode - Password reset email would have been sent with:', {
+        to: email,
+        resetUrl,
+      });
+      return true;
+    }
+
+    await mailService.send({
+      to: email,
+      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@example.com',
+      subject: 'Reset your Sarasota Tech password',
+      text: `Click the following link to reset your Sarasota Tech password: ${resetUrl}. This link will expire in 24 hours.`,
+      html: `
+        <div>
+          <h2>Reset Your Sarasota Tech Password</h2>
+          <p>Click the button below to reset your password:</p>
+          <a href="${resetUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Reset Password
+          </a>
+          <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
+          <p>${resetUrl}</p>
+          <p style="margin-top:20px;color:#666;">This link will expire in 24 hours.</p>
+          <p style="color:#666;">If you didn't request this password reset, you can safely ignore this email.</p>
+        </div>
+      `,
+    });
+
+    console.log('Password reset email sent successfully to:', email);
+    return true;
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    return false;
+  }
+}

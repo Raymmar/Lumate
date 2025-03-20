@@ -121,6 +121,12 @@ export interface IStorage {
 
   // Add this new method
   updatePost(postId: number, data: Partial<Post>): Promise<Post>;
+
+  // Password reset
+  createPasswordResetToken(email: string): Promise<VerificationToken>;
+  validatePasswordResetToken(token: string): Promise<VerificationToken | null>;
+  deletePasswordResetToken(token: string): Promise<void>;
+  deletePasswordResetTokensByEmail(email: string): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -1670,6 +1676,111 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  async createPasswordResetToken(email: string): Promise<VerificationToken> {
+    try {
+      console.log('Creating password reset token for email:', email);
+      // Generate a secure random token
+      const token = crypto.randomBytes(32).toString('hex');
+
+      // Set expiration to 24 hours from now
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      const [newToken] = await db
+        .insert(verificationTokens)
+        .values({
+          token,
+          email,
+          expiresAt: expiresAt.toISOString(),
+        })
+        .returning();
+
+      console.log('Successfully created password reset token:', {
+        email,
+        tokenId: newToken.id,
+        expiresAt: newToken.expiresAt
+      });
+
+      return newToken;
+    } catch (error) {
+      console.error('Failed to create password reset token:', error);
+      throw error;
+    }
+  }
+
+  async validatePasswordResetToken(token: string): Promise<VerificationToken | null> {
+    try {
+      const result = await db
+        .select()
+        .from(verificationTokens)
+        .where(eq(verificationTokens.token, token))
+        .limit(1);
+
+      if (result.length === 0) {
+        return null;
+      }
+
+      const verificationToken = result[0];
+      const now = new Date();
+      const expiresAt = new Date(verificationToken.expiresAt);
+
+      // Check if token is expired
+      if (now > expiresAt) {
+        await this.deletePasswordResetToken(token);
+        return null;
+      }
+
+      return verificationToken;
+    } catch (error) {
+      console.error('Failed to validate password reset token:', error);
+      throw error;
+    }
+  }
+
+  async deletePasswordResetToken(token: string): Promise<void> {
+    try {
+      await db
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.token, token));
+    } catch (error) {
+      console.error('Failed to delete password reset token:', error);
+      throw error;
+    }
+  }
+
+  async deletePasswordResetTokensByEmail(email: string): Promise<void> {
+    try {
+      await db
+        .delete(verificationTokens)
+        .where(eq(verificationTokens.email, email.toLowerCase()));
+    } catch (error) {
+      console.error('Failed to delete password reset tokens for email:', email, error);
+      throw error;
+    }
+  }
+
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          password: hashedPassword,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        throw new Error(`User with ID ${userId} not found`);
+      }
+
+      return updatedUser;
+    } catch (error) {
+      console.error('Failed to update user password:', error);
+      throw error;
+    }
+  }
+
 }
 
 export const storage = new PostgresStorage();

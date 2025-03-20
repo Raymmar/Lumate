@@ -15,3 +15,7 @@ export async function comparePasswords(supplied: string, stored: string) {
   const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
+
+export async function generateResetToken(): Promise<string> {
+  return randomBytes(32).toString('hex');
+}
