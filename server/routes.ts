@@ -559,7 +559,11 @@ export async function registerRoutes(app: Express) {
         return res.json({ message: "If an account exists, a password reset email will be sent" });
       }
 
-      console.log('Processing password reset request for email:', email);
+      console.log('Processing password reset request for email:', email, {
+        userId: user.id,
+        hasDisplayName: !!user.displayName,
+        email: user.email
+      });
 
       // Delete any existing reset tokens for this email
       await storage.deletePasswordResetTokensByEmail(email);
@@ -571,23 +575,31 @@ export async function registerRoutes(app: Express) {
       console.log('Created password reset token:', {
         email,
         tokenId: verificationToken.id,
-        expiresAt: verificationToken.expiresAt
+        expiresAt: verificationToken.expiresAt,
+        userDetails: {
+          id: user.id,
+          hasDisplayName: !!user.displayName
+        }
       });
 
       // Send password reset email
       const emailSent = await sendPasswordResetEmail(email, token);
       if (!emailSent) {
-        console.error('Failed to send password reset email to:', email);
+        console.error('Failed to send password reset email to:', email, {
+          userId: user.id,
+          hasDisplayName: !!user.displayName
+        });
         throw new Error("Failed to send password reset email");
       }
 
-      console.log('Password reset email sent successfully');
+      console.log('Successfully processed password reset request for:', email);
       res.json({ message: "If an account exists, a password reset email will be sent" });
     } catch (error: any) {
       console.error("Password reset request error:", {
         error: error.message,
         code: error.code,
         response: error.response?.body,
+        stack: error.stack
       });
       res.status(500).json({ error: "Failed to process password reset request" });
     }

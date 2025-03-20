@@ -36,6 +36,21 @@ export async function sendVerificationEmail(
       return true;
     }
 
+    // Add debug logging similar to sendPasswordResetEmail
+    console.log('Email configuration:', {
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      fromEmail: FROM_EMAIL,
+      isDevelopment,
+      verificationUrl
+    });
+
+    console.log('Attempting to send verification email with message:', {
+      to: email,
+      from: FROM_EMAIL,
+      subject: 'Verify your Sarasota Tech member profile'
+    });
+
+
     await mailService.send({
       to: email,
       from: FROM_EMAIL,
@@ -52,6 +67,12 @@ export async function sendVerificationEmail(
           <p>${verificationUrl}</p>
         </div>
       `,
+    });
+
+    console.log('SendGrid API Response:', {
+      statusCode: 'Success',
+      headers: null,
+      email: email
     });
 
     console.log('Verification email sent successfully to:', email);
@@ -122,7 +143,12 @@ export async function sendPasswordResetEmail(
     });
 
     try {
-      await mailService.send(msg);
+      const [response] = await mailService.send(msg);
+      console.log('SendGrid API Response:', {
+        statusCode: response?.statusCode,
+        headers: response?.headers,
+        email: email
+      });
       console.log('Password reset email sent successfully to:', email);
       return true;
     } catch (sendError: any) {
@@ -130,6 +156,9 @@ export async function sendPasswordResetEmail(
         error: sendError.message,
         response: sendError.response?.body,
         code: sendError.code,
+        email: email,
+        errorName: sendError.name,
+        errorStack: sendError.stack
       });
       throw sendError;
     }
@@ -138,6 +167,7 @@ export async function sendPasswordResetEmail(
       error: error.message,
       code: error.code,
       response: error.response?.body,
+      email: email
     });
     return false;
   }
