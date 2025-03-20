@@ -204,7 +204,7 @@ export default function UserSettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="container max-w-3xl mx-auto pt-3 pb-6">
+      <div className="container max-w-3xl mx-auto pt-3 pb-24">
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
@@ -233,11 +233,11 @@ export default function UserSettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="px-6">
-            <Alert variant="warning" className="mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50">
+              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
                 Your display name, profile picture, and email address are managed through Lu.ma. 
-                To update these fields, please visit your <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-primary">Lu.ma settings</a>.
+                To update these fields, please visit your <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-amber-600">Lu.ma settings</a>.
               </AlertDescription>
             </Alert>
             <Form {...form}>
