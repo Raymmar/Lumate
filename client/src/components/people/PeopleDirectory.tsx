@@ -35,6 +35,7 @@ export interface Person {
     lastUpdated: string;
   };
   isCurrentUser?: boolean;
+  user?: any; // Added to accommodate the filter
 }
 
 interface PeopleResponse {
@@ -65,14 +66,16 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     }
   });
 
-  // Sort people array to ensure current user is at the top
+  // Filter and sort people array to show only those with linked user accounts
   const sortedPeople = React.useMemo(() => {
     if (!data?.people) return [];
-    return data.people.sort((a, b) => {
-      if (a.api_id === data.currentUserId) return -1;
-      if (b.api_id === data.currentUserId) return 1;
-      return 0;
-    });
+    return data.people
+      .filter(person => person.user) // Only include profiles with linked user accounts
+      .sort((a, b) => {
+        if (a.api_id === data.currentUserId) return -1;
+        if (b.api_id === data.currentUserId) return 1;
+        return 0;
+      });
   }, [data?.people, data?.currentUserId]);
 
   useEffect(() => {
@@ -198,7 +201,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           </div>
           <div className="flex-none pt-2 mt-2 border-t">
             <div className="text-xs text-muted-foreground mb-2 text-center">
-              Showing {sortedPeople.length} of {data?.total} total people
+              Showing {sortedPeople.length} verified members
             </div>
             <Pagination>
               <PaginationContent>
@@ -224,9 +227,16 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           </div>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          {searchQuery ? "No matching people found" : "No people available"}
-        </p>
+        <div className="text-center p-4 space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {searchQuery 
+              ? "No matching verified members found" 
+              : "No verified members available"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            To appear in the directory, please claim and verify your profile
+          </p>
+        </div>
       )}
     </div>
   );
