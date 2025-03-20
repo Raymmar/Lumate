@@ -70,22 +70,32 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
         body: formData,
       })
 
+      // Log the entire response for debugging
+      console.log('Upload response status:', response.status, response.statusText);
+      
       let data;
       try {
+        // Try to parse JSON response
         data = await response.json();
+        console.log('Upload response data:', data);
         
-        // Check if the response contains an error message
+        // Check if the response contains an error or was not successful
         if (!response.ok || data.error) {
-          // If we have an error message in the response, use it
-          const errorMessage = data.message || data.error || 'Upload failed';
-          console.log('Upload error response:', data);
-          throw new Error(errorMessage);
+          // If we have a specific error message in the response, use it
+          throw new Error(data.message || data.error || `Upload failed: ${response.statusText}`);
         }
       } catch (e) {
-        if (e instanceof Error) {
-          throw e; // Re-throw if it's already an Error with message
+        // If JSON parsing failed but we still have an error response
+        if (!response.ok && !(e instanceof Error)) {
+          throw new Error(`Upload failed: ${response.statusText}`);
         }
-        // If parsing fails or other error occurs
+        
+        // Re-throw if it's already an Error with message
+        if (e instanceof Error) {
+          throw e; 
+        }
+        
+        // Fallback generic error
         throw new Error('Failed to process server response')
       }
       onChange?.(data.url)
