@@ -14,25 +14,13 @@ import {
   ChevronRight,
   X,
   Check,
-  ChevronsUpDown
 } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from "@/lib/badge-icons";
+import { Input } from "@/components/ui/input";
 
 interface MemberPreviewProps {
   member: User & { roles?: Role[]; person?: Person | null; badges?: BadgeType[] };
@@ -65,6 +53,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const [roles, setRoles] = useState<Role[]>(member.roles || []);
   const [isAdmin, setIsAdmin] = useState(member.isAdmin);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Enhanced error handling and logging for badge fetching
   const { data: availableBadges = [], isLoading: isLoadingBadges, error: badgeError } = useQuery({
@@ -210,6 +199,12 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
+  // Filter badges based on search term
+  const filteredBadges = availableBadges.filter(badge => 
+    badge.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (badge.description && badge.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-16">
@@ -274,61 +269,43 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
               <div className="space-y-2">
                 <Label>Badges</Label>
-                <div className="relative z-50">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                        disabled={isLoadingBadges}
-                        onClick={() => console.log("Badge dropdown button clicked")}
-                      >
-                        {isLoadingBadges ? (
-                          "Loading badges..."
-                        ) : (
-                          <>
-                            Select badges
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0" align="start" side="bottom">
-                      <Command>
-                        <CommandInput placeholder="Search badges..." />
-                        <CommandEmpty>No badges found.</CommandEmpty>
-                        <CommandGroup>
-                          {availableBadges.map((badge: BadgeType) => (
-                            <CommandItem
-                              key={badge.id}
-                              onSelect={() => {
-                                console.log("Badge selected:", badge.name);
-                                handleBadgeAssignment(badge.name);
-                              }}
-                              className="flex items-center"
-                            >
-                              <div className="flex items-center w-full">
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    badges.some(b => b.name === badge.name) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                <div className="flex items-center gap-2 flex-1">
-                                  {getBadgeIcon(badge.icon)}
-                                  <div className="flex-1">
-                                    <div>{badge.name}</div>
-                                    <div className="text-xs text-muted-foreground">{badge.description}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex flex-col space-y-2">
+                  <Input
+                    type="text"
+                    placeholder="Search badges..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <div className="border rounded-md p-2 max-h-48 overflow-y-auto space-y-1">
+                    {isLoadingBadges ? (
+                      <div className="text-center py-2 text-muted-foreground">Loading badges...</div>
+                    ) : filteredBadges.length === 0 ? (
+                      <div className="text-center py-2 text-muted-foreground">No badges found</div>
+                    ) : (
+                      filteredBadges.map((badge) => (
+                        <button
+                          key={badge.id}
+                          onClick={() => handleBadgeAssignment(badge.name)}
+                          className={cn(
+                            "w-full flex items-center gap-2 px-2 py-1 hover:bg-muted rounded-sm transition-colors",
+                            badges.some(b => b.name === badge.name) && "opacity-50 cursor-not-allowed"
+                          )}
+                          disabled={badges.some(b => b.name === badge.name)}
+                        >
+                          {getBadgeIcon(badge.icon)}
+                          <div className="text-left flex-1">
+                            <div>{badge.name}</div>
+                            {badge.description && (
+                              <div className="text-xs text-muted-foreground">{badge.description}</div>
+                            )}
+                          </div>
+                          {badges.some(b => b.name === badge.name) && (
+                            <Check className="h-4 w-4 text-primary" />
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
