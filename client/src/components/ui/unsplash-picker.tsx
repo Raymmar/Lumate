@@ -86,6 +86,9 @@ export function UnsplashPicker({ value, onChange, className, error }: UnsplashPi
     const file = event.target.files?.[0]
     if (!file) return
 
+    // Reset previous validation state
+    setValidationError("")
+
     // Client-side validation before attempting upload
     if (!validateFile(file)) {
       if (fileInputRef.current) {
