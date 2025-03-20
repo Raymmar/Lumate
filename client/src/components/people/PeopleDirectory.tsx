@@ -69,13 +69,23 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     queryKey: ['/api/people', currentPage, pageSize, searchQuery],
     queryFn: async () => {
       console.log('Fetching people with params:', { currentPage, pageSize, searchQuery });
-      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events`);
-      if (!response.ok) throw new Error('Failed to fetch people');
+      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&include=user`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch people:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorText
+        });
+        throw new Error('Failed to fetch people');
+      }
+
       const data = await response.json();
-      console.log('People data received:', {
-        totalRecords: data.people.length,
-        sample: data.people[0],
-        hasCurrentUser: !!data.currentUserId
+      console.log('API Response:', {
+        totalPeople: data.people.length,
+        verifiedCount: data.people.filter(p => p.user?.isVerified).length,
+        samplePerson: data.people[0]
       });
       return data;
     }
@@ -86,15 +96,20 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     if (!data?.people) return [];
     console.log('Processing people data:', data.people.length, 'total records');
     const filteredPeople = data.people.filter(person => {
-      console.log('Checking person:', {
+      // Check for verified user accounts with complete profile data
+      const hasVerifiedUser = person.user && 
+                            person.user.api_id && 
+                            person.user.isVerified === true;
+
+      console.log('Person verification check:', {
         userName: person.userName,
         hasUser: !!person.user,
-        userId: person.user?.id,
         userApiId: person.user?.api_id,
-        isVerified: person.user?.isVerified
+        isVerified: person.user?.isVerified,
+        passed: hasVerifiedUser
       });
-      // Only include profiles that have a linked user account and are verified
-      return person.user && person.user.api_id && person.user.isVerified === true;
+
+      return hasVerifiedUser;
     });
     console.log('Filtered to', filteredPeople.length, 'verified members');
     return filteredPeople.sort((a, b) => {
