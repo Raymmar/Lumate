@@ -572,6 +572,8 @@ export default function UserSettingsPage() {
                                       const newLinks = [...(field.value || [])];
                                       newLinks.splice(index, 1);
                                       field.onChange(newLinks);
+                                      // Trigger form revalidation after removing a link
+                                      form.trigger("customLinks");
                                     }}
                                     className="h-9 w-9"
                                   >
