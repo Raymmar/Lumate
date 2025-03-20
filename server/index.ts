@@ -10,6 +10,7 @@ import { startEventSyncService } from "./services/eventSyncService";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import { profileMetaTags } from "./middleware/seoTags";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -83,6 +84,9 @@ app.use(
   app.use("/api/stripe", stripeRoutes);
   app.use("/api/unsplash", unsplashRoutes);
   await registerRoutes(app);
+  
+  // Apply SEO meta tag middleware for profile pages
+  app.use('/', profileMetaTags);
 
   // Set up Vite or serve static files
   if (process.env.NODE_ENV === "development") {
