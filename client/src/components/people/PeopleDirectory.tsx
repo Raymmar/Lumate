@@ -35,15 +35,6 @@ export interface Person {
     lastUpdated: string;
   };
   isCurrentUser?: boolean;
-  user?: {
-    id: number;
-    api_id: string;
-    email: string;
-    displayName: string;
-    bio: string;
-    isAdmin: boolean;
-    isVerified: boolean;
-  };
 }
 
 interface PeopleResponse {
@@ -68,36 +59,16 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   const { data, isLoading, error } = useQuery<PeopleResponse>({
     queryKey: ['/api/people', currentPage, pageSize, searchQuery],
     queryFn: async () => {
-      console.log('Fetching people with params:', { currentPage, pageSize, searchQuery });
-      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&include=user`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to fetch people:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText
-        });
-        throw new Error('Failed to fetch people');
-      }
-
-      const data = await response.json();
-      console.log('API Response:', {
-        totalPeople: data.people.length,
-        verifiedCount: data.people.filter(p => p.user?.isVerified).length,
-        samplePerson: data.people[0]
-      });
-      return data;
+      const response = await fetch(`/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events`);
+      if (!response.ok) throw new Error('Failed to fetch people');
+      return response.json();
     }
   });
 
-  // Filter and sort people array to show only those with linked user accounts
+  // Sort people array to ensure current user is at the top
   const sortedPeople = React.useMemo(() => {
     if (!data?.people) return [];
-    console.log('Processing people data:', data.people.length, 'total records');
-    const filteredPeople = data.people.filter(person => person.user?.isVerified === true);
-    console.log('Filtered to', filteredPeople.length, 'verified members');
-    return filteredPeople.sort((a, b) => {
+    return data.people.sort((a, b) => {
       if (a.api_id === data.currentUserId) return -1;
       if (b.api_id === data.currentUserId) return 1;
       return 0;
@@ -153,6 +124,14 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
+
+  if (error) {
+    return (
+      <div className="rounded-lg border bg-destructive/10 p-3">
+        <p className="text-xs text-destructive">Failed to load people directory</p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -219,7 +198,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           </div>
           <div className="flex-none pt-2 mt-2 border-t">
             <div className="text-xs text-muted-foreground mb-2 text-center">
-              Showing {sortedPeople.length} verified members
+              Showing {sortedPeople.length} of {data?.total} total people
             </div>
             <Pagination>
               <PaginationContent>
@@ -245,16 +224,9 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           </div>
         </>
       ) : (
-        <div className="text-center p-4 space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {searchQuery
-              ? "No matching verified members found"
-              : "No verified members available"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            To appear in the directory, please claim and verify your profile
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          {searchQuery ? "No matching people found" : "No people available"}
+        </p>
       )}
     </div>
   );
