@@ -117,14 +117,14 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
           ) : (
             <>
               <CardTitle>Sarasota.Tech</CardTitle>
-              <p className="text-muted-foreground text-wrap-balanced mt-1">
+              <p className="text-muted-foreground text-wrap-balanced text-xl mt-1">
                 We're connecting Sarasota's tech community and driving the city forward.
               </p>
             </>
           )}
         </CardHeader>
       )}
-      <CardContent className="pt-6">
+      <CardContent className="pt-12">
         {isSubmitted ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
@@ -161,7 +161,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
                     Processing...
                   </>
                 ) : (
-                  "Join"
+                  "Join us"
                 )}
               </Button>
             </div>
@@ -171,7 +171,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
               ) : !featuredEvent ? (
                 "No upcoming events available at the moment."
               ) : (
-                "Enter your email for an invite to our next event. If you've attended before, we'll send you a link to claim your directory profile."
+                "Enter your email for an invite to our next event."
               )}
             </p>
           </form>
