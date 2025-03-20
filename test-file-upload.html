@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test File Upload</h1>
+    <form id="uploadForm">
+        <div class="form-group">
+            <label for="file">Select a file to upload:</label>
+            <input type="file" id="file" name="file">
+        </div>
+        <button type="submit">Upload</button>
+    </form>
+    
+    <div class="result">
+        <h3>Result:</h3>
+        <pre id="result">No upload attempted yet</pre>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('file');
+            const resultOutput = document.getElementById('result');
+            
+            if (!fileInput.files.length) {
+                resultOutput.textContent = 'Please select a file first';
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            resultOutput.textContent = 'Uploading...';
+            
+            try {
+                const response = await fetch('/api/upload/file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const contentType = response.headers.get('content-type');
+                
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        resultOutput.textContent = 'Success! File uploaded:\n' + JSON.stringify(data, null, 2);
+                    } else {
+                        resultOutput.textContent = 'Error: ' + (data.message || 'Unknown error') + '\n\n' + JSON.stringify(data, null, 2);
+                    }
+                } else {
+                    const text = await response.text();
+                    resultOutput.textContent = 'Error: Non-JSON response\n' + text;
+                }
+            } catch (error) {
+                resultOutput.textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
