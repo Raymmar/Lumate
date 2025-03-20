@@ -29,7 +29,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RelatedPeople } from "./RelatedPeople";
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from "@/lib/badge-icons";
@@ -68,7 +68,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
   const [isAdmin, setIsAdmin] = useState(member.isAdmin);
 
   // Enhanced error handling and logging for badge fetching
-  const { data: availableBadges = [], isLoading: isLoadingBadges, error: badgeError } = useQuery<BadgeType[]>({
+  const { data: availableBadges = [], isLoading: isLoadingBadges, error: badgeError } = useQuery({
     queryKey: ['/api/admin/badges'],
     queryFn: async () => {
       console.log("Fetching available badges...");
@@ -89,6 +89,18 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       return data;
     }
   });
+
+  // If there's an error fetching badges, show it
+  useEffect(() => {
+    if (badgeError) {
+      console.error("Badge fetching error:", badgeError);
+      toast({
+        title: "Error",
+        description: "Failed to load available badges",
+        variant: "destructive"
+      });
+    }
+  }, [badgeError, toast]);
 
   const handleAdminToggle = async (checked: boolean) => {
     setIsAdmin(checked);
@@ -198,6 +210,17 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     }
   };
 
+  // Log whenever the dropdown state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    console.log("Badge dropdown state changing:", {
+      from: open,
+      to: newOpen,
+      availableBadgesCount: availableBadges.length,
+      isLoading: isLoadingBadges
+    });
+    setOpen(newOpen);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-16">
@@ -262,7 +285,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
               <div className="space-y-2">
                 <Label>Badges</Label>
-                <Popover open={open} onOpenChange={setOpen}>
+                <Popover onOpenChange={handleOpenChange}>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -286,9 +309,9 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                       <CommandInput placeholder="Search badges..." />
                       <CommandEmpty>No badges found.</CommandEmpty>
                       <CommandGroup>
-                        {availableBadges.map((badge) => (
+                        {availableBadges.map((badge: BadgeType) => (
                           <CommandItem
-                            key={badge.name}
+                            key={badge.id}
                             onSelect={() => {
                               handleBadgeAssignment(badge.name);
                               setOpen(false);
