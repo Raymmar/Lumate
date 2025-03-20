@@ -27,9 +27,10 @@ interface UnsplashImage {
 interface UnsplashPickerProps {
   value?: string
   onChange?: (value: string) => void
+  className?: string
 }
 
-export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
+export function UnsplashPicker({ value, onChange, className }: UnsplashPickerProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -57,9 +58,42 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
     setOpen(false)
   }
 
+  const validateFile = (file: File): boolean => {
+    // Check file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast({
+        title: "Error",
+        description: "File size exceeds 5MB limit",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    // Check file format
+    const validTypes = ['image/jpeg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Error",
+        description: "Only JPEG and PNG formats are supported",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  }
+
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+
+    if (!validateFile(file)) {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
     const formData = new FormData()
     formData.append('file', file)
@@ -122,20 +156,23 @@ export function UnsplashPicker({ value, onChange }: UnsplashPickerProps) {
 
         <div className="space-y-4">
           {/* File Upload Section */}
-          <div className="flex items-center gap-4">
+          <div className="space-y-2">
             <Button 
               variant="outline" 
               onClick={() => fileInputRef.current?.click()}
-              className="flex-1"
+              className="flex-1 w-full"
             >
               <Upload className="h-4 w-4 mr-2" />
               Upload from Computer
             </Button>
+            <p className="text-xs text-muted-foreground">
+              Supported formats: JPEG, PNG • Max file size: 5MB
+            </p>
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/*"
+              accept="image/jpeg,image/png"
               className="hidden"
             />
           </div>
