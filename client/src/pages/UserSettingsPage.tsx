@@ -30,7 +30,6 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription
 } from "@/components/ui/form";
 
 export default function UserSettingsPage() {
@@ -303,20 +302,19 @@ export default function UserSettingsPage() {
                         <FormField
                           control={form.control}
                           name="featuredImageUrl"
-                          render={({ field, fieldState }) => (
+                          render={({ field }) => (
                             <FormItem className="space-y-3">
                               <div>
                                 <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
-                                <FormDescription className="text-sm text-muted-foreground mt-1">
+                                <p className="text-sm text-muted-foreground mt-1">
                                   This image will be displayed as a banner at the top of your company profile
-                                </FormDescription>
+                                </p>
                               </div>
                               <FormControl>
                                 <UnsplashPicker
                                   value={field.value || ""}
                                   onChange={field.onChange}
                                   className="min-h-[300px]"
-                                  error={fieldState.error?.message}
                                 />
                               </FormControl>
                               <FormMessage />
