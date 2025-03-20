@@ -75,7 +75,8 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     console.log('Processing people data:', data.people.length, 'total records');
     const filteredPeople = data.people.filter(person => {
       console.log('Checking person:', person.userName, 'has user:', !!person.user);
-      return person.user !== null && person.user !== undefined;
+      // Changed filtering logic to be more specific
+      return person.user?.id != null;
     });
     console.log('Filtered to', filteredPeople.length, 'verified members');
     return filteredPeople.sort((a, b) => {
@@ -161,10 +162,6 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           <Skeleton className="h-11" />
           <Skeleton className="h-11" />
           <Skeleton className="h-11" />
-        </div>
-      ) : error ? (
-        <div className="rounded-lg border bg-destructive/10 p-3">
-          <p className="text-xs text-destructive">Failed to load people directory</p>
         </div>
       ) : sortedPeople && sortedPeople.length > 0 ? (
         <>
