@@ -14,7 +14,6 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-// Keep existing interfaces
 export interface Person {
   id: number;
   api_id: string;
@@ -69,7 +68,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
       const response = await fetch(
         `/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events&verifiedOnly=true`,
         {
-          credentials: 'include', // Add credentials to include session cookie
+          credentials: 'include',
           headers: {
             'Accept': 'application/json',
           }
@@ -225,9 +224,6 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
                       {person.api_id === data?.currentUserId && (
                         <span className="ml-2 text-xs text-primary">(You)</span>
                       )}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {person.stats?.totalEventsAttended || 0} events attended
                     </p>
                   </div>
                 </div>
