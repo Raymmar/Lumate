@@ -11,7 +11,6 @@ import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
-import { SEO } from "@/components/ui/seo";
 
 interface PersonProfileProps {
   username: string;
@@ -175,28 +174,9 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   if (!person) {
     return <div>Person not found</div>;
   }
-  
-  // Prepare SEO metadata
-  const displayName = person.userName || person.user?.displayName || "Community Member";
-  const userBio = person.user?.bio;
-  const companyDescription = person.user?.companyDescription;
-  const userAvatar = person.avatarUrl;
-  const featuredImage = person.user?.featuredImageUrl;
-  
-  // SEO metadata - prioritize user data with fallbacks to defaults
-  const seoTitle = `${displayName} | Sarasota Tech`;
-  const seoDescription = userBio || companyDescription || `View ${displayName}'s profile on Sarasota Tech`;
-  const seoImage = featuredImage || userAvatar || undefined;
 
   return (
     <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
-      {/* Set SEO metadata for the page */}
-      <SEO
-        title={seoTitle}
-        description={seoDescription}
-        image={seoImage}
-      />
-      
       <div className="md:col-span-2 space-y-4 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
@@ -247,9 +227,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Pass the user details to MemberDetails, but as any because the person.user structure 
-           is not exactly matching the User type defined in the schema */}
-        {person.user && <MemberDetails user={person.user as any} />}
+        {person.user && <MemberDetails user={person.user} />}
       </div>
 
       <div className="w-full">

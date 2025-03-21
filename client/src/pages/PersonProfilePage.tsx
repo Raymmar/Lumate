@@ -1,7 +1,6 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PersonProfile from "@/components/people/PersonProfile";
 import { useParams } from "wouter";
-import { SEO } from "@/components/ui/seo";
 
 export default function PersonProfilePage() {
   const params = useParams<{ username: string }>();
@@ -16,13 +15,8 @@ export default function PersonProfilePage() {
     .replace(/^dr-/, "Dr. ") // Convert "dr-" prefix back to "Dr. "
     .replace(/-/g, " "); // Convert remaining hyphens to spaces for lookup
 
-  // Set a temporary default SEO title while loading the profile data
-  // The PersonProfile component will update this with user-specific data when loaded
-  const tempTitle = `${decodedUsername} | Sarasota Tech`;
-
   return (
     <DashboardLayout>
-      <SEO title={tempTitle} description="Loading profile..." />
       <PersonProfile username={decodedUsername} />
     </DashboardLayout>
   );
