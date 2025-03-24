@@ -590,9 +590,17 @@ export async function registerRoutes(app: Express) {
 
       // Add search filter if provided
       if (searchQuery) {
-        query = query.where(
-          sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
-        );
+        if (verifiedOnly) {
+          // For verified users, add search conditions to the existing where clause
+          query = query.where(
+            sql`(LOWER(people.user_name) LIKE ${`%${searchQuery}%`} OR LOWER(people.email) LIKE ${`%${searchQuery}%`})`
+          );
+        } else {
+          // For all users (when verified flag is not set)
+          query = query.where(
+            sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
+          );
+        }
       }
 
       const allPeople = await query.orderBy(people.id);
