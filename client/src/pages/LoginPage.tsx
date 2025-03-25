@@ -25,8 +25,12 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      // Force a full page reload with cache busting 
-      window.location.href = window.location.origin + '?t=' + new Date().getTime();
+      // Clear the entire query cache to force data refetching
+      queryClient.clear(); 
+      
+      // Force a full navigation with cache busting
+      const clearCacheTimestamp = new Date().getTime();
+      window.location.href = window.location.origin + '?refresh=' + clearCacheTimestamp;
     }
   }, [user]);
 

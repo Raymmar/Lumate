@@ -84,8 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: () => {
-      // Force a FULL page reload with cache busting
-      window.location.href = window.location.origin + '?t=' + new Date().getTime();
+      // Clear the entire query cache to force data refetching
+      queryClient.clear();
+      
+      // Force a full navigation with cache busting
+      const clearCacheTimestamp = new Date().getTime();
+      window.location.href = window.location.origin + '?refresh=' + clearCacheTimestamp;
     },
     onError: (error: Error) => {
       toast({
