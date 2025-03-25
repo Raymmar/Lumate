@@ -84,8 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: () => {
-      // Force a full page refresh after successful login
-      window.location.href = '/';
+      // Force a FULL page reload (not just redirect) to refresh all content
+      window.location.reload();
     },
     onError: (error: Error) => {
       toast({

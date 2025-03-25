@@ -25,9 +25,10 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      setLocation('/');
+      // Force a full page reload to ensure all content is refreshed properly
+      window.location.reload();
     }
-  }, [user, setLocation]);
+  }, [user]);
 
   // If still loading auth state, return null to avoid flashing content
   if (user === undefined) {
