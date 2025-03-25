@@ -25,8 +25,7 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      // Force a full page refresh if user is already logged in
-      window.location.href = "/";
+      window.location.reload();
     }
   }, [user]);
 
@@ -42,8 +41,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      // Force a full page refresh instead of client-side navigation
-      window.location.href = "/";
+      // The auth hook will handle the full page refresh
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);

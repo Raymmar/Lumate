@@ -83,21 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      const userData = data.user || data;
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-      queryClient.setQueryData(["/api/auth/me"], userData);
-
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
-      });
-      
-      // Force a full page refresh after successful login
-      // This ensures all member-only content is properly loaded
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+    onSuccess: () => {
+      // IMMEDIATELY FORCE A FULL PAGE REFRESH
+      window.location.reload();
     },
     onError: (error: Error) => {
       toast({
