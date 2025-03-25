@@ -1799,21 +1799,17 @@ export async function registerRoutes(app: Express) {
         });
       });
 
-      // Send back HTML that will force a full page reload
-      return res.send(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Redirecting...</title>
-            <script>
-              window.location = '/';
-            </script>
-          </head>
-          <body>
-            <p>Logged in successfully. Redirecting...</p>
-          </body>
-        </html>
-      `);
+      return res.json({
+        message: "Logged in successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          isVerified: user.isVerified,
+          isAdmin: user.isAdmin,
+          personId: user.personId,
+        },
+      });
     } catch (error) {
       console.error("Login failed:", error);
       res.status(500).json({ error: "Login failed" });
