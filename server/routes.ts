@@ -1354,10 +1354,14 @@ export async function registerRoutes(app: Express) {
         const claimedEmailsList = Array.from(emailSet);
         console.log("Email Search API: Checking claimed status for emails:", claimedEmailsList);
         
+        // For SQL IN clause, we need to create separate parameters for each value
+        const placeholders = claimedEmailsList.map(() => '?').join(',');
+        const sqlQuery = sql`LOWER(email) IN (${sql.raw(placeholders)})`;
+        
         const claimedEmailsQuery = await db
           .select({ email: users.email })
           .from(users)
-          .where(sql`LOWER(email) IN (${claimedEmailsList})`);
+          .where(sqlQuery, ...claimedEmailsList);
           
         const claimedEmails = new Set(claimedEmailsQuery.map(user => user.email.toLowerCase()));
         console.log("Email Search API: Found claimed emails:", Array.from(claimedEmails));

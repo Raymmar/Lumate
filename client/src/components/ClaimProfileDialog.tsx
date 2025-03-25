@@ -61,14 +61,28 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
   const { data: emailSuggestions, isLoading: isSuggestionsLoading } = useQuery({
     queryKey: ['/api/people/search-emails', debouncedEmailQuery],
     queryFn: async () => {
+      console.log("Email Autocomplete: Attempting to fetch suggestions for query:", debouncedEmailQuery);
       if (!debouncedEmailQuery || debouncedEmailQuery.length < 2) {
+        console.log("Email Autocomplete: Query too short, returning empty results");
         return { results: [] };
       }
-      const response = await fetch(`/api/people/search-emails?query=${encodeURIComponent(debouncedEmailQuery)}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch email suggestions');
+      try {
+        console.log(`Email Autocomplete: Fetching from /api/people/search-emails?query=${encodeURIComponent(debouncedEmailQuery)}`);
+        const response = await fetch(`/api/people/search-emails?query=${encodeURIComponent(debouncedEmailQuery)}`);
+        console.log("Email Autocomplete: API response status:", response.status);
+        
+        if (!response.ok) {
+          console.error("Email Autocomplete: Failed API response:", response.status, response.statusText);
+          throw new Error(`Failed to fetch email suggestions: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log("Email Autocomplete: Got response data with results:", data.results?.length || 0);
+        return data;
+      } catch (error) {
+        console.error("Email Autocomplete: Error fetching suggestions:", error);
+        throw error;
       }
-      return response.json();
     },
     enabled: debouncedEmailQuery.length >= 2,
   });
@@ -222,9 +236,29 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
                   placeholder="Enter your email"
                   className="border-0"
                 />
+                {(() => {
+                  // Debug the suggestionsOpen state
+                  console.log("Email Autocomplete: Checking dropdown conditions:", {
+                    suggestionsOpen,
+                    inputLength: inputValue.length,
+                    shouldShow: suggestionsOpen && inputValue.length >= 2
+                  });
+                  return null;
+                })()}
+                
                 {suggestionsOpen && inputValue.length >= 2 && (
                   <div className="absolute top-full left-0 right-0 mt-1 rounded-md border bg-popover shadow-md z-50">
                     <CommandList>
+                      {(() => {
+                        console.log("Email Autocomplete: Rendering dropdown with:", {
+                          isLoading: isSuggestionsLoading,
+                          hasResults: !!emailSuggestions?.results?.length,
+                          resultsCount: emailSuggestions?.results?.length || 0,
+                          suggestions: emailSuggestions?.results
+                        });
+                        return null;
+                      })()}
+                      
                       {isSuggestionsLoading ? (
                         <div className="py-6 text-center text-sm">Loading suggestions...</div>
                       ) : (
