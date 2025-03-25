@@ -29,8 +29,14 @@ function useLogoutMutation() {
       }
     },
     onSuccess: () => {
+      // Clear and invalidate auth query
       queryClient.setQueryData(["/api/auth/me"], null);
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      
+      // Invalidate posts and events queries to refresh content based on new auth state
+      queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
 
       toast({
         title: "Success",
@@ -85,9 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       const userData = data.user || data;
+      
+      // Invalidate auth query
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       queryClient.setQueryData(["/api/auth/me"], userData);
-
+      
+      // Invalidate posts and events queries to refresh content based on new auth state
+      queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -111,6 +124,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Add the updateUser function implementation
   const updateUser = (userData: User) => {
     queryClient.setQueryData(["/api/auth/me"], userData);
+    
+    // Also invalidate content queries that depend on user authentication state
+    queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/events"] });
   };
 
   return (
