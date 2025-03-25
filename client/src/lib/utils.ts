@@ -16,25 +16,34 @@ export function cn(...inputs: ClassValue[]) {
  * and ensure all data is freshly loaded from the server
  */
 export function forceCompleteReset() {
-  // 1. Clear all React Query caches
+  console.log("EXECUTING NUCLEAR RESET OPTION");
+  
+  // 1. Clear ALL caches: React Query and anything else in memory
   queryClient.clear();
   
-  // 2. Clear any localStorage caches that might be relevant
+  // 2. Clear ALL localStorage
   try {
-    // Add app-specific cache keys here if needed
-    localStorage.removeItem('last_data_refresh');
+    localStorage.clear();  // More aggressive - clear everything
   } catch (e) {
     console.error('Error clearing localStorage:', e);
   }
   
-  // 3. Force a full page navigation with cache-busting parameter
+  // 3. Force a full navigation with flags to prevent any caching
   const timestamp = new Date().getTime();
   
-  // Use replaceState to clear the history entry (so back button doesn't revert)
-  window.history.replaceState(null, '', window.location.pathname);
+  // Use a much more definitive page reload approach that's guaranteed to work
+  // First set a flag in sessionStorage that we'll check on page load
+  try {
+    sessionStorage.setItem('force_complete_refresh', 'true');
+    sessionStorage.setItem('refresh_timestamp', timestamp.toString());
+  } catch (e) {
+    console.error('Error setting sessionStorage:', e);
+  }
   
-  // Force a hard navigation to root with cache busting
-  window.location.href = window.location.origin + '?force_refresh=' + timestamp;
+  // Direct window replacement - completely bypasses any SPA routing
+  // This is the most aggressive refresh you can do in a browser
+  console.log("EXECUTING HARD BROWSER RELOAD");
+  window.location.replace(window.location.origin + '?complete_refresh=' + timestamp);
 }
 
 export function formatUsernameForUrl(username: string | null, fallbackId: string): string {

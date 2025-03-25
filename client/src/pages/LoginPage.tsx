@@ -26,9 +26,15 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
+      console.log("USER ALREADY LOGGED IN - TRIGGERING REDIRECT RESET");
+      
       // Use the nuclear option to reset everything and force a full reload
       import('@/lib/utils').then(({ forceCompleteReset }) => {
-        forceCompleteReset();
+        // We call this with a slight delay to ensure all hooks have run
+        setTimeout(() => {
+          // Apply our guaranteed reset method
+          forceCompleteReset();
+        }, 300);
       });
     }
   }, [user]);

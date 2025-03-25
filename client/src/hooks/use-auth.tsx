@@ -34,9 +34,15 @@ function useLogoutMutation() {
         description: "Logged out successfully",
       });
       
-      // Use the nuclear option to reset everything and force a full reload
+      console.log("TRIGGERING LOGOUT NUCLEAR RESET");
+      
+      // Force a complete reset - with additional flags for direct location reload
       import('@/lib/utils').then(({ forceCompleteReset }) => {
-        forceCompleteReset();
+        // We call this with a slight delay to ensure toast displays first
+        setTimeout(() => {
+          // Apply our guaranteed reset method
+          forceCompleteReset();
+        }, 300);
       });
     },
     onError: (error: Error) => {
@@ -86,9 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: () => {
-      // Use the nuclear option to reset everything and force a full reload
+      console.log("TRIGGERING LOGIN NUCLEAR RESET");
+      
+      // Force a complete reset - with additional flags for direct location reload
       import('@/lib/utils').then(({ forceCompleteReset }) => {
-        forceCompleteReset();
+        // We call this with a slight delay to ensure the login response is fully processed
+        setTimeout(() => {
+          // Apply our guaranteed reset method
+          forceCompleteReset();
+        }, 300);
       });
     },
     onError: (error: Error) => {
