@@ -11,6 +11,32 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 
+// Extremely aggressive approach: Define a global refresh function
+const REFRESH_SCRIPT = `
+window._forceHardRefresh = function() {
+  console.log("EXECUTING DIRECT PAGE REFRESH");
+  // Clear all caches synchronously
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+    console.log("ALL BROWSER STORAGE CLEARED");
+  } catch (e) {
+    console.error("Error clearing storage:", e);
+  }
+  
+  // Set a flag that will survive the refresh
+  try {
+    document.cookie = "force_refresh=true; path=/";
+  } catch (e) {
+    console.error("Error setting cookie:", e);
+  }
+  
+  // Force the browser to reload the page from the server, not from cache
+  window.location.href = window.location.origin + '?t=' + Date.now();
+  return false; // Prevent default action if used in event handlers
+};
+`;
+
 export default function LoginPage() {
   const [, setLocation] = useLocation();
   const { user, login } = useAuth();
@@ -23,19 +49,34 @@ export default function LoginPage() {
   const [isResetting, setIsResetting] = useState(false);
   const { toast } = useToast();
 
+  // Inject our refresh script directly into the page
+  useEffect(() => {
+    // Add the script element to the document
+    const scriptEl = document.createElement('script');
+    scriptEl.textContent = REFRESH_SCRIPT;
+    document.head.appendChild(scriptEl);
+    
+    // Cleanup function to remove the script
+    return () => {
+      document.head.removeChild(scriptEl);
+    };
+  }, []);
+  
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      console.log("USER ALREADY LOGGED IN - TRIGGERING REDIRECT RESET");
+      console.log("USER ALREADY LOGGED IN - TRIGGERING DIRECT BROWSER REFRESH");
       
-      // Use the nuclear option to reset everything and force a full reload
-      import('@/lib/utils').then(({ forceCompleteReset }) => {
-        // We call this with a slight delay to ensure all hooks have run
-        setTimeout(() => {
-          // Apply our guaranteed reset method
+      // Use direct window function instead of importing utils
+      // This is the most direct approach possible
+      if (window._forceHardRefresh) {
+        window._forceHardRefresh();
+      } else {
+        // Fallback to previous approach
+        import('@/lib/utils').then(({ forceCompleteReset }) => {
           forceCompleteReset();
-        }, 300);
-      });
+        });
+      }
     }
   }, [user]);
 

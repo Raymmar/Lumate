@@ -2,6 +2,13 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 
+// Add global type definition for our refresh function
+declare global {
+  interface Window {
+    _forceHardRefresh: () => boolean;
+  }
+}
+
 // Add an initialization listener to handle page refresh flags
 const checkForceRefresh = () => {
   try {
