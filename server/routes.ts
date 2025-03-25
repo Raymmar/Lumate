@@ -1308,6 +1308,67 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to check email" });
     }
   });
+  
+  app.get("/api/people/search-emails", async (req, res) => {
+    try {
+      const query = req.query.query as string;
+      
+      if (!query || typeof query !== 'string') {
+        return res.json({ results: [] });
+      }
+      
+      const searchQuery = query.toLowerCase().trim();
+      
+      // If query is too short, return empty results to avoid heavy database queries
+      if (searchQuery.length < 2) {
+        return res.json({ results: [] });
+      }
+      
+      console.log("Email Search: Searching for emails matching:", searchQuery);
+      
+      // Search for emails that match the query
+      const results = await db
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          email: people.email,
+          userName: people.userName,
+          fullName: people.fullName,
+          avatarUrl: people.avatarUrl,
+        })
+        .from(people)
+        .where(sql`LOWER(email) LIKE ${`%${searchQuery}%`}`)
+        .limit(10);
+        
+      console.log(`Email Search: Found ${results.length} matching emails`);
+        
+      // Check which profiles are already claimed
+      const emailSet = new Set(results.map(person => person.email.toLowerCase()));
+      
+      if (emailSet.size > 0) {
+        const claimedEmailsList = Array.from(emailSet);
+        const claimedEmailsQuery = await db
+          .select({ email: users.email })
+          .from(users)
+          .where(sql`LOWER(email) IN (${claimedEmailsList})`);
+          
+        const claimedEmails = new Set(claimedEmailsQuery.map(user => user.email.toLowerCase()));
+        
+        // Add isClaimed flag to results
+        const resultsWithClaimStatus = results.map(person => ({
+          ...person,
+          isClaimed: claimedEmails.has(person.email.toLowerCase())
+        }));
+        
+        return res.json({ results: resultsWithClaimStatus });
+      }
+      
+      return res.json({ results: results.map(person => ({ ...person, isClaimed: false })) });
+    } catch (error) {
+      console.error("Email Search: Error during search:", error);
+      res.status(500).json({ error: "Failed to search emails" });
+    }
+  });
 
   app.get("/api/people/:id/stats", async (req, res) => {
     try {
