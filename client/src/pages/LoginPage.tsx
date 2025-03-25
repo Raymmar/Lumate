@@ -25,9 +25,10 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      // Force a full page refresh if user is already logged in
+      window.location.href = "/";
     }
-  }, [user, setLocation]);
+  }, [user]);
 
   // If still loading auth state, return null to avoid flashing content
   if (user === undefined) {
@@ -41,7 +42,8 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      setLocation("/");
+      // Force a full page refresh instead of client-side navigation
+      window.location.href = "/";
     } catch (error) {
       if (error instanceof Error) {
         setError(error.message);
