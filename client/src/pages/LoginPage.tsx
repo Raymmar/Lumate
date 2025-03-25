@@ -26,12 +26,10 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      // Clear the entire query cache to force data refetching
-      queryClient.clear(); 
-      
-      // Force a full navigation with cache busting
-      const clearCacheTimestamp = new Date().getTime();
-      window.location.href = window.location.origin + '?refresh=' + clearCacheTimestamp;
+      // Use the nuclear option to reset everything and force a full reload
+      import('@/lib/utils').then(({ forceCompleteReset }) => {
+        forceCompleteReset();
+      });
     }
   }, [user]);
 
