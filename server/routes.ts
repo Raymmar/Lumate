@@ -307,7 +307,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/public/posts", async (_req, res) => {
+  app.get("/api/public/posts", async (req, res) => {
     try {
       console.log("Fetching public posts...");
 
@@ -359,9 +359,25 @@ export async function registerRoutes(app: Express) {
         }),
       );
 
-      console.log("Posts with creators and tags:", postsWithCreators);
+      const isLoggedIn = req.session.userId !== undefined;
+      const postsHidingMemberContent = postsWithCreators.map((post) => {
+        const hide = post.membersOnly && !isLoggedIn;
+        if (hide) {
+          return {
+            ...post,
+            body: "",
+            ctaLink: "",
+            ctaLabel: "",
+            videoUrl: "",
+          };
+        } else {
+          return post;
+        }
+      });
 
-      res.json({ posts: postsWithCreators });
+      console.log("Posts with creators and tags:", postsHidingMemberContent);
+
+      res.json({ posts: postsHidingMemberContent });
     } catch (error) {
       console.error("Failed to fetch posts:", error);
       res.status(500).json({ error: "Failed to fetch posts" });
@@ -459,9 +475,9 @@ export async function registerRoutes(app: Express) {
   app.get("/api/people/by-username/:username", async (req, res) => {
     try {
       const username = decodeURIComponent(req.params.username);
-      console.log('Looking up person by username:', {
+      console.log("Looking up person by username:", {
         originalUsername: username,
-        decodedUsername: username
+        decodedUsername: username,
       });
 
       // First try exact match
@@ -474,13 +490,13 @@ export async function registerRoutes(app: Express) {
       // If no exact match, try normalized version (remove accents)
       if (!person[0]) {
         const normalizedUsername = username
-          .normalize('NFKD')
-          .replace(/[\u0300-\u036f]/g, '')
+          .normalize("NFKD")
+          .replace(/[\u0300-\u036f]/g, "")
           .toLowerCase();
 
-        console.log('Trying normalized username lookup:', {
+        console.log("Trying normalized username lookup:", {
           normalizedUsername,
-          originalUsername: username
+          originalUsername: username,
         });
 
         person = await db
@@ -491,9 +507,12 @@ export async function registerRoutes(app: Express) {
       }
 
       if (!person[0]) {
-        console.log('Person not found for username:', {
+        console.log("Person not found for username:", {
           username,
-          normalized: username.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+          normalized: username
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase(),
         });
         return res.status(404).json({ error: "Person not found" });
       }
@@ -521,13 +540,13 @@ export async function registerRoutes(app: Express) {
 
         person[0].user = {
           ...userData[0],
-          badges: userBadges
+          badges: userBadges,
         };
       }
 
       res.json(person[0]);
     } catch (error) {
-      console.error('Error looking up person by username:', error);
+      console.error("Error looking up person by username:", error);
       res.status(500).json({ error: "Failed to fetch person details" });
     }
   });
@@ -538,7 +557,7 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 50;
       const searchQuery = ((req.query.search as string) || "").toLowerCase();
       const sort = req.query.sort as string;
-      const verifiedOnly = req.query.verifiedOnly === 'true';
+      const verifiedOnly = req.query.verifiedOnly === "true";
 
       console.log(
         "Fetching people from storage with search:",
@@ -546,7 +565,7 @@ export async function registerRoutes(app: Express) {
         "sort:",
         sort,
         "verifiedOnly:",
-        verifiedOnly
+        verifiedOnly,
       );
 
       const attendanceCounts = await db.execute(sql`
@@ -571,13 +590,13 @@ export async function registerRoutes(app: Express) {
           api_id: people.api_id,
           email: people.email,
           userName: people.userName,
-          fullName: people.fullName, 
+          fullName: people.fullName,
           avatarUrl: people.avatarUrl,
           role: people.role,
           phoneNumber: people.phoneNumber,
           bio: people.bio,
           organizationName: people.organizationName,
-          jobTitle: people.jobTitle
+          jobTitle: people.jobTitle,
         })
         .from(people);
 
@@ -593,12 +612,12 @@ export async function registerRoutes(app: Express) {
         if (verifiedOnly) {
           // For verified users, add search conditions to the existing where clause
           query = query.where(
-            sql`(LOWER(people.user_name) LIKE ${`%${searchQuery}%`} OR LOWER(people.email) LIKE ${`%${searchQuery}%`})`
+            sql`(LOWER(people.user_name) LIKE ${`%${searchQuery}%`} OR LOWER(people.email) LIKE ${`%${searchQuery}%`})`,
           );
         } else {
           // For all users (when verified flag is not set)
           query = query.where(
-            sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`
+            sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`,
           );
         }
       }
@@ -623,10 +642,12 @@ export async function registerRoutes(app: Express) {
 
         const start = (page - 1) * limit;
         const end = start + limit;
-        const paginatedPeople = sortedPeople.slice(start, end);
+        const paginatedPeople = sortedPeople.slice(start, end).map((p) => {
+          return { ...p, email: "" };
+        });
 
         console.log(
-          `Returning sorted verified people from index ${start} to ${end - 1}, total: ${sortedPeople.length}`
+          `Returning sorted verified people from index ${start} to ${end - 1}, total: ${sortedPeople.length}`,
         );
 
         res.json({
@@ -638,10 +659,11 @@ export async function registerRoutes(app: Express) {
 
       const start = (page - 1) * limit;
       const end = start + limit;
-      const paginatedPeople = allPeople.slice(start, end);
-
+      const paginatedPeople = allPeople.slice(start, end).map((p) => {
+        return { ...p, email: "" };
+      });
       console.log(
-        `Returning paginated verified people, total: ${allPeople.length}`
+        `Returning paginated verified people, total: ${allPeople.length}`,
       );
 
       res.json({
@@ -667,13 +689,15 @@ export async function registerRoutes(app: Express) {
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
         // Don't reveal if user exists or not
-        return res.json({ message: "If an account exists, a password reset email will be sent" });
+        return res.json({
+          message: "If an account exists, a password reset email will be sent",
+        });
       }
 
-      console.log('Processing password reset request for email:', email, {
+      console.log("Processing password reset request for email:", email, {
         userId: user.id,
         hasDisplayName: !!user.displayName,
-        email: user.email
+        email: user.email,
       });
 
       // Delete any existing reset tokens for this email
@@ -681,38 +705,45 @@ export async function registerRoutes(app: Express) {
 
       // Generate and store new reset token
       const token = await generateResetToken();
-      const verificationToken = await storage.createPasswordResetToken(email, token);
-      
-      console.log('Created password reset token:', {
+      const verificationToken = await storage.createPasswordResetToken(
+        email,
+        token,
+      );
+
+      console.log("Created password reset token:", {
         email,
         tokenId: verificationToken.id,
         expiresAt: verificationToken.expiresAt,
         userDetails: {
           id: user.id,
-          hasDisplayName: !!user.displayName
-        }
+          hasDisplayName: !!user.displayName,
+        },
       });
 
       // Send password reset email
       const emailSent = await sendPasswordResetEmail(email, token);
       if (!emailSent) {
-        console.error('Failed to send password reset email to:', email, {
+        console.error("Failed to send password reset email to:", email, {
           userId: user.id,
-          hasDisplayName: !!user.displayName
+          hasDisplayName: !!user.displayName,
         });
         throw new Error("Failed to send password reset email");
       }
 
-      console.log('Successfully processed password reset request for:', email);
-      res.json({ message: "If an account exists, a password reset email will be sent" });
+      console.log("Successfully processed password reset request for:", email);
+      res.json({
+        message: "If an account exists, a password reset email will be sent",
+      });
     } catch (error: any) {
       console.error("Password reset request error:", {
         error: error.message,
         code: error.code,
         response: error.response?.body,
-        stack: error.stack
+        stack: error.stack,
       });
-      res.status(500).json({ error: "Failed to process password reset request" });
+      res
+        .status(500)
+        .json({ error: "Failed to process password reset request" });
     }
   });
 
@@ -724,16 +755,21 @@ export async function registerRoutes(app: Express) {
       try {
         await updatePasswordSchema.parseAsync({ password });
       } catch (error) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           error: "Invalid password",
-          details: error instanceof Error ? error.message : "Password validation failed"
+          details:
+            error instanceof Error
+              ? error.message
+              : "Password validation failed",
         });
       }
 
       // Validate token
       const verificationToken = await storage.validatePasswordResetToken(token);
       if (!verificationToken) {
-        return res.status(400).json({ error: "Invalid or expired reset token" });
+        return res
+          .status(400)
+          .json({ error: "Invalid or expired reset token" });
       }
 
       // Find user by email
@@ -1985,12 +2021,9 @@ export async function registerRoutes(app: Express) {
 
       if (!isLocalRequest && !isDevelopment) {
         console.warn(`Unauthorized database reset attempt from ${requestIP}`);
-        return res
-          .status(403)
-          .json({
-            error:
-              "Forbidden. This endpoint is restricted to internal use only.",
-          });
+        return res.status(403).json({
+          error: "Forbidden. This endpoint is restricted to internal use only.",
+        });
       }
 
       initSSE(res);
@@ -2728,8 +2761,19 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/public/posts", async (req, res) => {
     try {
+      const isLoggedIn = req.session.userId;
       console.log("Fetching public posts...");
-      const posts = await storage.getPosts();
+      const posts = (await storage.getPosts()).map((post) => {
+        console.log("Post fetched:", post.membersOnly);
+        const hide = post.membersOnly && !isLoggedIn;
+        return {
+          ...post,
+          body: hide ? "" : post.body,
+          ctaLink: hide ? "" : post.ctaLink,
+          ctaLabel: hide ? "" : post.ctaLabel,
+          videoUrl: hide ? "" : post.videoUrl,
+        };
+      });
       console.log(
         "Public posts retrieved:",
         posts.map((p) => ({
