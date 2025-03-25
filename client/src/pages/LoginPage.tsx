@@ -25,8 +25,8 @@ export default function LoginPage() {
   // Handle redirect if already logged in using useEffect
   useEffect(() => {
     if (user) {
-      // Force a full page reload to ensure all content is refreshed properly
-      window.location.reload();
+      // Force a full page reload with cache busting 
+      window.location.href = window.location.origin + '?t=' + new Date().getTime();
     }
   }, [user]);
 

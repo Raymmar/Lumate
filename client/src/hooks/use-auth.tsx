@@ -84,8 +84,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: () => {
-      // Force a FULL page reload (not just redirect) to refresh all content
-      window.location.reload();
+      // Force a FULL page reload with cache busting
+      window.location.href = window.location.origin + '?t=' + new Date().getTime();
     },
     onError: (error: Error) => {
       toast({
