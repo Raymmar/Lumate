@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();

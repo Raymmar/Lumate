@@ -29,12 +29,14 @@ function useLogoutMutation() {
       }
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/me"], null);
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
-
       toast({
         title: "Success",
         description: "Logged out successfully",
+      });
+      
+      // Use the nuclear option to reset everything and force a full reload
+      import('@/lib/utils').then(({ forceCompleteReset }) => {
+        forceCompleteReset();
       });
     },
     onError: (error: Error) => {
@@ -84,12 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return response.json();
     },
     onSuccess: () => {
-      // Clear the entire query cache to force data refetching
-      queryClient.clear();
-      
-      // Force a full navigation with cache busting
-      const clearCacheTimestamp = new Date().getTime();
-      window.location.href = window.location.origin + '?refresh=' + clearCacheTimestamp;
+      // Use the nuclear option to reset everything and force a full reload
+      import('@/lib/utils').then(({ forceCompleteReset }) => {
+        forceCompleteReset();
+      });
     },
     onError: (error: Error) => {
       toast({

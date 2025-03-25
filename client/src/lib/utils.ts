@@ -1,8 +1,40 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { queryClient } from "./queryClient"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Force a complete application reset:
+ * 1. Clears React Query cache
+ * 2. Removes localStorage caches
+ * 3. Performs a hard browser navigation refresh
+ * 
+ * This is the nuclear option to completely restart the app
+ * and ensure all data is freshly loaded from the server
+ */
+export function forceCompleteReset() {
+  // 1. Clear all React Query caches
+  queryClient.clear();
+  
+  // 2. Clear any localStorage caches that might be relevant
+  try {
+    // Add app-specific cache keys here if needed
+    localStorage.removeItem('last_data_refresh');
+  } catch (e) {
+    console.error('Error clearing localStorage:', e);
+  }
+  
+  // 3. Force a full page navigation with cache-busting parameter
+  const timestamp = new Date().getTime();
+  
+  // Use replaceState to clear the history entry (so back button doesn't revert)
+  window.history.replaceState(null, '', window.location.pathname);
+  
+  // Force a hard navigation to root with cache busting
+  window.location.href = window.location.origin + '?force_refresh=' + timestamp;
 }
 
 export function formatUsernameForUrl(username: string | null, fallbackId: string): string {
