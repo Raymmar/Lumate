@@ -164,6 +164,22 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     onOpenChange?.(newOpen);
+    
+    // Run a test fetch on the API when dialog opens
+    if (newOpen) {
+      console.log("Dialog opened - testing email search API directly");
+      fetch('/api/people/search-emails?query=test')
+        .then(response => {
+          console.log("Test API response status:", response.status);
+          return response.json();
+        })
+        .then(data => {
+          console.log("Test API response data:", data);
+        })
+        .catch(error => {
+          console.error("Test API fetch error:", error);
+        });
+    }
   };
 
   const handleSuggestionSelect = (suggestion: EmailSuggestion) => {
@@ -313,13 +329,46 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
               </Command>
             </div>
           </div>
-          <Button
-            type="submit"
-            disabled={claimProfileMutation.isPending || (!email && !inputValue)}
-            className="w-full"
-          >
-            {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
-          </Button>
+          <div className="space-y-4">
+            <Button
+              type="submit"
+              disabled={claimProfileMutation.isPending || (!email && !inputValue)}
+              className="w-full"
+            >
+              {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
+            </Button>
+            
+            <Button 
+              type="button"
+              variant="outline"
+              className="w-full mt-2"
+              onClick={() => {
+                console.log("Test button clicked - testing email search API");
+                fetch('/api/people/search-emails?query=test')
+                  .then(response => {
+                    console.log("Test API response status:", response.status);
+                    return response.json();
+                  })
+                  .then(data => {
+                    console.log("Test API response data:", data);
+                    toast({
+                      title: "API Test Result",
+                      description: `Got ${data.results?.length || 0} results. Check console for details.`,
+                    });
+                  })
+                  .catch(error => {
+                    console.error("Test API fetch error:", error);
+                    toast({
+                      title: "API Test Failed",
+                      description: `Error: ${error.message}`,
+                      variant: "destructive"
+                    });
+                  });
+              }}
+            >
+              Test API Endpoint
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
