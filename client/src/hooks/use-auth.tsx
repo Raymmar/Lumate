@@ -81,11 +81,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const error = await response.json();
         throw new Error(error.error || "Login failed");
       }
-      return response.json();
-    },
-    onSuccess: () => {
-      // IMMEDIATELY FORCE A FULL PAGE REFRESH
-      window.location.reload();
+      
+      // For HTML responses (our new approach), we don't try to parse JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("text/html")) {
+        // The HTML response will automatically redirect, so we return an empty object
+        return {};
+      } else {
+        // Fallback to JSON parsing for backward compatibility
+        return response.json();
+      }
     },
     onError: (error: Error) => {
       toast({
