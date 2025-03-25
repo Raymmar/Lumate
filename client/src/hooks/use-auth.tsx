@@ -92,6 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Logged in successfully",
       });
+      
+      // Force a full page refresh after successful login
+      // This ensures all member-only content is properly loaded
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
     },
     onError: (error: Error) => {
       toast({

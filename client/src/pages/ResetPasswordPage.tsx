@@ -53,7 +53,10 @@ export default function ResetPasswordPage() {
         description: "Your password has been reset. You can now log in with your new password.",
       });
 
-      setLocation("/login");
+      // Force a full page refresh when redirecting to login page
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 500);
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to reset password");
       toast({
@@ -79,7 +82,10 @@ export default function ResetPasswordPage() {
             </CardHeader>
             <CardContent>
               <Button
-                onClick={() => setLocation("/login")}
+                onClick={() => {
+                  // Force a full page refresh when going back to login
+                  window.location.href = '/login';
+                }}
                 className="w-full"
               >
                 Back to Login

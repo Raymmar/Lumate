@@ -55,7 +55,10 @@ export default function VerifyPage() {
             title: "Success",
             description: "Your profile has been verified successfully.",
           });
-          setLocation('/');
+          // Force a full page refresh to load all member-only content
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 500);
         }
       } catch (error) {
         console.error('Verification error:', error);
