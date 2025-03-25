@@ -29,29 +29,13 @@ function useLogoutMutation() {
       }
     },
     onSuccess: () => {
+      queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+
       toast({
         title: "Success",
         description: "Logged out successfully",
       });
-      
-      console.log("TRIGGERING LOGOUT NUCLEAR RESET");
-      
-      // Check if the direct refresh method is available
-      if (window._forceHardRefresh) {
-        console.log("USING DIRECT BROWSER REFRESH METHOD FOR LOGOUT");
-        // Use the most direct approach possible, but delay slightly to show toast
-        setTimeout(() => {
-          window._forceHardRefresh();
-        }, 300);
-      } else {
-        // Fallback to previous approach
-        console.log("FALLING BACK TO UTILS RESET METHOD FOR LOGOUT");
-        import('@/lib/utils').then(({ forceCompleteReset }) => {
-          setTimeout(() => {
-            forceCompleteReset();
-          }, 300);
-        });
-      }
     },
     onError: (error: Error) => {
       toast({
@@ -99,23 +83,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return response.json();
     },
-    onSuccess: () => {
-      console.log("TRIGGERING LOGIN NUCLEAR RESET");
-      
-      // Check if the direct refresh method is available (injected by LoginPage)
-      if (window._forceHardRefresh) {
-        console.log("USING DIRECT BROWSER REFRESH METHOD");
-        // Use the most direct approach possible
-        window._forceHardRefresh();
-      } else {
-        // Fallback to previous approach
-        console.log("FALLING BACK TO UTILS RESET METHOD");
-        import('@/lib/utils').then(({ forceCompleteReset }) => {
-          setTimeout(() => {
-            forceCompleteReset();
-          }, 300);
-        });
-      }
+    onSuccess: (data) => {
+      const userData = data.user || data;
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.setQueryData(["/api/auth/me"], userData);
+
+      toast({
+        title: "Success",
+        description: "Logged in successfully",
+      });
     },
     onError: (error: Error) => {
       toast({
