@@ -1309,11 +1309,14 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // Email autocomplete endpoint
   app.get("/api/people/search-emails", async (req, res) => {
     try {
+      console.log("Email Search API: Received request with query params:", req.query);
       const query = req.query.query as string;
       
       if (!query || typeof query !== 'string') {
+        console.log("Email Search API: Invalid query parameter, returning empty results");
         return res.json({ results: [] });
       }
       
@@ -1321,10 +1324,11 @@ export async function registerRoutes(app: Express) {
       
       // If query is too short, return empty results to avoid heavy database queries
       if (searchQuery.length < 2) {
+        console.log("Email Search API: Query too short, returning empty results");
         return res.json({ results: [] });
       }
       
-      console.log("Email Search: Searching for emails matching:", searchQuery);
+      console.log("Email Search API: Searching for emails matching:", searchQuery);
       
       // Search for emails that match the query
       const results = await db
@@ -1340,19 +1344,23 @@ export async function registerRoutes(app: Express) {
         .where(sql`LOWER(email) LIKE ${`%${searchQuery}%`}`)
         .limit(10);
         
-      console.log(`Email Search: Found ${results.length} matching emails`);
+      console.log(`Email Search API: Found ${results.length} matching emails:`, 
+        results.map(p => p.email));
         
       // Check which profiles are already claimed
       const emailSet = new Set(results.map(person => person.email.toLowerCase()));
       
       if (emailSet.size > 0) {
         const claimedEmailsList = Array.from(emailSet);
+        console.log("Email Search API: Checking claimed status for emails:", claimedEmailsList);
+        
         const claimedEmailsQuery = await db
           .select({ email: users.email })
           .from(users)
           .where(sql`LOWER(email) IN (${claimedEmailsList})`);
           
         const claimedEmails = new Set(claimedEmailsQuery.map(user => user.email.toLowerCase()));
+        console.log("Email Search API: Found claimed emails:", Array.from(claimedEmails));
         
         // Add isClaimed flag to results
         const resultsWithClaimStatus = results.map(person => ({
@@ -1360,9 +1368,12 @@ export async function registerRoutes(app: Express) {
           isClaimed: claimedEmails.has(person.email.toLowerCase())
         }));
         
+        console.log("Email Search API: Sending response with results:", 
+          resultsWithClaimStatus.length);
         return res.json({ results: resultsWithClaimStatus });
       }
       
+      console.log("Email Search API: Sending response with unclaimed results:", results.length);
       return res.json({ results: results.map(person => ({ ...person, isClaimed: false })) });
     } catch (error) {
       console.error("Email Search: Error during search:", error);
