@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Plus, X, Lock, AlertCircle } from "lucide-react";
+import { Loader2, Plus, X, Lock, AlertCircle, User, Mail, ExternalLink } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,13 @@ import { Sun, Moon, Monitor } from "lucide-react";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Form,
   FormControl,
@@ -235,13 +242,53 @@ export default function UserSettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="px-6">
-            <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/50">
-              <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
-                Your display name, profile picture, and email address are managed through Lu.ma. 
-                To update these fields, please visit your <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-amber-600">Lu.ma settings</a>.
-              </AlertDescription>
-            </Alert>
+            <TooltipProvider>
+              {/* Luma Profile Information Card */}
+              <Card className="mb-6 overflow-hidden">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <CardHeader className="px-4 pb-2 flex flex-row items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <h3 className="text-lg font-medium">Profile Details</h3>
+                          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            <span>Lu.ma</span>
+                          </a>
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="px-4 py-3">
+                        <div className="flex items-center gap-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback>
+                              {(user.displayName || user.email).charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                            <div className="font-medium">{user.displayName || "User"}</div>
+                            <div className="flex items-center text-sm text-muted-foreground gap-1">
+                              <Mail className="h-3.5 w-3.5" />
+                              <span>{user.email}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="w-80 p-3">
+                    <div className="text-sm">
+                      <p className="font-medium mb-1">Lu.ma-Managed Information</p>
+                      <p>Your display name, profile picture, and email address are managed through Lu.ma. 
+                      To update these fields, please visit your <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-amber-600">Lu.ma settings</a>.</p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </Card>
+            </TooltipProvider>
+            
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-3">
                 {/* Basic Information - Always Available */}
@@ -419,7 +466,9 @@ export default function UserSettingsPage() {
 
                         <div className="flex items-center gap-4">
                           <div className="flex-1">
-                            <p className="text-sm text-muted-foreground">{user?.email}</p>
+                            <FormLabel className="text-sm text-muted-foreground">
+                              Email Privacy
+                            </FormLabel>
                           </div>
                           <FormField
                             control={form.control}
