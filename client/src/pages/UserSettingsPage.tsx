@@ -250,7 +250,7 @@ export default function UserSettingsPage() {
                     <div className="relative">
                       <CardHeader className="px-4 pb-2 flex flex-row items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-medium">Profile Details</h3>
+                          <h3 className="text-lg font-medium">Profile Details TEST</h3>
                           <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <Button variant="outline" size="sm" asChild>
