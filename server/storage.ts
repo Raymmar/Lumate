@@ -13,8 +13,10 @@ import {
   EventRsvpStatus, InsertEventRsvpStatus,
   Attendance, InsertAttendance,
   CacheMetadata, InsertCacheMetadata,
+  Badge,
   events, people, users, roles, permissions, userRoles, rolePermissions,
-  posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata
+  posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
+  badges, userBadges as userBadgesTable
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -39,6 +41,8 @@ export interface IStorage {
   getPersonByApiId(apiId: string): Promise<Person | null>;
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
+  getFeaturedMember(): Promise<(Person & { user?: User & { badges?: Array<Badge> } }) | null>;
+  setFeaturedMember(personId: number): Promise<void>;
 
   // Cache metadata
   getLastCacheUpdate(): Promise<Date | null>;
@@ -958,8 +962,127 @@ export class PostgresStorage implements IStorage {
         .limit(1);
 
       return result.length > 0 ? result[0] : null;
-    }catch (error) {
+    } catch (error) {
       console.error('Failed to get featured event:', error);
+      throw error;
+    }
+  }
+
+  async getFeaturedMember(): Promise<(Person & { user?: User & { badges?: Array<Badge> } }) | null> {
+    try {
+      const FEATURED_MEMBER_KEY = 'featured_member';
+      const EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      
+      // Check if we have a cached featured member
+      const cachedData = await db
+        .select()
+        .from(cacheMetadata)
+        .where(eq(cacheMetadata.key, FEATURED_MEMBER_KEY))
+        .limit(1);
+      
+      let personId: number | null = null;
+      
+      if (cachedData.length > 0) {
+        const cachedMember = JSON.parse(cachedData[0].value);
+        const updatedAt = new Date(cachedData[0].updatedAt);
+        const now = new Date();
+        
+        // Check if the cached member is still valid (less than 24 hours old)
+        if (now.getTime() - updatedAt.getTime() < EXPIRATION_TIME) {
+          personId = cachedMember.personId;
+          console.log('Using cached featured member:', personId);
+        }
+      }
+      
+      // If we don't have a valid cached member, select a random one from top attendees
+      if (!personId) {
+        const topAttendees = await this.getTopAttendees(10);
+        if (topAttendees.length === 0) {
+          return null;
+        }
+        
+        // Select a random attendee from the top 10
+        const randomIndex = Math.floor(Math.random() * topAttendees.length);
+        personId = topAttendees[randomIndex].id;
+        
+        // Cache this featured member
+        await this.setFeaturedMember(personId);
+      }
+      
+      // Get the complete person data with user and badges
+      const personData = await db
+        .select({
+          ...people,
+          user: {
+            id: users.id,
+            email: users.email,
+            displayName: users.displayName,
+            bio: users.bio,
+            isAdmin: users.isAdmin
+          }
+        })
+        .from(people)
+        .leftJoin(users, eq(users.email, people.email))
+        .where(eq(people.id, personId))
+        .limit(1);
+      
+      if (personData.length === 0) {
+        return null;
+      }
+      
+      // Get user badges if there's a user
+      let featuredMember = personData[0];
+      if (featuredMember.user && featuredMember.user.id) {
+        const userBadges = await db
+          .select({
+            id: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic
+          })
+          .from(userBadgesTable)
+          .leftJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .where(eq(userBadgesTable.userId, featuredMember.user.id));
+        
+        featuredMember = {
+          ...featuredMember,
+          user: {
+            ...featuredMember.user,
+            badges: userBadges
+          }
+        };
+      }
+      
+      return featuredMember;
+    } catch (error) {
+      console.error('Failed to get featured member:', error);
+      return null;
+    }
+  }
+  
+  async setFeaturedMember(personId: number): Promise<void> {
+    try {
+      const FEATURED_MEMBER_KEY = 'featured_member';
+      
+      // Store the person ID in the cache
+      await db
+        .insert(cacheMetadata)
+        .values({
+          key: FEATURED_MEMBER_KEY,
+          value: JSON.stringify({ personId }),
+        })
+        .onConflictDoUpdate({
+          target: cacheMetadata.key,
+          set: {
+            value: JSON.stringify({ personId }),
+            updatedAt: new Date().toISOString(),
+          }
+        });
+      
+      console.log('Successfully set featured member:', personId);
+    } catch (error) {
+      console.error('Failed to set featured member:', error);
       throw error;
     }
   }

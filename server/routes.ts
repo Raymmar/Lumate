@@ -1181,6 +1181,20 @@ export async function registerRoutes(app: Express) {
       return res.status(500).json({ error: "Failed to update admin status" });
     }
   });
+  
+  // Get the featured member
+  app.get("/api/people/featured", async (req, res) => {
+    try {
+      const featuredMember = await storage.getFeaturedMember();
+      if (!featuredMember) {
+        return res.status(404).json({ error: "No featured member found" });
+      }
+      res.json(featuredMember);
+    } catch (error) {
+      console.error("Error fetching featured member:", error);
+      res.status(500).json({ error: "Failed to retrieve featured member" });
+    }
+  });
 
   app.get("/api/people/:id", async (req, res) => {
     try {

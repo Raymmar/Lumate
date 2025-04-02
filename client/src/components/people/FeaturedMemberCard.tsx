@@ -71,18 +71,31 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
     enabled: !!personId, // Only fetch if personId is provided
   });
 
-  // Fetch founding members
+  // Fetch the featured member from our new endpoint (cached for 24 hours on the server)
+  const { data: featuredMember, isLoading: featuredMemberLoading } = useQuery<Person>({
+    queryKey: ["/api/people/featured"],
+    queryFn: async () => {
+      const response = await fetch("/api/people/featured");
+      if (!response.ok) {
+        throw new Error("Failed to fetch featured member");
+      }
+      return response.json();
+    },
+    enabled: !personId, // Only fetch if no specific personId is provided
+    staleTime: 60 * 60 * 1000, // Cache for 1 hour on the client side
+  });
+
+  // Fallback to founding members if featured member is not available
   const { data: foundingMembersData, isLoading: foundingMembersLoading } = useQuery<{ badge: { id: number, name: string }, users: Member[] }>({
     queryKey: ["/api/badges/Founding Member/users"],
     queryFn: async () => {
-      // Use the same endpoint that's used on the About page to fetch founding members
       const response = await fetch("/api/badges/Founding Member/users");
       if (!response.ok) {
         throw new Error("Failed to fetch founding members");
       }
       return response.json();
     },
-    enabled: !personId, // Only fetch if no specific personId is provided
+    enabled: !personId && !featuredMember, // Only fetch if no specific personId or featured member is provided
   });
 
   // Extract users from founding members data
@@ -105,13 +118,19 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
     };
   };
 
-  // If personId is provided, use that person, otherwise randomly select a founding member
+  // If personId is provided, use that person
+  // Otherwise use the featured member from our new endpoint
+  // Finally fall back to a random founding member
   const person = specificPerson || 
+    featuredMember ||
     (foundingMembers.length > 0 
       ? getMemberPerson(foundingMembers[Math.floor(Math.random() * foundingMembers.length)])
       : null);
 
-  const isLoading = personId ? specificPersonLoading : foundingMembersLoading;
+  const isLoading = 
+    (personId ? specificPersonLoading : false) || 
+    (!personId ? featuredMemberLoading : false) ||
+    (!personId && !featuredMember ? foundingMembersLoading : false);
 
   if (isLoading) {
     return (
