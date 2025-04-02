@@ -18,6 +18,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { MembersOnlyCard } from "./MembersOnlyCard";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
+import { YoutubeEmbed } from "@/components/ui/youtube-embed";
+import { FeaturedMemberCard } from "@/components/people/FeaturedMemberCard";
 
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
@@ -279,6 +281,16 @@ export function BulletinBoard() {
           isLoading={isLoading}
           description="63% open rate 21% click rate"
         />
+      </div>
+
+      {/* Video and Featured Member section */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <YoutubeEmbed videoId="JMy4CmxWMlE" title="Raymmar YouTube Video" />
+        </div>
+        <div>
+          <FeaturedMemberCard />
+        </div>
       </div>
 
       <PinnedPostsCarousel onSelect={handleSelectPost} />
