@@ -1,6 +1,7 @@
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { SiLinkedin } from "react-icons/si";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
@@ -8,6 +9,7 @@ import { SocialLinks } from "@/components/ui/social-links";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
+import { ExternalLink } from "lucide-react";
 
 function TimelineSection() {
   const events = [
@@ -238,6 +240,18 @@ function FoundingMembersSection() {
           })}
         </div>
       )}
+      
+      <div className="text-center mt-8">
+        <p className="text-muted-foreground mb-4">
+          If you are a founding member and do not see your name listed here, reach out to set up your account.
+        </p>
+        <a href="https://calendly.com/srqyou/full" target="_blank" rel="noopener noreferrer">
+          <Button variant="outline" className="gap-2">
+            Schedule a Meeting
+            <ExternalLink size={16} />
+          </Button>
+        </a>
+      </div>
     </div>
   );
 }
