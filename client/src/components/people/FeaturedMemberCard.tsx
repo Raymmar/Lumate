@@ -209,7 +209,7 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
 
         {person.user?.badges && person.user.badges.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {person.user.badges.slice(0, 3).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
+            {person.user.badges.slice(0, 5).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
               // Use a simpler approach without direct component rendering
               return (
                 <Badge key={badge.id} variant="secondary" className="gap-1">
@@ -217,9 +217,6 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
                 </Badge>
               );
             })}
-            {person.user.badges.length > 3 && (
-              <Badge variant="outline">+{person.user.badges.length - 3} more</Badge>
-            )}
           </div>
         )}
 
