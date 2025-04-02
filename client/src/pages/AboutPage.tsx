@@ -191,9 +191,6 @@ function FoundingMembersSection() {
                   )}
                 </Avatar>
                 <p className="font-medium text-sm">{displayName}</p>
-                <p className="text-xs text-muted-foreground">
-                  {member.person?.contributionArea || member.person?.role || 'Member'}
-                </p>
               </div>
             );
             

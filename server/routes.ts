@@ -866,8 +866,7 @@ export async function registerRoutes(app: Express) {
             person: user.person ? {
               id: user.person.id,
               userName: user.person.userName,
-              avatarUrl: user.person.avatarUrl,
-              contributionArea: ["Technical", "Community", "Events", "Marketing"][Math.floor(Math.random() * 4)] // Temporary random assignment if real data is missing
+              avatarUrl: user.person.avatarUrl
             } : null
           };
         })
