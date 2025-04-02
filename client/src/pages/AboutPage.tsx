@@ -1,10 +1,13 @@
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { SiLinkedin } from "react-icons/si";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "wouter";
 
 function TimelineSection() {
   const events = [
@@ -126,32 +129,84 @@ function BoardMembersSection() {
 }
 
 function FoundingMembersSection() {
-  const members = Array.from({ length: 22 }, (_, i) => ({
-    name: `Founding Member ${i + 1}`,
-    contributionArea: ["Technical", "Community", "Events", "Marketing"][i % 4],
-  }));
-
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['/api/badges/Founding Member/users'],
+    enabled: true,
+  });
+  
+  const foundingMembers = data?.users || [];
+  
+  if (isLoading) {
+    return (
+      <div className="space-y-12">
+        <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="text-center">
+              <Skeleton className="w-16 h-16 mx-auto mb-2 rounded-full" />
+              <Skeleton className="h-4 w-20 mx-auto" />
+              <Skeleton className="h-3 w-16 mx-auto mt-2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
+        <p className="text-center text-muted-foreground">
+          Unable to load founding members. Please try again later.
+        </p>
+      </div>
+    );
+  }
+  
   return (
     <div className="space-y-12">
       <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
-        {members.map((member) => (
-          <div key={member.name} className="text-center">
-            <Avatar className="w-16 h-16 mx-auto mb-2">
-              <AvatarFallback>
-                {member.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
-              </AvatarFallback>
-            </Avatar>
-            <p className="font-medium text-sm">{member.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {member.contributionArea}
-            </p>
-          </div>
-        ))}
-      </div>
+      {foundingMembers.length === 0 ? (
+        <p className="text-center text-muted-foreground">
+          No founding members found.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
+          {foundingMembers.map((member) => {
+            const displayName = member.displayName || member.email?.split('@')[0];
+            const initials = displayName
+              .split(" ")
+              .map((n) => n[0])
+              .join("");
+            const userName = member.person?.userName;
+            
+            const memberElement = (
+              <div key={member.id} className="text-center">
+                <Avatar className="w-16 h-16 mx-auto mb-2">
+                  {member.person?.avatarUrl ? (
+                    <AvatarImage src={member.person.avatarUrl} alt={displayName} />
+                  ) : (
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  )}
+                </Avatar>
+                <p className="font-medium text-sm">{displayName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {member.person?.contributionArea || member.person?.role || 'Member'}
+                </p>
+              </div>
+            );
+            
+            return userName ? (
+              <Link key={member.id} href={`/people/${userName}`}>
+                {memberElement}
+              </Link>
+            ) : (
+              memberElement
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

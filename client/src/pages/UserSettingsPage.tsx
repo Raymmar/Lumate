@@ -5,7 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Plus, X, Lock, AlertCircle, User, Mail, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  X,
+  Lock,
+  AlertCircle,
+  User,
+  Mail,
+  ExternalLink,
+} from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +24,11 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
-import { type UpdateUserProfile, type Location, updateUserProfileSchema } from "@shared/schema";
+import {
+  type UpdateUserProfile,
+  type Location,
+  updateUserProfileSchema,
+} from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -67,7 +80,7 @@ export default function UserSettingsPage() {
       tags: [],
     },
     mode: "onBlur", // Only validate when user leaves a field
-    reValidateMode: "onBlur" // Re-validate on blur instead of every change
+    reValidateMode: "onBlur", // Re-validate on blur instead of every change
   });
 
   // Update form values when user data is available
@@ -79,7 +92,11 @@ export default function UserSettingsPage() {
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
         companyDescription: user.companyDescription || "",
-        address: user.address ? (typeof user.address === 'string' ? { address: user.address } : user.address) as Location : null,
+        address: user.address
+          ? ((typeof user.address === "string"
+              ? { address: user.address }
+              : user.address) as Location)
+          : null,
         phoneNumber: user.phoneNumber || "",
         isPhonePublic: user.isPhonePublic || false,
         isEmailPublic: user.isEmailPublic || false,
@@ -92,22 +109,25 @@ export default function UserSettingsPage() {
   }, [user, form.reset]);
 
   // Enhanced subscription status check with proper typing
-  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } = useQuery({
-    queryKey: ['/api/subscription/status'],
-    queryFn: async () => {
-      const response = await fetch('/api/subscription/status');
-      if (!response.ok) throw new Error('Failed to fetch subscription status');
-      const data = await response.json();
-      return data as { status: string };
-    },
-    enabled: !!user && !user.isAdmin,
-    // Reduce stale time to ensure fresh data after payment
-    staleTime: 0,
-    // Add retry for better reliability
-    retry: 3,
-  });
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
+    useQuery({
+      queryKey: ["/api/subscription/status"],
+      queryFn: async () => {
+        const response = await fetch("/api/subscription/status");
+        if (!response.ok)
+          throw new Error("Failed to fetch subscription status");
+        const data = await response.json();
+        return data as { status: string };
+      },
+      enabled: !!user && !user.isAdmin,
+      // Reduce stale time to ensure fresh data after payment
+      staleTime: 0,
+      // Add retry for better reliability
+      retry: 3,
+    });
 
-  const hasActiveSubscription = user?.isAdmin || subscriptionStatus?.status === 'active';
+  const hasActiveSubscription =
+    user?.isAdmin || subscriptionStatus?.status === "active";
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: UpdateUserProfile) => {
@@ -122,7 +142,7 @@ export default function UserSettingsPage() {
       const response = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        credentials: 'include',
+        credentials: "include",
         body: JSON.stringify(formattedData),
       });
 
@@ -137,14 +157,14 @@ export default function UserSettingsPage() {
       queryClient.setQueryData(["/api/auth/me"], data);
       toast({
         title: "Success",
-        description: "Profile updated successfully"
+        description: "Profile updated successfully",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     },
   });
@@ -154,33 +174,33 @@ export default function UserSettingsPage() {
       await updateProfileMutation.mutateAsync(data);
     } catch (error) {
       // Error handling is done in mutation's onError
-      console.error('Form submission error:', error);
+      console.error("Form submission error:", error);
     }
   });
 
   const startSubscription = async () => {
     try {
-      const response = await fetch('/api/stripe/create-checkout-session', {
-        method: 'POST',
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create checkout session');
+        throw new Error(error.message || "Failed to create checkout session");
       }
 
       const { url } = await response.json();
       if (!url) {
-        throw new Error('No portal URL received');
+        throw new Error("No portal URL received");
       }
 
       window.location.href = url;
     } catch (error) {
-      console.error('Subscription error:', error);
+      console.error("Subscription error:", error);
       toast({
         title: "Error",
         description: "Failed to start subscription process. Please try again.",
@@ -198,7 +218,7 @@ export default function UserSettingsPage() {
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
+    setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
   if (!user) {
@@ -217,7 +237,9 @@ export default function UserSettingsPage() {
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">{user?.displayName || "Settings"}</CardTitle>
+              <CardTitle className="text-2xl font-semibold">
+                {user?.displayName || "Settings"}
+              </CardTitle>
               <ToggleGroup
                 type="single"
                 value={theme}
@@ -250,11 +272,18 @@ export default function UserSettingsPage() {
                     <div className="relative">
                       <CardHeader className="px-4 pb-2 flex flex-row items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-medium">Profile Details TEST</h3>
+                          <h3 className="text-lg font-medium">
+                            Profile Details
+                          </h3>
                           <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                         </div>
                         <Button variant="outline" size="sm" asChild>
-                          <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                          <a
+                            href="https://lu.ma/settings"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1"
+                          >
                             <ExternalLink className="h-3.5 w-3.5" />
                             <span>Lu.ma</span>
                           </a>
@@ -264,11 +293,15 @@ export default function UserSettingsPage() {
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
                             <AvatarFallback>
-                              {(user.displayName || user.email).charAt(0).toUpperCase()}
+                              {(user.displayName || user.email)
+                                .charAt(0)
+                                .toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="space-y-1">
-                            <div className="font-medium">{user.displayName || "User"}</div>
+                            <div className="font-medium">
+                              {user.displayName || "User"}
+                            </div>
                             <div className="flex items-center text-sm text-muted-foreground gap-1">
                               <Mail className="h-3.5 w-3.5" />
                               <span>{user.email}</span>
@@ -280,15 +313,29 @@ export default function UserSettingsPage() {
                   </TooltipTrigger>
                   <TooltipContent side="right" className="w-80 p-3">
                     <div className="text-sm">
-                      <p className="font-medium mb-1">Lu.ma-Managed Information</p>
-                      <p>Your display name, profile picture, and email address are managed through Lu.ma. 
-                      To update these fields, please visit your <a href="https://lu.ma/settings" target="_blank" rel="noopener noreferrer" className="font-medium underline hover:text-amber-600">Lu.ma settings</a>.</p>
+                      <p className="font-medium mb-1">
+                        Lu.ma-Managed Information
+                      </p>
+                      <p>
+                        Your display name, profile picture, and email address
+                        are managed through Lu.ma. To update these fields,
+                        please visit your{" "}
+                        <a
+                          href="https://lu.ma/settings"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium underline hover:text-amber-600"
+                        >
+                          Lu.ma settings
+                        </a>
+                        .
+                      </p>
                     </div>
                   </TooltipContent>
                 </Tooltip>
               </Card>
             </TooltipProvider>
-            
+
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-3">
                 {/* Basic Information - Always Available */}
@@ -305,13 +352,13 @@ export default function UserSettingsPage() {
                           <div className="relative">
                             <Textarea
                               {...field}
-                              value={field.value || ''}
+                              value={field.value || ""}
                               placeholder="Add your custom greeting here (max 140 characters)"
                               className="resize-none h-20 min-h-[80px] border bg-muted/50 text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
                               maxLength={140}
                             />
                             <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                              {(field.value?.length || 0)}/140
+                              {field.value?.length || 0}/140
                             </div>
                           </div>
                         </FormControl>
@@ -328,12 +375,18 @@ export default function UserSettingsPage() {
                         <div className="text-center space-y-4">
                           <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
                           <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">Paid Members Only</h3>
+                            <h3 className="text-lg font-semibold">
+                              Paid Members Only
+                            </h3>
                             <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                              Upgrade your account to unlock additional premium profile features including company details,
+                              Upgrade your account to unlock additional premium
+                              profile features including company details,
                               location, contact information, and custom links.
                             </p>
-                            <Button onClick={startSubscription} className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black">
+                            <Button
+                              onClick={startSubscription}
+                              className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black"
+                            >
                               Upgrade to Premium
                             </Button>
                           </div>
@@ -344,7 +397,9 @@ export default function UserSettingsPage() {
                     <>
                       {/* Company Information */}
                       <div className="space-y-2">
-                        <h3 className="text-lg font-medium">Company Information</h3>
+                        <h3 className="text-lg font-medium">
+                          Company Information
+                        </h3>
 
                         <FormField
                           control={form.control}
@@ -352,9 +407,12 @@ export default function UserSettingsPage() {
                           render={({ field }) => (
                             <FormItem className="space-y-3">
                               <div>
-                                <FormLabel className="text-sm text-muted-foreground">Featured Image</FormLabel>
+                                <FormLabel className="text-sm text-muted-foreground">
+                                  Featured Image
+                                </FormLabel>
                                 <p className="text-sm text-muted-foreground mt-1">
-                                  This image will be displayed as a banner at the top of your company profile
+                                  This image will be displayed as a banner at
+                                  the top of your company profile
                                 </p>
                               </div>
                               <FormControl>
@@ -411,7 +469,9 @@ export default function UserSettingsPage() {
                           name="address"
                           render={({ field }) => (
                             <FormItem className="space-y-1">
-                              <FormLabel className="text-sm text-muted-foreground">Location</FormLabel>
+                              <FormLabel className="text-sm text-muted-foreground">
+                                Location
+                              </FormLabel>
                               <FormControl>
                                 <LocationPicker
                                   defaultValue={field.value}
@@ -437,7 +497,10 @@ export default function UserSettingsPage() {
                                     placeholder="Phone number"
                                     className={cn(
                                       "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
-                                      form.formState.errors.phoneNumber && form.getFieldState('phoneNumber').isTouched && "border-destructive"
+                                      form.formState.errors.phoneNumber &&
+                                        form.getFieldState("phoneNumber")
+                                          .isTouched &&
+                                        "border-destructive",
                                     )}
                                   />
                                 </FormControl>
@@ -456,7 +519,9 @@ export default function UserSettingsPage() {
                                       checked={field.value}
                                       onCheckedChange={field.onChange}
                                     />
-                                    <span className="text-sm text-muted-foreground block">Public</span>
+                                    <span className="text-sm text-muted-foreground block">
+                                      Public
+                                    </span>
                                   </div>
                                 </FormControl>
                               </FormItem>
@@ -481,7 +546,9 @@ export default function UserSettingsPage() {
                                       checked={field.value}
                                       onCheckedChange={field.onChange}
                                     />
-                                    <span className="text-sm text-muted-foreground block">Public</span>
+                                    <span className="text-sm text-muted-foreground block">
+                                      Public
+                                    </span>
                                   </div>
                                 </FormControl>
                               </FormItem>
@@ -493,15 +560,21 @@ export default function UserSettingsPage() {
                       {/* Tags */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-sm text-muted-foreground">Tags</FormLabel>
+                          <FormLabel className="text-sm text-muted-foreground">
+                            Tags
+                          </FormLabel>
                           <span className="text-sm text-muted-foreground">
                             {tags.length}/5 tags
                           </span>
                         </div>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-2 min-h-[2.5rem]">
-                            {tags.map(tag => (
-                              <Badge key={tag} variant="secondary" className="gap-1 h-7">
+                            {tags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="gap-1 h-7"
+                              >
                                 {tag}
                                 <button
                                   type="button"
@@ -519,7 +592,7 @@ export default function UserSettingsPage() {
                               value={currentTag}
                               onValueChange={setCurrentTag}
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter' && currentTag.trim()) {
+                                if (e.key === "Enter" && currentTag.trim()) {
                                   e.preventDefault();
                                   handleSelectTag(currentTag);
                                 }
@@ -537,7 +610,9 @@ export default function UserSettingsPage() {
                         render={({ field }) => (
                           <FormItem className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <FormLabel className="text-sm text-muted-foreground">Custom Links</FormLabel>
+                              <FormLabel className="text-sm text-muted-foreground">
+                                Custom Links
+                              </FormLabel>
                               <Button
                                 type="button"
                                 variant="outline"
@@ -547,12 +622,16 @@ export default function UserSettingsPage() {
                                   if (currentLinks.length >= 5) {
                                     toast({
                                       title: "Error",
-                                      description: "Maximum 5 custom links allowed",
+                                      description:
+                                        "Maximum 5 custom links allowed",
                                       variant: "destructive",
                                     });
                                     return;
                                   }
-                                  field.onChange([...currentLinks, { title: "", url: "" }]);
+                                  field.onChange([
+                                    ...currentLinks,
+                                    { title: "", url: "" },
+                                  ]);
                                 }}
                                 disabled={field.value?.length >= 5}
                                 className="h-8"
@@ -563,30 +642,50 @@ export default function UserSettingsPage() {
                             </div>
                             <div className="space-y-2">
                               {field.value?.map((link, index) => (
-                                <div key={index} className="flex gap-2 items-start">
+                                <div
+                                  key={index}
+                                  className="flex gap-2 items-start"
+                                >
                                   <div className="flex-1 flex gap-2">
                                     <div className="flex-1">
                                       <Input
                                         placeholder="Link title"
                                         value={link.title}
                                         onChange={(e) => {
-                                          const newLinks = [...(field.value || [])];
-                                          newLinks[index] = { ...newLinks[index], title: e.target.value };
+                                          const newLinks = [
+                                            ...(field.value || []),
+                                          ];
+                                          newLinks[index] = {
+                                            ...newLinks[index],
+                                            title: e.target.value,
+                                          };
                                           field.onChange(newLinks);
                                         }}
                                         className={cn(
                                           "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
-                                          form.formState.errors.customLinks?.[index]?.title && 
-                                          form.getFieldState(`customLinks.${index}.title`).isTouched && 
-                                          "border-destructive"
+                                          form.formState.errors.customLinks?.[
+                                            index
+                                          ]?.title &&
+                                            form.getFieldState(
+                                              `customLinks.${index}.title`,
+                                            ).isTouched &&
+                                            "border-destructive",
                                         )}
                                       />
-                                      {form.formState.errors.customLinks?.[index]?.title && 
-                                       form.getFieldState(`customLinks.${index}.title`).isTouched && (
-                                        <p className="text-sm text-destructive mt-1">
-                                          {form.formState.errors.customLinks[index]?.title?.message}
-                                        </p>
-                                      )}
+                                      {form.formState.errors.customLinks?.[
+                                        index
+                                      ]?.title &&
+                                        form.getFieldState(
+                                          `customLinks.${index}.title`,
+                                        ).isTouched && (
+                                          <p className="text-sm text-destructive mt-1">
+                                            {
+                                              form.formState.errors.customLinks[
+                                                index
+                                              ]?.title?.message
+                                            }
+                                          </p>
+                                        )}
                                     </div>
                                     <div className="flex-1">
                                       <Input
@@ -594,23 +693,40 @@ export default function UserSettingsPage() {
                                         type="url"
                                         value={link.url}
                                         onChange={(e) => {
-                                          const newLinks = [...(field.value || [])];
-                                          newLinks[index] = { ...newLinks[index], url: e.target.value };
+                                          const newLinks = [
+                                            ...(field.value || []),
+                                          ];
+                                          newLinks[index] = {
+                                            ...newLinks[index],
+                                            url: e.target.value,
+                                          };
                                           field.onChange(newLinks);
                                         }}
                                         className={cn(
                                           "border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0",
-                                          form.formState.errors.customLinks?.[index]?.url && 
-                                          form.getFieldState(`customLinks.${index}.url`).isTouched && 
-                                          "border-destructive"
+                                          form.formState.errors.customLinks?.[
+                                            index
+                                          ]?.url &&
+                                            form.getFieldState(
+                                              `customLinks.${index}.url`,
+                                            ).isTouched &&
+                                            "border-destructive",
                                         )}
                                       />
-                                      {form.formState.errors.customLinks?.[index]?.url && 
-                                       form.getFieldState(`customLinks.${index}.url`).isTouched && (
-                                        <p className="text-sm text-destructive mt-1">
-                                          {form.formState.errors.customLinks[index]?.url?.message}
-                                        </p>
-                                      )}
+                                      {form.formState.errors.customLinks?.[
+                                        index
+                                      ]?.url &&
+                                        form.getFieldState(
+                                          `customLinks.${index}.url`,
+                                        ).isTouched && (
+                                          <p className="text-sm text-destructive mt-1">
+                                            {
+                                              form.formState.errors.customLinks[
+                                                index
+                                              ]?.url?.message
+                                            }
+                                          </p>
+                                        )}
                                     </div>
                                   </div>
                                   <Button
@@ -642,7 +758,10 @@ export default function UserSettingsPage() {
                 <Button
                   type="submit"
                   className="w-full mt-4"
-                  disabled={updateProfileMutation.isPending || (form.formState.isSubmitted && !form.formState.isValid)}
+                  disabled={
+                    updateProfileMutation.isPending ||
+                    (form.formState.isSubmitted && !form.formState.isValid)
+                  }
                 >
                   {updateProfileMutation.isPending ? (
                     <>
@@ -654,18 +773,24 @@ export default function UserSettingsPage() {
                   )}
                 </Button>
 
-                {form.formState.isSubmitted && Object.keys(form.formState.errors).length > 0 && (
-                  <div className="mt-4 p-4 border border-red-200 rounded-md bg-red-50">
-                    <p className="text-sm font-medium text-red-800">Please fix the following errors:</p>
-                    <ul className="mt-2 text-sm text-red-700">
-                      {Object.entries(form.formState.errors).map(([field, error]) => (
-                        <li key={field}>
-                          {field.charAt(0).toUpperCase() + field.slice(1)}: {error?.message}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                {form.formState.isSubmitted &&
+                  Object.keys(form.formState.errors).length > 0 && (
+                    <div className="mt-4 p-4 border border-red-200 rounded-md bg-red-50">
+                      <p className="text-sm font-medium text-red-800">
+                        Please fix the following errors:
+                      </p>
+                      <ul className="mt-2 text-sm text-red-700">
+                        {Object.entries(form.formState.errors).map(
+                          ([field, error]) => (
+                            <li key={field}>
+                              {field.charAt(0).toUpperCase() + field.slice(1)}:{" "}
+                              {error?.message}
+                            </li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                  )}
 
                 {hasActiveSubscription && !user?.isAdmin && (
                   <Button
@@ -674,28 +799,35 @@ export default function UserSettingsPage() {
                     className="w-full mt-2"
                     onClick={async () => {
                       try {
-                        const response = await fetch('/api/stripe/create-portal-session', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json'
-                          }
-                        });
+                        const response = await fetch(
+                          "/api/stripe/create-portal-session",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                          },
+                        );
 
                         if (!response.ok) {
-                          throw new Error('Failed to create portal session');
+                          throw new Error("Failed to create portal session");
                         }
 
                         const { url } = await response.json();
                         if (!url) {
-                          throw new Error('No portal URL received');
+                          throw new Error("No portal URL received");
                         }
 
                         window.location.href = url;
                       } catch (error) {
-                        console.error('Error accessing customer portal:', error);
+                        console.error(
+                          "Error accessing customer portal:",
+                          error,
+                        );
                         toast({
                           title: "Error",
-                          description: "Failed to access subscription management. Please try again.",
+                          description:
+                            "Failed to access subscription management. Please try again.",
                           variant: "destructive",
                         });
                       }

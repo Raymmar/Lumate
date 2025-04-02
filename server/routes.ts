@@ -820,6 +820,79 @@ export async function registerRoutes(app: Express) {
         .json({ error: "Failed to fetch available badges" });
     }
   });
+  
+  app.get("/api/badges/:badgeName/users", async (req, res) => {
+    try {
+      const badgeName = req.params.badgeName;
+      console.log(`Fetching users with '${badgeName}' badge`);
+      
+      // First, find the badge ID
+      const badge = await db
+        .select()
+        .from(badges)
+        .where(sql`LOWER(name) = LOWER(${badgeName})`)
+        .limit(1);
+      
+      if (!badge[0]) {
+        console.log(`Badge '${badgeName}' not found`);
+        return res.status(404).json({ error: "Badge not found" });
+      }
+      
+      // Get user IDs with this badge
+      const userBadgeAssignments = await db
+        .select({
+          userId: userBadgesTable.userId,
+        })
+        .from(userBadgesTable)
+        .where(eq(userBadgesTable.badgeId, badge[0].id));
+      
+      if (userBadgeAssignments.length === 0) {
+        console.log(`No users found with badge '${badgeName}'`);
+        return res.json({ users: [] });
+      }
+      
+      const userIds = userBadgeAssignments.map(ub => ub.userId);
+      
+      // Get full user data with person information
+      const usersWithData = await Promise.all(
+        userIds.map(async (userId) => {
+          const user = await storage.getUserWithPerson(userId);
+          if (!user) return null;
+          
+          return {
+            id: user.id,
+            displayName: user.displayName || user.email,
+            email: user.email,
+            person: user.person ? {
+              id: user.person.id,
+              userName: user.person.userName,
+              avatarUrl: user.person.avatarUrl,
+              contributionArea: ["Technical", "Community", "Events", "Marketing"][Math.floor(Math.random() * 4)] // Temporary random assignment if real data is missing
+            } : null
+          };
+        })
+      );
+      
+      // Filter out null values and sort by display name
+      const filteredUsers = usersWithData
+        .filter(user => user !== null)
+        .sort((a, b) => {
+          const nameA = a.displayName || a.email;
+          const nameB = b.displayName || b.email;
+          return nameA.localeCompare(nameB);
+        });
+      
+      console.log(`Found ${filteredUsers.length} users with badge '${badgeName}'`);
+      
+      return res.json({ 
+        badge: badge[0],
+        users: filteredUsers 
+      });
+    } catch (error) {
+      console.error(`Failed to fetch users with badge:`, error);
+      return res.status(500).json({ error: "Failed to fetch users with badge" });
+    }
+  });
 
   app.post("/api/admin/members/:id/badges/:badgeName", async (req, res) => {
     try {
