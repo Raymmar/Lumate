@@ -128,13 +128,45 @@ function BoardMembersSection() {
   );
 }
 
+interface Person {
+  id: number;
+  userName: string | null;
+  avatarUrl: string | null;
+}
+
+interface Member {
+  id: number;
+  displayName: string;
+  email: string;
+  person: Person | null;
+}
+
+interface BadgeUsersResponse {
+  badge: {
+    id: number;
+    name: string;
+  };
+  users: Member[];
+}
+
 function FoundingMembersSection() {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery<BadgeUsersResponse>({
     queryKey: ['/api/badges/Founding Member/users'],
     enabled: true,
   });
   
-  const foundingMembers = data?.users || [];
+  // Fisher-Yates shuffle algorithm to randomize the order of founding members
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+  
+  // Shuffle the founding members whenever the component renders
+  const foundingMembers = data?.users ? shuffleArray(data.users) : [];
   
   if (isLoading) {
     return (
@@ -173,16 +205,16 @@ function FoundingMembersSection() {
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
-          {foundingMembers.map((member) => {
+          {foundingMembers.map((member: Member) => {
             const displayName = member.displayName || member.email?.split('@')[0];
             const initials = displayName
               .split(" ")
-              .map((n) => n[0])
+              .map((n: string) => n[0])
               .join("");
             const userName = member.person?.userName;
             
             const memberElement = (
-              <div key={member.id} className="text-center">
+              <div className="text-center">
                 <Avatar className="w-16 h-16 mx-auto mb-2">
                   {member.person?.avatarUrl ? (
                     <AvatarImage src={member.person.avatarUrl} alt={displayName} />
@@ -199,7 +231,9 @@ function FoundingMembersSection() {
                 {memberElement}
               </Link>
             ) : (
-              memberElement
+              <div key={member.id}>
+                {memberElement}
+              </div>
             );
           })}
         </div>
