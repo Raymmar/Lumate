@@ -19,7 +19,7 @@ import { MembersOnlyCard } from "./MembersOnlyCard";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
 import { YoutubeEmbed } from "@/components/ui/youtube-embed";
-import { FeaturedMembersList } from "@/components/people/FeaturedMembersList";
+import { FeaturedMemberCard } from "@/components/people/FeaturedMemberCard";
 
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
@@ -283,13 +283,13 @@ export function BulletinBoard() {
         />
       </div>
 
-      {/* Video and Featured Members section */}
+      {/* Video and Featured Member section */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="md:col-span-2">
           <YoutubeEmbed videoId="JMy4CmxWMlE" title="Raymmar YouTube Video" />
         </div>
-        <div className="md:col-span-1">
-          <FeaturedMembersList />
+        <div>
+          <FeaturedMemberCard />
         </div>
       </div>
 
