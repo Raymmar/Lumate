@@ -26,14 +26,30 @@ interface Person {
     displayName: string;
     bio: string;
     isAdmin: boolean;
-    badges?: {
+    badges?: Array<{
       id: number;
       name: string;
       description: string | null;
       icon: string;
       isAutomatic: boolean;
-    }[];
+    }>;
   };
+}
+
+interface Member {
+  id: number;
+  email: string;
+  displayName?: string;
+  bio?: string;
+  isAdmin?: boolean;
+  badges?: Array<{
+    id: number;
+    name: string;
+    description: string | null;
+    icon: string;
+    isAutomatic: boolean;
+  }>;
+  person?: Person;
 }
 
 interface FeaturedMemberCardProps {
@@ -42,18 +58,7 @@ interface FeaturedMemberCardProps {
 }
 
 export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberCardProps) {
-  const { data: people, isLoading: peopleLoading } = useQuery<Person[]>({
-    queryKey: ["/api/people"],
-    queryFn: async () => {
-      const response = await fetch("/api/people?limit=50");
-      if (!response.ok) {
-        throw new Error("Failed to fetch people");
-      }
-      return response.json();
-    },
-    enabled: !personId, // Only fetch people if no specific personId is provided
-  });
-
+  // If personId is provided, fetch that specific person
   const { data: specificPerson, isLoading: specificPersonLoading } = useQuery<Person>({
     queryKey: ["/api/people", personId],
     queryFn: async () => {
@@ -66,12 +71,47 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
     enabled: !!personId, // Only fetch if personId is provided
   });
 
-  // If personId is provided, use that person, otherwise randomly select one from the list
-  const person = specificPerson || (people && people.length > 0 
-    ? people[Math.floor(Math.random() * people.length)]
-    : null);
+  // Fetch founding members
+  const { data: foundingMembersData, isLoading: foundingMembersLoading } = useQuery<{ badge: { id: number, name: string }, users: Member[] }>({
+    queryKey: ["/api/badges/Founding Member/users"],
+    queryFn: async () => {
+      // Use the same endpoint that's used on the About page to fetch founding members
+      const response = await fetch("/api/badges/Founding Member/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch founding members");
+      }
+      return response.json();
+    },
+    enabled: !personId, // Only fetch if no specific personId is provided
+  });
 
-  const isLoading = personId ? specificPersonLoading : peopleLoading;
+  // Extract users from founding members data
+  const foundingMembers = foundingMembersData?.users || [];
+  
+  // Helper function to convert member data to the format our component expects
+  const getMemberPerson = (member: Member): Person | null => {
+    if (!member || !member.person) return null;
+    
+    return {
+      ...member.person,
+      user: {
+        id: member.id,
+        email: member.email,
+        displayName: member.displayName || member.email?.split('@')[0],
+        bio: member.bio || "",
+        isAdmin: member.isAdmin || false,
+        badges: member.badges || []
+      }
+    };
+  };
+
+  // If personId is provided, use that person, otherwise randomly select a founding member
+  const person = specificPerson || 
+    (foundingMembers.length > 0 
+      ? getMemberPerson(foundingMembers[Math.floor(Math.random() * foundingMembers.length)])
+      : null);
+
+  const isLoading = personId ? specificPersonLoading : foundingMembersLoading;
 
   if (isLoading) {
     return (
@@ -115,7 +155,7 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
     );
   }
 
-  const initials = person.userName?.split(' ').map(n => n?.[0] || '').join('') || person.email[0].toUpperCase();
+  const initials = person.userName?.split(' ').map((n: string) => n?.[0] || '').join('') || person.email[0].toUpperCase();
   const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
 
   return (
@@ -150,7 +190,7 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
 
         {person.user?.badges && person.user.badges.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {person.user.badges.slice(0, 3).map(badge => {
+            {person.user.badges.slice(0, 3).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
               // Use a simpler approach without direct component rendering
               return (
                 <Badge key={badge.id} variant="secondary" className="gap-1">
