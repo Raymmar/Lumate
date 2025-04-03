@@ -180,12 +180,13 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
   return (
     <Card className={`w-full h-full flex flex-col ${className}`}>
       <CardHeader className="pb-2 flex-none">
-        <CardTitle className="flex justify-between items-center text-lg">
-          <span>Featured Member</span>
+        <CardTitle className="text-lg text-center">
+          Featured Member
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4 flex-1 flex flex-col">
-        <div className="flex items-center gap-3">
+      <CardContent className="flex-1 flex flex-col justify-between">
+        {/* Top part with avatar and name */}
+        <div className="flex items-center gap-3 mb-4">
           <Avatar className="h-14 w-14">
             {person.avatarUrl ? (
               <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
@@ -202,28 +203,30 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
             )}
           </div>
         </div>
+        
+        {/* Bottom part with profile info, grouped together */}
+        <div className="mt-auto space-y-3">
+          {person.user?.bio && (
+            <p className="text-sm line-clamp-4">{person.user.bio}</p>
+          )}
 
-        {person.user?.bio && (
-          <p className="text-sm line-clamp-4 flex-grow">{person.user.bio}</p>
-        )}
+          {person.user?.badges && person.user.badges.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {person.user.badges.slice(0, 5).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
+                return (
+                  <Badge key={badge.id} variant="secondary" className="gap-1">
+                    {badge.name}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
 
-        {person.user?.badges && person.user.badges.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {person.user.badges.slice(0, 5).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
-              // Use a simpler approach without direct component rendering
-              return (
-                <Badge key={badge.id} variant="secondary" className="gap-1">
-                  {badge.name}
-                </Badge>
-              );
-            })}
+          <div className="pt-2">
+            <Link href={profilePath}>
+              <Button variant="outline" className="w-full">View Profile</Button>
+            </Link>
           </div>
-        )}
-
-        <div className="mt-auto pt-2">
-          <Link href={profilePath}>
-            <Button variant="outline" className="w-full">View Profile</Button>
-          </Link>
         </div>
       </CardContent>
     </Card>
