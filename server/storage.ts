@@ -994,16 +994,35 @@ export class PostgresStorage implements IStorage {
         }
       }
       
-      // If we don't have a valid cached member, select a random one from top attendees
+      // If we don't have a valid cached member, select a random one from attendees with at least 10 events
       if (!personId) {
-        const topAttendees = await this.getTopAttendees(10);
-        if (topAttendees.length === 0) {
-          return null;
+        // First try to get only attendees with 10+ events
+        const query = db
+          .select()
+          .from(people)
+          .where(
+            sql`(stats->>'totalEventsAttended')::int >= 10`
+          )
+          .orderBy(sql`RANDOM()`)
+          .limit(10);
+        
+        let eligibleMembers = await query;
+        
+        // If we don't have any with 10+ events, fall back to top attendees
+        if (eligibleMembers.length === 0) {
+          console.log('No members with 10+ events found, falling back to top attendees');
+          const topAttendees = await this.getTopAttendees(10);
+          if (topAttendees.length === 0) {
+            return null;
+          }
+          eligibleMembers = topAttendees;
+        } else {
+          console.log(`Found ${eligibleMembers.length} members with 10+ events`);
         }
         
-        // Select a random attendee from the top 10
-        const randomIndex = Math.floor(Math.random() * topAttendees.length);
-        personId = topAttendees[randomIndex].id;
+        // Select a random member from the eligible pool
+        const randomIndex = Math.floor(Math.random() * eligibleMembers.length);
+        personId = eligibleMembers[randomIndex].id;
         
         // Cache this featured member
         await this.setFeaturedMember(personId);
