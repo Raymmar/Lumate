@@ -247,14 +247,6 @@ export function FeaturedMemberCard({
               )}
           </div>
         )}
-
-        <div className="mt-auto pt-2">
-          <Link href={profilePath}>
-            <Button variant="outline" className="w-full">
-              View Profile
-            </Button>
-          </Link>
-        </div>
       </CardContent>
     </Card>
   );
