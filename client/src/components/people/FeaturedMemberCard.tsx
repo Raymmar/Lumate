@@ -178,54 +178,49 @@ export function FeaturedMemberCard({ personId, className = "" }: FeaturedMemberC
   const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
 
   return (
-    <Card className={`w-full h-full flex flex-col ${className}`}>
-      <CardHeader className="pb-2 flex-none">
-        <CardTitle className="flex justify-between items-center text-lg">
-          <span>Featured Member</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4 flex-1 flex flex-col">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-14 w-14">
-            {person.avatarUrl ? (
-              <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
-            ) : (
-              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-            )}
-          </Avatar>
-          <div>
-            <h3 className="font-semibold">{person.userName || person.email}</h3>
-            {(person.organizationName || person.jobTitle) && (
-              <p className="text-sm text-muted-foreground">
-                {[person.jobTitle, person.organizationName].filter(Boolean).join(' @ ')}
-              </p>
-            )}
+    <Link href={profilePath} className="block w-full h-full">
+      <Card className={`w-full h-full flex flex-col ${className} hover:bg-muted/50 transition-colors`}>
+        <CardHeader className="pb-2 flex-none">
+          <CardTitle className="flex justify-between items-center text-lg">
+            <span>Featured Member</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 flex-1 flex flex-col">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-14 w-14">
+              {person.avatarUrl ? (
+                <AvatarImage src={person.avatarUrl} alt={person.userName || 'Profile'} />
+              ) : (
+                <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+              )}
+            </Avatar>
+            <div>
+              <h3 className="font-semibold">{person.userName || person.email}</h3>
+              {(person.organizationName || person.jobTitle) && (
+                <p className="text-sm text-muted-foreground">
+                  {[person.jobTitle, person.organizationName].filter(Boolean).join(' @ ')}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
 
-        {person.user?.bio && (
-          <p className="text-sm line-clamp-4 flex-grow">{person.user.bio}</p>
-        )}
+          {person.user?.bio && (
+            <p className="text-sm line-clamp-4 flex-grow">{person.user.bio}</p>
+          )}
 
-        {person.user?.badges && person.user.badges.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {person.user.badges.slice(0, 5).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
-              // Use a simpler approach without direct component rendering
-              return (
-                <Badge key={badge.id} variant="secondary" className="gap-1">
-                  {badge.name}
-                </Badge>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="mt-auto pt-2">
-          <Link href={profilePath}>
-            <Button variant="outline" className="w-full">View Profile</Button>
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+          {person.user?.badges && person.user.badges.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {person.user.badges.slice(0, 5).map((badge: { id: number, name: string, description: string | null, icon: string, isAutomatic: boolean }) => {
+                return (
+                  <Badge key={badge.id} variant="secondary" className="gap-1">
+                    {badge.name}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
