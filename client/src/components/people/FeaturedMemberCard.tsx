@@ -198,28 +198,30 @@ export function FeaturedMemberCard({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4 flex-1 flex flex-col">
-        <div className="flex items-center gap-3">
-          <Avatar className="h-14 w-14">
-            {person.avatarUrl ? (
-              <AvatarImage
-                src={person.avatarUrl}
-                alt={person.userName || "Profile"}
-              />
-            ) : (
-              <AvatarFallback className="text-lg">{initials}</AvatarFallback>
-            )}
-          </Avatar>
-          <div>
-            <h3 className="font-semibold">{person.userName || person.email}</h3>
-            {(person.organizationName || person.jobTitle) && (
-              <p className="text-sm text-muted-foreground">
-                {[person.jobTitle, person.organizationName]
-                  .filter(Boolean)
-                  .join(" @ ")}
-              </p>
-            )}
+        <Link href={profilePath} className="group">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-14 w-14 transition-all group-hover:shadow-md">
+              {person.avatarUrl ? (
+                <AvatarImage
+                  src={person.avatarUrl}
+                  alt={person.userName || "Profile"}
+                />
+              ) : (
+                <AvatarFallback className="text-lg">{initials}</AvatarFallback>
+              )}
+            </Avatar>
+            <div>
+              <h3 className="font-semibold group-hover:underline">{person.userName || person.email}</h3>
+              {(person.organizationName || person.jobTitle) && (
+                <p className="text-sm text-muted-foreground">
+                  {[person.jobTitle, person.organizationName]
+                    .filter(Boolean)
+                    .join(" @ ")}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        </Link>
 
         {person.user?.bio && (
           <p className="text-sm line-clamp-4 flex-grow">{person.user.bio}</p>
