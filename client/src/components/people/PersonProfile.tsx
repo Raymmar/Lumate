@@ -269,8 +269,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information from companies table - Only shown if user has active subscription or is admin */}
-        {userCompany && (person.isAdmin || person.subscriptionStatus === 'active') && (
+        {/* Company information from companies table - Always shown to ALL visitors */}
+        {userCompany && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
