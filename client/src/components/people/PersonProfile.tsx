@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
-import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
@@ -186,7 +185,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
-  const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
+  // Check if the profile owner has an active subscription, not the current user
+  const hasActiveSubscription = Boolean(person?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
 
   if (personError) {
@@ -269,8 +269,10 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information - only for admin users or active subscribers */}
-        {userCompany && (isAdmin || hasActiveSubscription) && (
+        {/* Company information - show when user has a company and either:
+            1. The profile owner has a paid membership, or
+            2. The current viewer is an admin */}
+        {userCompany && (hasActiveSubscription || isAdmin) && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
@@ -329,9 +331,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
             </Card>
           </div>
         )}
-
-        {/* Show legacy MemberDetails only if no company data is available */}
-        {(!userCompany || (!isAdmin && !hasActiveSubscription)) && person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">
