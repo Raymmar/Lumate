@@ -187,6 +187,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
+  const profileHasActiveSubscription = Boolean(person?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
 
   if (personError) {
@@ -269,8 +270,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information - only for admin users or active subscribers */}
-        {userCompany && (isAdmin || hasActiveSubscription) && (
+        {/* Company information - shown for paid profiles, admin viewers, or paid viewers */}
+        {userCompany && (isAdmin || hasActiveSubscription || profileHasActiveSubscription) && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
@@ -330,8 +331,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </div>
         )}
 
-        {/* Show legacy MemberDetails only if no company data is available */}
-        {(!userCompany || (!isAdmin && !hasActiveSubscription)) && person.user && <MemberDetails user={person.user as any} />}
+        {/* Show legacy MemberDetails only if no company data is available or company data is hidden */}
+        {(!userCompany || (!isAdmin && !hasActiveSubscription && !profileHasActiveSubscription)) && person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">
