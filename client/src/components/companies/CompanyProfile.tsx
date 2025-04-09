@@ -182,13 +182,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
             )}
           </Card>
 
-          {/* About */}
+          {/* Company Description */}
           {company.description && (
             <Card>
-              <CardHeader className="py-3">
-                <CardTitle>About {company.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
+              <CardContent className="py-4">
                 <div className="prose prose-sm md:prose-base max-w-none">
                   <p>{company.description}</p>
                 </div>
@@ -236,6 +233,19 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
         {/* Right: Company details sidebar */}
         <div className="space-y-4">
+          {/* CTA Button (moved to top) */}
+          {company.website && (
+            <a 
+              href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button className="w-full mb-2">
+                {company.ctaText || "Visit Website"}
+              </Button>
+            </a>
+          )}
+          
           {/* Company Info Card */}
           <Card>
             <CardHeader className="py-3">
@@ -336,15 +346,6 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                 ))}
               </CardContent>
             </Card>
-          )}
-
-          {/* CTA Button */}
-          {company.ctaText && (
-            <Link href="/contact">
-              <Button className="w-full">
-                {company.ctaText}
-              </Button>
-            </Link>
           )}
         </div>
       </div>
