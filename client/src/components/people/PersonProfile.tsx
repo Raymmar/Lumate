@@ -183,34 +183,10 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     },
     enabled: !!person?.user?.id
   });
-  
-  // Fetch companies data for showing company preview from companies table
-  const { data: companiesData } = useQuery<{ companies: any[] }>({
-    queryKey: ['/api/companies/user/companies', person?.user?.id],
-    queryFn: async () => {
-      if (!person?.user?.id) return { companies: [] };
-      try {
-        // Try to load companies for the viewed profile
-        const response = await fetch(`/api/companies/user/companies?userId=${person.user.id}`);
-        if (!response.ok) {
-          if (response.status === 404) {
-            return { companies: [] };
-          }
-          throw new Error('Failed to fetch companies');
-        }
-        return response.json();
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-        return { companies: [] };
-      }
-    },
-    enabled: !!person?.user?.id
-  });
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
-  const profileHasActiveSubscription = Boolean(person?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
 
   if (personError) {
@@ -293,8 +269,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information - shown for paid profiles, admin viewers, or paid viewers */}
-        {userCompany && (isAdmin || hasActiveSubscription || profileHasActiveSubscription) && (
+        {/* Company information - only for admin users or active subscribers */}
+        {userCompany && (isAdmin || hasActiveSubscription) && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
@@ -354,8 +330,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </div>
         )}
 
-        {/* Show legacy MemberDetails only if no company data is available or company data is hidden */}
-        {(!userCompany || (!isAdmin && !hasActiveSubscription && !profileHasActiveSubscription)) && person.user && <MemberDetails user={person.user as any} />}
+        {/* Show legacy MemberDetails only if no company data is available */}
+        {(!userCompany || (!isAdmin && !hasActiveSubscription)) && person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">

@@ -267,19 +267,7 @@ router.delete("/:companyId/members/:userId", requireAuth, async (req: Request, r
 // Get user's companies
 router.get("/user/companies", requireAuth, async (req: Request, res: Response) => {
   try {
-    // Allow specifying a userId as a query parameter for public viewing
-    // Default to the logged-in user's ID
-    let userId = req.session.userId!;
-    
-    // If userId is specified in the query string and it's a valid number
-    if (req.query.userId && typeof req.query.userId === 'string') {
-      const queryUserId = parseInt(req.query.userId);
-      if (!isNaN(queryUserId)) {
-        userId = queryUserId;
-      }
-    }
-    
-    const companies = await storage.getUserCompanies(userId);
+    const companies = await storage.getUserCompanies(req.session.userId!);
     res.json({ companies });
   } catch (error) {
     console.error("Failed to fetch user companies:", error);
