@@ -48,7 +48,7 @@ export function CompanyCard({
           )}
         </div>
         
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-0 pt-4">
           <div className="flex items-center gap-2">
             {logoUrl && (
               <div className="h-8 w-8 shrink-0 rounded-full bg-muted overflow-hidden">
@@ -63,7 +63,7 @@ export function CompanyCard({
           </div>
         </CardHeader>
         
-        <CardContent className="pb-2">
+        <CardContent className="pt-3 pb-4">
           {bio && (
             <p className="text-sm text-muted-foreground line-clamp-2">{bio}</p>
           )}
