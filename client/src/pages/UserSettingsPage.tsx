@@ -3,8 +3,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Mail, ExternalLink } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Loader2, AlertCircle, Mail, ExternalLink, Lock } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -34,6 +34,27 @@ export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  
+  // Enhanced subscription status check with proper typing
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
+    useQuery({
+      queryKey: ["/api/subscription/status"],
+      queryFn: async () => {
+        const response = await fetch("/api/subscription/status");
+        if (!response.ok)
+          throw new Error("Failed to fetch subscription status");
+        const data = await response.json();
+        return data as { status: string };
+      },
+      enabled: !!user && !user.isAdmin,
+      // Reduce stale time to ensure fresh data after payment
+      staleTime: 0,
+      // Add retry for better reliability
+      retry: 3,
+    });
+
+  const hasActiveSubscription =
+    user?.isAdmin || subscriptionStatus?.status === "active";
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
@@ -245,9 +266,22 @@ export default function UserSettingsPage() {
                     name="bio"
                     render={({ field }) => (
                       <FormItem className="space-y-1">
-                        <FormLabel className="text-sm text-muted-foreground">
-                          Bio
-                        </FormLabel>
+                        <div className="flex items-center justify-between mb-1">
+                          <FormLabel className="text-sm text-muted-foreground">
+                            Bio
+                          </FormLabel>
+                          {!isSubscriptionLoading && (
+                            hasActiveSubscription ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                                Premium
+                              </span>
+                            ) : (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                                Free
+                              </span>
+                            )
+                          )}
+                        </div>
                         <FormControl>
                           <div className="relative">
                             <Textarea
@@ -269,19 +303,34 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {/* Add a link to company profile page */}
+                  {/* Add a link to company profile page with subscription check */}
                   <div className="pt-4 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Manage your company details, contact information, and tags on the company profile page
-                    </p>
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => window.location.href = '/company-profile'}
-                      className="mb-4"
-                    >
-                      Go to Company Profile
-                    </Button>
+                    {isSubscriptionLoading ? (
+                      <div className="flex justify-center mb-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : hasActiveSubscription ? (
+                      <>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Manage your company details, contact information, and tags on the company profile page
+                        </p>
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={() => window.location.href = '/company-profile'}
+                          className="mb-4"
+                        >
+                          Go to Company Profile
+                        </Button>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        <p className="text-sm text-muted-foreground">
+                          Company profile is available for premium members
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -319,6 +368,46 @@ export default function UserSettingsPage() {
                       </ul>
                     </div>
                   )}
+                
+                {/* Subscription Management Button */}
+                {hasActiveSubscription && !user?.isAdmin && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full mt-2"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(
+                          "/api/stripe/create-portal-session",
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                            },
+                            credentials: "include",
+                          }
+                        );
+
+                        if (!response.ok) {
+                          throw new Error("Failed to create portal session");
+                        }
+
+                        const { url } = await response.json();
+                        window.location.href = url;
+                      } catch (error) {
+                        console.error("Error creating portal session:", error);
+                        toast({
+                          title: "Error",
+                          description:
+                            "Failed to access subscription management. Please try again later.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    Manage Subscription
+                  </Button>
+                )}
               </form>
             </Form>
           </CardContent>
