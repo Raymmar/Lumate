@@ -232,18 +232,20 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
         </div>
 
         {/* Right: Company details sidebar */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* CTA Button (moved to top) */}
           {company.website && (
-            <a 
-              href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button className="w-full mb-2">
-                {company.ctaText || "Visit Website"}
-              </Button>
-            </a>
+            <div className="mb-0">
+              <a 
+                href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Button className="w-full">
+                  {company.ctaText || "Visit Website"}
+                </Button>
+              </a>
+            </div>
           )}
           
           {/* Company Info Card */}
