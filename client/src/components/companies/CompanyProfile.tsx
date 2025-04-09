@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
-import { Building, Link as LinkIcon, Mail, Phone } from 'lucide-react';
+import { Building, Calendar, Link as LinkIcon, Mail, MapPin, Phone, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
+import { useEffect, useState } from 'react';
+import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 
 interface CompanyProfileProps {
   nameSlug: string;
@@ -39,8 +41,20 @@ interface Company {
   updatedAt: string;
 }
 
+interface GeocodingResult {
+  lat: number;
+  lng: number;
+}
+
 export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const { toast } = useToast();
+  const [coordinates, setCoordinates] = useState<GeocodingResult | null>(null);
+  
+  // Load Google Maps script
+  const { isLoaded: isMapLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "",
+    libraries: ['places'],
+  });
 
   const { data: companyData, isLoading, error } = useQuery<{company: Company}>({
     queryKey: ['/api/companies/by-name', nameSlug],
@@ -67,6 +81,24 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
   const company = companyData?.company;
 
+  // Geocode address when company data is loaded
+  useEffect(() => {
+    if (company?.address && isMapLoaded) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ address: company.address }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const location = results[0].geometry.location;
+          setCoordinates({
+            lat: location.lat(),
+            lng: location.lng()
+          });
+        } else {
+          console.error('Geocoding failed:', status);
+        }
+      });
+    }
+  }, [company, isMapLoaded]);
+
   if (error) {
     console.error('Error in CompanyProfile:', error);
     return (
@@ -84,100 +116,163 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   if (isLoading) {
     return (
       <div className="space-y-4 w-full">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <Skeleton className="h-8 w-[200px]" />
-        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-24 w-24 rounded-full" />
+          <div>
+            <Skeleton className="h-8 w-[300px] mb-4" />
+            <Skeleton className="h-4 w-[200px]" />
+          </div>
+        </div>
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
   if (!company) {
-    return <div>Company not found</div>;
+    return <div className="text-center py-12">Company not found</div>;
   }
 
+  const defaultMapCenter = { lat: 27.3364, lng: -82.5308 }; // Default to Sarasota if geocoding fails
+
   return (
-    <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
-      <div className="md:col-span-2 space-y-4 min-w-0">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <Avatar className="h-20 w-20 flex-shrink-0">
-              {company.logoUrl ? (
-                <AvatarImage src={company.logoUrl} alt={company.name || 'Company Logo'} />
-              ) : (
-                <AvatarFallback className="text-xl">
-                  {company.name
-                    ? company.name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                    : "?"}
-                </AvatarFallback>
-              )}
-            </Avatar>
-            <div className="min-w-0">
-              <h1 className="text-2xl font-bold mb-2 truncate">
-                {company.name || "Unnamed Company"}
-              </h1>
-              <div className="flex flex-wrap items-center gap-2">
-                {company.industry && (
-                  <Badge variant="secondary" className="truncate max-w-full">
-                    {company.industry}
-                  </Badge>
-                )}
-                {company.size && (
-                  <Badge variant="outline" className="truncate max-w-full">
-                    {company.size}
-                  </Badge>
-                )}
-                {company.tags && company.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="truncate max-w-full">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-            </div>
+    <div className="w-full space-y-6">
+      {/* Cover Image Banner */}
+      <div className="relative w-full h-64 overflow-hidden rounded-lg bg-muted">
+        {company.featuredImageUrl ? (
+          <img 
+            src={company.featuredImageUrl} 
+            alt={`${company.name} cover`} 
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-primary/10 to-primary/30 flex items-center justify-center">
+            <span className="text-3xl font-bold text-primary/50">
+              {company.name || "Company Profile"}
+            </span>
           </div>
-        </div>
-
-        {company.bio && (
-          <Card className="overflow-hidden">
-            <CardContent className="py-4 pt-4">
-              <p className="text-lg text-muted-foreground break-words">{company.bio}</p>
-            </CardContent>
-          </Card>
         )}
-
-        {company.description && (
-          <Card className="overflow-hidden">
-            <CardContent className="py-4 pt-4">
-              <h3 className="text-lg font-medium mb-2">About</h3>
-              <div className="prose max-w-none text-muted-foreground">
-                <p>{company.description}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent h-1/3" />
       </div>
 
-      <div className="w-full">
-        <Card>
-          <CardContent className="space-y-4 pt-4">
-            <div className="space-y-4">
-              {company.founded && (
-                <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm text-muted-foreground">Founded in {company.founded}</span>
+      {/* Logo and Company Name */}
+      <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-12 md:-mt-16 px-4">
+        <Avatar className="h-24 w-24 md:h-32 md:w-32 rounded-xl border-4 border-background shadow-md">
+          {company.logoUrl ? (
+            <AvatarImage src={company.logoUrl} alt={company.name || 'Company Logo'} />
+          ) : (
+            <AvatarFallback className="text-2xl md:text-3xl">
+              {company.name
+                ? company.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                : "?"}
+            </AvatarFallback>
+          )}
+        </Avatar>
+        <div className="min-w-0 pb-2">
+          <h1 className="text-3xl font-bold mb-2">
+            {company.name || "Unnamed Company"}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {company.industry && (
+              <Badge variant="secondary" className="text-sm">
+                {company.industry}
+              </Badge>
+            )}
+            {company.tags && company.tags.map((tag) => (
+              <Badge key={tag} variant="outline" className="text-sm">
+                {tag}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main content */}
+      <div className="grid gap-8 md:grid-cols-3 w-full max-w-full">
+        {/* Left: About section */}
+        <div className="md:col-span-2 space-y-8">
+          {/* Bio */}
+          {company.bio && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="prose prose-sm md:prose-base max-w-none">
+                  <p className="text-lg text-muted-foreground">{company.bio}</p>
                 </div>
-              )}
-              
+              </CardContent>
+            </Card>
+          )}
+
+          {/* About */}
+          {company.description && (
+            <Card>
+              <CardHeader>
+                <CardTitle>About {company.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="prose prose-sm md:prose-base max-w-none">
+                  <p>{company.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Location Map */}
+          {company.address && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="h-5 w-5" />
+                  <span>Location</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <p className="text-muted-foreground">{company.address}</p>
+                </div>
+                <div className="aspect-video w-full overflow-hidden rounded-md border">
+                  {isMapLoaded ? (
+                    <GoogleMap
+                      mapContainerStyle={{ width: '100%', height: '100%' }}
+                      center={coordinates || defaultMapCenter}
+                      zoom={14}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                        scrollwheel: false,
+                      }}
+                    >
+                      {coordinates && <Marker position={coordinates} />}
+                    </GoogleMap>
+                  ) : (
+                    <div className="w-full h-full bg-muted flex items-center justify-center">
+                      <p>Loading map...</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right: Company details sidebar */}
+        <div className="space-y-6">
+          {/* Company Info Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Company Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {company.website && (
-                <div className="flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-3">
+                  <LinkIcon className="h-5 w-5 text-muted-foreground shrink-0" />
                   <a 
                     href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline truncate"
+                    className="text-primary hover:underline truncate"
                   >
                     {company.website.replace(/^https?:\/\//, '')}
                   </a>
@@ -185,11 +280,11 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               )}
               
               {company.isEmailPublic && company.email && (
-                <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
                   <a 
                     href={`mailto:${company.email}`}
-                    className="text-sm text-primary hover:underline truncate"
+                    className="text-primary hover:underline truncate"
                   >
                     {company.email}
                   </a>
@@ -197,53 +292,66 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               )}
               
               {company.isPhonePublic && company.phoneNumber && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground shrink-0" />
                   <a 
                     href={`tel:${company.phoneNumber}`}
-                    className="text-sm text-primary hover:underline"
+                    className="text-primary hover:underline"
                   >
                     {company.phoneNumber}
                   </a>
                 </div>
               )}
               
-              {company.address && (
-                <div className="flex items-start gap-2">
-                  <Building className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                  <span className="text-sm text-muted-foreground">{company.address}</span>
+              {company.founded && (
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <span>Founded in {company.founded}</span>
                 </div>
               )}
-            </div>
 
-            {company.customLinks && company.customLinks.length > 0 && (
-              <div className="space-y-2 border-t pt-4">
-                <h3 className="text-sm font-medium">Links</h3>
+              {company.size && (
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <span>{company.size} employees</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Custom Links */}
+          {company.customLinks && company.customLinks.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Resources</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 {company.customLinks.map((link, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div key={index} className="flex items-center gap-3">
+                    <LinkIcon className="h-5 w-5 text-muted-foreground shrink-0" />
                     <a 
                       href={link.url.startsWith('http') ? link.url : `https://${link.url}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-sm text-primary hover:underline truncate"
+                      className="text-primary hover:underline truncate"
                     >
                       {link.title}
                     </a>
                   </div>
                 ))}
-              </div>
-            )}
+              </CardContent>
+            </Card>
+          )}
 
-            {company.ctaText && (
-              <div className="border-t pt-4">
-                <Link href="/contact">
-                  <Button className="w-full">{company.ctaText}</Button>
-                </Link>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {/* CTA Button */}
+          {company.ctaText && (
+            <Link href="/contact">
+              <Button className="w-full" size="lg">
+                {company.ctaText}
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
     </div>
   );
