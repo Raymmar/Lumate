@@ -15,7 +15,7 @@ import {
   DrawerContent,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { User, Settings, LogOut, LogIn, Shield, Loader2 } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Building, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
@@ -45,6 +45,14 @@ export function NavBar() {
           />
         </div>
       </Link>
+      <div className="flex items-center space-x-2 ml-4">
+        <Link href="/companies" className="hidden md:block">
+          <Button variant="ghost" size="sm" className="flex items-center space-x-1">
+            <Building2 className="h-4 w-4" />
+            <span>Companies</span>
+          </Button>
+        </Link>
+      </div>
       <div className="lg:hidden ml-2">
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerTrigger asChild>
@@ -110,15 +118,17 @@ export function NavBar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link href="/companies">
+                  <span className="flex items-center">
+                    <Building2 className="mr-2 h-4 w-4 text-foreground" />
+                    Company Directory
+                  </span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/company-profile">
                   <span className="flex items-center">
-                    <svg className="mr-2 h-4 w-4 text-foreground" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M9 3v18" />
-                      <path d="M10 7h4" />
-                      <path d="M10 11h4" />
-                      <path d="M10 15h4" />
-                    </svg>
+                    <Building className="mr-2 h-4 w-4 text-foreground" />
                     Company Profile
                   </span>
                 </Link>
