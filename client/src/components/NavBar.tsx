@@ -15,7 +15,7 @@ import {
   DrawerContent,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { User, Settings, LogOut, LogIn, Shield, Loader2 } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
@@ -45,6 +45,14 @@ export function NavBar() {
           />
         </div>
       </Link>
+      <div className="hidden md:flex items-center space-x-4 ml-4">
+        <Link href="/companies">
+          <Button variant="ghost" size="sm" className="flex items-center">
+            <Briefcase className="h-4 w-4 mr-2" />
+            Companies
+          </Button>
+        </Link>
+      </div>
       <div className="lg:hidden ml-2">
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
           <DrawerTrigger asChild>
