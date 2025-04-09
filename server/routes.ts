@@ -26,8 +26,6 @@ import {
   postTags,
   events,
   insertPostSchema,
-  companies,
-  companyMembers,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -668,21 +666,10 @@ export async function registerRoutes(app: Express) {
           .from(userBadgesTable)
           .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
           .where(eq(userBadgesTable.userId, userData[0].id));
-        
-        // Get company data if available
-        const userCompanies = await db
-          .select()
-          .from(companies)
-          .innerJoin(companyMembers, eq(companyMembers.companyId, companies.id))
-          .where(eq(companyMembers.userId, userData[0].id))
-          .limit(1);
-
-        const companyData = userCompanies[0]?.companies;
 
         person[0].user = {
           ...userData[0],
           badges: userBadges,
-          company: companyData
         };
       }
 

@@ -20,7 +20,6 @@ export interface BusinessProfileProps {
   customLinks?: UserCustomLink[];
   featuredImageUrl?: string | null;
   tags?: string[] | null;
-  containerClassName?: string;
 }
 
 function generateGoogleMapsUrl(address: Location) {
@@ -36,11 +35,10 @@ export function BusinessProfile({
   email,
   customLinks = [],
   featuredImageUrl,
-  tags = [],
-  containerClassName
+  tags = []
 }: BusinessProfileProps) {
   return (
-    <Card className={`overflow-hidden rounded-xl ${containerClassName || ''}`}>
+    <Card className="overflow-hidden rounded-xl">
       {featuredImageUrl && (
         <div className="relative h-[300px] w-full overflow-hidden rounded-t-xl">
           <img
