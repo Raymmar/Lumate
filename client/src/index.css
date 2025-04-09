@@ -56,7 +56,26 @@
   /* Ensure navigation and sidebar links also use text color */
   nav a,
   .sidebar a {
-    @apply text-foreground hover:text-foreground/80 transition-colors;
+    @apply text-foreground hover:text-foreground/80 transition-colors no-underline;
+  }
+  
+  /* Remove underlines from card links and buttons */
+  .card-link,
+  button a,
+  a.no-underline,
+  a.button,
+  .button a,
+  a[role="button"] {
+    text-decoration: none;
+  }
+  
+  .card-link:hover,
+  button a:hover,
+  a.no-underline:hover,
+  a.button:hover,
+  .button a:hover,
+  a[role="button"]:hover {
+    text-decoration: none;
   }
 
   /* Keep primary color for buttons and interactive elements only */
