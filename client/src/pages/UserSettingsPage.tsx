@@ -270,7 +270,7 @@ export default function UserSettingsPage() {
                           <FormLabel className="text-sm text-muted-foreground">
                             {!isSubscriptionLoading && !hasActiveSubscription && user ? (
                               <span>
-                                Add a short bio to your public profile <span className="text-muted-foreground italic text-xs">(upgrade to add a company profile)</span>
+                                Add a short bio to your public profile <span className="text-muted-foreground italic text-xs">(upgrade to add company details)</span>
                               </span>
                             ) : (
                               <span>Add a short bio to your public profile</span>
@@ -349,7 +349,7 @@ export default function UserSettingsPage() {
                       <div className="flex items-center justify-center gap-2 mb-4">
                         <Lock className="h-4 w-4 text-muted-foreground" />
                         <p className="text-sm text-muted-foreground">
-                          Company profile is available for premium members
+                          Company profiles are available for premium members
                         </p>
                       </div>
                     )}
