@@ -183,6 +183,29 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     },
     enabled: !!person?.user?.id
   });
+  
+  // Fetch companies data for showing company preview from companies table
+  const { data: companiesData } = useQuery<{ companies: any[] }>({
+    queryKey: ['/api/companies/user/companies', person?.user?.id],
+    queryFn: async () => {
+      if (!person?.user?.id) return { companies: [] };
+      try {
+        // Try to load companies for the viewed profile
+        const response = await fetch(`/api/companies/user/companies?userId=${person.user.id}`);
+        if (!response.ok) {
+          if (response.status === 404) {
+            return { companies: [] };
+          }
+          throw new Error('Failed to fetch companies');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching companies:', error);
+        return { companies: [] };
+      }
+    },
+    enabled: !!person?.user?.id
+  });
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
