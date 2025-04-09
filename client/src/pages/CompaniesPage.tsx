@@ -1,22 +1,23 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { CompanyDirectory } from "@/components/companies/CompanyDirectory";
+import CompanyDirectory from "@/components/companies/CompanyDirectory";
+import { Briefcase } from "lucide-react";
 
 export default function CompaniesPage() {
   return (
     <DashboardLayout>
-      <PageContainer>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Company Directory</h1>
-            <p className="mt-2 text-muted-foreground">
-              Explore companies and organizations in our community
-            </p>
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <Briefcase className="h-6 w-6 text-primary" />
+            <h1 className="text-2xl font-bold">Company Directory</h1>
           </div>
-          
-          <CompanyDirectory />
+          <p className="text-muted-foreground">
+            Browse and discover companies in the Sarasota tech community.
+          </p>
         </div>
-      </PageContainer>
+        
+        <CompanyDirectory />
+      </div>
     </DashboardLayout>
   );
 }
