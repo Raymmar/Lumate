@@ -73,24 +73,25 @@ export default function CompanyProfile() {
   // Decode the companyName from URL
   const decodedCompanyName = companyName ? decodeURIComponent(companyName) : '';
 
-  // Fetch companies first to find the matching company by name
-  const { data: companies, isLoading: isLoadingCompanies } = useQuery<CompanyData[]>({
-    queryKey: ['/api/companies'],
+  // Directly fetch the company by its ID or name from the URL
+  const { data: companyData, isLoading: isLoadingCompany } = useQuery<{ company: CompanyData }>({
+    queryKey: ['/api/companies', decodedCompanyName],
   });
 
-  // Find the company by name
-  const company = companies?.find(
-    (c) => c.name.toLowerCase().replace(/\s+/g, '-') === decodedCompanyName.toLowerCase()
-  );
+  // Extract the company from the response
+  const company = companyData?.company;
 
   // Fetch company members if we have a company
-  const { data: members = [], isLoading: isLoadingMembers } = useQuery<Member[]>({
-    queryKey: ['/api/companies', company?.id, 'members'],
-    enabled: !!company?.id,
+  const { data: membersData, isLoading: isLoadingMembers } = useQuery<{ members: Member[] }>({
+    queryKey: ['/api/companies', decodedCompanyName, 'members'],
+    enabled: !!decodedCompanyName,
   });
+  
+  // Extract members from the response
+  const members = membersData?.members || [];
 
-  const isLoading = isLoadingCompanies || isLoadingMembers;
-  const error = !company && !isLoadingCompanies;
+  const isLoading = isLoadingCompany || isLoadingMembers;
+  const error = !company && !isLoadingCompany;
 
   // Load Google Maps
   useEffect(() => {
