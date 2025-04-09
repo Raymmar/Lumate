@@ -8,6 +8,7 @@ import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
 import companiesRouter from "./routes/companies";
+import { migrateCompanyInformation } from "./migrations/company-migration";
 import {
   insertUserSchema,
   people,
@@ -256,6 +257,60 @@ export async function registerRoutes(app: Express) {
       } catch (error) {
         console.error("Failed to auto-assign badges:", error);
         return res.status(500).json({ error: "Failed to auto-assign badges" });
+      }
+    },
+  );
+  
+  // Endpoint to migrate company information from user profiles to the new companies table
+  app.post(
+    "/api/admin/migrate-company-data",
+    async (_req: Request, res: Response) => {
+      try {
+        console.log("Starting company data migration process");
+        
+        // Check if user is authenticated and is an admin
+        if (!_req.session.userId) {
+          return res.status(401).json({ error: "Authentication required" });
+        }
+        
+        const user = await storage.getUserById(_req.session.userId);
+        if (!user || !user.isAdmin) {
+          return res.status(403).json({ error: "Admin privileges required" });
+        }
+        
+        // Run the migration
+        initSSE(res);
+        
+        sendSSEUpdate(res, {
+          type: "status",
+          message: "Starting company data migration...",
+          progress: 10,
+        });
+        
+        const result = await migrateCompanyInformation();
+        
+        sendSSEUpdate(res, {
+          type: "status",
+          message: "Migration completed successfully",
+          progress: 100,
+          data: result,
+        });
+        
+        console.log("Company data migration completed:", result);
+        res.end();
+      } catch (error) {
+        console.error("Failed to migrate company data:", error);
+        
+        if (res.headersSent) {
+          sendSSEUpdate(res, {
+            type: "error",
+            message: "Failed to migrate company data: " + (error instanceof Error ? error.message : String(error)),
+            progress: 0,
+          });
+          res.end();
+        } else {
+          return res.status(500).json({ error: "Failed to migrate company data" });
+        }
       }
     },
   );
