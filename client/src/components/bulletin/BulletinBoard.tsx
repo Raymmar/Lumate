@@ -20,6 +20,7 @@ import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
 import { YoutubeEmbed } from "@/components/ui/youtube-embed";
 import { FeaturedMemberCard } from "@/components/people/FeaturedMemberCard";
+import { FeaturedCompaniesGrid } from "@/components/companies/FeaturedCompaniesGrid";
 
 function PinnedPostsCarousel({ onSelect }: { onSelect: (post: Post) => void }) {
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
@@ -292,6 +293,9 @@ export function BulletinBoard() {
           <FeaturedMemberCard />
         </div>
       </div>
+      
+      {/* Featured Companies Grid */}
+      <FeaturedCompaniesGrid />
 
       <PinnedPostsCarousel onSelect={handleSelectPost} />
 
