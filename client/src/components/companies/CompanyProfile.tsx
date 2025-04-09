@@ -178,16 +178,6 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                 <div className="prose prose-sm md:prose-base max-w-none">
                   <p className="text-muted-foreground">{company.bio}</p>
                 </div>
-                {/* Tags */}
-                {company.tags && company.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {company.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-sm">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
               </CardContent>
             )}
           </Card>
@@ -252,13 +242,6 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               <CardTitle>Company Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {company.industry && (
-                <div className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{company.industry}</span>
-                </div>
-              )}
-              
               {company.website && (
                 <div className="flex items-center gap-2">
                   <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -308,6 +291,24 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>{company.size} employees</span>
+                </div>
+              )}
+              
+              {company.industry && (
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span>{company.industry}</span>
+                </div>
+              )}
+              
+              {/* Tags */}
+              {company.tags && company.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border">
+                  {company.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-sm">
+                      {tag}
+                    </Badge>
+                  ))}
                 </div>
               )}
             </CardContent>
