@@ -269,7 +269,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         </Card>
 
         {/* Company information from companies table - Always shown to all visitors if the profile owner has a paid account or is an admin */}
-        {userCompany && (Boolean(person.subscriptionStatus === 'active') || isProfileAdmin) && (
+        {userCompany && (Boolean(person.user?.subscriptionStatus === 'active') || isProfileAdmin) && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
