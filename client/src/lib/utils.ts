@@ -41,3 +41,31 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
   console.log('Final processed username:', processed);
   return processed;
 }
+
+export function formatCompanyNameForUrl(companyName: string | null, fallbackId: string): string {
+  // If no company name provided, use a prefix with fallbackId to indicate it's an ID
+  if (!companyName) return `c-${fallbackId}`;
+
+  // Process the company name to make it URL-friendly
+  let processed = companyName
+    .replace(/\./g, '') // Remove periods
+    .replace(/&/g, 'and') // Replace & with 'and'
+    .normalize('NFKD') // Normalize Unicode characters (decompose)
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+    .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces, keep hyphens
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-'); // Replace spaces with hyphens
+
+  // If normalized string is empty after processing, use fallback format
+  if (!processed) {
+    return `c-${fallbackId}`;
+  }
+
+  // Clean up any multiple hyphens and trim from ends
+  processed = processed
+    .replace(/-{2,}/g, '-') // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
+
+  return processed;
+}

@@ -275,4 +275,44 @@ router.get("/user/companies", requireAuth, async (req: Request, res: Response) =
   }
 });
 
+// Get a company by name slug
+router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
+  try {
+    const nameSlug = req.params.nameSlug;
+    if (!nameSlug) {
+      return res.status(400).json({ error: "Invalid company name slug" });
+    }
+
+    // Get all companies and filter by the processed name
+    const companies = await storage.getCompanies();
+    
+    // Find the company that matches this slug
+    const company = companies.find(company => {
+      // Create a slug from the company name
+      let companyNameSlug = company.name
+        .replace(/\./g, '') // Remove periods
+        .replace(/&/g, 'and') // Replace & with 'and'
+        .normalize('NFKD') // Normalize Unicode characters
+        .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+        .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces
+        .toLowerCase()
+        .trim()
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-{2,}/g, '-') // Collapse multiple hyphens
+        .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
+      
+      return companyNameSlug === nameSlug;
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    res.json({ company });
+  } catch (error) {
+    console.error("Failed to fetch company by name slug:", error);
+    res.status(500).json({ error: "Failed to fetch company" });
+  }
+});
+
 export default router;

@@ -23,7 +23,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { cn, formatCompanyNameForUrl } from "@/lib/utils";
 import { type UserCustomLink } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
@@ -258,9 +258,44 @@ export default function CompanyProfilePage() {
       data.customLinks = customLinks;
       
       if (company) {
-        await updateCompanyMutation.mutateAsync(data);
+        const result = await updateCompanyMutation.mutateAsync(data);
+        toast({
+          title: "Success",
+          description: (
+            <div>
+              Company profile updated. View your public profile at{' '}
+              <a 
+                href={`/companies/${formatCompanyNameForUrl(data.name, company.id.toString())}`} 
+                className="underline font-medium"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                /companies/{formatCompanyNameForUrl(data.name, company.id.toString())}
+              </a>
+            </div>
+          ),
+          duration: 8000,
+        });
       } else {
-        await createCompanyMutation.mutateAsync(data);
+        const result = await createCompanyMutation.mutateAsync(data);
+        const newCompanyId = result.company.id;
+        toast({
+          title: "Success",
+          description: (
+            <div>
+              Company profile created. View your public profile at{' '}
+              <a 
+                href={`/companies/${formatCompanyNameForUrl(data.name, newCompanyId.toString())}`}
+                className="underline font-medium"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                /companies/{formatCompanyNameForUrl(data.name, newCompanyId.toString())}
+              </a>
+            </div>
+          ),
+          duration: 8000,
+        });
       }
     } catch (error) {
       console.error("Form submission error:", error);
