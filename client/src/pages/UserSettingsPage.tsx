@@ -3,8 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Link } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
@@ -15,8 +14,6 @@ import {
   User,
   Mail,
   ExternalLink,
-  Building2,
-  Globe,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -372,27 +369,98 @@ export default function UserSettingsPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {/* Company Profile Card */}
-                  <Card className="border bg-card hover:shadow-md transition-shadow">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Company Profile</CardTitle>
-                      <CardDescription>
-                        Manage your company information in a dedicated profile
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        We've moved company information to a dedicated page for a better experience.
-                        {!hasActiveSubscription && !isSubscriptionLoading && " Premium membership required to edit company details."}
-                      </p>
-                      <Link href="/company/profile">
-                        <Button variant="outline" className="w-full">
-                          <Building2 className="mr-2 h-4 w-4" />
-                          {hasActiveSubscription ? "Manage Company Profile" : "View Company Profile"}
-                        </Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
+                  {!hasActiveSubscription && !isSubscriptionLoading ? (
+                    <Card className="border-2 border-dashed">
+                      <CardContent className="py-8">
+                        <div className="text-center space-y-4">
+                          <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                          <div className="space-y-2">
+                            <h3 className="text-lg font-semibold">
+                              Paid Members Only
+                            </h3>
+                            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                              Upgrade your account to unlock additional premium
+                              profile features including company details,
+                              location, contact information, and custom links.
+                            </p>
+                            <Button
+                              onClick={startSubscription}
+                              className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black"
+                            >
+                              Upgrade to Premium
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      {/* Company Information */}
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-medium">
+                          Company Information
+                        </h3>
+
+                        <FormField
+                          control={form.control}
+                          name="featuredImageUrl"
+                          render={({ field }) => (
+                            <FormItem className="space-y-3">
+                              <div>
+                                <FormLabel className="text-sm text-muted-foreground">
+                                  Featured Image
+                                </FormLabel>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  This image will be displayed as a banner at
+                                  the top of your company profile
+                                </p>
+                              </div>
+                              <FormControl>
+                                <UnsplashPicker
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  className="min-h-[300px]"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="companyName"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Company name"
+                                  className="border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="companyDescription"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  placeholder="Describe your company..."
+                                  className="resize-none min-h-[100px] border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
                       {/* Contact Information */}
                       <div className="space-y-2">
