@@ -14,6 +14,7 @@ import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
 import { User } from '@shared/schema';
+import { Link } from 'wouter';
 
 interface PersonProfileProps {
   username: string;
@@ -92,6 +93,21 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
 
 const renderBadgeIcon = (badge: Badge) => {
   return getBadgeIcon(badge.icon);
+};
+
+// Helper function to generate slug from company name - matches the one in CompanyDirectory.tsx
+const generateSlug = (name: string): string => {
+  return name
+    .replace(/\./g, '')
+    .replace(/&/g, 'and')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, ' ')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
 };
 
 export default function PersonProfile({ username }: PersonProfileProps) {
@@ -305,9 +321,9 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   asChild
                   className="w-full mt-2"
                 >
-                  <a href={`/companies/${userCompany.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`}>
+                  <Link href={`/companies/${generateSlug(userCompany.name)}`}>
                     View full company profile
-                  </a>
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
