@@ -9,9 +9,16 @@ import {
  * Migrates company information from user profiles to the companies table.
  * This creates new company entries based on the existing user profile data
  * and establishes relationships through the company_members table.
+ * 
+ * @param progressCallback Optional callback function to report progress
  */
-export async function migrateCompanyInformation() {
+export async function migrateCompanyInformation(
+  progressCallback?: (message: string, progress: number, data?: any) => void
+) {
   console.log("Starting company information migration...");
+  
+  // Report initial progress
+  progressCallback?.("Starting company data migration...", 5);
   
   // Get all users with company information
   const usersWithCompanyInfo = await db.query.users.findMany({
@@ -20,18 +27,25 @@ export async function migrateCompanyInformation() {
   });
   
   console.log(`Found ${usersWithCompanyInfo.length} users with company information to migrate`);
+  progressCallback?.(`Found ${usersWithCompanyInfo.length} users with company information`, 15);
   
   // For each user with company info, create a company and establish relationship
   let created = 0;
   let skipped = 0;
   
-  for (const user of usersWithCompanyInfo) {
+  for (let i = 0; i < usersWithCompanyInfo.length; i++) {
+    const user = usersWithCompanyInfo[i];
+    
     try {
       if (!user.companyName?.trim()) {
         console.log(`Skipping user ${user.id} (${user.email}) - missing company name`);
         skipped++;
         continue;
       }
+      
+      // Calculate and report progress (15-90% range)
+      const currentProgress = 15 + Math.floor((i / usersWithCompanyInfo.length) * 75);
+      progressCallback?.(`Migrating company: ${user.companyName}`, currentProgress);
       
       console.log(`Migrating company info for user ${user.id} (${user.email}): ${user.companyName}`);
       
@@ -108,16 +122,24 @@ export async function migrateCompanyInformation() {
     }
   }
   
+  // Final progress update
+  progressCallback?.("Finalizing migration...", 95);
+  
+  const result = {
+    total: usersWithCompanyInfo.length,
+    created,
+    skipped
+  };
+  
   console.log("Company migration completed:");
   console.log(`- Total users processed: ${usersWithCompanyInfo.length}`);
   console.log(`- Companies created: ${created}`);
   console.log(`- Users skipped: ${skipped}`);
   
-  return {
-    total: usersWithCompanyInfo.length,
-    created,
-    skipped
-  };
+  // Complete the migration
+  progressCallback?.("Migration completed successfully", 100, result);
+  
+  return result;
 }
 
 // ES modules don't have require.main === module

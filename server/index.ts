@@ -17,6 +17,9 @@ const __dirname = dirname(__filename);
 const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 
+// Initialize storage for SSE connections
+app.set('activeSSEConnections', []);
+
 // Raw body handling for Stripe webhooks must come first
 app.post(
   "/api/stripe/webhook",

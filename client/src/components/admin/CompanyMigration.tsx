@@ -27,90 +27,154 @@ export default function CompanyMigration() {
     };
   }, []);
 
-  const handleMigration = () => {
+  const handleMigration = async () => {
     setIsLoading(true);
     setResult(null);
     setProgress(0);
-    setStatusMessage('Starting migration...');
+    setStatusMessage('Setting up connection...');
     
     // Close any existing EventSource
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
     
-    // Create a new EventSource for SSE
-    const eventSource = new EventSource('/api/admin/migrate-company-data');
-    eventSourceRef.current = eventSource;
-    
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // Handle different event types
-        if (data.type === 'status') {
-          setStatusMessage(data.message);
-          setProgress(data.progress || 0);
+    try {
+      // First establish the SSE connection
+      const eventSource = new EventSource('/api/admin/migrate-company-data');
+      eventSourceRef.current = eventSource;
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
           
-          // If we have data and progress is 100%, we're complete
-          if (data.data && data.progress === 100) {
+          // Handle different event types
+          if (data.type === 'status') {
+            setStatusMessage(data.message);
+            setProgress(data.progress || 0);
+            
+            // If we have data and progress is 100%, we're complete
+            if (data.data && data.progress === 100) {
+              setResult({
+                success: true,
+                message: 'Company data migration completed successfully!',
+                details: data.data
+              });
+              
+              toast({
+                title: "Success",
+                description: "Company data migration completed successfully!",
+                variant: "default",
+              });
+              
+              // Migration is done, clean up
+              eventSource.close();
+              eventSourceRef.current = null;
+              setIsLoading(false);
+            }
+          } else if (data.type === 'error') {
             setResult({
-              success: true,
-              message: 'Company data migration completed successfully!',
-              details: data.data
+              success: false,
+              message: data.message || 'An error occurred during migration'
             });
             
             toast({
-              title: "Success",
-              description: "Company data migration completed successfully!",
-              variant: "default",
+              title: "Error",
+              description: data.message || 'An error occurred during migration',
+              variant: "destructive",
             });
             
-            // Migration is done, clean up
+            // Error occurred, clean up
             eventSource.close();
             eventSourceRef.current = null;
             setIsLoading(false);
           }
-        } else if (data.type === 'error') {
-          setResult({
-            success: false,
-            message: data.message || 'An error occurred during migration'
-          });
-          
-          toast({
-            title: "Error",
-            description: data.message || 'An error occurred during migration',
-            variant: "destructive",
-          });
-          
-          // Error occurred, clean up
-          eventSource.close();
-          eventSourceRef.current = null;
-          setIsLoading(false);
+        } catch (error) {
+          console.error('Error parsing SSE data:', error);
         }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error);
+      };
+      
+      eventSource.onerror = (e) => {
+        console.error('SSE connection error', e);
+        
+        setResult({
+          success: false,
+          message: 'Connection error during migration'
+        });
+        
+        toast({
+          title: "Error",
+          description: 'Connection error during migration',
+          variant: "destructive",
+        });
+        
+        // Clean up on error
+        eventSource.close();
+        eventSourceRef.current = null;
+        setIsLoading(false);
+      };
+
+      // Wait for the connection to establish
+      await new Promise(resolve => {
+        const checkConnectionStatus = (event: MessageEvent) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'status' && data.message === 'SSE connection established. Ready to start migration.') {
+              eventSource.removeEventListener('message', checkConnectionStatus);
+              resolve(true);
+            }
+          } catch (error) {
+            console.error('Error checking connection status:', error);
+          }
+        };
+        
+        eventSource.addEventListener('message', checkConnectionStatus);
+        
+        // Add a timeout in case the connection doesn't establish
+        setTimeout(() => {
+          eventSource.removeEventListener('message', checkConnectionStatus);
+          resolve(false);
+        }, 5000);
+      });
+      
+      // After SSE connection is established, trigger the actual migration with a POST request
+      setStatusMessage('Starting migration process...');
+      
+      const response = await fetch('/api/admin/migrate-company-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to start migration process');
       }
-    };
-    
-    eventSource.onerror = () => {
-      console.error('SSE connection error');
+      
+      // The actual progress and completion will be handled through the SSE connection
+      console.log('Migration process started successfully');
+      
+    } catch (error) {
+      console.error('Failed to start migration:', error);
       
       setResult({
         success: false,
-        message: 'Connection error during migration'
+        message: error instanceof Error ? error.message : 'Failed to start migration'
       });
       
       toast({
         title: "Error",
-        description: 'Connection error during migration',
+        description: 'Failed to start migration',
         variant: "destructive",
       });
       
-      // Clean up on error
-      eventSource.close();
-      eventSourceRef.current = null;
+      // Clean up
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      
       setIsLoading(false);
-    };
+    }
   };
 
   return (
