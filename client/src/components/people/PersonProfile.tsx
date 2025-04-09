@@ -305,7 +305,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   asChild
                   className="w-full mt-2"
                 >
-                  <a href={`/companies/${userCompany.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <a href={`/companies/${userCompany.name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`}>
                     View full company profile
                   </a>
                 </Button>
