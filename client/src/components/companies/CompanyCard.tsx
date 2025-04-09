@@ -22,7 +22,7 @@ export function CompanyCard({
   slug 
 }: CompanyCardProps) {
   return (
-    <Link href={`/companies/${slug}`}>
+    <Link href={`/companies/${slug}`} className="no-underline">
       <Card className="h-full overflow-hidden transition-all hover:shadow-md cursor-pointer">
         <div className="relative aspect-video w-full overflow-hidden bg-muted">
           {featuredImageUrl ? (
@@ -66,23 +66,6 @@ export function CompanyCard({
             <p className="text-sm text-muted-foreground">{industry}</p>
           )}
         </CardContent>
-        
-        {tags && tags.length > 0 && (
-          <CardFooter>
-            <div className="flex flex-wrap gap-1">
-              {tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="outline" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-              {tags.length > 3 && (
-                <Badge variant="outline" className="text-xs">
-                  +{tags.length - 3}
-                </Badge>
-              )}
-            </div>
-          </CardFooter>
-        )}
       </Card>
     </Link>
   );
