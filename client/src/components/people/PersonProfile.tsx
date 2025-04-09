@@ -186,20 +186,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
-  // Check if the profile owner has an active subscription, not the current user
-  const hasActiveSubscription = Boolean(person?.subscriptionStatus === 'active');
+  const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
-  
-  // Debug information for company display conditions
-  console.log('Profile company display debug:', {
-    profileUsername: username,
-    hasCompany: Boolean(userCompany),
-    companyName: userCompany?.name,
-    isAdmin,
-    hasActiveSubscription,
-    subscriptionStatus: person?.subscriptionStatus,
-    shouldShowCompany: Boolean(userCompany && (hasActiveSubscription || isAdmin))
-  });
 
   if (personError) {
     console.error('Error in PersonProfile:', personError);
@@ -281,10 +269,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information - show when user has a company record in the database and either:
-            1. The profile owner has a paid membership, or
-            2. The current viewer is an admin */}
-        {userCompany && (hasActiveSubscription || isAdmin) && (
+        {/* Company information - only for admin users or active subscribers */}
+        {userCompany && (isAdmin || hasActiveSubscription) && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
@@ -344,13 +330,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </div>
         )}
 
-        {/* Fallback to use legacy MemberDetails for users with an active subscription but no company record */}
-        {!userCompany && hasActiveSubscription && person.user && (
-          <div>
-            <h3 className="text-lg font-medium ml-1 mb-2">Company Information</h3>
-            <MemberDetails user={person.user as any} />
-          </div>
-        )}
+        {/* Show legacy MemberDetails only if no company data is available */}
+        {(!userCompany || (!isAdmin && !hasActiveSubscription)) && person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">
