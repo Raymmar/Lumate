@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
-import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
@@ -329,9 +328,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
             </Card>
           </div>
         )}
-
-        {/* Show legacy MemberDetails for everyone without a company profile, or those who don't have a paid account/admin status */}
-        {(!userCompany || (!(person.subscriptionStatus === 'active') && !isProfileAdmin)) && person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">
