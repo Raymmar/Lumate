@@ -24,15 +24,27 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// Get a company by ID
-router.get("/:id", async (req: Request, res: Response) => {
+// Get a company by ID or name
+router.get("/:idOrName", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid company ID" });
+    const idOrName = req.params.idOrName;
+    const id = parseInt(idOrName);
+    let company;
+    
+    if (!isNaN(id)) {
+      // It's a numeric ID
+      company = await storage.getCompanyById(id);
+    } else {
+      // Treat it as a company name 
+      // First fetch all companies
+      const companies = await storage.getCompanies();
+      
+      // Find the company with a matching name slug (lowercase, hyphenated)
+      company = companies.find(c => 
+        c.name.toLowerCase().replace(/\s+/g, '-') === idOrName.toLowerCase()
+      );
     }
-
-    const company = await storage.getCompanyById(id);
+    
     if (!company) {
       return res.status(404).json({ error: "Company not found" });
     }
@@ -145,14 +157,33 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
 });
 
 // Get company members
-router.get("/:id/members", async (req: Request, res: Response) => {
+router.get("/:idOrName/members", async (req: Request, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    if (isNaN(id)) {
-      return res.status(400).json({ error: "Invalid company ID" });
+    const idOrName = req.params.idOrName;
+    const id = parseInt(idOrName);
+    let companyId;
+    
+    if (!isNaN(id)) {
+      // It's a numeric ID
+      companyId = id;
+    } else {
+      // Treat it as a company name
+      // First fetch all companies
+      const companies = await storage.getCompanies();
+      
+      // Find the company with a matching name slug (lowercase, hyphenated)
+      const company = companies.find(c => 
+        c.name.toLowerCase().replace(/\s+/g, '-') === idOrName.toLowerCase()
+      );
+      
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      companyId = company.id;
     }
 
-    const members = await storage.getCompanyMembers(id);
+    const members = await storage.getCompanyMembers(companyId);
     res.json({ members });
   } catch (error) {
     console.error("Failed to fetch company members:", error);
