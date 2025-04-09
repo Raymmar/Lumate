@@ -1,497 +1,818 @@
-import React, { useState, useEffect } from 'react';
-import { useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Users, MapPin, Phone, Mail, Globe, Building, 
-  Calendar, Share2, ClipboardCopy, Check 
-} from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-import { toast } from '@/hooks/use-toast';
-import DashboardLayout from '@/components/layout/DashboardLayout';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
-import { useAuth } from '@/hooks/use-auth';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { initGoogleMaps, isGoogleMapsLoaded } from "@/lib/google-maps";
-import { type Location } from "@shared/schema";
-import { getGeocode, getLatLng } from "use-places-autocomplete";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Loader2,
+  Plus,
+  X,
+  Building2,
+  AlertCircle,
+  Globe,
+  Mail,
+  Phone,
+} from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useTheme } from "@/hooks/use-theme";
+import { Badge } from "@/components/ui/badge";
+import { Command, CommandInput, CommandItem } from "@/components/ui/command";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
+import { type UserCustomLink } from "@shared/schema";
+import { LocationPicker } from "@/components/ui/location-picker";
+import { initGoogleMaps } from "@/lib/google-maps";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Sun, Moon, Monitor } from "lucide-react";
+import { UnsplashPicker } from "@/components/ui/unsplash-picker";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import * as z from "zod";
 
-interface CompanyData {
-  id: number;
-  name: string;
-  description: string | null;
-  website: string | null;
-  logoUrl: string | null;
-  featuredImageUrl: string | null;
-  address: string | null;
-  phoneNumber: string | null;
-  email: string | null;
-  industry: string | null;
-  size: string | null;
-  founded: string | null;
-  bio: string | null;
-  tags: string[] | null;
-  isEmailPublic: boolean;
-  isPhonePublic: boolean;
-  ctaText: string | null;
-  customLinks: Array<{ title: string; url: string; icon?: string }> | null;
-  createdAt: string;
-  updatedAt: string;
-}
+// Company profile form schema
+const companyProfileSchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  description: z.string().optional().nullable(),
+  website: z.string().url("Invalid website URL").optional().nullable(),
+  logoUrl: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
+  phoneNumber: z.string().optional().nullable(),
+  email: z.string().email("Invalid email").optional().nullable(),
+  industry: z.string().optional().nullable(),
+  size: z.string().optional().nullable(),
+  founded: z.string().optional().nullable(),
+  featuredImageUrl: z.string().optional().nullable(),
+  bio: z.string().max(300, "Bio must be less than 300 characters").optional().nullable(),
+  isPhonePublic: z.boolean().default(false),
+  isEmailPublic: z.boolean().default(false),
+  ctaText: z.string().optional().nullable(),
+  customLinks: z.array(
+    z.object({
+      title: z.string(),
+      url: z.string().url("Invalid URL"),
+      icon: z.string().optional(),
+    })
+  ).default([]),
+  tags: z.array(z.string()).default([]),
+});
 
-interface Member {
-  id: number;
-  userId: number;
-  companyId: number;
-  role: string;
-  title: string | null;
-  isPublic: boolean;
-  addedBy: number;
-  createdAt: string;
-  updatedAt: string;
-  user: {
-    id: number;
-    email: string;
-    displayName: string | null;
-    featuredImageUrl: string | null;
-  };
-}
+type CompanyProfileFormValues = z.infer<typeof companyProfileSchema>;
 
-export default function CompanyProfile() {
-  const { companyName } = useParams();
+export default function CompanyProfilePage() {
   const { user } = useAuth();
-  const [showCopied, setShowCopied] = useState(false);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [selectedMarker, setSelectedMarker] = useState<CompanyData | null>(null);
-  const [mapCenter, setMapCenter] = useState({ lat: 27.336, lng: -82.538 }); // Sarasota default
-  const [isGeocodingStarted, setIsGeocodingStarted] = useState(false);
+  const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [tags, setTags] = useState<string[]>([]);
+  const [currentTag, setCurrentTag] = useState("");
+  const [customLinks, setCustomLinks] = useState<UserCustomLink[]>([]);
+  const [newLinkTitle, setNewLinkTitle] = useState("");
+  const [newLinkUrl, setNewLinkUrl] = useState("");
 
-  // Decode the companyName from URL
-  const decodedCompanyName = companyName ? decodeURIComponent(companyName) : '';
-
-  // Directly fetch the company by its ID or name from the URL
-  const { data: companyData, isLoading: isLoadingCompany } = useQuery<{ company: CompanyData }>({
-    queryKey: ['/api/companies', decodedCompanyName],
-  });
-
-  // Extract the company from the response
-  const company = companyData?.company;
-
-  // Fetch company members if we have a company
-  const { data: membersData, isLoading: isLoadingMembers } = useQuery<{ members: Member[] }>({
-    queryKey: ['/api/companies', decodedCompanyName, 'members'],
-    enabled: !!decodedCompanyName,
-  });
-  
-  // Extract members from the response
-  const members = membersData?.members || [];
-
-  const isLoading = isLoadingCompany || isLoadingMembers;
-  const error = !company && !isLoadingCompany;
-
-  // Load Google Maps
   useEffect(() => {
-    const initMaps = async () => {
-      await initGoogleMaps();
-      setMapLoaded(true);
-    };
-    initMaps();
+    initGoogleMaps();
   }, []);
 
-  // Geocode the address when company data and maps are loaded
-  useEffect(() => {
-    const geocodeAddress = async () => {
-      if (
-        company?.address && 
-        mapLoaded && 
-        isGoogleMapsLoaded() && 
-        !isGeocodingStarted
-      ) {
-        setIsGeocodingStarted(true);
-        try {
-          const results = await getGeocode({ address: company.address });
-          const { lat, lng } = await getLatLng(results[0]);
-          setMapCenter({ lat, lng });
-        } catch (error) {
-          console.error("Error geocoding address:", error);
-          // Fallback to default coordinates
-          setMapCenter({ lat: 27.336, lng: -82.538 });
-        }
+  // Fetch company data
+  const { data: userCompanies, isLoading: isCompaniesLoading } = useQuery({
+    queryKey: ["/api/companies/user/companies"],
+    queryFn: async () => {
+      const response = await fetch("/api/companies/user/companies");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user's companies");
       }
-    };
-    
-    geocodeAddress();
-  }, [company, mapLoaded, isGeocodingStarted]);
+      return await response.json();
+    },
+    enabled: !!user,
+  });
 
-  const copyProfileLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    setShowCopied(true);
-    setTimeout(() => setShowCopied(false), 2000);
-    toast({
-      title: 'Link copied',
-      description: 'Company profile link copied to clipboard',
-    });
+  // For simplicity, we'll work with the first company found for this user
+  const company = userCompanies?.companies?.[0];
+  const isCompanyAdmin = company?.role === 'admin';
+  
+  const form = useForm<CompanyProfileFormValues>({
+    resolver: zodResolver(companyProfileSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      website: "",
+      logoUrl: "",
+      address: "",
+      phoneNumber: "",
+      email: "",
+      industry: "",
+      size: "",
+      founded: "",
+      featuredImageUrl: "",
+      bio: "",
+      isPhonePublic: false,
+      isEmailPublic: false,
+      ctaText: "",
+      customLinks: [],
+      tags: [],
+    },
+    mode: "onBlur",
+    reValidateMode: "onBlur",
+  });
+
+  // Update form values when company data is loaded
+  useEffect(() => {
+    if (company) {
+      let parsedCustomLinks: UserCustomLink[] = [];
+      
+      try {
+        if (typeof company.customLinks === 'string') {
+          parsedCustomLinks = JSON.parse(company.customLinks);
+        } else if (Array.isArray(company.customLinks)) {
+          parsedCustomLinks = company.customLinks;
+        }
+      } catch (e) {
+        console.error("Failed to parse custom links:", e);
+      }
+      
+      form.reset({
+        name: company.name || "",
+        description: company.description || "",
+        website: company.website || "",
+        logoUrl: company.logoUrl || "",
+        address: company.address || "",
+        phoneNumber: company.phoneNumber || "",
+        email: company.email || "",
+        industry: company.industry || "",
+        size: company.size || "",
+        founded: company.founded || "",
+        featuredImageUrl: company.featuredImageUrl || "",
+        bio: company.bio || "",
+        isPhonePublic: company.isPhonePublic || false,
+        isEmailPublic: company.isEmailPublic || false,
+        ctaText: company.ctaText || "",
+        customLinks: parsedCustomLinks,
+        tags: company.tags || [],
+      });
+      
+      setCustomLinks(parsedCustomLinks);
+      setTags(company.tags || []);
+    }
+  }, [company, form.reset]);
+
+  const updateCompanyMutation = useMutation({
+    mutationFn: async (data: CompanyProfileFormValues) => {
+      if (!company) {
+        throw new Error("No company found to update");
+      }
+      
+      const formattedData = {
+        ...data,
+        tags: tags,
+      };
+
+      const response = await fetch(`/api/companies/${company.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formattedData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update company profile");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Invalidate the user companies query to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ["/api/companies/user/companies"] });
+      toast({
+        title: "Success",
+        description: "Company profile updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: CompanyProfileFormValues) => {
+      const formattedData = {
+        ...data,
+        tags: tags,
+      };
+
+      const response = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(formattedData),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create company profile");
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies/user/companies"] });
+      toast({
+        title: "Success",
+        description: "Company profile created successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = form.handleSubmit(async (data) => {
+    try {
+      // Update customLinks in the form data before submitting
+      data.customLinks = customLinks;
+      
+      if (company) {
+        await updateCompanyMutation.mutateAsync(data);
+      } else {
+        await createCompanyMutation.mutateAsync(data);
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+    }
+  });
+
+  const handleSelectTag = (tag: string) => {
+    const normalizedTag = tag.toLowerCase().trim();
+    if (!tags.includes(normalizedTag) && tags.length < 5) {
+      setTags([...tags, normalizedTag]);
+    }
+    setCurrentTag("");
   };
 
-  const onMapLoad = React.useCallback(() => {
-    setMapLoaded(true);
-  }, []);
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
 
-  if (isLoading) {
+  const handleAddCustomLink = () => {
+    if (newLinkTitle && newLinkUrl) {
+      const newLink: UserCustomLink = {
+        title: newLinkTitle,
+        url: newLinkUrl,
+      };
+      
+      setCustomLinks([...customLinks, newLink]);
+      setNewLinkTitle("");
+      setNewLinkUrl("");
+    }
+  };
+
+  const handleRemoveCustomLink = (index: number) => {
+    const updatedLinks = [...customLinks];
+    updatedLinks.splice(index, 1);
+    setCustomLinks(updatedLinks);
+  };
+
+  if (!user) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       </DashboardLayout>
     );
   }
-
-  if (error || !company) {
-    return (
-      <DashboardLayout>
-        <div className="container max-w-6xl py-8">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Company profile not found or there was an error loading it.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Check if current user is a member/admin of this company
-  const userIsMember = members?.some(member => member.user.id === user?.id);
-  const userIsAdmin = members?.some(member => member.user.id === user?.id && member.role === 'admin');
-
-  const mapContainerStyle = {
-    width: '100%',
-    height: '400px',
-    borderRadius: '0.5rem'
-  };
 
   return (
     <DashboardLayout>
-      <div className="container max-w-6xl py-8">
-        {/* Company Header */}
-        <div className="relative mb-8">
-          {company.featuredImageUrl && (
-            <div className="relative h-64 rounded-lg overflow-hidden mb-6">
-              <img
-                src={company.featuredImageUrl}
-                alt={`${company.name} featured image`}
-                className="w-full h-full object-cover"
-              />
+      <div className="container max-w-3xl mx-auto pt-3 pb-24">
+        <Card className="border-none shadow-none">
+          <CardHeader className="px-6 pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-2xl font-semibold">
+                {company ? 'Company Profile' : 'Create Company Profile'}
+              </CardTitle>
+              <ToggleGroup
+                type="single"
+                value={theme}
+                onValueChange={(value) => {
+                  if (value) setTheme(value as "light" | "dark" | "system");
+                }}
+                className="bg-background border rounded-md"
+              >
+                <ToggleGroupItem value="light" size="sm" className="px-3">
+                  <Sun className="h-4 w-4" />
+                  <span className="sr-only">Light</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="dark" size="sm" className="px-3">
+                  <Moon className="h-4 w-4" />
+                  <span className="sr-only">Dark</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="system" size="sm" className="px-3">
+                  <Monitor className="h-4 w-4" />
+                  <span className="sr-only">System</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
             </div>
-          )}
-
-          <div className="flex flex-col md:flex-row gap-6 items-start">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border">
-                {company.logoUrl ? (
-                  <img
-                    src={company.logoUrl}
-                    alt={`${company.name} logo`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Building className="w-12 h-12 text-gray-400" />
-                )}
+          </CardHeader>
+          <CardContent className="px-6">
+            {isCompaniesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
               </div>
-            </div>
-
-            {/* Company Info */}
-            <div className="flex-grow">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-2">
-                <h1 className="text-3xl font-bold">{company.name}</h1>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={copyProfileLink}
-                    className="flex gap-1 items-center"
-                  >
-                    {showCopied ? (
-                      <>
-                        <Check className="h-4 w-4" />
-                        Copied
-                      </>
-                    ) : (
-                      <>
-                        <Share2 className="h-4 w-4" />
-                        Share
-                      </>
-                    )}
-                  </Button>
-                  
-                  {userIsAdmin && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex gap-1 items-center"
-                      onClick={() => window.location.href = `/company/profile/edit/${company.id}`}
-                    >
-                      Edit Profile
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {company.industry && (
-                <div className="mb-2">
-                  <Badge variant="secondary">{company.industry}</Badge>
-                  {company.size && <Badge variant="outline" className="ml-2">{company.size}</Badge>}
-                  {company.founded && <Badge variant="outline" className="ml-2">Founded {company.founded}</Badge>}
-                </div>
-              )}
-
-              {company.bio && (
-                <p className="text-muted-foreground mb-4 max-w-3xl">
-                  {company.bio}
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-4 mb-4">
-                {company.website && (
-                  <a 
-                    href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-sm hover:underline"
-                  >
-                    <Globe className="h-4 w-4" />
-                    Website
-                  </a>
+            ) : (
+              <>
+                {company && !isCompanyAdmin && (
+                  <Alert variant="default" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      You are a member of this company but not an administrator. Contact a company admin to make changes to this profile.
+                    </AlertDescription>
+                  </Alert>
                 )}
                 
-                {company.address && (
-                  <div className="flex items-center gap-1 text-sm">
-                    <MapPin className="h-4 w-4" />
-                    {company.address}
-                  </div>
-                )}
-                
-                {company.phoneNumber && company.isPhonePublic && (
-                  <a 
-                    href={`tel:${company.phoneNumber}`} 
-                    className="flex items-center gap-1 text-sm hover:underline"
-                  >
-                    <Phone className="h-4 w-4" />
-                    {company.phoneNumber}
-                  </a>
-                )}
-                
-                {company.email && company.isEmailPublic && (
-                  <a 
-                    href={`mailto:${company.email}`} 
-                    className="flex items-center gap-1 text-sm hover:underline"
-                  >
-                    <Mail className="h-4 w-4" />
-                    {company.email}
-                  </a>
-                )}
-              </div>
+                <Form {...form}>
+                  <form onSubmit={onSubmit} className="space-y-6">
+                    {/* Basic Company Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Basic Information</h3>
+                      
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Company Name</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Company Name"
+                                disabled={!isCompanyAdmin && !!company}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-              {company.tags && company.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {company.tags.map((tag) => (
-                    <Badge key={tag} variant="outline">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
+                      <FormField
+                        control={form.control}
+                        name="bio"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormLabel>Company Bio</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Textarea
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="Short company description or tagline (max 300 characters)"
+                                  className="resize-none h-20 min-h-[80px]"
+                                  maxLength={300}
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                                  {(field.value?.length || 0)}/300
+                                </div>
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
 
-              {company.ctaText && company.website && (
-                <div className="mt-4">
-                  <Button 
-                    asChild 
-                    className="mt-2"
-                    size="sm"
-                  >
-                    <a 
-                      href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                    >
-                      {company.ctaText}
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                      <FormField
+                        control={form.control}
+                        name="featuredImageUrl"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <div>
+                              <FormLabel>Featured Image</FormLabel>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                This image will be displayed as a banner on your company profile
+                              </p>
+                            </div>
+                            <FormControl>
+                              <UnsplashPicker
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
 
-        <Tabs defaultValue="about" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="about">About</TabsTrigger>
-            <TabsTrigger value="team">Team</TabsTrigger>
-            {company.address && <TabsTrigger value="location">Location</TabsTrigger>}
-          </TabsList>
+                    {/* Company Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Company Details</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="industry"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Industry</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="Industry"
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-          <TabsContent value="about" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>About {company.name}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {company.description ? (
-                  <div className="prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: company.description }} />
-                ) : (
-                  <p className="text-muted-foreground">No detailed description available.</p>
-                )}
+                        <FormField
+                          control={form.control}
+                          name="size"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company Size</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="1-10, 11-50, 51-200, etc."
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
 
-                {company.customLinks && company.customLinks.length > 0 && (
-                  <>
-                    <Separator />
-                    <div>
-                      <h3 className="text-lg font-medium mb-3">Links</h3>
-                      <div className="flex flex-wrap gap-3">
-                        {company.customLinks.map((link, index) => (
-                          <Button 
-                            key={index} 
-                            variant="outline" 
-                            asChild
-                          >
-                            <a 
-                              href={link.url.startsWith('http') ? link.url : `https://${link.url}`}
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-2"
-                            >
-                              {link.title}
-                            </a>
-                          </Button>
-                        ))}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="founded"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Founded Year</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="Year founded"
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="description"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Description</FormLabel>
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="Detailed company description"
+                                  className="h-full min-h-[80px]"
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                     </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="team" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Team Members
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {members && members.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {members
-                      .filter(member => member.isPublic)
-                      .map((member) => (
-                        <a 
-                          key={member.id} 
-                          href={`/profile/${member.user.id}`}
-                          className="block group"
-                        >
-                          <div className="flex items-center p-3 rounded-lg border group-hover:border-primary transition-colors">
-                            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden mr-3 flex-shrink-0">
-                              {member.user.featuredImageUrl ? (
-                                <img 
-                                  src={member.user.featuredImageUrl} 
-                                  alt={member.user.displayName || 'Member'} 
-                                  className="w-full h-full object-cover" 
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                  {(member.user.displayName?.charAt(0) || '?').toUpperCase()}
+                    {/* Contact Information */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Contact Information</h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="website"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Website</FormLabel>
+                              <FormControl>
+                                <div className="flex items-center space-x-2">
+                                  <Globe className="h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    {...field}
+                                    value={field.value || ""}
+                                    placeholder="https://example.com"
+                                    disabled={!isCompanyAdmin && !!company}
+                                  />
                                 </div>
-                              )}
-                            </div>
-                            <div>
-                              <h3 className="font-medium group-hover:text-primary transition-colors">
-                                {member.user.displayName || member.user.email}
-                              </h3>
-                              {member.title && (
-                                <p className="text-sm text-muted-foreground">{member.title}</p>
-                              )}
-                              {member.role === 'admin' && (
-                                <Badge variant="outline" className="mt-1">Admin</Badge>
-                              )}
-                            </div>
-                          </div>
-                        </a>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No team members to display.</p>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {company.address && (
-            <TabsContent value="location" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    Location
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4">
-                    <p className="text-lg font-medium">{company.name}</p>
-                    <p className="text-muted-foreground">{company.address}</p>
-                  </div>
-                  
-                  {/* Google Map Integration */}
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={mapCenter}
-                    zoom={15}
-                    onLoad={onMapLoad}
-                  >
-                    {mapLoaded && (
-                      <Marker 
-                        position={mapCenter}
-                        onClick={() => setSelectedMarker(company)}
-                      />
-                    )}
-                    
-                    {selectedMarker && (
-                      <InfoWindow
-                        position={mapCenter}
-                        onCloseClick={() => setSelectedMarker(null)}
-                      >
-                        <div>
-                          <h3 className="font-medium">{company.name}</h3>
-                          <p className="text-sm">{company.address}</p>
-                          {company.website && (
-                            <a 
-                              href={company.website.startsWith('http') ? company.website : `https://${company.website}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-500 hover:underline block mt-1"
-                            >
-                              Visit Website
-                            </a>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
                           )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between">
+                                <FormLabel>Email</FormLabel>
+                                <FormField
+                                  control={form.control}
+                                  name="isEmailPublic"
+                                  render={({ field: switchField }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                      <FormLabel className="text-xs text-muted-foreground">
+                                        Public
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Switch
+                                          checked={switchField.value}
+                                          onCheckedChange={switchField.onChange}
+                                          disabled={!isCompanyAdmin && !!company}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              <FormControl>
+                                <div className="flex items-center space-x-2">
+                                  <Mail className="h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    {...field}
+                                    value={field.value || ""}
+                                    placeholder="company@example.com"
+                                    disabled={!isCompanyAdmin && !!company}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="phoneNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <div className="flex items-center justify-between">
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormField
+                                  control={form.control}
+                                  name="isPhonePublic"
+                                  render={({ field: switchField }) => (
+                                    <FormItem className="flex items-center space-x-2 space-y-0">
+                                      <FormLabel className="text-xs text-muted-foreground">
+                                        Public
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Switch
+                                          checked={switchField.value}
+                                          onCheckedChange={switchField.onChange}
+                                          disabled={!isCompanyAdmin && !!company}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              <FormControl>
+                                <div className="flex items-center space-x-2">
+                                  <Phone className="h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    {...field}
+                                    value={field.value || ""}
+                                    placeholder="+1 (555) 123-4567"
+                                    disabled={!isCompanyAdmin && !!company}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <LocationPicker
+                                  defaultValue={field.value ? { address: field.value } : null}
+                                  onLocationSelect={(location) => field.onChange(location?.address || "")}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Custom Links */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Custom Links</h3>
+                      
+                      <div className="space-y-3">
+                        {customLinks.map((link, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <Input
+                              value={link.title}
+                              disabled
+                              className="flex-grow-0 w-1/3"
+                            />
+                            <Input
+                              value={link.url}
+                              disabled
+                              className="flex-grow"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleRemoveCustomLink(index)}
+                              disabled={!isCompanyAdmin && !!company}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                        
+                        {(isCompanyAdmin || !company) && (
+                          <div className="flex items-end space-x-2">
+                            <div className="space-y-1 flex-grow-0 w-1/3">
+                              <label className="text-sm font-medium">
+                                Link Title
+                              </label>
+                              <Input
+                                value={newLinkTitle}
+                                onChange={(e) => setNewLinkTitle(e.target.value)}
+                                placeholder="GitHub"
+                              />
+                            </div>
+                            <div className="space-y-1 flex-grow">
+                              <label className="text-sm font-medium">
+                                URL
+                              </label>
+                              <Input
+                                value={newLinkUrl}
+                                onChange={(e) => setNewLinkUrl(e.target.value)}
+                                placeholder="https://github.com/yourcompany"
+                              />
+                            </div>
+                            <Button
+                              type="button"
+                              size="icon"
+                              onClick={handleAddCustomLink}
+                              disabled={!newLinkTitle || !newLinkUrl}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Tags */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Tags</h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
+                              {tag}
+                              {(isCompanyAdmin || !company) && (
+                                <X
+                                  className="h-3 w-3 cursor-pointer"
+                                  onClick={() => handleRemoveTag(tag)}
+                                />
+                              )}
+                            </Badge>
+                          ))}
                         </div>
-                      </InfoWindow>
+                        
+                        {(isCompanyAdmin || !company) && (
+                          <div className="flex space-x-2">
+                            <Command className="rounded-lg border shadow-md">
+                              <CommandInput
+                                placeholder="Add a tag..."
+                                value={currentTag}
+                                onValueChange={setCurrentTag}
+                                className="h-9"
+                              />
+                              <CommandItem
+                                onSelect={() => handleSelectTag(currentTag)}
+                                className={cn(
+                                  "flex items-center px-2",
+                                  !currentTag && "hidden"
+                                )}
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add "{currentTag}"
+                              </CommandItem>
+                            </Command>
+                            <Button
+                              type="button"
+                              onClick={() => handleSelectTag(currentTag)}
+                              disabled={!currentTag}
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Call to Action */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-medium">Call to Action</h3>
+                      
+                      <FormField
+                        control={form.control}
+                        name="ctaText"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>CTA Text</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                value={field.value || ""}
+                                placeholder="Contact Us, Learn More, etc."
+                                disabled={!isCompanyAdmin && !!company}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {(isCompanyAdmin || !company) && (
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={
+                            updateCompanyMutation.isPending ||
+                            createCompanyMutation.isPending
+                          }
+                        >
+                          {(updateCompanyMutation.isPending ||
+                            createCompanyMutation.isPending) && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
+                          {company ? "Update Company Profile" : "Create Company Profile"}
+                        </Button>
+                      </div>
                     )}
-                  </GoogleMap>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-        </Tabs>
+                  </form>
+                </Form>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
