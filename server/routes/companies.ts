@@ -295,8 +295,8 @@ router.delete("/:companyId/members/:userId", requireAuth, async (req: Request, r
   }
 });
 
-// Get user's companies
-router.get("/user/companies", requireAuth, async (req: Request, res: Response) => {
+// Get current user's companies (better RESTful design)
+router.get("/me", requireAuth, async (req: Request, res: Response) => {
   try {
     const companies = await storage.getUserCompanies(req.session.userId!);
     res.json({ companies });

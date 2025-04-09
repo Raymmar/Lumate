@@ -78,7 +78,7 @@ export default function CompanyProfile() {
 
   // For user's own company, fetch their companies
   const { data: userCompaniesData, isLoading: isLoadingUserCompanies } = useQuery<{ companies: CompanyData[] }>({
-    queryKey: ['/api/companies/user/companies'],
+    queryKey: ['/api/companies/me'],
     enabled: isOwnCompanyProfile && !!user,
   });
 
