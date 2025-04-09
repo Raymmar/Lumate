@@ -55,7 +55,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     // Handle custom links separately to avoid type issues
     const company = await storage.createCompany({
       ...companyData,
-      customLinks: customLinks ? JSON.stringify(customLinks) : null
+      customLinks: customLinks ? customLinks : null
     });
     
     // Add the current user as an admin of the company
@@ -107,7 +107,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     // Handle custom links separately to avoid type issues
     const company = await storage.updateCompany(id, {
       ...companyData,
-      customLinks: customLinks ? JSON.stringify(customLinks) : null
+      customLinks: customLinks ? customLinks : null
     });
     
     res.json({ company });
