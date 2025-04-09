@@ -129,7 +129,7 @@ export function NavBar() {
                 <Link href="/company-profile">
                   <span className="flex items-center">
                     <Building className="mr-2 h-4 w-4 text-foreground" />
-                    Company Profile
+                    My Company Profile
                   </span>
                 </Link>
               </DropdownMenuItem>
