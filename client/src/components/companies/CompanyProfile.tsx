@@ -145,7 +145,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const defaultMapCenter = { lat: 27.3364, lng: -82.5308 }; // Default to Sarasota if geocoding fails
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-4">
       {/* Cover Image Banner */}
       <div className="relative w-full h-64 overflow-hidden rounded-lg bg-muted">
         {company.featuredImageUrl ? (
@@ -164,60 +164,31 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
         <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent h-1/3" />
       </div>
 
-      {/* Logo and Company Name */}
-      <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-12 md:-mt-16 px-4">
-        <Avatar className="h-24 w-24 md:h-32 md:w-32 rounded-xl border-4 border-background shadow-md">
-          {company.logoUrl ? (
-            <AvatarImage src={company.logoUrl} alt={company.name || 'Company Logo'} />
-          ) : (
-            <AvatarFallback className="text-2xl md:text-3xl">
-              {company.name
-                ? company.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                : "?"}
-            </AvatarFallback>
-          )}
-        </Avatar>
-        <div className="min-w-0 pb-2">
-          <h1 className="text-3xl font-bold mb-2">
-            {company.name || "Unnamed Company"}
-          </h1>
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {company.industry && (
-              <Badge variant="secondary" className="text-sm">
-                {company.industry}
-              </Badge>
-            )}
-            {company.tags && company.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="text-sm">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
       {/* Main content */}
-      <div className="grid gap-8 md:grid-cols-3 w-full max-w-full">
+      <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
         {/* Left: About section */}
-        <div className="md:col-span-2 space-y-8">
-          {/* Bio */}
-          {company.bio && (
-            <Card>
-              <CardContent className="pt-6">
+        <div className="md:col-span-2 space-y-4">
+          {/* Company Name and Bio */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-3xl">{company.name || "Unnamed Company"}</CardTitle>
+              {company.industry && (
+                <p className="text-muted-foreground">{company.industry}</p>
+              )}
+            </CardHeader>
+            {company.bio && (
+              <CardContent>
                 <div className="prose prose-sm md:prose-base max-w-none">
-                  <p className="text-lg text-muted-foreground">{company.bio}</p>
+                  <p className="text-muted-foreground">{company.bio}</p>
                 </div>
               </CardContent>
-            </Card>
-          )}
+            )}
+          </Card>
 
           {/* About */}
           {company.description && (
             <Card>
-              <CardHeader>
+              <CardHeader className="py-3">
                 <CardTitle>About {company.name}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -231,14 +202,14 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Location Map */}
           {company.address && (
             <Card>
-              <CardHeader>
+              <CardHeader className="py-3">
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5" />
                   <span>Location</span>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="mb-4">
+                <div className="mb-3">
                   <p className="text-muted-foreground">{company.address}</p>
                 </div>
                 <div id="company-map-container" className="aspect-video w-full overflow-hidden rounded-md border">
@@ -267,16 +238,27 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
         </div>
 
         {/* Right: Company details sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Company Info Card */}
           <Card>
-            <CardHeader>
+            <CardHeader className="py-3">
               <CardTitle>Company Info</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
+              {/* Tags */}
+              {company.tags && company.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {company.tags.map((tag) => (
+                    <Badge key={tag} variant="outline" className="text-sm">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
               {company.website && (
-                <div className="flex items-center gap-3">
-                  <LinkIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2">
+                  <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                   <a 
                     href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
                     target="_blank" 
@@ -289,8 +271,8 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               )}
               
               {company.isEmailPublic && company.email && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
                   <a 
                     href={`mailto:${company.email}`}
                     className="text-primary hover:underline truncate"
@@ -301,8 +283,8 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               )}
               
               {company.isPhonePublic && company.phoneNumber && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
                   <a 
                     href={`tel:${company.phoneNumber}`}
                     className="text-primary hover:underline"
@@ -313,15 +295,15 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               )}
               
               {company.founded && (
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>Founded in {company.founded}</span>
                 </div>
               )}
 
               {company.size && (
-                <div className="flex items-center gap-3">
-                  <Users className="h-5 w-5 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span>{company.size} employees</span>
                 </div>
               )}
@@ -331,13 +313,13 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Custom Links */}
           {company.customLinks && company.customLinks.length > 0 && (
             <Card>
-              <CardHeader>
+              <CardHeader className="py-3">
                 <CardTitle>Resources</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-2">
                 {company.customLinks.map((link, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <LinkIcon className="h-5 w-5 text-muted-foreground shrink-0" />
+                  <div key={index} className="flex items-center gap-2">
+                    <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <a 
                       href={link.url.startsWith('http') ? link.url : `https://${link.url}`} 
                       target="_blank" 
@@ -355,7 +337,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* CTA Button */}
           {company.ctaText && (
             <Link href="/contact">
-              <Button className="w-full" size="lg">
+              <Button className="w-full">
                 {company.ctaText}
               </Button>
             </Link>
