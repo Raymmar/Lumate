@@ -46,9 +46,21 @@ interface GeocodingResult {
   lng: number;
 }
 
+interface GoogleMapAddress {
+  city?: string;
+  region?: string;
+  address?: string;
+  country?: string;
+  placeId?: string;
+  latitude?: string;
+  longitude?: string;
+  formatted_address?: string;
+}
+
 export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const { toast } = useToast();
   const [coordinates, setCoordinates] = useState<GeocodingResult | null>(null);
+  const [formattedAddress, setFormattedAddress] = useState<string | null>(null);
   
   // Load Google Maps script
   const { isLoaded: isMapLoaded } = useLoadScript({
@@ -72,16 +84,53 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
   const company = companyData?.company;
 
+  // Parse address from Google Maps JSON if needed
+  useEffect(() => {
+    if (company?.address) {
+      try {
+        // Check if the address is a JSON string
+        if (typeof company.address === 'string' && company.address.startsWith('{')) {
+          const addressObj = JSON.parse(company.address) as GoogleMapAddress;
+          // Use formatted_address or address field from the JSON
+          if (addressObj.formatted_address) {
+            setFormattedAddress(addressObj.formatted_address);
+          } else if (addressObj.address) {
+            setFormattedAddress(addressObj.address);
+          } else {
+            setFormattedAddress(company.address);
+          }
+          
+          // If we have latitude/longitude in the JSON, set coordinates directly
+          if (addressObj.latitude && addressObj.longitude) {
+            setCoordinates({
+              lat: parseFloat(addressObj.latitude),
+              lng: parseFloat(addressObj.longitude)
+            });
+          }
+        } else {
+          // Not JSON, use as is
+          setFormattedAddress(company.address);
+        }
+      } catch (error) {
+        // If JSON parsing fails, use the address as is
+        console.error("Error parsing address JSON:", error);
+        setFormattedAddress(company.address);
+      }
+    }
+  }, [company?.address]);
+
   // Lazy load map data only when the component is visible
   useEffect(() => {
-    // Only load map data if the address exists and the map section is in viewport
-    if (company?.address && isMapLoaded) {
+    // Only load map data if the address exists, we don't have coordinates yet, and the map section is in viewport
+    if (company?.address && isMapLoaded && !coordinates) {
       // Use a more efficient approach - lazy load the geocoding
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting && !coordinates) {
             const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ address: company.address }, (results, status) => {
+            // Use the formatted address for geocoding if available, otherwise use raw address
+            const addressToGeocode = formattedAddress || company.address;
+            geocoder.geocode({ address: addressToGeocode }, (results, status) => {
               if (status === 'OK' && results && results[0]) {
                 const location = results[0].geometry.location;
                 setCoordinates({
@@ -106,7 +155,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
         observer.disconnect();
       };
     }
-  }, [company, isMapLoaded, coordinates]);
+  }, [company, isMapLoaded, coordinates, formattedAddress]);
 
   if (error) {
     console.error('Error in CompanyProfile:', error);
@@ -204,7 +253,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               </CardHeader>
               <CardContent>
                 <div className="mb-3">
-                  <p className="text-muted-foreground">{company.address}</p>
+                  <p className="text-muted-foreground">{formattedAddress || company.address}</p>
                 </div>
                 <div id="company-map-container" className="aspect-video w-full overflow-hidden rounded-md border">
                   {isMapLoaded ? (
