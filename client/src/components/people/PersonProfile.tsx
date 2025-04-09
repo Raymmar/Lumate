@@ -269,7 +269,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information - shows for any visitor when the profile owner has a paid account or is an admin */}
+        {/* Company information from companies table - Always shown to all visitors if the profile owner has a paid account or is an admin */}
         {userCompany && (Boolean(person.subscriptionStatus === 'active') || isProfileAdmin) && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
@@ -330,7 +330,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </div>
         )}
 
-        {/* Show legacy MemberDetails only if no company data is available or if the profile owner doesn't have paid account/admin status */}
+        {/* Show legacy MemberDetails for everyone without a company profile, or those who don't have a paid account/admin status */}
         {(!userCompany || (!(person.subscriptionStatus === 'active') && !isProfileAdmin)) && person.user && <MemberDetails user={person.user as any} />}
       </div>
 
