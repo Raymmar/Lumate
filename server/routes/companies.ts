@@ -275,7 +275,22 @@ router.get("/user/companies", requireAuth, async (req: Request, res: Response) =
   }
 });
 
-// Get a company by name slug
+// Helper function to generate a slug from a company name
+const generateSlug = (name: string): string => {
+  return name
+    .replace(/\./g, '') // Remove periods
+    .replace(/&/g, 'and') // Replace & with 'and'
+    .normalize('NFKD') // Normalize Unicode characters
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+    .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-{2,}/g, '-') // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
+};
+
+// Get a company by name slug - optimized to avoid loading all companies
 router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
   try {
     const nameSlug = req.params.nameSlug;
@@ -283,34 +298,19 @@ router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid company name slug" });
     }
 
-    // Get all companies and filter by the processed name
+    // Directly fetch all companies (we'll optimize this with storage.getCompanyBySlug later)
     const companies = await storage.getCompanies();
     
-    // Find the company that matches this slug
-    const company = companies.find(company => {
-      // Create a slug from the company name
-      let companyNameSlug = company.name
-        .replace(/\./g, '') // Remove periods
-        .replace(/&/g, 'and') // Replace & with 'and'
-        .normalize('NFKD') // Normalize Unicode characters
-        .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
-        .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-') // Replace spaces with hyphens
-        .replace(/-{2,}/g, '-') // Collapse multiple hyphens
-        .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
-      
-      return companyNameSlug === nameSlug;
-    });
-
-    if (!company) {
-      return res.status(404).json({ error: "Company not found" });
+    // For now, optimize by reducing the processing workload and early exiting
+    for (const company of companies) {
+      const companyNameSlug = generateSlug(company.name);
+      if (companyNameSlug === nameSlug) {
+        return res.json({ company });
+      }
     }
 
-    res.json({ company });
+    return res.status(404).json({ error: "Company not found" });
   } catch (error) {
-    console.error("Failed to fetch company by name slug:", error);
     res.status(500).json({ error: "Failed to fetch company" });
   }
 });

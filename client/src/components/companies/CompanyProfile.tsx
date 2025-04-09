@@ -59,45 +59,54 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const { data: companyData, isLoading, error } = useQuery<{company: Company}>({
     queryKey: ['/api/companies/by-name', nameSlug],
     queryFn: async () => {
-      console.log('Fetching company details for slug:', nameSlug);
       const response = await fetch(`/api/companies/by-name/${encodeURIComponent(nameSlug)}`);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Failed to fetch company details:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorText,
-          nameSlug
-        });
         throw new Error(`Failed to fetch company details: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log('Successfully fetched company details:', data);
-      return data;
+      return await response.json();
     }
   });
 
   const company = companyData?.company;
 
-  // Geocode address when company data is loaded
+  // Lazy load map data only when the component is visible
   useEffect(() => {
+    // Only load map data if the address exists and the map section is in viewport
     if (company?.address && isMapLoaded) {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ address: company.address }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const location = results[0].geometry.location;
-          setCoordinates({
-            lat: location.lat(),
-            lng: location.lng()
-          });
-        } else {
-          console.error('Geocoding failed:', status);
-        }
-      });
+      // Use a more efficient approach - lazy load the geocoding
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !coordinates) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ address: company.address }, (results, status) => {
+              if (status === 'OK' && results && results[0]) {
+                const location = results[0].geometry.location;
+                setCoordinates({
+                  lat: location.lat(),
+                  lng: location.lng()
+                });
+              }
+              // Disconnect observer after first geocoding attempt
+              observer.disconnect();
+            });
+          }
+        });
+      }, { threshold: 0.1 });
+      
+      // Target the map container for observation
+      const mapElement = document.getElementById('company-map-container');
+      if (mapElement) {
+        observer.observe(mapElement);
+      }
+      
+      return () => {
+        observer.disconnect();
+      };
     }
-  }, [company, isMapLoaded]);
+  }, [company, isMapLoaded, coordinates]);
 
   if (error) {
     console.error('Error in CompanyProfile:', error);
@@ -232,7 +241,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                 <div className="mb-4">
                   <p className="text-muted-foreground">{company.address}</p>
                 </div>
-                <div className="aspect-video w-full overflow-hidden rounded-md border">
+                <div id="company-map-container" className="aspect-video w-full overflow-hidden rounded-md border">
                   {isMapLoaded ? (
                     <GoogleMap
                       mapContainerStyle={{ width: '100%', height: '100%' }}
