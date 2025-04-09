@@ -70,28 +70,50 @@ export default function CompanyProfile() {
   const [mapCenter, setMapCenter] = useState({ lat: 27.336, lng: -82.538 }); // Sarasota default
   const [isGeocodingStarted, setIsGeocodingStarted] = useState(false);
 
-  // Decode the companyName from URL
+  // Check if we're on the user's own company profile page
+  const isOwnCompanyProfile = window.location.pathname === '/company-profile';
+  
+  // Decode the companyName from URL (if provided)
   const decodedCompanyName = companyName ? decodeURIComponent(companyName) : '';
 
-  // Directly fetch the company by its ID or name from the URL
-  const { data: companyData, isLoading: isLoadingCompany } = useQuery<{ company: CompanyData }>({
-    queryKey: ['/api/companies', decodedCompanyName],
+  // For user's own company, fetch their companies
+  const { data: userCompaniesData, isLoading: isLoadingUserCompanies } = useQuery<{ companies: CompanyData[] }>({
+    queryKey: ['/api/companies/user/companies'],
+    enabled: isOwnCompanyProfile && !!user,
   });
 
-  // Extract the company from the response
-  const company = companyData?.company;
+  // Get the user's primary company (first one for now)
+  const userCompany = userCompaniesData?.companies?.[0];
 
-  // Fetch company members if we have a company
+  // For public company profiles, directly fetch the company by its name from the URL
+  const { data: companyData, isLoading: isLoadingCompany } = useQuery<{ company: CompanyData }>({
+    queryKey: ['/api/companies', decodedCompanyName],
+    enabled: !isOwnCompanyProfile && !!decodedCompanyName,
+  });
+
+  // Determine which company to display
+  const company = isOwnCompanyProfile ? userCompany : companyData?.company;
+  
+  // The ID or name to use for subsequent queries
+  const companyIdentifier = isOwnCompanyProfile ? 
+    (userCompany?.id?.toString() || '') : 
+    decodedCompanyName;
+
+  // Fetch company members if we have a company identifier
   const { data: membersData, isLoading: isLoadingMembers } = useQuery<{ members: Member[] }>({
-    queryKey: ['/api/companies', decodedCompanyName, 'members'],
-    enabled: !!decodedCompanyName,
+    queryKey: ['/api/companies', companyIdentifier, 'members'],
+    enabled: !!companyIdentifier,
   });
   
   // Extract members from the response
   const members = membersData?.members || [];
 
-  const isLoading = isLoadingCompany || isLoadingMembers;
-  const error = !company && !isLoadingCompany;
+  const isLoading = isLoadingCompany || isLoadingMembers || isLoadingUserCompanies;
+  // For own company profile, show error if not loading and no company found
+  // For public profile, show error if not loading company data and no company found
+  const error = isOwnCompanyProfile 
+    ? !company && !isLoadingUserCompanies
+    : !company && !isLoadingCompany;
 
   // Load Google Maps
   useEffect(() => {
