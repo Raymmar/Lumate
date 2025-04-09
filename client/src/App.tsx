@@ -11,7 +11,6 @@ import LoginPage from "@/pages/LoginPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import UserSettingsPage from "@/pages/UserSettingsPage";
 import CompanyProfilePage from "@/pages/CompanyProfilePage";
-import BusinessProfilePage from "@/pages/BusinessProfilePage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminMembersPage from "@/pages/admin/AdminMembersPage";
 import AdminEventsPage from "@/pages/admin/AdminEventsPage";
@@ -34,7 +33,6 @@ function Router() {
           <Route path="/settings" component={UserSettingsPage} />
           <Route path="/company-profile" component={CompanyProfilePage} />
           <Route path="/people/:username" component={PersonProfilePage} />
-          <Route path="/business/:companySlug" component={BusinessProfilePage} />
           <Route path="/verify" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/members" component={AdminMembersPage} />
