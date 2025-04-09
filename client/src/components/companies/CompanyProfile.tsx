@@ -377,10 +377,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
           {/* Custom Links */}
           {company.customLinks && company.customLinks.length > 0 && (
-            <Card>
-              <CardHeader className="py-3">
-                <CardTitle>Resources</CardTitle>
-              </CardHeader>
+            <Card className="pt-4">
               <CardContent className="space-y-2">
                 {company.customLinks.map((link, index) => (
                   <div key={index} className="flex items-center gap-2">

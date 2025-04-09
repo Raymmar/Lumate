@@ -25,12 +25,6 @@ export default function CompanyPublicProfilePage() {
   return (
     <DashboardLayout>
       <div className="container max-w-7xl mx-auto pb-24">
-        <div className="mb-6 mt-4">
-          <Link href="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors">
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back to Directory
-          </Link>
-        </div>
         
         <CompanyProfile nameSlug={params.companyName} />
       </div>

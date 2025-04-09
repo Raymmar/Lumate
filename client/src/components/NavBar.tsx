@@ -46,10 +46,10 @@ export function NavBar() {
         </div>
       </Link>
       <div className="hidden md:flex items-center space-x-4 ml-4">
-        <Link href="/companies">
+        <Link href="/companies" className="no-underline hover:no-underline">
           <Button variant="ghost" size="sm" className="flex items-center">
             <Briefcase className="h-4 w-4 mr-2" />
-            Companies
+            Directory
           </Button>
         </Link>
       </div>
