@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ExternalLink as ExternalLinkIcon, Building, ArrowRight } from "lucide-react";
+import { ArrowRight, Building } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Helper function to generate slug from company name
@@ -42,7 +42,12 @@ export function FeaturedCompaniesGrid() {
     }
   });
 
-  const companies = data?.companies || [];
+  const allCompanies = data?.companies || [];
+  
+  // Filter out companies without featured images
+  const companiesWithImages = allCompanies.filter(
+    (company: Company) => company.featuredImageUrl
+  );
   
   // Render loading skeletons
   if (isLoading) {
@@ -53,7 +58,7 @@ export function FeaturedCompaniesGrid() {
           <Skeleton className="h-10 w-32" />
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-48 w-full" />
           ))}
         </div>
@@ -61,15 +66,15 @@ export function FeaturedCompaniesGrid() {
     );
   }
 
-  // Render error state
-  if (error || companies.length === 0) {
-    return null; // Hide the section if error or no companies
+  // Render error state or hide if no companies with featured images
+  if (error || companiesWithImages.length === 0) {
+    return null; // Hide the section if error or no companies with images
   }
 
-  // Get random 5 companies
-  const randomCompanies = [...companies]
+  // Get random 6 companies with featured images
+  const randomCompanies = [...companiesWithImages]
     .sort(() => 0.5 - Math.random())
-    .slice(0, 5);
+    .slice(0, 6);
 
   return (
     <div className="space-y-4">
@@ -88,25 +93,11 @@ export function FeaturedCompaniesGrid() {
           <Link key={company.id} href={`/companies/${generateSlug(company.name)}`} className="no-underline">
             <Card className="overflow-hidden h-full transition-all hover:shadow-md cursor-pointer">
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                {company.featuredImageUrl ? (
-                  <img 
-                    src={company.featuredImageUrl} 
-                    alt={`${company.name}`} 
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-r from-primary/10 to-primary/30 flex items-center justify-center">
-                    {company.logoUrl ? (
-                      <img 
-                        src={company.logoUrl} 
-                        alt={company.name} 
-                        className="max-h-16 max-w-16"
-                      />
-                    ) : (
-                      <Building className="h-12 w-12 text-primary/50" />
-                    )}
-                  </div>
-                )}
+                <img 
+                  src={company.featuredImageUrl!} 
+                  alt={`${company.name}`} 
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="p-3">
                 <div className="flex items-center gap-2">
@@ -125,15 +116,6 @@ export function FeaturedCompaniesGrid() {
             </Card>
           </Link>
         ))}
-        
-        {/* View All link in the grid */}
-        <Link href="/companies" className="no-underline">
-          <Card className="overflow-hidden h-full transition-all hover:shadow-md cursor-pointer flex flex-col justify-center items-center p-6 bg-primary/5">
-            <Building className="h-12 w-12 text-primary mb-4" />
-            <h3 className="font-semibold text-center">View Full Directory</h3>
-            <p className="text-sm text-muted-foreground text-center mt-2">Explore all companies</p>
-          </Card>
-        </Link>
       </div>
     </div>
   );
