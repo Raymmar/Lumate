@@ -1,5 +1,5 @@
 import { useParams, Link } from "wouter";
-import PageContainer from "@/components/layout/PageContainer";
+import { PageContainer } from "@/components/layout/PageContainer";
 import CompanyProfile from "@/components/companies/CompanyProfile";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
