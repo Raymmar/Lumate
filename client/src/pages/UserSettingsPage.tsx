@@ -268,7 +268,13 @@ export default function UserSettingsPage() {
                       <FormItem className="space-y-1">
                         <div className="flex items-center justify-between mb-1">
                           <FormLabel className="text-sm text-muted-foreground">
-                            Bio
+                            {!isSubscriptionLoading && !hasActiveSubscription && user ? (
+                              <span>
+                                Add a short bio to your public profile <span className="text-muted-foreground italic text-xs">(upgrade to add a company profile)</span>
+                              </span>
+                            ) : (
+                              <span>Add a short bio to your public profile</span>
+                            )}
                           </FormLabel>
                           {!isSubscriptionLoading && (
                             hasActiveSubscription ? (
@@ -302,8 +308,24 @@ export default function UserSettingsPage() {
                   />
                 </div>
 
+                {/* Save Button */}
+                <Button
+                  type="submit"
+                  className="w-full mt-4"
+                  disabled={updateProfileMutation.isPending}
+                >
+                  {updateProfileMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
+                </Button>
+                
+                {/* Company Profile Section - Moved below save button */}
                 <div className="space-y-3">
-                  {/* Add a link to company profile page with subscription check */}
                   <div className="pt-4 text-center">
                     {isSubscriptionLoading ? (
                       <div className="flex justify-center mb-4">
@@ -333,22 +355,6 @@ export default function UserSettingsPage() {
                     )}
                   </div>
                 </div>
-
-                {/* Save Button */}
-                <Button
-                  type="submit"
-                  className="w-full mt-4"
-                  disabled={updateProfileMutation.isPending}
-                >
-                  {updateProfileMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
 
                 {form.formState.isSubmitted &&
                   Object.keys(form.formState.errors).length > 0 && (
