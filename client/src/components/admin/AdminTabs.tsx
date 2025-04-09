@@ -8,6 +8,7 @@ const ADMIN_TABS = [
   { id: "events", label: "Events", path: "/admin/events" },
   { id: "people", label: "People", path: "/admin/people" },
   { id: "roles", label: "Roles & Permissions", path: "/admin/roles" },
+  { id: "migration", label: "Company Migration", path: "/admin/migration" },
 ] as const;
 
 export function AdminTabs() {

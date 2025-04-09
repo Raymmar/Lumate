@@ -1,111 +1,185 @@
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { apiRequest } from '@/lib/api';
+import { useState, useEffect, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Progress } from "@/components/ui/progress";
 
-export const CompanyMigration = () => {
-  const [isMigrating, setIsMigrating] = useState(false);
+export default function CompanyMigration() {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState<string | null>(null);
-  const [result, setResult] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState('');
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const [result, setResult] = useState<{
+    success: boolean;
+    message: string;
+    details?: { total: number; created: number; skipped: number };
+  } | null>(null);
 
-  const handleMigration = async () => {
-    try {
-      setIsMigrating(true);
-      setProgress(0);
-      setStatus('Starting migration...');
-      setError(null);
-      setResult(null);
+  // Clean up event source on unmount
+  useEffect(() => {
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
+  }, []);
 
-      // Create EventSource to handle server-sent events
-      const eventSource = new EventSource('/api/admin/migrate-company-data');
-      
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('Migration update:', data);
-          
-          if (data.type === 'status') {
-            setStatus(data.message);
-            setProgress(data.progress);
-            
-            if (data.progress === 100) {
-              setResult(data.data);
-              eventSource.close();
-              setIsMigrating(false);
-            }
-          } else if (data.type === 'error') {
-            setError(data.message);
-            setProgress(0);
-            eventSource.close();
-            setIsMigrating(false);
-          }
-        } catch (e) {
-          console.error('Error processing server event:', e);
-        }
-      };
-      
-      eventSource.onerror = (e) => {
-        console.error('EventSource error:', e);
-        setError('Connection error. Please try again.');
-        eventSource.close();
-        setIsMigrating(false);
-      };
-    } catch (error) {
-      console.error('Migration error:', error);
-      setError('Failed to start migration process');
-      setIsMigrating(false);
+  const handleMigration = () => {
+    setIsLoading(true);
+    setResult(null);
+    setProgress(0);
+    setStatusMessage('Starting migration...');
+    
+    // Close any existing EventSource
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
     }
+    
+    // Create a new EventSource for SSE
+    const eventSource = new EventSource('/api/admin/migrate-company-data');
+    eventSourceRef.current = eventSource;
+    
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Handle different event types
+        if (data.type === 'status') {
+          setStatusMessage(data.message);
+          setProgress(data.progress || 0);
+          
+          // If we have data and progress is 100%, we're complete
+          if (data.data && data.progress === 100) {
+            setResult({
+              success: true,
+              message: 'Company data migration completed successfully!',
+              details: data.data
+            });
+            
+            toast({
+              title: "Success",
+              description: "Company data migration completed successfully!",
+              variant: "default",
+            });
+            
+            // Migration is done, clean up
+            eventSource.close();
+            eventSourceRef.current = null;
+            setIsLoading(false);
+          }
+        } else if (data.type === 'error') {
+          setResult({
+            success: false,
+            message: data.message || 'An error occurred during migration'
+          });
+          
+          toast({
+            title: "Error",
+            description: data.message || 'An error occurred during migration',
+            variant: "destructive",
+          });
+          
+          // Error occurred, clean up
+          eventSource.close();
+          eventSourceRef.current = null;
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Error parsing SSE data:', error);
+      }
+    };
+    
+    eventSource.onerror = () => {
+      console.error('SSE connection error');
+      
+      setResult({
+        success: false,
+        message: 'Connection error during migration'
+      });
+      
+      toast({
+        title: "Error",
+        description: 'Connection error during migration',
+        variant: "destructive",
+      });
+      
+      // Clean up on error
+      eventSource.close();
+      eventSourceRef.current = null;
+      setIsLoading(false);
+    };
   };
 
   return (
-    <Card className="w-full mb-8">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Company Data Migration</CardTitle>
         <CardDescription>
-          Migrate company information from user profiles to the new companies table
+          Transfer company information from user profiles to dedicated company records
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {status && <p className="mb-4">{status}</p>}
+        <p className="mb-4">
+          This migration will:
+        </p>
+        <ul className="list-disc pl-5 mb-4 space-y-1">
+          <li>Extract company information from user profiles</li>
+          <li>Create new company records in the companies table</li>
+          <li>Link users to their respective companies as administrators</li>
+          <li>Transfer company metadata (contact info, links, etc.)</li>
+          <li>Preserve all existing data while setting up the new structure</li>
+        </ul>
         
-        {isMigrating && (
-          <div className="mb-4">
-            <Progress value={progress} className="h-2 mb-2" />
-            <p className="text-sm text-muted-foreground">{progress}% complete</p>
+        {isLoading && (
+          <div className="mt-6 mb-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm font-medium">{statusMessage}</span>
+              <span className="text-sm font-medium">{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-2" />
           </div>
-        )}
-        
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
         )}
         
         {result && (
-          <div className="p-4 bg-muted rounded-md mb-4">
-            <h4 className="font-medium mb-2">Migration Results:</h4>
-            <ul className="pl-5 list-disc">
-              <li>Total users processed: {result.total}</li>
-              <li>Companies created: {result.created}</li>
-              <li>Users skipped: {result.skipped}</li>
-            </ul>
-          </div>
+          <Alert className={`mt-4 ${result.success ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className="flex items-center">
+              {result.success ? 
+                <CheckCircle className="h-5 w-5 text-green-600 mr-2" /> : 
+                <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              }
+              <AlertTitle>{result.success ? 'Success' : 'Error'}</AlertTitle>
+            </div>
+            <AlertDescription className="mt-2">
+              {result.message}
+              
+              {result.details && (
+                <div className="mt-2 text-sm">
+                  <div>Total users processed: {result.details.total}</div>
+                  <div>Companies created: {result.details.created}</div>
+                  <div>Users skipped: {result.details.skipped}</div>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
       <CardFooter>
         <Button 
           onClick={handleMigration} 
-          disabled={isMigrating}
-          variant={result ? "outline" : "default"}
+          disabled={isLoading}
+          className="w-full"
         >
-          {isMigrating ? 'Migrating...' : result ? 'Run Migration Again' : 'Start Migration'}
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Running Migration...
+            </>
+          ) : 'Run Company Migration'}
         </Button>
       </CardFooter>
     </Card>
   );
-};
+}
