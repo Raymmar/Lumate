@@ -9,6 +9,7 @@ interface CompanyCardProps {
   logoUrl: string | null;
   featuredImageUrl: string | null;
   industry: string | null;
+  bio: string | null;
   tags: string[] | null;
   slug: string;
 }
@@ -18,6 +19,7 @@ export function CompanyCard({
   logoUrl, 
   featuredImageUrl, 
   industry, 
+  bio,
   tags, 
   slug 
 }: CompanyCardProps) {
@@ -62,8 +64,8 @@ export function CompanyCard({
         </CardHeader>
         
         <CardContent className="pb-2">
-          {industry && (
-            <p className="text-sm text-muted-foreground">{industry}</p>
+          {bio && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{bio}</p>
           )}
         </CardContent>
       </Card>

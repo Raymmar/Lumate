@@ -69,6 +69,7 @@ export default function CompanyDirectory() {
     return (
       company.name.toLowerCase().includes(query) ||
       (company.industry && company.industry.toLowerCase().includes(query)) ||
+      (company.bio && company.bio.toLowerCase().includes(query)) ||
       (company.tags && company.tags.some(tag => tag.toLowerCase().includes(query)))
     );
   });
@@ -169,6 +170,7 @@ export default function CompanyDirectory() {
             logoUrl={company.logoUrl}
             featuredImageUrl={company.featuredImageUrl}
             industry={company.industry}
+            bio={company.bio}
             tags={company.tags}
             slug={generateSlug(company.name)}
           />
