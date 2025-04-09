@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { BusinessProfile } from "@/components/ui/business-profile";
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
@@ -268,8 +269,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information from companies table - Always shown to all visitors if the profile owner has a paid account or is an admin */}
-        {userCompany && (Boolean(person.user?.subscriptionStatus === 'active') || isProfileAdmin) && (
+        {/* Company information from companies table - Always shown to ALL visitors */}
+        {userCompany && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
