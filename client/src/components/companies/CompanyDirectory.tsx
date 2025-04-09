@@ -130,7 +130,7 @@ export default function CompanyDirectory() {
     return (
       <div className="space-y-4">
         <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 
-          backgroundImage: 'url("https://images.unsplash.com/photo-1563906267088-b029e7101114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80")'
+          backgroundImage: "url('https://file-upload.replit.app/api/storage/images%2F1740978938458-STS_Jan%2725-89%20compressed.jpeg')"
         }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
           <div className="relative z-10 w-full max-w-2xl mx-auto py-12 px-4 text-center">
@@ -166,7 +166,7 @@ export default function CompanyDirectory() {
   return (
     <div className="space-y-4">
       <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 
-        backgroundImage: 'url("https://images.unsplash.com/photo-1563906267088-b029e7101114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80")'
+        backgroundImage: "url('https://file-upload.replit.app/api/storage/images%2F1740978938458-STS_Jan%2725-89%20compressed.jpeg')"
       }}>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
         <div className="relative z-10 w-full max-w-2xl mx-auto py-12 px-4 text-center">
