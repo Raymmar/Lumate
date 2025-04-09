@@ -24,6 +24,23 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+// Get a company by slug - this must be placed before /:id route
+router.get("/slug/:slug", async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug;
+    
+    const company = await storage.getCompanyBySlug(slug);
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    res.json({ company });
+  } catch (error) {
+    console.error("Failed to fetch company by slug:", error);
+    res.status(500).json({ error: "Failed to fetch company" });
+  }
+});
+
 // Get a company by ID
 router.get("/:id", async (req: Request, res: Response) => {
   try {

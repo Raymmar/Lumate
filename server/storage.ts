@@ -138,6 +138,7 @@ export interface IStorage {
   // Company management
   getCompanies(): Promise<Company[]>;
   getCompanyById(id: number): Promise<Company | null>;
+  getCompanyBySlug(slug: string): Promise<Company | null>;
   createCompany(companyData: InsertCompany): Promise<Company>;
   updateCompany(companyId: number, data: Partial<Company>): Promise<Company>;
   deleteCompany(companyId: number): Promise<void>;
@@ -1982,6 +1983,41 @@ export class PostgresStorage implements IStorage {
       return result.length > 0 ? result[0] : null;
     } catch (error) {
       console.error('Failed to get company by ID:', error);
+      throw error;
+    }
+  }
+  
+  async getCompanyBySlug(slug: string): Promise<Company | null> {
+    try {
+      // Get all companies
+      const allCompanies = await this.getCompanies();
+      
+      // Find company by comparing normalized names
+      for (const company of allCompanies) {
+        // Skip companies without names
+        if (!company.name) continue;
+        
+        // Generate a slug from the company name
+        const companyName = company.name.toLowerCase()
+          .replace(/\./g, '')
+          .replace(/&/g, 'and')
+          .normalize('NFKD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^\w\s-]/g, ' ')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-{2,}/g, '-')
+          .replace(/^-+|-+$/g, '');
+        
+        // If the slug matches, return the company
+        if (companyName === slug) {
+          return company;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to get company by slug:', error);
       throw error;
     }
   }
