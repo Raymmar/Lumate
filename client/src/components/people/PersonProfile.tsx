@@ -188,6 +188,17 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   // Check if the profile owner has an active subscription, not the current user
   const hasActiveSubscription = Boolean(person?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
+  
+  // Debug information for company display conditions
+  console.log('Profile company display debug:', {
+    profileUsername: username,
+    hasCompany: Boolean(userCompany),
+    companyName: userCompany?.name,
+    isAdmin,
+    hasActiveSubscription,
+    subscriptionStatus: person?.subscriptionStatus,
+    shouldShowCompany: Boolean(userCompany && (hasActiveSubscription || isAdmin))
+  });
 
   if (personError) {
     console.error('Error in PersonProfile:', personError);
