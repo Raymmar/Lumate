@@ -494,3 +494,72 @@ export type Badge = typeof badges.$inferSelect;
 export type InsertBadge = z.infer<typeof insertBadgeSchema>;
 export type UserBadge = typeof userBadges.$inferSelect;
 export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
+
+// Company Schema - For business accounts
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  website: varchar("website", { length: 255 }),
+  logoUrl: varchar("logo_url", { length: 255 }),
+  address: text("address"),
+  phoneNumber: varchar("phone_number", { length: 50 }),
+  email: varchar("email", { length: 255 }),
+  industry: varchar("industry", { length: 100 }),
+  size: varchar("size", { length: 50 }),
+  founded: varchar("founded", { length: 50 }),
+  featuredImageUrl: varchar("featured_image_url", { length: 255 }),
+  bio: text("bio"),
+  isPhonePublic: boolean("is_phone_public").notNull().default(false),
+  isEmailPublic: boolean("is_email_public").notNull().default(false),
+  ctaText: varchar("cta_text", { length: 255 }),
+  customLinks: json("custom_links").$type<UserCustomLink[]>().default([]),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+// Company Members Junction Table - Connects users to companies with role information
+export const companyMembers = pgTable("company_members", {
+  id: serial("id").primaryKey(),
+  companyId: serial("company_id").references(() => companies.id).notNull(),
+  userId: serial("user_id").references(() => users.id).notNull(),
+  role: varchar("role", { length: 50 }).notNull().default('user'), // 'admin' or 'user'
+  title: varchar("title", { length: 255 }),
+  isPublic: boolean("is_public").notNull().default(true),
+  addedBy: serial("added_by").references(() => users.id),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+// Company Tags Junction Table
+export const companyTags = pgTable("company_tags", {
+  id: serial("id").primaryKey(),
+  companyId: serial("company_id").references(() => companies.id).notNull(),
+  tagId: serial("tag_id").references(() => tags.id).notNull(),
+});
+
+// Insert schemas
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCompanyMemberSchema = createInsertSchema(companyMembers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCompanyTagSchema = createInsertSchema(companyTags).omit({
+  id: true,
+});
+
+// Type definitions
+export type Company = typeof companies.$inferSelect;
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type CompanyMember = typeof companyMembers.$inferSelect;
+export type InsertCompanyMember = z.infer<typeof insertCompanyMemberSchema>;
+export type CompanyTag = typeof companyTags.$inferSelect;
+export type InsertCompanyTag = z.infer<typeof insertCompanyTagSchema>;

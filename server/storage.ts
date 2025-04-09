@@ -14,9 +14,12 @@ import {
   Attendance, InsertAttendance,
   CacheMetadata, InsertCacheMetadata,
   Badge,
+  Company, InsertCompany,
+  CompanyMember, InsertCompanyMember,
+  CompanyTag, InsertCompanyTag,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -131,6 +134,25 @@ export interface IStorage {
   validatePasswordResetToken(token: string): Promise<VerificationToken | null>;
   deletePasswordResetToken(token: string): Promise<void>;
   deletePasswordResetTokensByEmail(email: string): Promise<void>;
+
+  // Company management
+  getCompanies(): Promise<Company[]>;
+  getCompanyById(id: number): Promise<Company | null>;
+  createCompany(companyData: InsertCompany): Promise<Company>;
+  updateCompany(companyId: number, data: Partial<Company>): Promise<Company>;
+  deleteCompany(companyId: number): Promise<void>;
+  
+  // Company members management
+  getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User })[]>;
+  addMemberToCompany(companyMembership: InsertCompanyMember): Promise<CompanyMember>;
+  updateCompanyMemberRole(companyId: number, userId: number, role: string): Promise<CompanyMember>;
+  removeCompanyMember(companyId: number, userId: number): Promise<void>;
+  getUserCompanies(userId: number): Promise<(Company & { role: string })[]>;
+  isCompanyAdmin(userId: number, companyId: number): Promise<boolean>;
+  
+  // Company tags management
+  getCompanyTags(companyId: number): Promise<Tag[]>;
+  addTagToCompany(companyTag: InsertCompanyTag): Promise<CompanyTag>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -1938,6 +1960,296 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Company management methods
+  async getCompanies(): Promise<Company[]> {
+    try {
+      const result = await db.select().from(companies);
+      return result;
+    } catch (error) {
+      console.error('Failed to get companies:', error);
+      throw error;
+    }
+  }
+
+  async getCompanyById(id: number): Promise<Company | null> {
+    try {
+      const result = await db
+        .select()
+        .from(companies)
+        .where(eq(companies.id, id))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get company by ID:', error);
+      throw error;
+    }
+  }
+
+  async createCompany(companyData: InsertCompany): Promise<Company> {
+    try {
+      console.log('Creating new company:', companyData.name);
+      
+      const [newCompany] = await db
+        .insert(companies)
+        .values({
+          ...companyData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .returning();
+      
+      console.log('Successfully created company:', newCompany.id);
+      return newCompany;
+    } catch (error) {
+      console.error('Failed to create company:', error);
+      throw error;
+    }
+  }
+
+  async updateCompany(companyId: number, data: Partial<Company>): Promise<Company> {
+    try {
+      const [updatedCompany] = await db
+        .update(companies)
+        .set({ 
+          ...data,
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(companies.id, companyId))
+        .returning();
+      
+      if (!updatedCompany) {
+        throw new Error(`Company with ID ${companyId} not found`);
+      }
+      
+      return updatedCompany;
+    } catch (error) {
+      console.error('Failed to update company:', error);
+      throw error;
+    }
+  }
+
+  async deleteCompany(companyId: number): Promise<void> {
+    try {
+      // First delete all company members to avoid foreign key constraints
+      await db
+        .delete(companyMembers)
+        .where(eq(companyMembers.companyId, companyId));
+      
+      // Then delete all company tags
+      await db
+        .delete(companyTags)
+        .where(eq(companyTags.companyId, companyId));
+      
+      // Finally delete the company
+      await db
+        .delete(companies)
+        .where(eq(companies.id, companyId));
+      
+      console.log(`Successfully deleted company with ID ${companyId}`);
+    } catch (error) {
+      console.error('Failed to delete company:', error);
+      throw error;
+    }
+  }
+
+  // Company members management methods
+  async getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User })[]> {
+    try {
+      const result = await db
+        .select({
+          ...companyMembers,
+          user: users
+        })
+        .from(companyMembers)
+        .innerJoin(users, eq(companyMembers.userId, users.id))
+        .where(eq(companyMembers.companyId, companyId));
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to get company members:', error);
+      throw error;
+    }
+  }
+
+  async addMemberToCompany(companyMembership: InsertCompanyMember): Promise<CompanyMember> {
+    try {
+      console.log('Adding member to company:', {
+        companyId: companyMembership.companyId,
+        userId: companyMembership.userId
+      });
+      
+      // Check if membership already exists
+      const existingMembership = await db
+        .select()
+        .from(companyMembers)
+        .where(and(
+          eq(companyMembers.companyId, companyMembership.companyId),
+          eq(companyMembers.userId, companyMembership.userId)
+        ))
+        .limit(1);
+      
+      if (existingMembership.length > 0) {
+        // Update existing membership
+        const [updatedMembership] = await db
+          .update(companyMembers)
+          .set({
+            role: companyMembership.role,
+            title: companyMembership.title,
+            isPublic: companyMembership.isPublic,
+            addedBy: companyMembership.addedBy,
+            updatedAt: new Date().toISOString()
+          })
+          .where(and(
+            eq(companyMembers.companyId, companyMembership.companyId),
+            eq(companyMembers.userId, companyMembership.userId)
+          ))
+          .returning();
+        
+        return updatedMembership;
+      } else {
+        // Create new membership
+        const [newMembership] = await db
+          .insert(companyMembers)
+          .values({
+            ...companyMembership,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          })
+          .returning();
+        
+        return newMembership;
+      }
+    } catch (error) {
+      console.error('Failed to add member to company:', error);
+      throw error;
+    }
+  }
+
+  async updateCompanyMemberRole(companyId: number, userId: number, role: string): Promise<CompanyMember> {
+    try {
+      const [updatedMembership] = await db
+        .update(companyMembers)
+        .set({
+          role,
+          updatedAt: new Date().toISOString()
+        })
+        .where(and(
+          eq(companyMembers.companyId, companyId),
+          eq(companyMembers.userId, userId)
+        ))
+        .returning();
+      
+      if (!updatedMembership) {
+        throw new Error(`Membership for company ${companyId} and user ${userId} not found`);
+      }
+      
+      return updatedMembership;
+    } catch (error) {
+      console.error('Failed to update company member role:', error);
+      throw error;
+    }
+  }
+
+  async removeCompanyMember(companyId: number, userId: number): Promise<void> {
+    try {
+      await db
+        .delete(companyMembers)
+        .where(and(
+          eq(companyMembers.companyId, companyId),
+          eq(companyMembers.userId, userId)
+        ));
+      
+      console.log(`Successfully removed user ${userId} from company ${companyId}`);
+    } catch (error) {
+      console.error('Failed to remove company member:', error);
+      throw error;
+    }
+  }
+
+  async getUserCompanies(userId: number): Promise<(Company & { role: string })[]> {
+    try {
+      const result = await db
+        .select({
+          ...companies,
+          role: companyMembers.role
+        })
+        .from(companyMembers)
+        .innerJoin(companies, eq(companyMembers.companyId, companies.id))
+        .where(eq(companyMembers.userId, userId));
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to get user companies:', error);
+      throw error;
+    }
+  }
+
+  async isCompanyAdmin(userId: number, companyId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .select()
+        .from(companyMembers)
+        .where(and(
+          eq(companyMembers.companyId, companyId),
+          eq(companyMembers.userId, userId),
+          eq(companyMembers.role, 'admin')
+        ))
+        .limit(1);
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error('Failed to check if user is company admin:', error);
+      throw error;
+    }
+  }
+
+  // Company tags management methods
+  async getCompanyTags(companyId: number): Promise<Tag[]> {
+    try {
+      const result = await db
+        .select({
+          ...tags
+        })
+        .from(companyTags)
+        .innerJoin(tags, eq(companyTags.tagId, tags.id))
+        .where(eq(companyTags.companyId, companyId));
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to get company tags:', error);
+      throw error;
+    }
+  }
+
+  async addTagToCompany(companyTag: InsertCompanyTag): Promise<CompanyTag> {
+    try {
+      // Check if tag is already associated with the company
+      const existingTag = await db
+        .select()
+        .from(companyTags)
+        .where(and(
+          eq(companyTags.companyId, companyTag.companyId),
+          eq(companyTags.tagId, companyTag.tagId)
+        ))
+        .limit(1);
+      
+      if (existingTag.length > 0) {
+        return existingTag[0];
+      }
+      
+      // Add new tag association
+      const [newCompanyTag] = await db
+        .insert(companyTags)
+        .values(companyTag)
+        .returning();
+      
+      return newCompanyTag;
+    } catch (error) {
+      console.error('Failed to add tag to company:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new PostgresStorage();
