@@ -14,6 +14,7 @@ import {
   Globe,
   Mail,
   Phone,
+  Lock,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -86,6 +87,54 @@ export default function CompanyProfilePage() {
   const [customLinks, setCustomLinks] = useState<UserCustomLink[]>([]);
   const [newLinkTitle, setNewLinkTitle] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
+
+  // Check subscription status
+  const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
+    useQuery({
+      queryKey: ["/api/subscription/status"],
+      queryFn: async () => {
+        const response = await fetch("/api/subscription/status");
+        if (!response.ok)
+          throw new Error("Failed to check subscription status");
+        return response.json();
+      },
+      enabled: !!user,
+    });
+
+  const hasActiveSubscription =
+    user?.isAdmin || subscriptionStatus?.status === "active";
+
+  // Start subscription function
+  const startSubscription = async () => {
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create checkout session");
+      }
+
+      const { url } = await response.json();
+      if (!url) {
+        throw new Error("No checkout URL received");
+      }
+
+      window.location.href = url;
+    } catch (error) {
+      console.error("Subscription error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize subscription. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     initGoogleMaps();
@@ -391,13 +440,37 @@ export default function CompanyProfilePage() {
                   </Alert>
                 )}
                 
-                <Form {...form}>
-                  <form onSubmit={onSubmit} className="space-y-6">
-                    {/* Basic Company Information */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Basic Information</h3>
-                      
-                      <FormField
+                {!hasActiveSubscription && !isSubscriptionLoading ? (
+                  <Card className="border-2 border-dashed">
+                    <CardContent className="py-8">
+                      <div className="text-center space-y-4">
+                        <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold">
+                            Paid Members Only
+                          </h3>
+                          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                            Upgrade your account to unlock additional premium
+                            features including company details, contact information, and business profile.
+                          </p>
+                          <Button
+                            onClick={startSubscription}
+                            className="mt-4 bg-[#FEA30E] hover:bg-[#FEA30E]/90 text-black"
+                          >
+                            Upgrade to Premium
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Form {...form}>
+                    <form onSubmit={onSubmit} className="space-y-6">
+                      {/* Basic Company Information */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Basic Information</h3>
+                        
+                        <FormField
                         control={form.control}
                         name="name"
                         render={({ field }) => (
@@ -844,6 +917,7 @@ export default function CompanyProfilePage() {
                     )}
                   </form>
                 </Form>
+                )}
               </>
             )}
           </CardContent>
