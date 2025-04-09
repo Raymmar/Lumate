@@ -129,7 +129,7 @@ export default function CompanyDirectory() {
   if (filteredCompanies.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="relative">
+        <div className="relative mb-4">
           <Input
             placeholder="Search companies..."
             className="w-full"
@@ -151,8 +151,8 @@ export default function CompanyDirectory() {
 
   // Render companies grid
   return (
-    <div className="space-y-6">
-      <div className="relative">
+    <div className="space-y-4">
+      <div className="relative mb-4">
         <Input
           placeholder="Search companies..."
           className="w-full"
@@ -161,7 +161,7 @@ export default function CompanyDirectory() {
         />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCompanies.map((company: Company) => (
           <CompanyCard
             key={company.id}
