@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
@@ -280,7 +281,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {/* Company information - show when user has a company and either:
+        {/* Company information - show when user has a company record in the database and either:
             1. The profile owner has a paid membership, or
             2. The current viewer is an admin */}
         {userCompany && (hasActiveSubscription || isAdmin) && (
@@ -340,6 +341,14 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                 </Button>
               </CardContent>
             </Card>
+          </div>
+        )}
+
+        {/* Fallback to use legacy MemberDetails for users with an active subscription but no company record */}
+        {!userCompany && hasActiveSubscription && person.user && (
+          <div>
+            <h3 className="text-lg font-medium ml-1 mb-2">Company Information</h3>
+            <MemberDetails user={person.user as any} />
           </div>
         )}
       </div>
