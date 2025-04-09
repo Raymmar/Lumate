@@ -129,26 +129,24 @@ export default function CompanyDirectory() {
   if (filteredCompanies.length === 0) {
     return (
       <div className="space-y-4">
-        <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm" style={{ 
+        <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 
           backgroundImage: 'url("https://images.unsplash.com/photo-1563906267088-b029e7101114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80")'
         }}>
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
-          <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 py-12 text-center">
-            <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                Sarasota Tech Member Directory
-              </h1>
-              <p className="text-lg text-white/90 mb-8">
-                Explore a growing directory of Sarasota's most innovative companies.
-              </p>
-              <div className="w-full max-w-lg">
-                <Input
-                  placeholder="Search companies..."
-                  className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
+          <div className="relative z-10 w-full max-w-2xl mx-auto py-12 px-4 text-center">
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              Sarasota Tech Member Directory
+            </h1>
+            <p className="text-lg text-white/90 mb-8">
+              Explore a growing directory of Sarasota's most innovative companies.
+            </p>
+            <div className="w-full max-w-lg mx-auto">
+              <Input
+                placeholder="Search companies..."
+                className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -167,26 +165,24 @@ export default function CompanyDirectory() {
   // Render companies grid
   return (
     <div className="space-y-4">
-      <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm" style={{ 
+      <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 
         backgroundImage: 'url("https://images.unsplash.com/photo-1563906267088-b029e7101114?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1200&q=80")'
       }}>
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
-        <div className="relative z-10 h-full flex flex-col items-center justify-center px-4 py-12 text-center">
-          <div className="w-full max-w-2xl mx-auto flex flex-col items-center">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              Sarasota Tech Member Directory
-            </h1>
-            <p className="text-lg text-white/90 mb-8">
-              Explore a growing directory of Sarasota's most innovative companies.
-            </p>
-            <div className="w-full max-w-lg">
-              <Input
-                placeholder="Search companies..."
-                className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+        <div className="relative z-10 w-full max-w-2xl mx-auto py-12 px-4 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+            Sarasota Tech Member Directory
+          </h1>
+          <p className="text-lg text-white/90 mb-8">
+            Explore a growing directory of Sarasota's most innovative companies.
+          </p>
+          <div className="w-full max-w-lg mx-auto">
+            <Input
+              placeholder="Search companies..."
+              className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
         </div>
       </div>
