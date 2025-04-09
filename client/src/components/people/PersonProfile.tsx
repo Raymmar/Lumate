@@ -11,6 +11,8 @@ import { format } from 'date-fns';
 import { MemberDetails } from './MemberDetails';
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
+import { CompanyPreview } from '@/components/companies/CompanyPreview';
+import { User } from '@shared/schema';
 
 interface PersonProfileProps {
   username: string;
@@ -42,6 +44,19 @@ interface Badge {
   isAutomatic: boolean;
 }
 
+interface UserCompany {
+  id: number;
+  name: string;
+  description: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  featuredImageUrl: string | null;
+  industry: string | null;
+  bio: string | null;
+  tags: string[] | null;
+  role: string; // member role in company: 'admin' or 'user'
+}
+
 interface Person {
   id: number;
   api_id: string;
@@ -51,15 +66,7 @@ interface Person {
   role: string | null;
   isAdmin?: boolean;
   subscriptionStatus?: string;
-  user?: {
-    id: number;
-    email: string;
-    displayName: string;
-    bio: string;
-    isAdmin: boolean;
-    badges?: Badge[];
-    [key: string]: any;
-  };
+  user?: User;
 }
 
 function StatsCard({ title, value, icon, description }: StatsCardProps) {
@@ -142,10 +149,28 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     enabled: !!person?.api_id
   });
 
+  // Fetch user's company details
+  const { data: userCompany, isLoading: companyLoading } = useQuery<UserCompany>({
+    queryKey: ['/api/companies/user/company-profile', person?.user?.id],
+    queryFn: async () => {
+      if (!person?.user?.id) return null;
+      const response = await fetch(`/api/companies/user/company-profile/${person.user.id}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          // No company profile found, just return null
+          return null;
+        }
+        throw new Error('Failed to fetch company profile');
+      }
+      return response.json();
+    },
+    enabled: !!person?.user?.id
+  });
+
   const isAdmin = Boolean(currentUser?.isAdmin);
   const isProfileAdmin = Boolean(person?.isAdmin);
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
-  const isLoading = personLoading || statsLoading || eventsLoading;
+  const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
 
   if (personError) {
     console.error('Error in PersonProfile:', personError);
@@ -227,7 +252,23 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           </CardContent>
         </Card>
 
-        {person.user && <MemberDetails user={person.user} />}
+        {userCompany && (
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium ml-1">Company</h3>
+            <CompanyPreview 
+              id={userCompany.id}
+              name={userCompany.name}
+              logoUrl={userCompany.logoUrl}
+              featuredImageUrl={userCompany.featuredImageUrl}
+              industry={userCompany.industry}
+              bio={userCompany.bio}
+              tags={userCompany.tags}
+              slug={userCompany.name.toLowerCase().replace(/\s+/g, '-')}
+            />
+          </div>
+        )}
+
+        {person.user && <MemberDetails user={person.user as any} />}
       </div>
 
       <div className="w-full">

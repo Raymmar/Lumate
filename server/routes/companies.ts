@@ -275,6 +275,39 @@ router.get("/user/companies", requireAuth, async (req: Request, res: Response) =
   }
 });
 
+// Get company profile for a specific user
+router.get("/user/company-profile/:userId", async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.params.userId);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+
+    // Get the user's companies
+    const companies = await storage.getUserCompanies(userId);
+    
+    if (!companies || companies.length === 0) {
+      return res.status(404).json({ error: "No company found for user" });
+    }
+    
+    // For now, just return the first company the user is associated with
+    // This could be enhanced in the future to return the primary company
+    const company = companies[0];
+    
+    // Generate a slug for the company name
+    const nameSlug = generateSlug(company.name);
+    
+    // Return the company with additional needed properties
+    res.json({
+      ...company,
+      slug: nameSlug
+    });
+  } catch (error) {
+    console.error("Failed to fetch company profile for user:", error);
+    res.status(500).json({ error: "Failed to fetch company profile" });
+  }
+});
+
 // Helper function to generate a slug from a company name
 const generateSlug = (name: string): string => {
   return name
