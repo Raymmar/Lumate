@@ -42,12 +42,67 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import * as z from "zod";
+
+// Industry options
+const INDUSTRY_OPTIONS = [
+  // Tech-focused industries
+  "Software Development",
+  "IT Services & Consulting",
+  "Cybersecurity",
+  "AI & Machine Learning",
+  "Cloud Computing",
+  "Data & Analytics",
+  "Web Development",
+  "Mobile Development",
+  "Digital Marketing",
+  "E-commerce",
+  "EdTech",
+  "FinTech",
+  "HealthTech",
+  "Telecommunications",
+  
+  // Other major industries
+  "Healthcare",
+  "Finance & Banking",
+  "Education",
+  "Manufacturing",
+  "Retail",
+  "Real Estate",
+  "Construction",
+  "Energy",
+  "Transportation",
+  "Hospitality & Tourism",
+  "Media & Entertainment",
+  "Legal Services",
+  "Consulting",
+  "Non-profit",
+  "Other"
+];
+
+// Company size options
+const COMPANY_SIZE_OPTIONS = [
+  "1-10 employees",
+  "11-50 employees",
+  "51-200 employees",
+  "201-500 employees",
+  "501-1000 employees",
+  "1001-5000 employees",
+  "5000+ employees"
+];
 
 // Company profile form schema
 const companyProfileSchema = z.object({
@@ -548,14 +603,37 @@ export default function CompanyProfilePage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Industry</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  value={field.value || ""}
-                                  placeholder="Industry"
-                                  disabled={!isCompanyAdmin && !!company}
-                                />
-                              </FormControl>
+                              <Select
+                                disabled={!isCompanyAdmin && !!company}
+                                onValueChange={field.onChange}
+                                value={field.value || undefined}
+                                defaultValue={field.value || undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select an industry" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <div className="max-h-[400px] overflow-y-auto">
+                                    <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
+                                    {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
+                                      <SelectItem key={industry} value={industry}>
+                                        {industry}
+                                      </SelectItem>
+                                    ))}
+                                    <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
+                                    {INDUSTRY_OPTIONS.slice(14).map((industry) => (
+                                      <SelectItem key={industry} value={industry}>
+                                        {industry}
+                                      </SelectItem>
+                                    ))}
+                                  </div>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                Select the industry that best describes your company
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -567,14 +645,28 @@ export default function CompanyProfilePage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Company Size</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  value={field.value || ""}
-                                  placeholder="1-10, 11-50, 51-200, etc."
-                                  disabled={!isCompanyAdmin && !!company}
-                                />
-                              </FormControl>
+                              <Select
+                                disabled={!isCompanyAdmin && !!company}
+                                onValueChange={field.onChange}
+                                value={field.value || undefined}
+                                defaultValue={field.value || undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select company size" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {COMPANY_SIZE_OPTIONS.map((size) => (
+                                    <SelectItem key={size} value={size}>
+                                      {size}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                Select the number of employees at your company
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
