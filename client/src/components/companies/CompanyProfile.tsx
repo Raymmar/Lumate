@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import CompanyMembers from './CompanyMembers';
 
 interface CompanyProfileProps {
   nameSlug: string;
@@ -395,7 +396,19 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               </CardContent>
             </Card>
           )}
+          
+          {/* Company Members */}
+          <CompanyMembers nameSlug={nameSlug} />
         </div>
+      </div>
+      
+      {/* Team Members Section (Full Width below) */}
+      <div className="mt-8">
+        <h2 className="text-2xl font-bold mb-4">Company Members</h2>
+        <p className="text-muted-foreground mb-6">
+          Meet the team at {company.name}. Click on a member to view their profile details.
+        </p>
+        <CompanyMembers nameSlug={nameSlug} />
       </div>
     </div>
   );

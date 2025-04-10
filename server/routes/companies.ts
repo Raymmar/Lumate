@@ -348,4 +348,49 @@ router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
   }
 });
 
+// Get company members by company name slug
+router.get("/by-name/:nameSlug/members", async (req: Request, res: Response) => {
+  try {
+    const nameSlug = req.params.nameSlug;
+    if (!nameSlug) {
+      return res.status(400).json({ error: "Invalid company name slug" });
+    }
+
+    // First find the company by name slug
+    const companies = await storage.getCompanies();
+    let companyId: number | null = null;
+    
+    for (const company of companies) {
+      const companyNameSlug = generateSlug(company.name);
+      if (companyNameSlug === nameSlug) {
+        companyId = company.id;
+        break;
+      }
+    }
+
+    if (!companyId) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    // Then get the members for this company
+    const members = await storage.getCompanyMembers(companyId);
+    
+    // Transform the data to include only public fields
+    const publicMembers = members
+      .filter(member => member.isPublic) // Only include public members
+      .map(member => ({
+        id: member.userId,
+        name: member.user.userName || 'Anonymous Member',
+        title: member.title || null,
+        role: member.role,
+        avatar: member.user.avatarUrl
+      }));
+    
+    res.json({ members: publicMembers });
+  } catch (error) {
+    console.error("Failed to fetch company members:", error);
+    res.status(500).json({ error: "Failed to fetch company members" });
+  }
+});
+
 export default router;
