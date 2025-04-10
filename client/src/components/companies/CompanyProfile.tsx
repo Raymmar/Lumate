@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
-import CompanyMembers from './CompanyMembers';
 
 interface CompanyProfileProps {
   nameSlug: string;
@@ -396,9 +395,6 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               </CardContent>
             </Card>
           )}
-          
-          {/* Company Members */}
-          <CompanyMembers nameSlug={nameSlug} />
         </div>
       </div>
     </div>
