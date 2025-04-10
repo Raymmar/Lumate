@@ -31,6 +31,7 @@ import type { User, Person, Badge as BadgeType } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { getBadgeIcon } from "@/lib/badge-icons";
 
 interface Member extends User {
   person?: Person | null;
@@ -262,10 +263,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <Badge
                 key={badge.id}
                 variant="outline"
-                className="cursor-pointer hover:bg-accent"
+                className="cursor-pointer hover:bg-accent flex items-center gap-1"
                 onClick={() => setSelectedBadge(badge.name)}
               >
-                {badge.name}
+                {getBadgeIcon(badge.icon)}
+                <span className="ml-1">{badge.name}</span>
               </Badge>
             ))}
           </div>
@@ -281,7 +283,10 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <SelectContent>
                 {filteredBadges.map((badge) => (
                   <SelectItem key={badge.id} value={badge.name}>
-                    {badge.name}
+                    <div className="flex items-center gap-1">
+                      {getBadgeIcon(badge.icon)}
+                      <span className="ml-1">{badge.name}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -309,7 +314,8 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                   variant="secondary"
                   className="flex items-center gap-1 py-1 pl-2 pr-1"
                 >
-                  <span className="mr-1">{badge.name}</span>
+                  {getBadgeIcon(badge.icon)}
+                  <span className="ml-1 mr-1">{badge.name}</span>
                   <Button
                     variant="ghost"
                     size="icon"
