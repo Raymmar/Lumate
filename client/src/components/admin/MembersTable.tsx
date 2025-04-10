@@ -160,31 +160,7 @@ export function MembersTable() {
     );
   }
 
-  const createMemberMutation = useMutation({
-    mutationFn: async (data: any) => {
-      return await apiRequest("/api/admin/members", "POST", data);
-    },
-    onSuccess: () => {
-      setIsCreatingMember(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
-      toast({
-        title: "Success",
-        description: "Member account created successfully. A verification email has been sent.",
-      });
-    },
-    onError: (error: any) => {
-      console.error("Failed to create member:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create member",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleCreateMember = async (data: any) => {
-    await createMemberMutation.mutateAsync(data);
-  };
+  // Member creation is handled in MemberForm component
 
   return (
     <div>
