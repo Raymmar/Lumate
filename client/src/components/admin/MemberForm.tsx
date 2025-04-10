@@ -56,10 +56,20 @@ interface MemberFormProps {
 export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 500); // Increased debounce time
+  
+  // Create a ref to maintain the current search value
+  const searchQueryRef = useRef<string>(searchQuery);
+  
+  // When search changes, update the ref
+  useEffect(() => {
+    searchQueryRef.current = searchQuery;
+  }, [searchQuery]);
+  
+  const debouncedSearchQuery = useDebounce(searchQuery, 300); // Reduced debounce time for better responsiveness
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -68,7 +78,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-        // Don't clear the search query when dropdown is closed
+        // Search state is maintained through the searchQueryRef
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -235,10 +245,12 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                       setIsDropdownOpen(!isDropdownOpen);
                       // Focus the search input when opened
                       if (!isDropdownOpen) {
+                        // Use setTimeout to ensure the input is rendered before focusing
                         setTimeout(() => {
-                          const searchInput = document.querySelector('[placeholder="Search by email, name, or organization..."]') as HTMLInputElement;
-                          if (searchInput) searchInput.focus();
-                        }, 0);
+                          if (searchInputRef.current) {
+                            searchInputRef.current.focus();
+                          }
+                        }, 10);
                       }
                     }}
                   >
@@ -262,6 +274,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                       <div className="relative">
                         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
+                          ref={searchInputRef}
                           placeholder="Search by email, name, or organization..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
