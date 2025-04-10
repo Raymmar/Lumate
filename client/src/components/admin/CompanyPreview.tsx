@@ -14,12 +14,22 @@ import {
   Calendar,
   Link2,
   Tag as TagIcon,
+  Plus,
+  UserPlus,
+  PlusCircle,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { apiRequest } from "@/lib/queryClient";
 
 interface CompanyPreviewProps {
   company: Company;
@@ -42,10 +52,21 @@ interface CompanyDetails extends Company {
   }>;
 }
 
+interface AddMemberFormData {
+  userId: string;
+  role: string;
+  title: string;
+}
+
 export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState(true);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [memberTitle, setMemberTitle] = useState<string>("");
+  const [memberRole, setMemberRole] = useState<string>("user");
+  const [isAddingMember, setIsAddingMember] = useState(false);
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -64,6 +85,118 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
       return response.json();
     },
   });
+  
+  // Get the list of users for adding members
+  const { data: users = [] } = useQuery<Array<User>>({
+    queryKey: ["/api/admin/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/users");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      return response.json();
+    },
+    enabled: isAddMemberOpen, // Only fetch when the dialog is open
+  });
+  
+  // Add member mutation
+  const addMemberMutation = useMutation({
+    mutationFn: async (data: AddMemberFormData) => {
+      return apiRequest(`/api/companies/${company.id}/members`, "POST", {
+        userId: parseInt(data.userId),
+        role: data.role,
+        title: data.title,
+        isPublic: true
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
+      setIsAddMemberOpen(false);
+      setSelectedUserId("");
+      setMemberTitle("");
+      setMemberRole("user");
+      toast({
+        title: "Success",
+        description: "Member added to company",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to add member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add member to company",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Toggle member admin status mutation
+  const toggleMemberRoleMutation = useMutation({
+    mutationFn: async ({ memberId, isAdmin }: { memberId: number, isAdmin: boolean }) => {
+      return apiRequest(`/api/companies/${company.id}/members/${memberId}`, "PUT", {
+        role: isAdmin ? "admin" : "user"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
+      toast({
+        title: "Success",
+        description: "Member role updated",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to update member role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update member role",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      return apiRequest(`/api/companies/${company.id}/members/${memberId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
+      toast({
+        title: "Success",
+        description: "Member removed from company",
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to remove member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove member from company",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const handleAddMember = async () => {
+    if (!selectedUserId) {
+      toast({
+        title: "Error",
+        description: "Please select a user",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsAddingMember(true);
+    try {
+      await addMemberMutation.mutateAsync({
+        userId: selectedUserId,
+        role: memberRole,
+        title: memberTitle
+      });
+    } finally {
+      setIsAddingMember(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -150,7 +283,20 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
             {data.address && (
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{data.address}</span>
+                <span className="text-sm">
+                  {(() => {
+                    try {
+                      // Check if the address is a JSON string
+                      if (typeof data.address === 'string' && data.address.startsWith('{')) {
+                        const addressObj = JSON.parse(data.address);
+                        return addressObj.formatted_address || addressObj.address || data.address;
+                      }
+                      return data.address;
+                    } catch (error) {
+                      return data.address;
+                    }
+                  })()}
+                </span>
               </div>
             )}
             
