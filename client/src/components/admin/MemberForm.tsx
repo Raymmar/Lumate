@@ -96,17 +96,27 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   });
 
   const handleSubmit = async (values: MemberFormValues) => {
-    await createMemberMutation.mutateAsync(values);
+    // Clean up personId field before submission
+    const submissionValues = { ...values };
+    
+    // If "none" or "loading" is selected, set personId to undefined
+    if (submissionValues.personId === "none" || submissionValues.personId === "loading") {
+      submissionValues.personId = undefined;
+    }
+    
+    await createMemberMutation.mutateAsync(submissionValues);
   };
 
   // Handle person selection
   const handlePersonSelect = (personId: string) => {
-    setSelectedPersonId(personId);
-    
-    if (!personId) {
+    // If "none" is selected, clear personId
+    if (personId === "none" || personId === "loading") {
+      setSelectedPersonId(null);
       form.setValue("email", "");
       return;
     }
+    
+    setSelectedPersonId(personId);
     
     const selectedPerson = unclaimedPeople?.find(p => p.id.toString() === personId);
     if (selectedPerson) {
@@ -144,9 +154,9 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Not linked to existing person</SelectItem>
+                  <SelectItem value="none">Not linked to existing person</SelectItem>
                   {isLoadingPeople ? (
-                    <SelectItem value="" disabled>
+                    <SelectItem value="loading" disabled>
                       Loading...
                     </SelectItem>
                   ) : (
