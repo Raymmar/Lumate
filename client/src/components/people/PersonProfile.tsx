@@ -11,15 +11,13 @@ import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { BusinessProfile } from "@/components/ui/business-profile";
 import { ProfileBadge } from "@/components/ui/profile-badge";
-import { MissingProfile } from "@/components/ui/missing-profile";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
 import { User } from '@shared/schema';
 import { Link } from 'wouter';
 
 interface PersonProfileProps {
-  identifier: string;
-  isApiId?: boolean;
+  username: string;
 }
 
 interface StatsCardProps {
@@ -112,30 +110,17 @@ const generateSlug = (name: string): string => {
     .replace(/^-+|-+$/g, '');
 };
 
-export default function PersonProfile({ identifier, isApiId = false }: PersonProfileProps) {
+export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  console.log('PersonProfile - Attempting to fetch profile for:', { 
-    identifier, 
-    isApiId 
-  });
+  console.log('PersonProfile - Attempting to fetch profile for username:', username);
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
-    queryKey: isApiId 
-      ? ['/api/people', identifier] 
-      : ['/api/people/by-username', identifier],
+    queryKey: ['/api/people/by-username', username],
     queryFn: async () => {
-      let url;
-      if (isApiId) {
-        console.log('Fetching person details by API ID:', identifier);
-        url = `/api/people/${encodeURIComponent(identifier)}`;
-      } else {
-        console.log('Fetching person details by username:', identifier);
-        url = `/api/people/by-username/${encodeURIComponent(identifier)}`;
-      }
-      
-      const response = await fetch(url);
+      console.log('Fetching person details for username:', username);
+      const response = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -143,8 +128,7 @@ export default function PersonProfile({ identifier, isApiId = false }: PersonPro
           status: response.status,
           statusText: response.statusText,
           errorText,
-          identifier,
-          isApiId
+          username
         });
         throw new Error(`Failed to fetch person details: ${response.statusText}`);
       }
@@ -232,20 +216,6 @@ export default function PersonProfile({ identifier, isApiId = false }: PersonPro
   if (!person) {
     return <div>Person not found</div>;
   }
-  
-  // Check if username is missing and handle accordingly
-  const hasUsername = !!person.userName;
-  const isPaidUser = person.subscriptionStatus === 'active';
-  const displayName = person.user?.displayName;
-  
-  // If username is missing, show the special incomplete profile page
-  if (!hasUsername) {
-    return <MissingProfile 
-      email={person.email} 
-      isPaidUser={isPaidUser} 
-      displayName={displayName} 
-    />;
-  }
 
   return (
     <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
@@ -268,7 +238,7 @@ export default function PersonProfile({ identifier, isApiId = false }: PersonPro
             </Avatar>
             <div className="min-w-0">
               <h1 className="text-2xl font-bold mb-2 truncate">
-                {person.userName || (person.user?.displayName || "Anonymous")}
+                {person.userName || "Anonymous"}
               </h1>
               <div className="flex flex-wrap items-center gap-2">
                 {isProfileAdmin && <AdminBadge />}
