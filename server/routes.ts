@@ -1299,7 +1299,7 @@ export async function registerRoutes(app: Express) {
       // Create user with basic info
       const userData = {
         email: normalizedEmail,
-        displayName: displayName || normalizedEmail.split('@')[0], // Use first part of email as default display name if not provided
+        displayName: displayName || null, // Don't set a default display name
         bio: bio || null,
         personId: personId ? parseInt(personId) : undefined,
         password: "", // Empty password - will be set during verification

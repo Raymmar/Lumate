@@ -36,10 +36,10 @@ interface UnclaimedPerson {
   jobTitle: string | null;
 }
 
-// Create form schema - only allow bio and admin flag to be set
+// Create form schema - only require email
 const memberFormSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  bio: z.string().optional(),
+  bio: z.string().optional().nullable(),
   personId: z.string().optional(),
   isAdmin: z.boolean().default(false),
 });
@@ -368,6 +368,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                   placeholder="A brief bio for the member"
                   className="resize-none"
                   {...field}
+                  value={field.value || ""}
                 />
               </FormControl>
               <FormMessage />
