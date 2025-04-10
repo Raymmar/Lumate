@@ -11,6 +11,7 @@ import { CalendarDays, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { BusinessProfile } from "@/components/ui/business-profile";
 import { ProfileBadge } from "@/components/ui/profile-badge";
+import { MissingProfile } from "@/components/ui/missing-profile";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
 import { User } from '@shared/schema';
@@ -216,6 +217,20 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   if (!person) {
     return <div>Person not found</div>;
   }
+  
+  // Check if username is missing and handle accordingly
+  const hasUsername = !!person.userName;
+  const isPaidUser = person.subscriptionStatus === 'active';
+  const displayName = person.user?.displayName;
+  
+  // If username is missing, show the special incomplete profile page
+  if (!hasUsername) {
+    return <MissingProfile 
+      email={person.email} 
+      isPaidUser={isPaidUser} 
+      displayName={displayName} 
+    />;
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
@@ -238,7 +253,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
             </Avatar>
             <div className="min-w-0">
               <h1 className="text-2xl font-bold mb-2 truncate">
-                {person.userName || "Anonymous"}
+                {person.userName || (person.user?.displayName || "Anonymous")}
               </h1>
               <div className="flex flex-wrap items-center gap-2">
                 {isProfileAdmin && <AdminBadge />}
