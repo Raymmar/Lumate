@@ -630,28 +630,6 @@ export default function CompanyProfilePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
-                          name="website"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Website</FormLabel>
-                              <FormControl>
-                                <div className="flex items-center space-x-2">
-                                  <Globe className="h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    {...field}
-                                    value={field.value || ""}
-                                    placeholder="https://example.com"
-                                    disabled={!isCompanyAdmin && !!company}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
                           name="email"
                           render={({ field }) => (
                             <FormItem>
@@ -691,9 +669,7 @@ export default function CompanyProfilePage() {
                             </FormItem>
                           )}
                         />
-                      </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
                           name="phoneNumber"
@@ -735,7 +711,9 @@ export default function CompanyProfilePage() {
                             </FormItem>
                           )}
                         />
+                      </div>
 
+                      <div className="grid grid-cols-1 gap-4">
                         <FormField
                           control={form.control}
                           name="address"
@@ -878,24 +856,48 @@ export default function CompanyProfilePage() {
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium">Call to Action</h3>
                       
-                      <FormField
-                        control={form.control}
-                        name="ctaText"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>CTA Text</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                value={field.value || ""}
-                                placeholder="Contact Us, Learn More, etc."
-                                disabled={!isCompanyAdmin && !!company}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="ctaText"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>CTA Text</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  value={field.value || ""}
+                                  placeholder="Contact Us, Learn More, etc."
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="website"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>CTA URL</FormLabel>
+                              <FormControl>
+                                <div className="flex items-center space-x-2">
+                                  <Globe className="h-4 w-4 text-muted-foreground" />
+                                  <Input
+                                    {...field}
+                                    value={field.value || ""}
+                                    placeholder="https://example.com"
+                                    disabled={!isCompanyAdmin && !!company}
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
 
                     {(isCompanyAdmin || !company) && (
