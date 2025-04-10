@@ -94,7 +94,10 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
       return await apiRequest('/api/admin/people/unclaimed', 'GET');
     },
     enabled: true,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: Infinity, // Prevent automatic refetching
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on mount
+    refetchOnReconnect: false, // Prevent refetch on reconnect
   });
 
   // Server-side filtered query, only run when debounced search is longer than 2 chars
@@ -111,6 +114,9 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
       }
     },
     enabled: debouncedSearchQuery.length > 2, // Only run server search for 3+ character queries
+    staleTime: Infinity, // Prevent automatic refetching
+    refetchOnWindowFocus: false, // Prevent refetch on window focus
+    refetchOnMount: false, // Prevent refetch on mount
   });
   
   // Client-side filtering for quick response
