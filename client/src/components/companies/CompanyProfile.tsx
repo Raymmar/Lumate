@@ -302,7 +302,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Company Description */}
           {company.description && (
             <Card>
-              <CardContent className="py-4">
+              <CardHeader className="py-3">
+                <CardTitle>About</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
                   <p>{company.description}</p>
                 </div>
@@ -442,7 +445,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
           {/* Custom Links */}
           {company.customLinks && company.customLinks.length > 0 && (
-            <Card className="pt-4">
+            <Card>
+              <CardHeader className="py-3">
+                <CardTitle>Links</CardTitle>
+              </CardHeader>
               <CardContent className="space-y-2">
                 {company.customLinks.map((link, index) => (
                   <div key={index} className="flex items-center gap-2">
