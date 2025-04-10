@@ -3,7 +3,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Mail, ExternalLink, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, AlertCircle, Mail, ExternalLink, Lock, User } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Form,
   FormControl,
@@ -29,6 +30,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 
 export default function UserSettingsPage() {
   const { user } = useAuth();
@@ -100,8 +102,9 @@ export default function UserSettingsPage() {
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
-        displayName: user?.displayName,
+        displayName: data.displayName || user?.displayName || "",
         bio: data.bio || "",
+        featuredImageUrl: data.featuredImageUrl || null,
       };
 
       const response = await fetch("/api/auth/update-profile", {
@@ -213,6 +216,9 @@ export default function UserSettingsPage() {
                       <CardContent className="px-4 py-3">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
+                            {user.featuredImageUrl ? (
+                              <AvatarImage src={user.featuredImageUrl} alt={user.displayName || "User"} />
+                            ) : null}
                             <AvatarFallback>
                               {(user.displayName || user.email)
                                 .charAt(0)
@@ -235,11 +241,10 @@ export default function UserSettingsPage() {
                   <TooltipContent side="right" className="w-80 p-3">
                     <div className="text-sm">
                       <p className="font-medium mb-1">
-                        Lu.ma-Managed Information
+                        Email Sync with Lu.ma
                       </p>
                       <p>
-                        Your display name, profile picture, and email address
-                        are managed through Lu.ma. To update these fields,
+                        Your email address is synced from Lu.ma. To update your email,
                         please visit your{" "}
                         <a
                           href="https://lu.ma/settings"
@@ -248,8 +253,8 @@ export default function UserSettingsPage() {
                           className="font-medium underline hover:text-amber-600"
                         >
                           Lu.ma settings
-                        </a>
-                        .
+                        </a>{" "}
+                        and then contact support for a sync.
                       </p>
                     </div>
                   </TooltipContent>
@@ -259,7 +264,57 @@ export default function UserSettingsPage() {
 
             <Form {...form}>
               <form onSubmit={onSubmit} className="space-y-3">
-                {/* Basic Information - Bio Field */}
+                {/* Display Name Field */}
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="displayName"
+                    render={({ field }) => (
+                      <FormItem className="space-y-1">
+                        <FormLabel>Display Name</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="Your display name"
+                              className="flex-1 border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Profile Image Field */}
+                <div className="space-y-2">
+                  <FormField
+                    control={form.control}
+                    name="featuredImageUrl"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <div>
+                          <FormLabel>Profile Photo</FormLabel>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            This image will be displayed on your profile
+                          </p>
+                        </div>
+                        <FormControl>
+                          <UnsplashPicker
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Bio Field */}
                 <div className="space-y-2">
                   <FormField
                     control={form.control}
