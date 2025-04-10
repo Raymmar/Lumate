@@ -321,28 +321,44 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               </CardHeader>
               <CardContent>
                 <div className="mb-3">
-                  <p className="text-muted-foreground">{formattedAddress || company.address}</p>
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formattedAddress || company.address)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground hover:text-primary hover:underline flex items-center gap-1"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    <span>{formattedAddress || company.address}</span>
+                  </a>
                 </div>
-                <div id="company-map-container" className="aspect-video w-full overflow-hidden rounded-md border">
-                  {isMapLoaded ? (
-                    <GoogleMap
-                      mapContainerStyle={{ width: '100%', height: '100%' }}
-                      center={coordinates || defaultMapCenter}
-                      zoom={14}
-                      options={{
-                        disableDefaultUI: true,
-                        zoomControl: true,
-                        scrollwheel: false,
-                      }}
-                    >
-                      {coordinates && <Marker position={coordinates} />}
-                    </GoogleMap>
-                  ) : (
-                    <div className="w-full h-full bg-muted flex items-center justify-center">
-                      <p>Loading map...</p>
-                    </div>
-                  )}
-                </div>
+                <a 
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formattedAddress || company.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block"
+                >
+                  <div id="company-map-container" className="aspect-video w-full overflow-hidden rounded-md border hover:opacity-90 transition-opacity cursor-pointer">
+                    {isMapLoaded ? (
+                      <GoogleMap
+                        mapContainerStyle={{ width: '100%', height: '100%' }}
+                        center={coordinates || defaultMapCenter}
+                        zoom={14}
+                        options={{
+                          disableDefaultUI: true,
+                          zoomControl: true,
+                          scrollwheel: false,
+                          clickableIcons: false,
+                        }}
+                      >
+                        {coordinates && <Marker position={coordinates} />}
+                      </GoogleMap>
+                    ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                        <p>Loading map...</p>
+                      </div>
+                    )}
+                  </div>
+                </a>
               </CardContent>
             </Card>
           )}
