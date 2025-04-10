@@ -115,20 +115,38 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const { data: membersData, isLoading: isLoadingMembers, error: membersError } = useQuery<{members: CompanyMember[]}>({
     queryKey: ['/api/companies', company?.id, 'members'],
     queryFn: async () => {
-      if (!company) return { members: [] };
-      
-      console.log(`Fetching members for company ID: ${company.id}`);
-      const response = await fetch(`/api/companies/${company.id}/members`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Error fetching company members: ${errorText || response.statusText}`);
-        throw new Error(`Failed to fetch company members: ${response.statusText}`);
+      if (!company) {
+        console.log('No company data available yet');
+        return { members: [] };
       }
       
-      const result = await response.json();
-      console.log('Company members data:', result);
-      return result;
+      console.log(`Fetching members for company ID: ${company.id}`);
+      try {
+        const response = await fetch(`/api/companies/${company.id}/members`);
+        
+        console.log(`Response status: ${response.status} ${response.statusText}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`Error fetching company members: ${errorText || response.statusText}`);
+          throw new Error(`Failed to fetch company members: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        console.log('Company members data:', result);
+        
+        if (!result.members || !Array.isArray(result.members)) {
+          console.error('Unexpected response format:', result);
+          return { members: [] };
+        }
+        
+        console.log(`Found ${result.members.length} members for company ID ${company.id}`);
+        
+        return result;
+      } catch (error) {
+        console.error('Error in members fetch query:', error);
+        throw error;
+      }
     },
     enabled: !!company, // Only run this query when we have a company
   });
