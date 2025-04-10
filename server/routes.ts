@@ -8,6 +8,7 @@ import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
 import companiesRouter from "./routes/companies";
+import { resendVerification } from "./routes/admin/resendVerification";
 // Company migration import removed
 import {
   insertUserSchema,
@@ -224,6 +225,9 @@ export async function registerRoutes(app: Express) {
   app.use("/api/unsplash", unsplashRouter);
   app.use("/api/stripe", stripeRouter);
   app.use("/api/companies", companiesRouter);
+  
+  // Resend verification email endpoint
+  app.post("/api/admin/members/:id/resend-verification", resendVerification);
 
   app.post("/api/register", async (req, res) => {
     try {
