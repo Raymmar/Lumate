@@ -15,6 +15,7 @@ import {
   Mail,
   Phone,
   Lock,
+  CreditCard,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -523,6 +524,49 @@ export default function CompanyProfilePage() {
                     </CardContent>
                   </Card>
                 ) : (
+                  <>
+                    {hasActiveSubscription && !user?.isAdmin && (
+                      <div className="mb-6 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex gap-2 items-center"
+                          onClick={async () => {
+                            try {
+                              const response = await fetch(
+                                "/api/stripe/create-portal-session",
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  credentials: "include",
+                                }
+                              );
+
+                              if (!response.ok) {
+                                throw new Error("Failed to create portal session");
+                              }
+
+                              const { url } = await response.json();
+                              window.location.href = url;
+                            } catch (error) {
+                              console.error("Error creating portal session:", error);
+                              toast({
+                                title: "Error",
+                                description:
+                                  "Failed to access subscription management. Please try again later.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          Manage Subscription
+                        </Button>
+                      </div>
+                    )}
                   <Form {...form}>
                     <form onSubmit={onSubmit} className="space-y-6">
                       {/* Basic Company Information */}
