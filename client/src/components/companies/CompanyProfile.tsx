@@ -4,11 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/hooks/use-toast";
-import { Briefcase, Building, Calendar, Link as LinkIcon, Mail, MapPin, Phone, Users } from 'lucide-react';
+import { Briefcase, Building, Calendar, Link as LinkIcon, Mail, MapPin, Phone, UserCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
+import { formatUsernameForUrl } from '@/lib/utils';
 
 interface CompanyProfileProps {
   nameSlug: string;
@@ -57,6 +58,32 @@ interface GoogleMapAddress {
   formatted_address?: string;
 }
 
+interface CompanyMember {
+  id: number;
+  companyId: number;
+  userId: number;
+  role: string;
+  title: string | null;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: number;
+    email: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    isVerified: boolean;
+    person?: {
+      id: number;
+      api_id: string;
+      userName: string | null;
+      fullName: string | null;
+      jobTitle: string | null;
+    } | null;
+  };
+}
+
 export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const { toast } = useToast();
   const [coordinates, setCoordinates] = useState<GeocodingResult | null>(null);
@@ -83,6 +110,24 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   });
 
   const company = companyData?.company;
+  
+  // Fetch company members when we have the company id
+  const { data: membersData, isLoading: isLoadingMembers } = useQuery<{members: CompanyMember[]}>({
+    queryKey: ['/api/companies', company?.id, 'members'],
+    queryFn: async () => {
+      if (!company) return { members: [] };
+      
+      const response = await fetch(`/api/companies/${company.id}/members`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch company members: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    },
+    enabled: !!company, // Only run this query when we have a company
+  });
 
   // Parse address from Google Maps JSON if needed
   useEffect(() => {
@@ -395,6 +440,76 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               </CardContent>
             </Card>
           )}
+          
+          {/* Company Members */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="flex items-center gap-2">
+                <UserCircle className="h-5 w-5" />
+                <span>Team Members</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {isLoadingMembers ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ) : membersData?.members && membersData.members.length > 0 ? (
+                <div className="space-y-1">
+                  {membersData.members
+                    .filter(member => member.isPublic)
+                    .map((member) => {
+                      const userName = member.user.displayName || member.user.email.split('@')[0];
+                      const jobTitle = member.title || member.user.person?.jobTitle || '';
+                      
+                      // Create avatar initials
+                      const initials = userName
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .substring(0, 2);
+                        
+                      // Generate profile path
+                      const profilePath = member.user.person ? 
+                        `/people/${formatUsernameForUrl(member.user.person.userName, member.user.person.api_id)}` : 
+                        null;
+                      
+                      if (!profilePath) return null;
+                        
+                      return (
+                        <Link key={member.id} href={profilePath}>
+                          <div className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors">
+                            <Avatar className="h-8 w-8">
+                              {member.user.avatarUrl ? (
+                                <AvatarImage 
+                                  src={member.user.avatarUrl} 
+                                  alt={userName} 
+                                />
+                              ) : (
+                                <AvatarFallback className="text-sm">
+                                  {initials}
+                                </AvatarFallback>
+                              )}
+                            </Avatar>
+                            <div className="flex-1 overflow-hidden">
+                              <div className="text-sm font-medium truncate">{userName}</div>
+                              {jobTitle && (
+                                <div className="text-xs text-muted-foreground truncate">{jobTitle}</div>
+                              )}
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No team members listed</p>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
