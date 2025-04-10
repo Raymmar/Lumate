@@ -467,10 +467,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Company Members */}
           <Card>
             <CardHeader className="py-3">
-              <CardTitle className="flex items-center gap-2">
-                <UserCircle className="h-5 w-5" />
-                <span>Team Members</span>
-              </CardTitle>
+              <CardTitle>Team Members</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               {isLoadingMembers ? (
