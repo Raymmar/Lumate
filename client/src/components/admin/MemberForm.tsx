@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -56,22 +56,61 @@ interface MemberFormProps {
 export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const debouncedSearchQuery = useDebounce(searchQuery, 500); // Increased debounce time
+  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query to fetch unclaimed people
-  const { data: unclaimedPeople, isLoading: isLoadingPeople } = useQuery<UnclaimedPerson[]>({
-    queryKey: ["/api/admin/people/unclaimed", debouncedSearchQuery],
+  // Initial query to fetch all unclaimed people (without search filter)
+  const { data: allPeople, isLoading: isLoadingAllPeople } = useQuery<UnclaimedPerson[]>({
+    queryKey: ["/api/admin/people/unclaimed"],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (debouncedSearchQuery) {
-        params.append('search', debouncedSearchQuery);
-      }
-      return await apiRequest(`/api/admin/people/unclaimed${params.toString() ? `?${params.toString()}` : ''}`, 'GET');
+      return await apiRequest('/api/admin/people/unclaimed', 'GET');
     },
     enabled: true,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
+
+  // Server-side filtered query, only run when debounced search is longer than 2 chars
+  const { data: serverFilteredPeople, isLoading: isLoadingServerSearch } = useQuery<UnclaimedPerson[]>({
+    queryKey: ["/api/admin/people/unclaimed/search", debouncedSearchQuery],
+    queryFn: async () => {
+      setIsSearching(true);
+      try {
+        const params = new URLSearchParams();
+        params.append('search', debouncedSearchQuery);
+        return await apiRequest(`/api/admin/people/unclaimed?${params.toString()}`, 'GET');
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    enabled: debouncedSearchQuery.length > 2, // Only run server search for 3+ character queries
+  });
+  
+  // Client-side filtering for quick response
+  const filteredPeople = useMemo(() => {
+    // If we have server results for a search longer than 2 chars, use them
+    if (debouncedSearchQuery.length > 2 && serverFilteredPeople) {
+      return serverFilteredPeople;
+    }
+    
+    // For short searches or while server is loading, filter client-side
+    if (searchQuery && allPeople) {
+      const lowerSearch = searchQuery.toLowerCase();
+      return allPeople.filter(person => 
+        (person.email && person.email.toLowerCase().includes(lowerSearch)) ||
+        (person.userName && person.userName.toLowerCase().includes(lowerSearch)) ||
+        (person.organizationName && person.organizationName.toLowerCase().includes(lowerSearch)) ||
+        (person.jobTitle && person.jobTitle.toLowerCase().includes(lowerSearch))
+      );
+    }
+    
+    // Default to all people if no search
+    return allPeople || [];
+  }, [searchQuery, debouncedSearchQuery, allPeople, serverFilteredPeople]);
+  
+  // Combined loading state
+  const isLoadingPeople = isLoadingAllPeople || isLoadingServerSearch || isSearching;
 
   // Form definition
   const form = useForm<MemberFormValues>({
@@ -129,7 +168,11 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     
     setSelectedPersonId(personId);
     
-    const selectedPerson = unclaimedPeople?.find(p => p.id.toString() === personId);
+    // Find selected person in either allPeople or filteredPeople
+    const selectedPerson = 
+      allPeople?.find(p => p.id.toString() === personId) || 
+      serverFilteredPeople?.find(p => p.id.toString() === personId);
+    
     if (selectedPerson) {
       form.setValue("email", selectedPerson.email);
       
@@ -188,10 +231,13 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                   <SelectItem value="none">Not linked to existing person</SelectItem>
                   {isLoadingPeople ? (
                     <SelectItem value="loading" disabled>
-                      Loading...
+                      <div className="flex items-center">
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-foreground border-t-transparent rounded-full"></div>
+                        Loading...
+                      </div>
                     </SelectItem>
-                  ) : unclaimedPeople && unclaimedPeople.length > 0 ? (
-                    unclaimedPeople.map((person) => (
+                  ) : filteredPeople && filteredPeople.length > 0 ? (
+                    filteredPeople.map((person: UnclaimedPerson) => (
                       <SelectItem key={person.id} value={person.id.toString()}>
                         {person.email} {person.userName && `(${person.userName})`}
                         {person.organizationName && ` - ${person.organizationName}`}
