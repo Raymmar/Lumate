@@ -28,11 +28,18 @@ interface CompanyPreviewProps {
 
 interface CompanyDetails extends Company {
   members: Array<{
-    user: User;
+    user: User & {
+      avatarUrl?: string | null;
+      displayName?: string | null;
+    };
     role: string;
     title?: string;
   }>;
-  tags: Tag[];
+  tags: Array<{
+    id: number;
+    text: string;
+    createdAt: string;
+  }>;
 }
 
 export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {

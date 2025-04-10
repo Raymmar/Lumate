@@ -178,7 +178,7 @@ export function CompaniesTable() {
             data={data?.companies || []}
             columns={columns}
             actions={actions}
-            className="bg-background rounded-md border"
+            onRowClick={(company) => setSelectedCompany(company)}
           />
 
           {totalPages > 1 && (
