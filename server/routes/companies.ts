@@ -378,13 +378,23 @@ router.get("/by-name/:nameSlug/members", async (req: Request, res: Response) => 
     // Transform the data to include only public fields
     const publicMembers = members
       .filter(member => member.isPublic) // Only include public members
-      .map(member => ({
-        id: member.userId,
-        name: member.user.userName || 'Anonymous Member',
-        title: member.title || null,
-        role: member.role,
-        avatar: member.user.avatarUrl
-      }));
+      .map(member => {
+        // Extract user information safely with fallbacks
+        const user = member.user || {};
+        // Use the available name fields or extract from email
+        const userName = user.email ? user.email.split('@')[0] : 'Anonymous';
+        const name = userName || 'Anonymous Member';
+        
+        return {
+          id: member.userId,
+          name: name,
+          title: member.title || null,
+          role: member.role,
+          email: user.email || null,
+          // If there's no avatar, we'll handle this on the frontend
+          avatar: null
+        };
+      });
     
     res.json({ members: publicMembers });
   } catch (error) {
