@@ -1206,7 +1206,9 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      console.log("Fetching unclaimed people records");
+      const searchQuery = (req.query.search as string || "").toLowerCase();
+      
+      console.log(`Fetching unclaimed people records ${searchQuery ? `with search: '${searchQuery}'` : ''}`);
 
       // Find people records that don't have an associated user account
       const unclaimedPeople = await db
@@ -1222,7 +1224,17 @@ export async function registerRoutes(app: Express) {
         })
         .from(people)
         .leftJoin(users, eq(people.email, users.email))
-        .where(sql`${users.id} IS NULL`)
+        .where(
+          and(
+            sql`${users.id} IS NULL`,
+            searchQuery
+              ? sql`(LOWER(${people.email}) LIKE ${`%${searchQuery}%`} OR 
+                     LOWER(${people.userName}) LIKE ${`%${searchQuery}%`} OR 
+                     LOWER(${people.organizationName}) LIKE ${`%${searchQuery}%`} OR 
+                     LOWER(${people.jobTitle}) LIKE ${`%${searchQuery}%`})`
+              : undefined
+          )
+        )
         .orderBy(people.email);
 
       console.log(`Returned ${unclaimedPeople.length} unclaimed people records`);

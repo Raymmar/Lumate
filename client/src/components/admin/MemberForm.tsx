@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,8 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useDebounce } from "@/hooks/useDebounce";
 
 interface UnclaimedPerson {
   id: number;
@@ -53,12 +55,21 @@ interface MemberFormProps {
 
 export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Query to fetch unclaimed people
   const { data: unclaimedPeople, isLoading: isLoadingPeople } = useQuery<UnclaimedPerson[]>({
-    queryKey: ["/api/admin/people/unclaimed"],
+    queryKey: ["/api/admin/people/unclaimed", debouncedSearchQuery],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (debouncedSearchQuery) {
+        params.append('search', debouncedSearchQuery);
+      }
+      return await apiRequest(`/api/admin/people/unclaimed${params.toString() ? `?${params.toString()}` : ''}`, 'GET');
+    },
     enabled: true,
   });
 
@@ -154,18 +165,46 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <div className="px-2 py-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search by email or name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-8 h-9 text-sm mb-2"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery("")}
+                          className="absolute right-2 top-2.5"
+                          type="button"
+                        >
+                          <X className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <SelectItem value="none">Not linked to existing person</SelectItem>
                   {isLoadingPeople ? (
                     <SelectItem value="loading" disabled>
                       Loading...
                     </SelectItem>
-                  ) : (
-                    unclaimedPeople?.map((person) => (
+                  ) : unclaimedPeople && unclaimedPeople.length > 0 ? (
+                    unclaimedPeople.map((person) => (
                       <SelectItem key={person.id} value={person.id.toString()}>
                         {person.email} {person.userName && `(${person.userName})`}
                         {person.organizationName && ` - ${person.organizationName}`}
                       </SelectItem>
                     ))
+                  ) : searchQuery ? (
+                    <div className="px-2 py-2 text-sm text-muted-foreground">
+                      No results found for "{searchQuery}"
+                    </div>
+                  ) : (
+                    <div className="px-2 py-2 text-sm text-muted-foreground">
+                      No unclaimed people found
+                    </div>
                   )}
                 </SelectContent>
               </Select>
