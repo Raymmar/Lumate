@@ -26,6 +26,9 @@ import {
   postTags,
   events,
   insertPostSchema,
+  companies,
+  companyMembers,
+  companyTags,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -813,6 +816,119 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Password reset error:", error);
       res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  app.get("/api/admin/companies", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const searchQuery = ((req.query.search as string) || "").toLowerCase();
+      const offset = (page - 1) * limit;
+
+      const totalCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(companies)
+        .where(
+          searchQuery
+            ? sql`(
+              LOWER(name) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(industry, '')) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(email, '')) LIKE ${`%${searchQuery}%`}
+            )`
+            : sql`1=1`,
+        )
+        .then((result) => result[0].count);
+
+      const companiesResult = await db
+        .select({
+          id: companies.id,
+          name: companies.name,
+          industry: companies.industry,
+          size: companies.size,
+          email: companies.email,
+          phoneNumber: companies.phoneNumber,
+          website: companies.website,
+          logoUrl: companies.logoUrl,
+          createdAt: companies.createdAt,
+          updatedAt: companies.updatedAt,
+        })
+        .from(companies)
+        .where(
+          searchQuery
+            ? sql`(
+              LOWER(name) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(industry, '')) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(COALESCE(email, '')) LIKE ${`%${searchQuery}%`}
+            )`
+            : sql`1=1`,
+        )
+        .limit(limit)
+        .offset(offset)
+        .orderBy(companies.name);
+
+      // Get the member count for each company
+      const companiesWithMemberCount = await Promise.all(
+        companiesResult.map(async (company) => {
+          const members = await storage.getCompanyMembers(company.id);
+          return {
+            ...company,
+            memberCount: members.length,
+          };
+        })
+      );
+
+      res.json({
+        companies: companiesWithMemberCount,
+        total: totalCount,
+      });
+    } catch (error) {
+      console.error("Failed to fetch admin companies:", error);
+      res.status(500).json({ error: "Failed to fetch companies" });
+    }
+  });
+
+  app.get("/api/admin/companies/:id", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const companyId = parseInt(req.params.id);
+      const company = await storage.getCompanyById(companyId);
+
+      if (!company) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+
+      // Get company members
+      const members = await storage.getCompanyMembers(companyId);
+      
+      // Get company tags
+      const tags = await storage.getCompanyTags(companyId);
+
+      res.json({
+        ...company,
+        members,
+        tags,
+      });
+    } catch (error) {
+      console.error("Failed to fetch company details:", error);
+      res.status(500).json({ error: "Failed to fetch company details" });
     }
   });
 
