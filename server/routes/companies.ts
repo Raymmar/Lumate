@@ -375,24 +375,39 @@ router.get("/by-name/:nameSlug/members", async (req: Request, res: Response) => 
     // Then get the members for this company
     const members = await storage.getCompanyMembers(companyId);
     
+    // Get more detailed user information
+    const enhancedMembers = await Promise.all(
+      members.map(async (member) => {
+        const userWithPerson = await storage.getUserWithPerson(member.userId);
+        return {
+          ...member, 
+          user: userWithPerson || member.user,
+          person: userWithPerson?.person || null
+        };
+      })
+    );
+    
     // Transform the data to include only public fields
-    const publicMembers = members
+    const publicMembers = enhancedMembers
       .filter(member => member.isPublic) // Only include public members
       .map(member => {
-        // Extract user information safely with fallbacks
         const user = member.user || {};
-        // Use the available name fields or extract from email
-        const userName = user.email ? user.email.split('@')[0] : 'Anonymous';
-        const name = userName || 'Anonymous Member';
+        const person = member.person || {};
+        
+        // Use the best available name in order of preference
+        const name = 
+          user.displayName || 
+          person.fullName || 
+          person.userName ||
+          (user.email ? user.email.split('@')[0] : 'Anonymous Member');
         
         return {
           id: member.userId,
           name: name,
-          title: member.title || null,
+          title: member.title || person.jobTitle || null,
           role: member.role,
-          email: user.email || null,
-          // If there's no avatar, we'll handle this on the frontend
-          avatar: null
+          email: user.email || person.email || null,
+          avatar: person.avatarUrl || null
         };
       });
     
