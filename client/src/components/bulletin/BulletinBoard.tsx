@@ -175,6 +175,11 @@ function LinksSection() {
               About Sarasota Tech
             </Button>
           </Link>
+          <Link href="/summit" className="block">
+            <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
+              Tech Summit
+            </Button>
+          </Link>
           <a href="https://lu.ma/SarasotaTech" target="_blank" rel="noopener noreferrer" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">
               Event Calendar
