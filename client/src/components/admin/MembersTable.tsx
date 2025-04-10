@@ -1,13 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import type { User, Person, Badge } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
+import { MemberForm } from "./MemberForm";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { UserPlus } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Pagination,
   PaginationContent,
@@ -31,8 +42,10 @@ export function MembersTable() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreatingMember, setIsCreatingMember] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const itemsPerPage = 100;
 
@@ -147,16 +160,51 @@ export function MembersTable() {
     );
   }
 
+  const createMemberMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest("/api/admin/members", "POST", data);
+    },
+    onSuccess: () => {
+      setIsCreatingMember(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "Success",
+        description: "Member account created successfully. A verification email has been sent.",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Failed to create member:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create member",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateMember = async (data: any) => {
+    await createMemberMutation.mutateAsync(data);
+  };
+
   return (
     <div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold">Members</h1>
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search members..."
-          isLoading={isFetching}
-        />
+        <div className="flex items-center gap-2">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search members..."
+            isLoading={isFetching}
+          />
+          <Button
+            onClick={() => setIsCreatingMember(true)}
+            className="whitespace-nowrap"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       <div className="min-h-[400px] relative mt-4">
@@ -173,6 +221,22 @@ export function MembersTable() {
           />
         </div>
       </div>
+      
+      {/* Create Member Dialog */}
+      <Dialog open={isCreatingMember} onOpenChange={setIsCreatingMember}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New Member</DialogTitle>
+            <DialogDescription>
+              Create a new member account. The user will receive an email to verify and set their password.
+            </DialogDescription>
+          </DialogHeader>
+          <MemberForm 
+            onSubmit={handleCreateMember} 
+            isSubmitting={createMemberMutation.isPending} 
+          />
+        </DialogContent>
+      </Dialog>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
