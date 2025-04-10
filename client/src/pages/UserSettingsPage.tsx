@@ -104,7 +104,6 @@ export default function UserSettingsPage() {
         ...data,
         displayName: data.displayName || user?.displayName || "",
         bio: data.bio || "",
-        featuredImageUrl: data.featuredImageUrl || null,
       };
 
       const response = await fetch("/api/auth/update-profile", {
@@ -282,31 +281,6 @@ export default function UserSettingsPage() {
                               className="flex-1 border bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
                             />
                           </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Profile Image Field */}
-                <div className="space-y-2">
-                  <FormField
-                    control={form.control}
-                    name="featuredImageUrl"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <div>
-                          <FormLabel>Profile Photo</FormLabel>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            This image will be displayed on your profile
-                          </p>
-                        </div>
-                        <FormControl>
-                          <UnsplashPicker
-                            value={field.value || ""}
-                            onChange={field.onChange}
-                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
