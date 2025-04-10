@@ -26,7 +26,6 @@ import {
 import { ChevronDown, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { useDebounce } from "@/hooks/useDebounce";
 
 interface UnclaimedPerson {
   id: number;
@@ -64,8 +63,6 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   useEffect(() => {
     searchQueryRef.current = searchQuery;
   }, [searchQuery]);
-  
-  const debouncedSearchQuery = useDebounce(searchQuery, 300); // Reduced debounce time for better responsiveness
   const [isSearching, setIsSearching] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -100,20 +97,20 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     refetchOnReconnect: false, // Prevent refetch on reconnect
   });
 
-  // Server-side filtered query, only run when debounced search is longer than 2 chars
+  // Server-side filtered query, only run when search is longer than 2 chars
   const { data: serverFilteredPeople, isLoading: isLoadingServerSearch } = useQuery<UnclaimedPerson[]>({
-    queryKey: ["/api/admin/people/unclaimed", debouncedSearchQuery],
+    queryKey: ["/api/admin/people/unclaimed", searchQuery],
     queryFn: async () => {
       setIsSearching(true);
       try {
         const params = new URLSearchParams();
-        params.append('search', debouncedSearchQuery);
+        params.append('search', searchQuery);
         return await apiRequest(`/api/admin/people/unclaimed?${params.toString()}`, 'GET');
       } finally {
         setIsSearching(false);
       }
     },
-    enabled: debouncedSearchQuery.length > 2, // Only run server search for 3+ character queries
+    enabled: searchQuery.length > 2, // Only run server search for 3+ character queries
     staleTime: Infinity, // Prevent automatic refetching
     refetchOnWindowFocus: false, // Prevent refetch on window focus
     refetchOnMount: false, // Prevent refetch on mount
@@ -122,7 +119,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   // Client-side filtering for quick response
   const filteredPeople = useMemo(() => {
     // If we have server results for a search longer than 2 chars, use them
-    if (debouncedSearchQuery.length > 2 && serverFilteredPeople) {
+    if (searchQuery.length > 2 && serverFilteredPeople) {
       return serverFilteredPeople;
     }
     
@@ -152,7 +149,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     
     // Default to all people if no search
     return allPeople || [];
-  }, [searchQuery, debouncedSearchQuery, allPeople, serverFilteredPeople]);
+  }, [searchQuery, allPeople, serverFilteredPeople]);
   
   // Combined loading state
   const isLoadingPeople = isLoadingAllPeople || isLoadingServerSearch || isSearching;
