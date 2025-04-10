@@ -2054,17 +2054,25 @@ export class PostgresStorage implements IStorage {
   }
 
   // Company members management methods
-  async getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User })[]> {
+  async getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User & { person?: Person } })[]> {
     try {
+      console.log(`Getting members for company ID: ${companyId}`);
+      
+      // First join company_members with users
       const result = await db
         .select({
           ...companyMembers,
-          user: users
+          user: {
+            ...users,
+            person: people
+          }
         })
         .from(companyMembers)
         .innerJoin(users, eq(companyMembers.userId, users.id))
+        .leftJoin(people, eq(users.personId, people.id)) // Left join to include users without person records
         .where(eq(companyMembers.companyId, companyId));
       
+      console.log(`Found ${result.length} company members`);
       return result;
     } catch (error) {
       console.error('Failed to get company members:', error);
