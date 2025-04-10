@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,9 +15,18 @@ import {
   Building,
   Tag,
   ExternalLink,
+  Plus,
+  X,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { User, Person, Badge as BadgeType } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -36,12 +45,19 @@ interface MemberPreviewProps {
 
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const currentIndex = members.findIndex((m) => m.id === member.id);
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < members.length - 1;
+
+  // Fetch available badges
+  const { data: availableBadges } = useQuery<BadgeType[]>({
+    queryKey: ["/api/admin/badges"],
+    enabled: true,
+  });
 
   const navigateToPrevious = () => {
     if (hasPrevious && onNavigate) {
@@ -60,11 +76,11 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       setIsUpdating(true);
       return await apiRequest(`/api/admin/members/${member.id}/admin-status`, "PATCH", { isAdmin });
     },
-    onSuccess: (updatedUser) => {
+    onSuccess: (updatedUser: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       toast({
         title: "Success",
-        description: `Admin status ${updatedUser.isAdmin ? 'granted' : 'removed'} for ${member.email}`,
+        description: `Admin status ${updatedUser?.isAdmin ? 'granted' : 'removed'} for ${member.email}`,
       });
     },
     onError: (error: any) => {
@@ -79,8 +95,67 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     },
   });
 
+  const assignBadgeMutation = useMutation({
+    mutationFn: async (badgeName: string) => {
+      setIsUpdating(true);
+      return await apiRequest(`/api/admin/members/${member.id}/badges/${badgeName}`, "POST");
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "Success",
+        description: `Badge assigned to ${member.email}`,
+      });
+      setSelectedBadge("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to assign badge",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsUpdating(false);
+    },
+  });
+
+  const removeBadgeMutation = useMutation({
+    mutationFn: async (badgeName: string) => {
+      setIsUpdating(true);
+      return await apiRequest(`/api/admin/members/${member.id}/badges/${badgeName}`, "DELETE");
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "Success",
+        description: `Badge removed from ${member.email}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove badge",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsUpdating(false);
+    },
+  });
+
   const handleAdminToggle = async (checked: boolean) => {
     await updateAdminStatusMutation.mutateAsync(checked);
+  };
+
+  const handleAssignBadge = async () => {
+    if (selectedBadge) {
+      await assignBadgeMutation.mutateAsync(selectedBadge);
+    }
+  };
+
+  const handleRemoveBadge = async (badgeName: string) => {
+    await removeBadgeMutation.mutateAsync(badgeName);
   };
 
   const getInitials = (name?: string | null) => {
@@ -92,6 +167,16 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .toUpperCase()
       .substring(0, 2);
   };
+
+  // Filter out badges that the user already has
+  const filterAvailableBadges = () => {
+    if (!availableBadges || !member.badges) return availableBadges || [];
+    
+    const currentBadgeNames = new Set(member.badges.map(badge => badge.name));
+    return availableBadges.filter(badge => !currentBadgeNames.has(badge.name));
+  };
+
+  const filteredBadges = filterAvailableBadges();
 
   return (
     <div className="p-4 h-full flex flex-col">
@@ -161,26 +246,74 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         </div>
       </div>
 
-      {member.badges && member.badges.length > 0 && (
-        <div className="mb-4">
-          <div className="flex items-center mb-2">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
             <Tag className="h-4 w-4 mr-2" />
             <h4 className="font-medium">Badges</h4>
           </div>
-          <div className="flex flex-wrap gap-1">
+        </div>
+        
+        {/* Badge Assignment Section */}
+        <div className="flex items-center gap-2 mb-4">
+          <Select 
+            value={selectedBadge} 
+            onValueChange={setSelectedBadge}
+            disabled={isUpdating || filteredBadges.length === 0}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select badge" />
+            </SelectTrigger>
+            <SelectContent>
+              {filteredBadges.map((badge) => (
+                <SelectItem key={badge.id} value={badge.name}>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs">{badge.icon}</span>
+                    <span>{badge.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            disabled={!selectedBadge || isUpdating}
+            onClick={handleAssignBadge}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Badge
+          </Button>
+        </div>
+        
+        {/* Badge Display Section */}
+        {(!member.badges || member.badges.length === 0) ? (
+          <p className="text-sm text-muted-foreground">No badges assigned</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
             {member.badges.map((badge) => (
-              <Badge
-                key={badge.id}
-                variant="secondary"
-                className="flex items-center gap-1 py-1 px-2"
-              >
-                <span className="text-xs">{badge.icon}</span>
-                <span>{badge.name}</span>
-              </Badge>
+              <div key={badge.id} className="flex items-center gap-1">
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1 py-1 pl-2 pr-1"
+                >
+                  <span className="text-xs">{badge.icon}</span>
+                  <span className="mr-1">{badge.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-4 w-4 ml-1 hover:bg-destructive/10 rounded-full"
+                    onClick={() => handleRemoveBadge(badge.name)}
+                    disabled={isUpdating}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </Badge>
+              </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <Separator className="my-4" />
 
