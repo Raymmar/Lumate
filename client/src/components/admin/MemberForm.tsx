@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, X } from "lucide-react";
+import { ChevronDown, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -58,8 +58,23 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const debouncedSearchQuery = useDebounce(searchQuery, 500); // Increased debounce time
   const [isSearching, setIsSearching] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Initial query to fetch all unclaimed people (without search filter)
   const { data: allPeople, isLoading: isLoadingAllPeople } = useQuery<UnclaimedPerson[]>({
@@ -195,65 +210,109 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Link to existing person (optional)</FormLabel>
-              <Select
-                onValueChange={(value) => {
-                  field.onChange(value);
-                  handlePersonSelect(value);
-                }}
-                defaultValue={field.value}
-              >
+              <div className="relative" ref={dropdownRef}>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an existing person to link" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <div className="px-2 py-2">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search by email or name..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 h-9 text-sm mb-2"
-                      />
-                      {searchQuery && (
-                        <button
-                          onClick={() => setSearchQuery("")}
-                          className="absolute right-2 top-2.5"
-                          type="button"
-                        >
-                          <X className="h-4 w-4 text-muted-foreground" />
-                        </button>
+                  <div 
+                    className={`flex items-center justify-between border rounded-md h-10 px-3 py-2 text-sm ${
+                      selectedPersonId ? 'bg-muted' : 'bg-background'
+                    }`}
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  >
+                    <span className={selectedPersonId ? "" : "text-muted-foreground"}>
+                      {selectedPersonId && selectedPersonId !== "none" ? (
+                        filteredPeople.find(
+                          (p) => p.id.toString() === selectedPersonId
+                        )?.email || "Selected person"
+                      ) : (
+                        "Select an existing person to link"
                       )}
-                    </div>
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
                   </div>
-                  <SelectItem value="none">Not linked to existing person</SelectItem>
-                  {isLoadingPeople ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center">
-                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-foreground border-t-transparent rounded-full"></div>
-                        Loading...
+                </FormControl>
+                
+                {isDropdownOpen && (
+                  <div className="absolute w-full z-50 mt-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-y-auto">
+                    {/* Sticky search at top */}
+                    <div className="sticky top-0 bg-background p-2 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search by email, name, or organization..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-8 h-9 text-sm"
+                          autoFocus
+                        />
+                        {searchQuery && (
+                          <button
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-2 top-2.5"
+                            type="button"
+                          >
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        )}
                       </div>
-                    </SelectItem>
-                  ) : filteredPeople && filteredPeople.length > 0 ? (
-                    filteredPeople.map((person: UnclaimedPerson) => (
-                      <SelectItem key={person.id} value={person.id.toString()}>
-                        {person.email} {person.userName && `(${person.userName})`}
-                        {person.organizationName && ` - ${person.organizationName}`}
-                      </SelectItem>
-                    ))
-                  ) : searchQuery ? (
-                    <div className="px-2 py-2 text-sm text-muted-foreground">
-                      No results found for "{searchQuery}"
                     </div>
-                  ) : (
-                    <div className="px-2 py-2 text-sm text-muted-foreground">
-                      No unclaimed people found
+                    
+                    {/* Not linked option */}
+                    <div 
+                      className={`px-2 py-2 cursor-pointer hover:bg-muted ${
+                        selectedPersonId === "none" ? "bg-muted" : ""
+                      }`}
+                      onClick={() => {
+                        field.onChange("none");
+                        handlePersonSelect("none");
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      Not linked to existing person
                     </div>
-                  )}
-                </SelectContent>
-              </Select>
+                    
+                    {/* Results */}
+                    {isLoadingPeople ? (
+                      <div className="flex items-center justify-center p-4">
+                        <div className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                        <span>Loading...</span>
+                      </div>
+                    ) : filteredPeople && filteredPeople.length > 0 ? (
+                      <div>
+                        {filteredPeople.map((person: UnclaimedPerson) => (
+                          <div 
+                            key={person.id} 
+                            className={`px-2 py-2 cursor-pointer hover:bg-muted truncate ${
+                              selectedPersonId === person.id.toString() ? "bg-muted" : ""
+                            }`}
+                            onClick={() => {
+                              field.onChange(person.id.toString());
+                              handlePersonSelect(person.id.toString());
+                              setIsDropdownOpen(false);
+                            }}
+                          >
+                            <div className="font-medium">{person.email}</div>
+                            {(person.userName || person.organizationName) && (
+                              <div className="text-xs text-muted-foreground flex flex-wrap gap-1">
+                                {person.userName && <span>{person.userName}</span>}
+                                {person.organizationName && <span>· {person.organizationName}</span>}
+                                {person.jobTitle && <span>· {person.jobTitle}</span>}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : searchQuery ? (
+                      <div className="px-4 py-3 text-sm text-muted-foreground">
+                        No results found for "{searchQuery}"
+                      </div>
+                    ) : (
+                      <div className="px-4 py-3 text-sm text-muted-foreground">
+                        No unclaimed people found
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <FormDescription>
                 If you select an existing person, their email will be automatically filled in.
               </FormDescription>
