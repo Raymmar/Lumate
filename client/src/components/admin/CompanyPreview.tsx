@@ -55,7 +55,6 @@ interface CompanyDetails extends Company {
 interface AddMemberFormData {
   userId: string;
   role: string;
-  title: string;
 }
 
 export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
@@ -64,7 +63,6 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
   const [open, setOpen] = useState(true);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [memberTitle, setMemberTitle] = useState<string>("");
   const [memberRole, setMemberRole] = useState<string>("user");
   const [isAddingMember, setIsAddingMember] = useState(false);
 
@@ -105,7 +103,6 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
       return apiRequest(`/api/companies/${company.id}/members`, "POST", {
         userId: parseInt(data.userId),
         role: data.role,
-        title: data.title,
         isPublic: true
       });
     },
@@ -113,7 +110,6 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
       queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
       setIsAddMemberOpen(false);
       setSelectedUserId("");
-      setMemberTitle("");
       setMemberRole("user");
       toast({
         title: "Success",
@@ -190,8 +186,7 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
     try {
       await addMemberMutation.mutateAsync({
         userId: selectedUserId,
-        role: memberRole,
-        title: memberTitle
+        role: memberRole
       });
     } finally {
       setIsAddingMember(false);
@@ -382,15 +377,7 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
                       </Select>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Title/Position</Label>
-                      <Input 
-                        id="title" 
-                        value={memberTitle}
-                        onChange={(e) => setMemberTitle(e.target.value)}
-                        placeholder="e.g. CEO, Developer, Marketing Manager"
-                      />
-                    </div>
+
                     
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -401,6 +388,7 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
                           onCheckedChange={(checked) => 
                             setMemberRole(checked ? "admin" : "user")
                           }
+                          className="h-[18px] w-[34px]"
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
@@ -455,9 +443,6 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
                         {member.user.displayName || member.user.email}
                       </p>
                       <div className="flex items-center gap-2">
-                        <p className="text-xs text-muted-foreground">
-                          {member.title || "No title"}
-                        </p>
                         <Badge variant="secondary" className="text-xs">
                           {member.role}
                         </Badge>
@@ -467,7 +452,6 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
                   <div className="flex items-center gap-1">
                     <div className="flex items-center mr-2">
                       <Switch
-                        size="sm"
                         checked={member.role === "admin"}
                         onCheckedChange={(checked) => 
                           toggleMemberRoleMutation.mutate({ 
@@ -476,6 +460,7 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
                           })
                         }
                         disabled={toggleMemberRoleMutation.isPending}
+                        className="h-[18px] w-[34px]"
                       />
                       <span className="text-xs ml-1">Admin</span>
                     </div>
