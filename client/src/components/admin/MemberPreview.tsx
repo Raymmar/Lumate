@@ -189,6 +189,42 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     await removeBadgeMutation.mutateAsync(badgeName);
   };
 
+  const resendVerificationMutation = useMutation({
+    mutationFn: async () => {
+      setIsUpdating(true);
+      return await apiRequest(`/api/admin/members/${member.id}/resend-verification`, "POST");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: `Verification email sent to ${member.email}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send verification email",
+        variant: "destructive",
+      });
+    },
+    onSettled: () => {
+      setIsUpdating(false);
+    },
+  });
+
+  const handleResendVerification = async () => {
+    await resendVerificationMutation.mutateAsync();
+  };
+
+  const getViewProfileUrl = () => {
+    if (member.person?.userName) {
+      return `/people/${member.person.userName}`;
+    } else if (member.person?.id) {
+      return `/admin/people/${member.person.id}`;
+    }
+    return null;
+  };
+
   const getInitials = (name?: string | null) => {
     if (!name) return "U";
     return name
@@ -361,14 +397,39 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         <div className="flex flex-col gap-2">
           <p className="text-sm text-muted-foreground">Actions</p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="gap-1">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1"
+              onClick={handleResendVerification}
+              disabled={resendVerificationMutation.isPending || member.isVerified}
+            >
               <Mail className="h-4 w-4" />
               Resend Verification
             </Button>
-            <Button variant="outline" size="sm" className="gap-1">
-              <ExternalLink className="h-4 w-4" />
-              View Full Profile
-            </Button>
+            {getViewProfileUrl() ? (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1"
+                asChild
+              >
+                <a href={getViewProfileUrl() || '#'} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4" />
+                  View Full Profile
+                </a>
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-1"
+                disabled
+              >
+                <ExternalLink className="h-4 w-4" />
+                No Profile Found
+              </Button>
+            )}
           </div>
         </div>
       </div>
