@@ -148,11 +148,15 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
 router.get("/:id/members", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
+    console.log(`Fetching members for company ID: ${id}`);
+    
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid company ID" });
     }
 
     const members = await storage.getCompanyMembers(id);
+    console.log(`Found ${members.length} members for company ID ${id}:`, members);
+    
     res.json({ members });
   } catch (error) {
     console.error("Failed to fetch company members:", error);

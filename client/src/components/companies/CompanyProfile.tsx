@@ -112,19 +112,23 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   const company = companyData?.company;
   
   // Fetch company members when we have the company id
-  const { data: membersData, isLoading: isLoadingMembers } = useQuery<{members: CompanyMember[]}>({
+  const { data: membersData, isLoading: isLoadingMembers, error: membersError } = useQuery<{members: CompanyMember[]}>({
     queryKey: ['/api/companies', company?.id, 'members'],
     queryFn: async () => {
       if (!company) return { members: [] };
       
+      console.log(`Fetching members for company ID: ${company.id}`);
       const response = await fetch(`/api/companies/${company.id}/members`);
       
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`Error fetching company members: ${errorText || response.statusText}`);
         throw new Error(`Failed to fetch company members: ${response.statusText}`);
       }
       
-      return await response.json();
+      const result = await response.json();
+      console.log('Company members data:', result);
+      return result;
     },
     enabled: !!company, // Only run this query when we have a company
   });
