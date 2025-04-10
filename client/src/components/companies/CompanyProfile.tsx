@@ -80,6 +80,7 @@ interface CompanyMember {
       userName: string | null;
       fullName: string | null;
       jobTitle: string | null;
+      avatarUrl: string | null;
     } | null;
   };
 }
@@ -505,9 +506,9 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                         <Link key={member.id} href={profilePath}>
                           <div className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors">
                             <Avatar className="h-8 w-8">
-                              {member.user.avatarUrl ? (
+                              {member.user.person?.avatarUrl ? (
                                 <AvatarImage 
-                                  src={member.user.avatarUrl} 
+                                  src={member.user.person.avatarUrl} 
                                   alt={userName} 
                                 />
                               ) : (
