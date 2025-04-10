@@ -165,12 +165,22 @@ export function MembersTable() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Members</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Members</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {searchQuery.trim() ? 
+              `Showing results for "${searchQuery}"` :
+              totalItems > 0 ? 
+                `Showing ${totalItems} members` : 
+                "No members found"
+            }
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="Search members..."
+            placeholder="Search by name or email..."
             isLoading={isFetching}
           />
           <Button

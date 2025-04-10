@@ -49,7 +49,7 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
   };
 
   return (
-    <form onSubmit={handleSubmit} className="relative w-[250px]">
+    <form onSubmit={handleSubmit} className="relative w-[280px]">
       <Search 
         className={`absolute left-2.5 top-2.5 h-4 w-4 transition-colors ${
           isLoading ? 'text-muted-foreground/50' : 'text-muted-foreground'
@@ -62,11 +62,24 @@ export function SearchInput({ value, onChange, placeholder = "Search...", isLoad
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className={`pl-9 transition-opacity duration-150
+        className={`pl-9 transition-opacity duration-150 border-primary/20 hover:border-primary/30
           ${isLoading ? 'opacity-50' : 'opacity-100'}
-          focus-visible:ring-0 focus-visible:ring-offset-0`}
+          ${value ? 'bg-primary/5 border-primary/30' : ''}
+          focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary/40 focus-visible:bg-primary/5`}
         disabled={isLoading}
       />
+      {value && !isLoading && (
+        <button
+          type="button"
+          className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+          </svg>
+        </button>
+      )}
     </form>
   );
 }
