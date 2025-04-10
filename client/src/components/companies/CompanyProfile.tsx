@@ -401,15 +401,6 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           <CompanyMembers nameSlug={nameSlug} />
         </div>
       </div>
-      
-      {/* Team Members Section (Full Width below) */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold mb-4">Team Members</h2>
-        <p className="text-muted-foreground mb-6">
-          Meet the team at {company.name}. Click on a member to view their profile details.
-        </p>
-        <CompanyMembers nameSlug={nameSlug} displayMode="grid" showTitle={false} />
-      </div>
     </div>
   );
 }
