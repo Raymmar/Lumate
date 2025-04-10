@@ -406,7 +406,7 @@ export default function SummitPage() {
         <div className="w-full">
           <div className="relative w-full h-[40vh] md:h-[60vh] lg:h-[70vh]">
             <img 
-              src="https://file-upload.replit.app/api/storage/images%2F1744267083489-Thumbnail--Main.png" 
+              src="https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg" 
               alt="Sarasota Tech Summit" 
               className="absolute inset-0 w-full h-full object-cover"
             />
@@ -420,7 +420,7 @@ export default function SummitPage() {
                   <div className="text-xl font-medium">January 9th, 2025</div>
                 </div>
                 <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
-                  Connecting Sarasota's tech community and driving the city forward.
+                  Can Sarasota become a tech town?
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center">
                   <Button size="lg" className="bg-primary hover:bg-primary/90 text-white text-lg px-6 py-6">
@@ -464,13 +464,9 @@ export default function SummitPage() {
                 <h2 className="text-4xl font-bold">Can Sarasota Become a Tech Town?</h2>
                 <div className="prose prose-lg">
                   <p>
-                    The inaugural <strong>Sarasota Tech Summit</strong> brings together over 200 tech professionals, 
+                    The inaugural <strong>Sarasota Tech Summit</strong> brought together more than 300 tech professionals, 
                     investors, and thought leaders to explore whether Sarasota has what it takes to become 
                     a thriving tech hub.
-                  </p>
-                  <p>
-                    Join us for an evening of engaging discussions, networking, and collaborative problem-solving 
-                    as we chart the course for Sarasota's tech future.
                   </p>
                 </div>
                 <div className="pt-2">
@@ -491,7 +487,7 @@ export default function SummitPage() {
         </div>
 
         {/* Abstract Background Full-Width Section */}
-        <div className="relative py-24 bg-fixed bg-center bg-cover" style={{ backgroundImage: `url(https://file-upload.replit.app/api/storage/images%2F1744267140023-4-Abstract-text.png)` }}>
+        <div className="relative py-60 bg-fixed bg-center bg-cover" style={{ backgroundImage: `url(https://file-upload.replit.app/api/storage/images%2F1744267140023-4-Abstract-text.png)` }}>
           <div className="absolute inset-0 bg-black/40"></div>
           <PageContainer className="relative z-10 max-w-[1440px] text-center text-white">
             <h2 className="text-4xl md:text-5xl font-bold mb-6">Join Us for a Night of Innovation</h2>
@@ -642,131 +638,6 @@ export default function SummitPage() {
               <div className="mx-auto" style={{ maxWidth: "1000px", aspectRatio: "16/9" }}>
                 <SlideShow images={agendaSlides} />
               </div>
-            </div>
-          </PageContainer>
-        </div>
-
-        {/* Ticket Information */}
-        <div className="py-16 md:py-24">
-          <PageContainer className="max-w-[1440px]">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-bold">Ticket Information</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-2">
-                Secure your spot at the premier tech event in Sarasota.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              <Card className="relative overflow-hidden border-2 hover:border-primary hover:shadow-lg transition-all">
-                <div className="absolute top-0 right-0 w-24 h-24">
-                  <div className="absolute transform rotate-45 bg-primary text-white text-center text-xs font-semibold py-1 right-[-35px] top-[32px] w-[170px]">
-                    MOST POPULAR
-                  </div>
-                </div>
-                <CardContent className="pt-10 p-8 space-y-6">
-                  <h3 className="text-2xl font-bold">General Admission</h3>
-                  <div className="text-4xl font-bold">
-                    $49
-                    <span className="text-base font-normal text-muted-foreground ml-2">Early Bird</span>
-                  </div>
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Taco bar by Art Ovation</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Cash bar</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Display area</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Networking with top regional tech professionals and investors</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Insights into current tech trends</span>
-                    </li>
-                  </ul>
-                  <div className="pt-4">
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-white py-6">
-                      <a 
-                        href="https://lu.ma/r21g3q5c?coupon=EARLY25" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center"
-                      >
-                        Purchase General Admission
-                      </a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 border-primary hover:shadow-lg transition-all">
-                <CardContent className="pt-10 p-8 space-y-6">
-                  <h3 className="text-2xl font-bold">VIP Admission</h3>
-                  <div className="text-4xl font-bold">
-                    $99
-                    <span className="text-base font-normal text-muted-foreground ml-2">Early Bird</span>
-                  </div>
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="font-semibold">All general admission benefits</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>VIP meet-and-greet before the event</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Entry to rooftop afterparty</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Complimentary drink ticket</span>
-                    </li>
-                    <li className="flex items-start">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span>Reserved seating in main ballroom</span>
-                    </li>
-                  </ul>
-                  <div className="pt-4">
-                    <Button className="w-full bg-black hover:bg-black/90 text-white py-6">
-                      <a 
-                        href="https://lu.ma/r21g3q5c?coupon=EARLY25" 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center"
-                      >
-                        Purchase VIP Admission
-                      </a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </PageContainer>
         </div>
