@@ -52,12 +52,6 @@ export function NavBar() {
             Directory
           </Button>
         </Link>
-        <Link href="/summit" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm" className="flex items-center">
-            <Calendar className="h-4 w-4 mr-2" />
-            2025 Tech Summit
-          </Button>
-        </Link>
       </div>
       <div className="lg:hidden ml-2">
         <Drawer open={isOpen} onOpenChange={setIsOpen}>
