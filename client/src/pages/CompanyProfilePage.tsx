@@ -15,6 +15,7 @@ import {
   Mail,
   Phone,
   Lock,
+  Settings,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -55,6 +56,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import * as z from "zod";
 
 // Industry options
@@ -146,6 +152,7 @@ export default function CompanyProfilePage() {
   const [customLinks, setCustomLinks] = useState<UserCustomLink[]>([]);
   const [newLinkTitle, setNewLinkTitle] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<number | null>(null);
 
   // Check subscription status
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
@@ -212,9 +219,39 @@ export default function CompanyProfilePage() {
     enabled: !!user,
   });
 
-  // For simplicity, we'll work with the first company found for this user
-  const company = userCompanies?.companies?.[0];
-  const isCompanyAdmin = company?.role === 'admin';
+  // Fetch all companies for admin users
+  const { data: allCompanies, isLoading: isAllCompaniesLoading } = useQuery({
+    queryKey: ["/api/admin/companies"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/companies");
+      if (!response.ok) {
+        throw new Error("Failed to fetch all companies");
+      }
+      return await response.json();
+    },
+    enabled: !!user && user.isAdmin,
+  });
+
+  // Get selected company details for admin
+  const { data: selectedCompanyData, isLoading: isSelectedCompanyLoading } = useQuery({
+    queryKey: ["/api/admin/companies", selectedCompanyId],
+    queryFn: async () => {
+      if (!selectedCompanyId) return null;
+      const response = await fetch(`/api/admin/companies/${selectedCompanyId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch company details");
+      }
+      return await response.json();
+    },
+    enabled: !!selectedCompanyId && !!user?.isAdmin,
+  });
+
+  // For simplicity, we'll work with the first company found for this user or the selected one for admin
+  const company = selectedCompanyId && selectedCompanyData 
+    ? selectedCompanyData 
+    : userCompanies?.companies?.[0];
+  
+  const isCompanyAdmin = company?.role === 'admin' || user?.isAdmin;
   
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -292,7 +329,13 @@ export default function CompanyProfilePage() {
         tags: tags,
       };
 
-      const response = await fetch(`/api/companies/${company.id}`, {
+      // If admin is editing another company, use admin endpoint
+      const isAdminEditingOtherCompany = user?.isAdmin && selectedCompanyId;
+      const endpoint = isAdminEditingOtherCompany 
+        ? `/api/admin/companies/${company.id}`
+        : `/api/companies/${company.id}`;
+
+      const response = await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -307,8 +350,16 @@ export default function CompanyProfilePage() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Invalidate the user companies query to refetch the updated data
+      // Invalidate the relevant queries to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ["/api/companies/user/companies"] });
+      
+      if (user?.isAdmin) {
+        queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
+        if (selectedCompanyId) {
+          queryClient.invalidateQueries({ queryKey: ["/api/admin/companies", selectedCompanyId] });
+        }
+      }
+      
       toast({
         title: "Success",
         description: "Company profile updated successfully",
@@ -456,31 +507,73 @@ export default function CompanyProfilePage() {
       <div className="container max-w-3xl mx-auto pt-3 pb-24">
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-2xl font-semibold">
-                {company ? 'Company Profile' : 'Create Company Profile'}
-              </CardTitle>
-              <ToggleGroup
-                type="single"
-                value={theme}
-                onValueChange={(value) => {
-                  if (value) setTheme(value as "light" | "dark" | "system");
-                }}
-                className="bg-background border rounded-md"
-              >
-                <ToggleGroupItem value="light" size="sm" className="px-3">
-                  <Sun className="h-4 w-4" />
-                  <span className="sr-only">Light</span>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="dark" size="sm" className="px-3">
-                  <Moon className="h-4 w-4" />
-                  <span className="sr-only">Dark</span>
-                </ToggleGroupItem>
-                <ToggleGroupItem value="system" size="sm" className="px-3">
-                  <Monitor className="h-4 w-4" />
-                  <span className="sr-only">System</span>
-                </ToggleGroupItem>
-              </ToggleGroup>
+            <div className="flex flex-col space-y-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-2xl font-semibold">
+                  {company ? 'Company Profile' : 'Create Company Profile'}
+                </CardTitle>
+                <ToggleGroup
+                  type="single"
+                  value={theme}
+                  onValueChange={(value) => {
+                    if (value) setTheme(value as "light" | "dark" | "system");
+                  }}
+                  className="bg-background border rounded-md"
+                >
+                  <ToggleGroupItem value="light" size="sm" className="px-3">
+                    <Sun className="h-4 w-4" />
+                    <span className="sr-only">Light</span>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="dark" size="sm" className="px-3">
+                    <Moon className="h-4 w-4" />
+                    <span className="sr-only">Dark</span>
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="system" size="sm" className="px-3">
+                    <Monitor className="h-4 w-4" />
+                    <span className="sr-only">System</span>
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              
+              {/* Admin Company Selection Dropdown */}
+              {user?.isAdmin && (
+                <div className="flex items-center space-x-2">
+                  <div className="flex-1 max-w-md">
+                    <Select
+                      value={selectedCompanyId?.toString() || ""}
+                      onValueChange={(value) => {
+                        // Use null for user's own company
+                        if (value === "") {
+                          setSelectedCompanyId(null);
+                        } else {
+                          setSelectedCompanyId(parseInt(value));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="bg-muted/30">
+                        <SelectValue placeholder="Select company to edit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Your companies</SelectItem>
+                        {allCompanies?.companies?.map((company) => (
+                          <SelectItem key={company.id} value={company.id.toString()}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedCompanyId && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setSelectedCompanyId(null)}
+                    >
+                      <X className="h-4 w-4 mr-1" /> Reset
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="px-6">
