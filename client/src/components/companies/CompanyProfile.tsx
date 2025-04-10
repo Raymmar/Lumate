@@ -263,23 +263,17 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
   return (
     <div className="w-full space-y-4">
-      {/* Cover Image Banner */}
-      <div className="relative w-full h-64 overflow-hidden rounded-lg bg-muted">
-        {company.featuredImageUrl ? (
+      {/* Cover Image Banner - Only show if there's an image */}
+      {company.featuredImageUrl && (
+        <div className="relative w-full h-64 overflow-hidden rounded-lg bg-muted">
           <img 
             src={company.featuredImageUrl} 
             alt={`${company.name} cover`} 
             className="w-full h-full object-cover"
           />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-r from-primary/10 to-primary/30 flex items-center justify-center">
-            <span className="text-3xl font-bold text-primary/50">
-              {company.name || "Company Profile"}
-            </span>
-          </div>
-        )}
-        <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent h-1/3" />
-      </div>
+          <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/60 to-transparent h-1/3" />
+        </div>
+      )}
 
       {/* Main content */}
       <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
