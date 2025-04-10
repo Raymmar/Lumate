@@ -255,35 +255,47 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         </div>
         
         {/* Badge Assignment Section */}
-        <div className="flex items-center gap-2 mb-4">
-          <Select 
-            value={selectedBadge} 
-            onValueChange={setSelectedBadge}
-            disabled={isUpdating || filteredBadges.length === 0}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select badge" />
-            </SelectTrigger>
-            <SelectContent>
-              {filteredBadges.map((badge) => (
-                <SelectItem key={badge.id} value={badge.name}>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs">{badge.icon}</span>
-                    <span>{badge.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            disabled={!selectedBadge || isUpdating}
-            onClick={handleAssignBadge}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Badge
-          </Button>
+        <div className="mb-4">
+          <label className="text-sm font-medium mb-2 block">Add Badge</label>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {filteredBadges.map((badge) => (
+              <Badge
+                key={badge.id}
+                variant="outline"
+                className="cursor-pointer hover:bg-accent"
+                onClick={() => setSelectedBadge(badge.name)}
+              >
+                {badge.name}
+              </Badge>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <Select 
+              value={selectedBadge} 
+              onValueChange={setSelectedBadge}
+              disabled={isUpdating || filteredBadges.length === 0}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select badge" />
+              </SelectTrigger>
+              <SelectContent>
+                {filteredBadges.map((badge) => (
+                  <SelectItem key={badge.id} value={badge.name}>
+                    {badge.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={!selectedBadge || isUpdating}
+              onClick={handleAssignBadge}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add Badge
+            </Button>
+          </div>
         </div>
         
         {/* Badge Display Section */}
@@ -297,7 +309,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
                   variant="secondary"
                   className="flex items-center gap-1 py-1 pl-2 pr-1"
                 >
-                  <span className="text-xs">{badge.icon}</span>
                   <span className="mr-1">{badge.name}</span>
                   <Button
                     variant="ghost"
