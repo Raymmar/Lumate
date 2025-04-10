@@ -56,14 +56,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   
-  // Create a ref to maintain the current search value
-  const searchQueryRef = useRef<string>(searchQuery);
-  
-  // When search changes, update the ref
-  useEffect(() => {
-    searchQueryRef.current = searchQuery;
-  }, [searchQuery]);
-  const [isSearching, setIsSearching] = useState(false);
+  // No need for a ref since we're using the searchQuery state directly
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -75,7 +68,6 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
-        // Search state is maintained through the searchQueryRef
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -84,75 +76,39 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     };
   }, []);
 
-  // Initial query to fetch all unclaimed people (without search filter)
-  const { data: allPeople, isLoading: isLoadingAllPeople } = useQuery<UnclaimedPerson[]>({
+  // Fetch all people once
+  const { data: allPeople = [], isLoading: isLoadingPeople } = useQuery<UnclaimedPerson[]>({
     queryKey: ["/api/admin/people/unclaimed"],
     queryFn: async () => {
       return await apiRequest('/api/admin/people/unclaimed', 'GET');
     },
-    enabled: true,
-    staleTime: Infinity, // Prevent automatic refetching
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on mount
-    refetchOnReconnect: false, // Prevent refetch on reconnect
-  });
-
-  // Server-side filtered query, only run when search is longer than 2 chars
-  const { data: serverFilteredPeople, isLoading: isLoadingServerSearch } = useQuery<UnclaimedPerson[]>({
-    queryKey: ["/api/admin/people/unclaimed", searchQuery],
-    queryFn: async () => {
-      setIsSearching(true);
-      try {
-        const params = new URLSearchParams();
-        params.append('search', searchQuery);
-        return await apiRequest(`/api/admin/people/unclaimed?${params.toString()}`, 'GET');
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    enabled: searchQuery.length > 2, // Only run server search for 3+ character queries
-    staleTime: Infinity, // Prevent automatic refetching
-    refetchOnWindowFocus: false, // Prevent refetch on window focus
-    refetchOnMount: false, // Prevent refetch on mount
   });
   
-  // Client-side filtering for quick response
+  // Simple client-side filtering
   const filteredPeople = useMemo(() => {
-    // If we have server results for a search longer than 2 chars, use them
-    if (searchQuery.length > 2 && serverFilteredPeople) {
-      return serverFilteredPeople;
+    if (!searchQuery) {
+      return allPeople;
     }
     
-    // For short searches or while server is loading, filter client-side
-    if (searchQuery && allPeople) {
-      const lowerSearch = searchQuery.toLowerCase().trim();
-      
-      // For empty search, just return all people
-      if (lowerSearch === '') return allPeople;
-      
-      return allPeople.filter(person => {
-        // Check email
-        if (person.email && person.email.toLowerCase().includes(lowerSearch)) return true;
-        
-        // Check username
-        if (person.userName && person.userName.toLowerCase().includes(lowerSearch)) return true;
-        
-        // Check organization name
-        if (person.organizationName && person.organizationName.toLowerCase().includes(lowerSearch)) return true;
-        
-        // Check job title
-        if (person.jobTitle && person.jobTitle.toLowerCase().includes(lowerSearch)) return true;
-        
-        return false;
-      });
-    }
+    const lowerSearch = searchQuery.toLowerCase().trim();
+    if (lowerSearch === '') return allPeople;
     
-    // Default to all people if no search
-    return allPeople || [];
-  }, [searchQuery, allPeople, serverFilteredPeople]);
-  
-  // Combined loading state
-  const isLoadingPeople = isLoadingAllPeople || isLoadingServerSearch || isSearching;
+    return allPeople.filter(person => {
+      // Check email
+      if (person.email && person.email.toLowerCase().includes(lowerSearch)) return true;
+      
+      // Check username
+      if (person.userName && person.userName.toLowerCase().includes(lowerSearch)) return true;
+      
+      // Check organization name
+      if (person.organizationName && person.organizationName.toLowerCase().includes(lowerSearch)) return true;
+      
+      // Check job title
+      if (person.jobTitle && person.jobTitle.toLowerCase().includes(lowerSearch)) return true;
+      
+      return false;
+    });
+  }, [searchQuery, allPeople]);
 
   // Form definition
   const form = useForm<MemberFormValues>({
@@ -210,10 +166,8 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     
     setSelectedPersonId(personId);
     
-    // Find selected person in either allPeople or filteredPeople
-    const selectedPerson = 
-      allPeople?.find(p => p.id.toString() === personId) || 
-      serverFilteredPeople?.find(p => p.id.toString() === personId);
+    // Find selected person
+    const selectedPerson = allPeople.find((p: UnclaimedPerson) => p.id.toString() === personId);
     
     if (selectedPerson) {
       form.setValue("email", selectedPerson.email);
@@ -223,7 +177,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
         form.setValue("displayName", selectedPerson.userName);
       } else {
         const emailName = selectedPerson.email.split('@')[0];
-        form.setValue("displayName", emailName.replace(/[.\_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+        form.setValue("displayName", emailName.replace(/[.\_]/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()));
       }
     }
   };
