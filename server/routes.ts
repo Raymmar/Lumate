@@ -1193,6 +1193,190 @@ export async function registerRoutes(app: Express) {
       return res.status(500).json({ error: "Failed to remove badge" });
     }
   });
+  
+  // Get unclaimed people (for admin member creation)
+  app.get("/api/admin/people/unclaimed", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      console.log("Fetching unclaimed people records");
+
+      // Find people records that don't have an associated user account
+      const unclaimedPeople = await db
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          email: people.email,
+          userName: people.userName,
+          avatarUrl: people.avatarUrl,
+          role: people.role,
+          organizationName: people.organizationName,
+          jobTitle: people.jobTitle,
+        })
+        .from(people)
+        .leftJoin(users, eq(people.email, users.email))
+        .where(sql`${users.id} IS NULL`)
+        .orderBy(people.email);
+
+      console.log(`Returned ${unclaimedPeople.length} unclaimed people records`);
+      res.json(unclaimedPeople);
+    } catch (error) {
+      console.error("Failed to fetch unclaimed people:", error);
+      res.status(500).json({ error: "Failed to fetch unclaimed people" });
+    }
+  });
+  
+  // Create a new member account (admin only)
+  app.post("/api/admin/members", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const { email, displayName, bio, personId, isAdmin } = req.body;
+      
+      if (!email || !displayName) {
+        return res.status(400).json({ error: "Email and display name are required" });
+      }
+      
+      // Normalize email to lowercase
+      const normalizedEmail = email.toLowerCase();
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(normalizedEmail);
+      if (existingUser) {
+        return res.status(409).json({ error: "A user with this email already exists" });
+      }
+
+      console.log("Creating new member account:", {
+        email: normalizedEmail,
+        displayName,
+        linkedToExistingPerson: !!personId,
+        personId,
+      });
+      
+      let personRecord: any = null;
+      
+      // Link to existing person record if provided
+      if (personId) {
+        personRecord = await storage.getPerson(parseInt(personId));
+        if (!personRecord) {
+          return res.status(404).json({ error: "Person record not found" });
+        }
+        
+        // Verify email matches
+        if (personRecord.email && personRecord.email.toLowerCase() !== normalizedEmail) {
+          return res.status(400).json({ 
+            error: "Email does not match the selected person record" 
+          });
+        }
+      }
+      
+      // Create user with basic info
+      const userData = {
+        email: normalizedEmail,
+        displayName,
+        bio: bio || null,
+        personId: personId ? parseInt(personId) : undefined,
+        password: "", // Empty password - will be set during verification
+      };
+      
+      // Create the user
+      const newUser = await storage.createUser(userData);
+      
+      // Then update verification and admin status separately
+      if (isAdmin) {
+        await storage.updateUserAdminStatus(newUser.id, true);
+      }
+      
+      console.log("Successfully created new user:", {
+        userId: newUser.id,
+        email: newUser.email,
+      });
+      
+      // Generate verification token
+      const verificationToken = await storage.createVerificationToken(normalizedEmail);
+      console.log("Created verification token:", verificationToken.token);
+      
+      // Send verification email
+      const emailSent = await sendVerificationEmail(
+        normalizedEmail,
+        verificationToken.token,
+        true, // adminCreated flag to modify message
+      );
+      
+      if (!emailSent) {
+        console.error("Failed to send verification email to:", normalizedEmail);
+        // Don't return an error, continue with event invite
+      } else {
+        console.log("Successfully sent verification email to:", normalizedEmail);
+      }
+      
+      // Get the next upcoming event for the invite
+      const futureEvents = await storage.getFutureEvents();
+      const nextEvent = futureEvents.length > 0 
+        ? futureEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
+        : null;
+      
+      // Send event invite if there's an upcoming event
+      if (nextEvent) {
+        try {
+          console.log("Sending event invite to new member:", {
+            email: normalizedEmail,
+            eventId: nextEvent.api_id,
+          });
+          
+          await lumaApiRequest("event/send-invites", undefined, {
+            method: "POST",
+            body: JSON.stringify({
+              guests: [{ email: normalizedEmail }],
+              event_api_id: nextEvent.api_id,
+            }),
+          });
+          
+          console.log("Successfully sent event invite");
+        } catch (error) {
+          console.error("Failed to send event invite:", error);
+          // Don't return an error, continue with success response
+        }
+      } else {
+        console.log("No upcoming events available for invite");
+      }
+      
+      res.status(201).json({
+        success: true,
+        message: "Member created successfully. Verification email sent.",
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          displayName: newUser.displayName,
+          isAdmin: newUser.isAdmin,
+          isVerified: newUser.isVerified,
+        },
+        eventInvite: nextEvent 
+          ? { sent: true, eventName: nextEvent.title } 
+          : { sent: false, reason: "No upcoming events" },
+      });
+    } catch (error) {
+      console.error("Failed to create member:", error);
+      res.status(500).json({ 
+        error: "Failed to create member",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  });
 
   app.get("/api/admin/members", async (req, res) => {
     try {

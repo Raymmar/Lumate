@@ -21,10 +21,11 @@ if (!FROM_EMAIL) {
 
 export async function sendVerificationEmail(
   email: string,
-  token: string
+  token: string,
+  adminCreated: boolean = false
 ): Promise<boolean> {
   try {
-    console.log('Sending verification email to:', email);
+    console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '');
     const verificationUrl = `${process.env.APP_URL || 'http://localhost:3000'}/verify?token=${token}`;
 
     // In development, just log the verification URL
@@ -32,6 +33,7 @@ export async function sendVerificationEmail(
       console.log('Development mode - Email would have been sent with:', {
         to: email,
         verificationUrl,
+        adminCreated
       });
       return true;
     }
@@ -41,24 +43,40 @@ export async function sendVerificationEmail(
       hasApiKey: !!process.env.SENDGRID_API_KEY,
       fromEmail: FROM_EMAIL,
       isDevelopment,
-      verificationUrl
+      verificationUrl,
+      adminCreated
     });
+
+    // Customize subject and content based on whether this is admin-created
+    const subject = adminCreated 
+      ? 'Your Sarasota Tech member profile is ready to claim' 
+      : 'Verify your Sarasota Tech member profile';
 
     console.log('Attempting to send verification email with message:', {
       to: email,
       from: FROM_EMAIL,
-      subject: 'Verify your Sarasota Tech member profile'
+      subject,
+      adminCreated
     });
 
-
-    await mailService.send({
-      to: email,
-      from: FROM_EMAIL,
-      subject: 'Verify your Sarasota Tech member profile',
-      text: `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`,
-      html: `
+    // Different email content for admin-created accounts
+    const htmlContent = adminCreated 
+      ? `
         <div>
-          <h2>Verify Your Sarasots Tech member profile</h2>
+          <h2>Your Sarasota Tech Member Profile is Ready</h2>
+          <p>An administrator has created a member profile for you on the Sarasota Tech platform.</p>
+          <p>Click the button below to claim your profile and set your password:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Claim Profile
+          </a>
+          <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
+          <p>${verificationUrl}</p>
+          <p style="margin-top:20px">You've also been invited to our next event. Check your email for the invitation!</p>
+        </div>
+      `
+      : `
+        <div>
+          <h2>Verify Your Sarasota Tech Member Profile</h2>
           <p>Click the button below to verify your Sarasota Tech member profile:</p>
           <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
             Verify Profile
@@ -66,13 +84,26 @@ export async function sendVerificationEmail(
           <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
           <p>${verificationUrl}</p>
         </div>
-      `,
+      `;
+
+    // Different text content for admin-created accounts
+    const textContent = adminCreated
+      ? `An administrator has created a member profile for you on the Sarasota Tech platform. Click the following link to claim your profile and set your password: ${verificationUrl}. You've also been invited to our next event. Check your email for the invitation!`
+      : `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`;
+
+    await mailService.send({
+      to: email,
+      from: FROM_EMAIL,
+      subject,
+      text: textContent,
+      html: htmlContent,
     });
 
     console.log('SendGrid API Response:', {
       statusCode: 'Success',
       headers: null,
-      email: email
+      email: email,
+      adminCreated
     });
 
     console.log('Verification email sent successfully to:', email);

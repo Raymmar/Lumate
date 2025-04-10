@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { z } from "zod";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Person } from "@shared/schema";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import * as z from "zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -16,6 +16,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -23,11 +26,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+interface UnclaimedPerson {
+  id: number;
+  api_id: string;
+  email: string;
+  userName: string | null;
+  organizationName: string | null;
+  jobTitle: string | null;
+}
 
 const memberFormSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().email("Invalid email address"),
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
   bio: z.string().optional(),
   personId: z.string().optional(),
@@ -37,33 +49,24 @@ const memberFormSchema = z.object({
 type MemberFormValues = z.infer<typeof memberFormSchema>;
 
 interface MemberFormProps {
-  onSubmit: (data: MemberFormValues) => Promise<void>;
-  isSubmitting?: boolean;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export function MemberForm({ onSubmit, isSubmitting = false }: MemberFormProps) {
+export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [showPersonSelect, setShowPersonSelect] = useState(false);
 
-  // Fetch available people that don't have user accounts
-  const { data: availablePeople = [], isLoading: isLoadingPeople } = useQuery<Person[]>({
+  // Fetch unclaimed people records
+  const { data: unclaimedPeople, isLoading: isLoadingPeople } = useQuery<UnclaimedPerson[]>({
     queryKey: ["/api/admin/people/unclaimed"],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/admin/people/unclaimed");
-        if (!response.ok) {
-          throw new Error("Failed to fetch unclaimed people");
-        }
-        return response.json();
-      } catch (error) {
-        console.error("Error fetching unclaimed people:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load available people. Please try again.",
-          variant: "destructive",
-        });
-        return [];
+      const response = await fetch("/api/admin/people/unclaimed");
+      if (!response.ok) {
+        throw new Error("Failed to fetch unclaimed people");
       }
+      return response.json();
     },
   });
 
@@ -80,16 +83,109 @@ export function MemberForm({ onSubmit, isSubmitting = false }: MemberFormProps) 
 
   const handleSubmit = async (values: MemberFormValues) => {
     try {
-      await onSubmit(values);
+      setIsSubmitting(true);
+      console.log("Creating new member:", values);
+      
+      const response = await apiRequest("/api/admin/members", "POST", values);
+      
+      toast({
+        title: "Success",
+        description: "Member account created successfully. Verification email has been sent.",
+      });
+      
+      // Invalidate the relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      
+      // Reset the form
       form.reset();
+      
+      // Call the onSuccess callback
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error("Failed to create member:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create member. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // When personId changes, update the email and displayName fields if needed
+  const watchedPersonId = form.watch("personId");
+  
+  useEffect(() => {
+    if (watchedPersonId && unclaimedPeople) {
+      const selectedPerson = unclaimedPeople.find(p => p.id.toString() === watchedPersonId);
+      
+      if (selectedPerson) {
+        // Only update fields if they're empty or if we're changing from one person record to another
+        if (!form.getValues("email") || form.getValues("personId") !== watchedPersonId) {
+          form.setValue("email", selectedPerson.email);
+        }
+        
+        // Use userName as display name if available, otherwise create one from email
+        if (!form.getValues("displayName") || form.getValues("personId") !== watchedPersonId) {
+          if (selectedPerson.userName) {
+            form.setValue("displayName", selectedPerson.userName);
+          } else {
+            // Create display name from email (part before @)
+            const emailPrefix = selectedPerson.email.split('@')[0];
+            const displayName = emailPrefix
+              // Replace dots, underscores, and hyphens with spaces
+              .replace(/[._-]/g, ' ')
+              // Capitalize words
+              .replace(/\b\w/g, l => l.toUpperCase());
+            
+            form.setValue("displayName", displayName);
+          }
+        }
+      }
+    }
+  }, [watchedPersonId, unclaimedPeople, form]);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="personId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Link to existing profile (optional)</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an existing profile" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="">None (create without linking)</SelectItem>
+                  {isLoadingPeople ? (
+                    <SelectItem value="" disabled>
+                      Loading profiles...
+                    </SelectItem>
+                  ) : (
+                    unclaimedPeople?.map((person) => (
+                      <SelectItem key={person.id} value={person.id.toString()}>
+                        {person.userName || person.email} {person.organizationName ? `(${person.organizationName})` : ""}
+                      </SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Linking to an existing profile will associate this user account with data from our event records.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="email"
@@ -100,7 +196,7 @@ export function MemberForm({ onSubmit, isSubmitting = false }: MemberFormProps) 
                 <Input placeholder="user@example.com" {...field} />
               </FormControl>
               <FormDescription>
-                A verification email will be sent to this address.
+                The email address must match the selected profile (if any).
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -114,8 +210,11 @@ export function MemberForm({ onSubmit, isSubmitting = false }: MemberFormProps) 
             <FormItem>
               <FormLabel>Display Name</FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" {...field} />
+                <Input placeholder="Display Name" {...field} />
               </FormControl>
+              <FormDescription>
+                The name that will be displayed publicly.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -126,73 +225,21 @@ export function MemberForm({ onSubmit, isSubmitting = false }: MemberFormProps) 
           name="bio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Bio</FormLabel>
+              <FormLabel>Bio (optional)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Tell us a bit about this member..."
+                  placeholder="A short biography or description"
+                  className="resize-y"
                   {...field}
-                  value={field.value || ""}
                 />
               </FormControl>
+              <FormDescription>
+                A brief description about the member.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setShowPersonSelect(!showPersonSelect)}
-            className="mb-4"
-          >
-            {showPersonSelect ? "Hide People Selector" : "Link to Existing Person"}
-          </Button>
-          
-          {showPersonSelect && (
-            <FormField
-              control={form.control}
-              name="personId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Link to existing Luma person</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a person" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {isLoadingPeople ? (
-                        <div className="flex items-center justify-center p-4">
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Loading...
-                        </div>
-                      ) : availablePeople.length === 0 ? (
-                        <div className="p-2 text-center text-muted-foreground">
-                          No unclaimed people found
-                        </div>
-                      ) : (
-                        availablePeople.map((person) => (
-                          <SelectItem key={person.id} value={person.id.toString()}>
-                            {person.userName || person.email}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    This will link the new user account to an existing person record from Luma.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-        </div>
 
         <FormField
           control={form.control}
@@ -200,33 +247,35 @@ export function MemberForm({ onSubmit, isSubmitting = false }: MemberFormProps) 
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={field.value}
-                  onChange={field.onChange}
-                  className="h-4 w-4 mt-1"
+                  onCheckedChange={field.onChange}
                 />
               </FormControl>
               <div className="space-y-1 leading-none">
-                <FormLabel>Admin Privileges</FormLabel>
+                <FormLabel>Admin privileges</FormLabel>
                 <FormDescription>
-                  Grant this user admin access to the platform.
+                  Grant administrative privileges to this user.
                 </FormDescription>
               </div>
             </FormItem>
           )}
         />
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            "Create Member"
-          )}
-        </Button>
+        <div className="flex justify-end space-x-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Create Member
+          </Button>
+        </div>
       </form>
     </Form>
   );

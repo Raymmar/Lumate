@@ -232,8 +232,8 @@ export function MembersTable() {
             </DialogDescription>
           </DialogHeader>
           <MemberForm 
-            onSubmit={handleCreateMember} 
-            isSubmitting={createMemberMutation.isPending} 
+            onSuccess={() => setIsCreatingMember(false)}
+            onCancel={() => setIsCreatingMember(false)}
           />
         </DialogContent>
       </Dialog>
