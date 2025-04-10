@@ -23,8 +23,8 @@ export async function resendVerification(req: Request, res: Response) {
     // Create a new verification token
     const verificationToken = await storage.createVerificationToken(user.email);
     
-    // Send the verification email
-    await sendVerificationEmail(user.email, user.displayName || user.email, verificationToken.token);
+    // Send the verification email (using the correct parameter order)
+    await sendVerificationEmail(user.email, verificationToken.token);
     
     return res.status(200).json({ success: true, message: "Verification email sent" });
   } catch (error) {
