@@ -264,9 +264,22 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                       <div 
                         className="px-3 py-3 cursor-pointer hover:bg-muted text-sm"
                         onClick={() => {
-                          field.onChange("none");
-                          handlePersonSelect("none");
-                          form.setValue("email", searchQuery);
+                          // Check if the searchQuery contains a valid email format
+                          const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(searchQuery);
+                          
+                          if (isValidEmail) {
+                            field.onChange("none");
+                            handlePersonSelect("none");
+                            form.setValue("email", searchQuery);
+                            setSelectedPersonId("none"); // Set to "none" to indicate this is a new invite
+                          } else {
+                            // Alert user if invalid email format
+                            toast({
+                              title: "Invalid email format",
+                              description: "Please enter a valid email address to send an invitation.",
+                              variant: "destructive"
+                            });
+                          }
                         }}
                       >
                         <div className="font-medium">Email not found - send event invitation</div>
@@ -294,27 +307,53 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
               <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="user@example.com"
+                  placeholder="Email will populate from search"
                   {...field}
-                  disabled={!!selectedPersonId}
+                  disabled={true}
+                  className={!field.value ? "text-muted-foreground" : ""}
                 />
               </FormControl>
+              <FormDescription>
+                Email can only be set by searching for people above
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
         {/* Display name info section - read only */}
-      {selectedPersonId && selectedPersonId !== "none" && (
+      {selectedPersonId && (
         <div className="border rounded-md p-4 space-y-2">
-          <h3 className="font-medium text-sm">Display Name</h3>
-          <div className="text-sm">
-            {filteredPeople.find((p) => p.id.toString() === selectedPersonId)?.userName || 
-              "Name will be synchronized from Luma"}
-          </div>
-          <p className="text-muted-foreground text-xs">
-            Display name is synchronized from Luma and cannot be edited here.
-          </p>
+          {selectedPersonId !== "none" ? (
+            <>
+              <h3 className="font-medium text-sm">Display Name</h3>
+              <div className="text-sm">
+                {filteredPeople.find((p) => p.id.toString() === selectedPersonId)?.userName || 
+                  "Name will be synchronized from Luma"}
+              </div>
+              <p className="text-muted-foreground text-xs">
+                Display name is synchronized from Luma and cannot be edited here.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="font-medium text-sm flex items-center gap-2 text-amber-600">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-mail-plus">
+                  <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                  <path d="M19 16v6" />
+                  <path d="M16 19h6" />
+                </svg>
+                New User Invitation
+              </h3>
+              <div className="text-sm">
+                An invitation will be sent to {form.getValues("email")}
+              </div>
+              <p className="text-muted-foreground text-xs">
+                After accepting the invitation, the user will be added to the system at the next Luma sync.
+              </p>
+            </>
+          )}
         </div>
       )}
 
