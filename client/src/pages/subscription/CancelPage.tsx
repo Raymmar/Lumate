@@ -15,8 +15,8 @@ export default function SubscriptionCancelPage() {
           <p className="text-muted-foreground mt-2">
             You have cancelled the subscription process. No charges were made.
           </p>
-          <Button onClick={() => setLocation('/settings')} className="mt-4">
-            Return to Settings
+          <Button onClick={() => setLocation('/company-profile')} className="mt-4">
+            Go to Company Profile
           </Button>
         </div>
       </Card>

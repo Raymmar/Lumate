@@ -52,7 +52,7 @@ export default function SubscriptionSuccessPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
 
-      const timer = setTimeout(() => navigate('/settings'), 3000);
+      const timer = setTimeout(() => navigate('/company-profile'), 3000);
       return () => clearTimeout(timer);
     }
   }, [sessionStatus, navigate, queryClient]);
@@ -75,8 +75,8 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               {error instanceof Error ? error.message : 'Failed to verify payment status'}
             </p>
-            <Button onClick={() => navigate('/settings')} className="mt-4">
-              Return to Settings
+            <Button onClick={() => navigate('/company-profile')} className="mt-4">
+              Go to Company Profile
             </Button>
           </div>
         ) : sessionStatus?.status === 'complete' ? (
@@ -87,7 +87,7 @@ export default function SubscriptionSuccessPage() {
               Thank you for subscribing. You now have access to all premium features.
             </p>
             <p className="text-sm text-muted-foreground mt-4">
-              Redirecting to settings...
+              Redirecting to company profile setup...
             </p>
           </div>
         ) : (
