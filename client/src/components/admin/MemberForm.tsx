@@ -55,24 +55,16 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   
-  // No need for a ref since we're using the searchQuery state directly
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Close dropdown when clicking outside
+  // Auto focus search input on component mount
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
   }, []);
 
   // Fetch all people once
@@ -181,81 +173,66 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
           name="personId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Link to existing person (optional)</FormLabel>
-              <div className="relative" ref={dropdownRef}>
-                <FormControl>
-                  <div 
-                    className={`flex items-center justify-between border rounded-md h-10 px-3 py-2 text-sm ${
-                      selectedPersonId ? 'bg-muted' : 'bg-background'
-                    }`}
-                    onClick={() => {
-                      // Toggle the dropdown state
-                      setIsDropdownOpen(!isDropdownOpen);
-                      // Focus the search input when opened
-                      if (!isDropdownOpen) {
-                        // Use setTimeout to ensure the input is rendered before focusing
-                        setTimeout(() => {
-                          if (searchInputRef.current) {
-                            searchInputRef.current.focus();
-                          }
-                        }, 10);
-                      }
-                    }}
-                  >
-                    <span className={selectedPersonId ? "" : "text-muted-foreground"}>
-                      {selectedPersonId && selectedPersonId !== "none" ? (
-                        filteredPeople.find(
-                          (p) => p.id.toString() === selectedPersonId
-                        )?.email || "Selected person"
-                      ) : (
-                        "Select an existing person to link"
-                      )}
-                    </span>
-                    <ChevronDown className="h-4 w-4" />
-                  </div>
-                </FormControl>
+              <FormLabel>Search for person by email</FormLabel>
+              <div className="space-y-2">
+                {/* Main search input - always visible */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <FormControl>
+                    <Input
+                      ref={searchInputRef}
+                      placeholder="Search by email, name, or organization..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 h-10"
+                      autoFocus
+                    />
+                  </FormControl>
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-3 top-2.5"
+                      type="button"
+                    >
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
                 
-                {isDropdownOpen && (
-                  <div className="absolute w-full z-50 mt-1 bg-popover border rounded-md shadow-lg max-h-[300px] overflow-y-auto">
-                    {/* Sticky search at top */}
-                    <div className="sticky top-0 bg-background p-2 border-b">
-                      <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          ref={searchInputRef}
-                          placeholder="Search by email, name, or organization..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-8 h-9 text-sm"
-                          autoFocus
-                        />
-                        {searchQuery && (
-                          <button
-                            onClick={() => setSearchQuery("")}
-                            className="absolute right-2 top-2.5"
-                            type="button"
-                          >
-                            <X className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        )}
+                {/* Selected person display */}
+                {selectedPersonId && selectedPersonId !== "none" && (
+                  <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2">
+                    <div>
+                      <div className="font-medium text-sm">
+                        {filteredPeople.find(p => p.id.toString() === selectedPersonId)?.email}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {filteredPeople.find(p => p.id.toString() === selectedPersonId)?.userName || 
+                         filteredPeople.find(p => p.id.toString() === selectedPersonId)?.organizationName}
                       </div>
                     </div>
-                    
-                    {/* Not linked option */}
-                    <div 
-                      className={`px-2 py-2 cursor-pointer hover:bg-muted ${
-                        selectedPersonId === "none" ? "bg-muted" : ""
-                      }`}
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
                       onClick={() => {
-                        field.onChange("none");
-                        handlePersonSelect("none");
-                        setIsDropdownOpen(false);
+                        setSelectedPersonId(null);
+                        field.onChange(undefined);
+                        form.setValue("email", "");
+                        // Refocus search input
+                        if (searchInputRef.current) {
+                          searchInputRef.current.focus();
+                        }
                       }}
                     >
-                      Person not found - will send event invitation
-                    </div>
-                    
-                    {/* Results */}
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
+                {/* Results panel */}
+                {searchQuery && !selectedPersonId && (
+                  <div ref={dropdownRef} className="border rounded-md shadow-sm max-h-[250px] overflow-y-auto">
                     {isLoadingPeople ? (
                       <div className="flex items-center justify-center p-4">
                         <div className="animate-spin mr-2 h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -263,16 +240,13 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                       </div>
                     ) : filteredPeople && filteredPeople.length > 0 ? (
                       <div>
-                        {filteredPeople.map((person: UnclaimedPerson) => (
+                        {filteredPeople.slice(0, 10).map((person: UnclaimedPerson) => (
                           <div 
                             key={person.id} 
-                            className={`px-2 py-2 cursor-pointer hover:bg-muted truncate ${
-                              selectedPersonId === person.id.toString() ? "bg-muted" : ""
-                            }`}
+                            className="px-3 py-2 cursor-pointer hover:bg-muted border-b last:border-b-0"
                             onClick={() => {
                               field.onChange(person.id.toString());
                               handlePersonSelect(person.id.toString());
-                              setIsDropdownOpen(false);
                             }}
                           >
                             <div className="font-medium">{person.email}</div>
@@ -286,20 +260,26 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                           </div>
                         ))}
                       </div>
-                    ) : searchQuery ? (
-                      <div className="px-4 py-3 text-sm text-muted-foreground">
-                        No results found for "{searchQuery}"
-                      </div>
                     ) : (
-                      <div className="px-4 py-3 text-sm text-muted-foreground">
-                        No unclaimed people found
+                      <div 
+                        className="px-3 py-3 cursor-pointer hover:bg-muted text-sm"
+                        onClick={() => {
+                          field.onChange("none");
+                          handlePersonSelect("none");
+                          form.setValue("email", searchQuery);
+                        }}
+                      >
+                        <div className="font-medium">Email not found - send event invitation</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          "{searchQuery}" will be added to the system after the next Luma sync
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
               </div>
               <FormDescription>
-                Search for an existing person by email. If not found, send an event invitation to get them in the system after the next Luma sync.
+                Search for an existing person by email. If not found, we'll send an event invitation to get them in the system.
               </FormDescription>
               <FormMessage />
             </FormItem>
