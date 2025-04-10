@@ -88,7 +88,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
 
   // Server-side filtered query, only run when debounced search is longer than 2 chars
   const { data: serverFilteredPeople, isLoading: isLoadingServerSearch } = useQuery<UnclaimedPerson[]>({
-    queryKey: ["/api/admin/people/unclaimed/search", debouncedSearchQuery],
+    queryKey: ["/api/admin/people/unclaimed", debouncedSearchQuery],
     queryFn: async () => {
       setIsSearching(true);
       try {
@@ -111,13 +111,26 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     
     // For short searches or while server is loading, filter client-side
     if (searchQuery && allPeople) {
-      const lowerSearch = searchQuery.toLowerCase();
-      return allPeople.filter(person => 
-        (person.email && person.email.toLowerCase().includes(lowerSearch)) ||
-        (person.userName && person.userName.toLowerCase().includes(lowerSearch)) ||
-        (person.organizationName && person.organizationName.toLowerCase().includes(lowerSearch)) ||
-        (person.jobTitle && person.jobTitle.toLowerCase().includes(lowerSearch))
-      );
+      const lowerSearch = searchQuery.toLowerCase().trim();
+      
+      // For empty search, just return all people
+      if (lowerSearch === '') return allPeople;
+      
+      return allPeople.filter(person => {
+        // Check email
+        if (person.email && person.email.toLowerCase().includes(lowerSearch)) return true;
+        
+        // Check username
+        if (person.userName && person.userName.toLowerCase().includes(lowerSearch)) return true;
+        
+        // Check organization name
+        if (person.organizationName && person.organizationName.toLowerCase().includes(lowerSearch)) return true;
+        
+        // Check job title
+        if (person.jobTitle && person.jobTitle.toLowerCase().includes(lowerSearch)) return true;
+        
+        return false;
+      });
     }
     
     // Default to all people if no search
