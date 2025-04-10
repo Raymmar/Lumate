@@ -372,44 +372,52 @@ router.get("/by-name/:nameSlug/members", async (req: Request, res: Response) => 
       return res.status(404).json({ error: "Company not found" });
     }
 
-    // Then get the members for this company
+    // Get company members with focus on the owner
     const members = await storage.getCompanyMembers(companyId);
     
-    // Get more detailed user information
-    const enhancedMembers = await Promise.all(
-      members.map(async (member) => {
-        const userWithPerson = await storage.getUserWithPerson(member.userId);
-        return {
-          ...member, 
-          user: userWithPerson || member.user,
-          person: userWithPerson?.person || null
-        };
-      })
-    );
+    // Process only public members
+    const publicMembers = [];
     
-    // Transform the data to include only public fields
-    const publicMembers = enhancedMembers
-      .filter(member => member.isPublic) // Only include public members
-      .map(member => {
-        const user = member.user || {};
-        const person = member.person || {};
-        
-        // Use the best available name in order of preference
-        const name = 
-          user.displayName || 
-          person.fullName || 
-          person.userName ||
-          (user.email ? user.email.split('@')[0] : 'Anonymous Member');
-        
-        return {
-          id: member.userId,
-          name: name,
-          title: member.title || person.jobTitle || null,
-          role: member.role,
-          email: user.email || person.email || null,
-          avatar: person.avatarUrl || null
-        };
+    // Process each member
+    for (const member of members) {
+      if (!member.isPublic) continue;
+      
+      // Get user information
+      const user = await storage.getUserById(member.userId);
+      if (!user) continue;
+      
+      // Get associated person if available
+      const userWithPerson = await storage.getUserWithPerson(user.id);
+      const person = userWithPerson?.person;
+      
+      // Choose the best display name
+      let displayName = 'Member';
+      if (user.displayName) {
+        displayName = user.displayName;
+      } else if (person && person.fullName) {
+        displayName = person.fullName;
+      } else if (person && person.userName) {
+        displayName = person.userName;
+      } else if (user.email) {
+        displayName = user.email.split('@')[0];
+      }
+      
+      // Determine title
+      let title = member.title || 'Member';
+      if (person && person.jobTitle) {
+        title = title || person.jobTitle;
+      }
+      
+      // Add processed member to the list
+      publicMembers.push({
+        id: user.id,
+        name: displayName,
+        title: title,
+        role: member.role,
+        email: user.email || null,
+        avatar: person ? person.avatarUrl : null
       });
+    }
     
     res.json({ members: publicMembers });
   } catch (error) {
