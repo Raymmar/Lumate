@@ -351,7 +351,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               {company.size && (
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span>{company.size} employees</span>
+                  <span>{company.size}</span>
                 </div>
               )}
               
