@@ -122,7 +122,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
             <CardTitle>Welcome to Sarasota Tech</CardTitle>
           ) : (
             <>
-              <CardTitle>Sarasota.Tech</CardTitle>
+              <CardTitle className="">Sarasota.Tech</CardTitle>
               <p className="text-muted-foreground text-wrap-balanced text-xl mt-1">
                 We're connecting Sarasota's tech community and driving the city
                 forward.
