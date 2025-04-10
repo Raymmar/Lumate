@@ -36,10 +36,9 @@ interface UnclaimedPerson {
   jobTitle: string | null;
 }
 
-// Create form schema
+// Create form schema - only allow bio and admin flag to be set
 const memberFormSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  displayName: z.string().min(1, "Display name is required"),
   bio: z.string().optional(),
   personId: z.string().optional(),
   isAdmin: z.boolean().default(false),
@@ -115,7 +114,6 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     resolver: zodResolver(memberFormSchema),
     defaultValues: {
       email: "",
-      displayName: "",
       bio: "",
       personId: undefined,
       isAdmin: false,
@@ -171,14 +169,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     
     if (selectedPerson) {
       form.setValue("email", selectedPerson.email);
-      
-      // Set display name based on available data
-      if (selectedPerson.userName) {
-        form.setValue("displayName", selectedPerson.userName);
-      } else {
-        const emailName = selectedPerson.email.split('@')[0];
-        form.setValue("displayName", emailName.replace(/[.\_]/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()));
-      }
+      // No need to set display name as it will be synced from Luma
     }
   };
 
@@ -261,7 +252,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                         setIsDropdownOpen(false);
                       }}
                     >
-                      Not linked to existing person
+                      Person not found - will send event invitation
                     </div>
                     
                     {/* Results */}
@@ -308,7 +299,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                 )}
               </div>
               <FormDescription>
-                If you select an existing person, their email will be automatically filled in.
+                Search for an existing person by email. If not found, send an event invitation to get them in the system after the next Luma sync.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -333,22 +324,19 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="displayName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Display Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Display name" {...field} />
-              </FormControl>
-              <FormDescription>
-                The name that will be shown on the member's profile.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Display name info section - read only */}
+      {selectedPersonId && selectedPersonId !== "none" && (
+        <div className="border rounded-md p-4 space-y-2">
+          <h3 className="font-medium text-sm">Display Name</h3>
+          <div className="text-sm">
+            {filteredPeople.find((p) => p.id.toString() === selectedPersonId)?.userName || 
+              "Name will be synchronized from Luma"}
+          </div>
+          <p className="text-muted-foreground text-xs">
+            Display name is synchronized from Luma and cannot be edited here.
+          </p>
+        </div>
+      )}
 
         <FormField
           control={form.control}
@@ -404,7 +392,10 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
             type="submit" 
             disabled={createMemberMutation.isPending || form.formState.isSubmitting}
           >
-            {createMemberMutation.isPending ? "Creating..." : "Create Member"}
+            {createMemberMutation.isPending ? "Processing..." : 
+              selectedPersonId && selectedPersonId !== "none" 
+                ? "Create Member Account" 
+                : "Create Account & Send Invitation"}
           </Button>
         </div>
       </form>
