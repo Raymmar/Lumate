@@ -104,6 +104,9 @@ const COMPANY_SIZE_OPTIONS = [
   "5000+ employees"
 ];
 
+// Founded year options (current year down to 1900)
+const FOUNDED_YEAR_OPTIONS = Array.from({ length: 126 }, (_, i) => (2025 - i).toString());
+
 // Company profile form schema
 const companyProfileSchema = z.object({
   name: z.string().min(1, "Company name is required"),
@@ -680,14 +683,30 @@ export default function CompanyProfilePage() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Founded Year</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  value={field.value || ""}
-                                  placeholder="Year founded"
-                                  disabled={!isCompanyAdmin && !!company}
-                                />
-                              </FormControl>
+                              <Select
+                                disabled={!isCompanyAdmin && !!company}
+                                onValueChange={field.onChange}
+                                value={field.value || undefined}
+                                defaultValue={field.value || undefined}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select year founded" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="max-h-[200px]">
+                                  <div className="overflow-y-auto max-h-[200px]">
+                                    {FOUNDED_YEAR_OPTIONS.map((year) => (
+                                      <SelectItem key={year} value={year}>
+                                        {year}
+                                      </SelectItem>
+                                    ))}
+                                  </div>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                Select the year your company was founded
+                              </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
