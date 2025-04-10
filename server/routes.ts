@@ -1259,8 +1259,8 @@ export async function registerRoutes(app: Express) {
 
       const { email, displayName, bio, personId, isAdmin } = req.body;
       
-      if (!email || !displayName) {
-        return res.status(400).json({ error: "Email and display name are required" });
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
       }
       
       // Normalize email to lowercase
@@ -1299,7 +1299,7 @@ export async function registerRoutes(app: Express) {
       // Create user with basic info
       const userData = {
         email: normalizedEmail,
-        displayName,
+        displayName: displayName || normalizedEmail.split('@')[0], // Use first part of email as default display name if not provided
         bio: bio || null,
         personId: personId ? parseInt(personId) : undefined,
         password: "", // Empty password - will be set during verification
