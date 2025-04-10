@@ -567,309 +567,308 @@ export default function CompanyProfilePage() {
                         </Button>
                       </div>
                     )}
-                  <Form {...form}>
-                    <form onSubmit={onSubmit} className="space-y-6">
-                      {/* Basic Company Information */}
+                    <Form {...form}>
+                      <form onSubmit={onSubmit} className="space-y-6">
+                        {/* Basic Company Information */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Basic Information</h3>
+                          
+                          <FormField
+                          control={form.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Company Name</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="Company Name"
+                                  disabled={!isCompanyAdmin && !!company}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="bio"
+                          render={({ field }) => (
+                            <FormItem className="space-y-1">
+                              <FormLabel>Company Bio</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <Textarea
+                                    {...field}
+                                    value={field.value || ""}
+                                    placeholder="Short company description or tagline (max 300 characters)"
+                                    className="resize-none h-20 min-h-[80px]"
+                                    maxLength={300}
+                                    disabled={!isCompanyAdmin && !!company}
+                                  />
+                                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                                    {(field.value?.length || 0)}/300
+                                  </div>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="featuredImageUrl"
+                          render={({ field }) => (
+                            <FormItem className="space-y-3">
+                              <div>
+                                <FormLabel>Featured Image</FormLabel>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  This image will be displayed as a banner on your company profile
+                                </p>
+                              </div>
+                              <FormControl>
+                                <UnsplashPicker
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      {/* Company Details */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Basic Information</h3>
+                        <h3 className="text-lg font-medium">Company Details</h3>
                         
-                        <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Company Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                placeholder="Company Name"
-                                disabled={!isCompanyAdmin && !!company}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="bio"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <FormLabel>Company Bio</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Textarea
-                                  {...field}
-                                  value={field.value || ""}
-                                  placeholder="Short company description or tagline (max 300 characters)"
-                                  className="resize-none h-20 min-h-[80px]"
-                                  maxLength={300}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="industry"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Industry</FormLabel>
+                                <Select
                                   disabled={!isCompanyAdmin && !!company}
-                                />
-                                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                                  {(field.value?.length || 0)}/300
-                                </div>
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                  onValueChange={field.onChange}
+                                  value={field.value || undefined}
+                                  defaultValue={field.value || undefined}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select an industry" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <div className="max-h-[400px] overflow-y-auto">
+                                      <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
+                                      {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
+                                        <SelectItem key={industry} value={industry}>
+                                          {industry}
+                                        </SelectItem>
+                                      ))}
+                                      <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
+                                      {INDUSTRY_OPTIONS.slice(14).map((industry) => (
+                                        <SelectItem key={industry} value={industry}>
+                                          {industry}
+                                        </SelectItem>
+                                      ))}
+                                    </div>
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                  Select the industry that best describes your company
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <FormField
-                        control={form.control}
-                        name="featuredImageUrl"
-                        render={({ field }) => (
-                          <FormItem className="space-y-3">
-                            <div>
-                              <FormLabel>Featured Image</FormLabel>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                This image will be displayed as a banner on your company profile
-                              </p>
-                            </div>
-                            <FormControl>
-                              <UnsplashPicker
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    {/* Company Details */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Company Details</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="industry"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Industry</FormLabel>
-                              <Select
-                                disabled={!isCompanyAdmin && !!company}
-                                onValueChange={field.onChange}
-                                value={field.value || undefined}
-                                defaultValue={field.value || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select an industry" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <div className="max-h-[400px] overflow-y-auto">
-                                    <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
-                                    {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
-                                      <SelectItem key={industry} value={industry}>
-                                        {industry}
-                                      </SelectItem>
-                                    ))}
-                                    <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
-                                    {INDUSTRY_OPTIONS.slice(14).map((industry) => (
-                                      <SelectItem key={industry} value={industry}>
-                                        {industry}
-                                      </SelectItem>
-                                    ))}
-                                  </div>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                Select the industry that best describes your company
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="size"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Company Size</FormLabel>
-                              <Select
-                                disabled={!isCompanyAdmin && !!company}
-                                onValueChange={field.onChange}
-                                value={field.value || undefined}
-                                defaultValue={field.value || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select company size" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {COMPANY_SIZE_OPTIONS.map((size) => (
-                                    <SelectItem key={size} value={size}>
-                                      {size}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                Select the number of employees at your company
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="founded"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Founded Year</FormLabel>
-                              <Select
-                                disabled={!isCompanyAdmin && !!company}
-                                onValueChange={field.onChange}
-                                value={field.value || undefined}
-                                defaultValue={field.value || undefined}
-                              >
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select year founded" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="max-h-[200px]">
-                                  <div className="overflow-y-auto max-h-[200px]">
-                                    {FOUNDED_YEAR_OPTIONS.map((year) => (
-                                      <SelectItem key={year} value={year}>
-                                        {year}
-                                      </SelectItem>
-                                    ))}
-                                  </div>
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                Select the year your company was founded
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="description"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Description</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  {...field}
-                                  value={field.value || ""}
-                                  placeholder="Detailed company description"
-                                  className="h-full min-h-[80px]"
+                          <FormField
+                            control={form.control}
+                            name="size"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Company Size</FormLabel>
+                                <Select
                                   disabled={!isCompanyAdmin && !!company}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
+                                  onValueChange={field.onChange}
+                                  value={field.value || undefined}
+                                  defaultValue={field.value || undefined}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select company size" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {COMPANY_SIZE_OPTIONS.map((size) => (
+                                      <SelectItem key={size} value={size}>
+                                        {size}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                  Select the number of employees at your company
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
 
-                    {/* Contact Information */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Contact Information</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between">
-                                <FormLabel>Email</FormLabel>
-                                <FormField
-                                  control={form.control}
-                                  name="isEmailPublic"
-                                  render={({ field: switchField }) => (
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                      <FormLabel className="text-xs text-muted-foreground">
-                                        Public
-                                      </FormLabel>
-                                      <FormControl>
-                                        <Switch
-                                          checked={switchField.value}
-                                          onCheckedChange={switchField.onChange}
-                                          disabled={!isCompanyAdmin && !!company}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <FormControl>
-                                <div className="flex items-center space-x-2">
-                                  <Mail className="h-4 w-4 text-muted-foreground" />
-                                  <Input
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="founded"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Founded Year</FormLabel>
+                                <Select
+                                  disabled={!isCompanyAdmin && !!company}
+                                  onValueChange={field.onChange}
+                                  value={field.value || undefined}
+                                  defaultValue={field.value || undefined}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select year founded" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="max-h-[200px]">
+                                    <div className="overflow-y-auto max-h-[200px]">
+                                      {FOUNDED_YEAR_OPTIONS.map((year) => (
+                                        <SelectItem key={year} value={year}>
+                                          {year}
+                                        </SelectItem>
+                                      ))}
+                                    </div>
+                                  </SelectContent>
+                                </Select>
+                                <FormDescription>
+                                  Select the year your company was founded
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Description</FormLabel>
+                                <FormControl>
+                                  <Textarea
                                     {...field}
                                     value={field.value || ""}
-                                    placeholder="company@example.com"
+                                    placeholder="Detailed company description"
+                                    className="h-full min-h-[80px]"
                                     disabled={!isCompanyAdmin && !!company}
                                   />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="phoneNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <div className="flex items-center justify-between">
-                                <FormLabel>Phone Number</FormLabel>
-                                <FormField
-                                  control={form.control}
-                                  name="isPhonePublic"
-                                  render={({ field: switchField }) => (
-                                    <FormItem className="flex items-center space-x-2 space-y-0">
-                                      <FormLabel className="text-xs text-muted-foreground">
-                                        Public
-                                      </FormLabel>
-                                      <FormControl>
-                                        <Switch
-                                          checked={switchField.value}
-                                          onCheckedChange={switchField.onChange}
-                                          disabled={!isCompanyAdmin && !!company}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <FormControl>
-                                <div className="flex items-center space-x-2">
-                                  <Phone className="h-4 w-4 text-muted-foreground" />
-                                  <Input
-                                    {...field}
-                                    value={field.value || ""}
-                                    placeholder="+1 (555) 123-4567"
-                                    disabled={!isCompanyAdmin && !!company}
-                                  />
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 gap-4">
+                      {/* Contact Information */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Contact Information</h3>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="email"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between">
+                                  <FormLabel>Email</FormLabel>
+                                  <FormField
+                                    control={form.control}
+                                    name="isEmailPublic"
+                                    render={({ field: switchField }) => (
+                                      <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormLabel className="text-xs text-muted-foreground">
+                                          Public
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Switch
+                                            checked={switchField.value}
+                                            onCheckedChange={switchField.onChange}
+                                            disabled={!isCompanyAdmin && !!company}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                <FormControl>
+                                  <div className="flex items-center space-x-2">
+                                    <Mail className="h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      {...field}
+                                      value={field.value || ""}
+                                      placeholder="Email address"
+                                      disabled={!isCompanyAdmin && !!company}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="phoneNumber"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center justify-between">
+                                  <FormLabel>Phone Number</FormLabel>
+                                  <FormField
+                                    control={form.control}
+                                    name="isPhonePublic"
+                                    render={({ field: switchField }) => (
+                                      <FormItem className="flex items-center space-x-2 space-y-0">
+                                        <FormLabel className="text-xs text-muted-foreground">
+                                          Public
+                                        </FormLabel>
+                                        <FormControl>
+                                          <Switch
+                                            checked={switchField.value}
+                                            onCheckedChange={switchField.onChange}
+                                            disabled={!isCompanyAdmin && !!company}
+                                          />
+                                        </FormControl>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                <FormControl>
+                                  <div className="flex items-center space-x-2">
+                                    <Phone className="h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                      {...field}
+                                      value={field.value || ""}
+                                      placeholder="Phone number"
+                                      disabled={!isCompanyAdmin && !!company}
+                                    />
+                                  </div>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
                         <FormField
                           control={form.control}
                           name="address"
@@ -877,153 +876,10 @@ export default function CompanyProfilePage() {
                             <FormItem>
                               <FormLabel>Address</FormLabel>
                               <FormControl>
-                                <LocationPicker
-                                  defaultValue={field.value ? { address: field.value } : null}
-                                  onLocationSelect={(location) => field.onChange(location?.address || "")}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Custom Links */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Custom Links</h3>
-                      
-                      <div className="space-y-3">
-                        {customLinks.map((link, index) => (
-                          <div key={index} className="flex items-center space-x-2">
-                            <Input
-                              value={link.title}
-                              disabled
-                              className="flex-grow-0 w-1/3"
-                            />
-                            <Input
-                              value={link.url}
-                              disabled
-                              className="flex-grow"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleRemoveCustomLink(index)}
-                              disabled={!isCompanyAdmin && !!company}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        
-                        {(isCompanyAdmin || !company) && (
-                          <div className="flex items-end space-x-2">
-                            <div className="space-y-1 flex-grow-0 w-1/3">
-                              <label className="text-sm font-medium">
-                                Link Title
-                              </label>
-                              <Input
-                                value={newLinkTitle}
-                                onChange={(e) => setNewLinkTitle(e.target.value)}
-                                placeholder="GitHub"
-                              />
-                            </div>
-                            <div className="space-y-1 flex-grow">
-                              <label className="text-sm font-medium">
-                                URL
-                              </label>
-                              <Input
-                                value={newLinkUrl}
-                                onChange={(e) => setNewLinkUrl(e.target.value)}
-                                placeholder="https://github.com/yourcompany"
-                              />
-                            </div>
-                            <Button
-                              type="button"
-                              size="icon"
-                              onClick={handleAddCustomLink}
-                              disabled={!newLinkTitle || !newLinkUrl}
-                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Tags */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Tags</h3>
-                      
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {tags.map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="secondary"
-                              className="flex items-center gap-1"
-                            >
-                              {tag}
-                              {(isCompanyAdmin || !company) && (
-                                <X
-                                  className="h-3 w-3 cursor-pointer"
-                                  onClick={() => handleRemoveTag(tag)}
-                                />
-                              )}
-                            </Badge>
-                          ))}
-                        </div>
-                        
-                        {(isCompanyAdmin || !company) && (
-                          <div className="flex space-x-2">
-                            <Command className="rounded-lg border shadow-md">
-                              <CommandInput
-                                placeholder="Add a tag..."
-                                value={currentTag}
-                                onValueChange={setCurrentTag}
-                                className="h-9"
-                              />
-                              <CommandItem
-                                onSelect={() => handleSelectTag(currentTag)}
-                                className={cn(
-                                  "flex items-center px-2",
-                                  !currentTag && "hidden"
-                                )}
-                              >
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add "{currentTag}"
-                              </CommandItem>
-                            </Command>
-                            <Button
-                              type="button"
-                              onClick={() => handleSelectTag(currentTag)}
-                              disabled={!currentTag}
-                            >
-                              Add
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Call to Action */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Call to Action</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="ctaText"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>CTA Text</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
+                                <LocationPicker 
                                   value={field.value || ""}
-                                  placeholder="Contact Us, Learn More, etc."
+                                  onChange={field.onChange}
+                                  placeholder="Company address"
                                   disabled={!isCompanyAdmin && !!company}
                                 />
                               </FormControl>
@@ -1031,13 +887,13 @@ export default function CompanyProfilePage() {
                             </FormItem>
                           )}
                         />
-                        
+
                         <FormField
                           control={form.control}
                           name="website"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>CTA URL</FormLabel>
+                              <FormLabel>Website</FormLabel>
                               <FormControl>
                                 <div className="flex items-center space-x-2">
                                   <Globe className="h-4 w-4 text-muted-foreground" />
@@ -1053,28 +909,171 @@ export default function CompanyProfilePage() {
                             </FormItem>
                           )}
                         />
-                      </div>
-                    </div>
 
-                    {(isCompanyAdmin || !company) && (
-                      <div className="flex justify-end">
-                        <Button
-                          type="submit"
-                          disabled={
-                            updateCompanyMutation.isPending ||
-                            createCompanyMutation.isPending
-                          }
-                        >
-                          {(updateCompanyMutation.isPending ||
-                            createCompanyMutation.isPending) && (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {/* Tags */}
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm">Tags</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {tags.map((tag) => (
+                              <Badge
+                                key={tag}
+                                variant="secondary"
+                                className="px-3 py-1 text-xs bg-primary/10 hover:bg-primary/20 text-primary"
+                              >
+                                {tag}
+                                {isCompanyAdmin && !!company && (
+                                  <X
+                                    onClick={() => handleRemoveTag(tag)}
+                                    className="ml-1 h-3 w-3 cursor-pointer"
+                                  />
+                                )}
+                              </Badge>
+                            ))}
+                          </div>
+                          {isCompanyAdmin && !!company && tags.length < 5 && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <Command
+                                className="relative rounded-md border w-52"
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    if (currentTag.trim() !== "") {
+                                      handleSelectTag(currentTag);
+                                    }
+                                  }
+                                }}
+                              >
+                                <CommandInput
+                                  placeholder="Add tag..."
+                                  value={currentTag}
+                                  onValueChange={setCurrentTag}
+                                  className="h-9 text-sm py-2 px-3"
+                                />
+                              </Command>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (currentTag.trim() !== "") {
+                                    handleSelectTag(currentTag);
+                                  }
+                                }}
+                                disabled={currentTag.trim() === ""}
+                              >
+                                Add
+                              </Button>
+                            </div>
                           )}
-                          {company ? "Update Company Profile" : "Create Company Profile"}
-                        </Button>
-                      </div>
-                    )}
-                  </form>
-                </Form>
+                          <p className="text-sm text-muted-foreground">
+                            Add up to 5 tags to help others find your company.
+                          </p>
+                        </div>
+
+                        {/* Custom Links */}
+                        <div className="space-y-3">
+                          <h4 className="font-medium text-sm">Custom Links</h4>
+                          <div className="space-y-3">
+                            {customLinks.map((link, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between gap-3 p-3 border rounded-md bg-background"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <Globe className="h-4 w-4 text-muted-foreground" />
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium truncate">
+                                      {link.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground truncate">
+                                      {link.url}
+                                    </p>
+                                  </div>
+                                </div>
+                                {isCompanyAdmin && !!company && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleRemoveCustomLink(index)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {isCompanyAdmin && !!company && (
+                            <div className="grid gap-3">
+                              <div className="flex items-center gap-3">
+                                <Input
+                                  placeholder="Link Title"
+                                  value={newLinkTitle}
+                                  onChange={(e) => setNewLinkTitle(e.target.value)}
+                                  className="flex-1"
+                                />
+                                <Input
+                                  placeholder="URL (e.g., https://example.com)"
+                                  value={newLinkUrl}
+                                  onChange={(e) => setNewLinkUrl(e.target.value)}
+                                  className="flex-1"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={handleAddCustomLink}
+                                  disabled={!newLinkTitle || !newLinkUrl}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              <p className="text-sm text-muted-foreground">
+                                Add custom links to your website, social media, or other important pages.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* CTA */}
+                        <div className="border rounded-md p-4 space-y-4">
+                          <h4 className="font-medium">Call To Action</h4>
+                          
+                          <FormField
+                            control={form.control}
+                            name="ctaText"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>CTA Text</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    value={field.value || ""}
+                                    placeholder="e.g., Get Started, Learn More"
+                                    disabled={!isCompanyAdmin && !!company}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="flex justify-end">
+                          <Button
+                            type="submit"
+                            className="mt-8"
+                            disabled={updateCompanyMutation.isPending || createCompanyMutation.isPending || (!isCompanyAdmin && !!company)}
+                          >
+                            {(updateCompanyMutation.isPending || createCompanyMutation.isPending) && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            {company ? "Update Company Profile" : "Create Company Profile"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </>
                 )}
               </>
             )}
