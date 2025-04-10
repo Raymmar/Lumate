@@ -1296,12 +1296,33 @@ export async function registerRoutes(app: Express) {
         }
       }
       
+      // First, try to find existing person by email if personId isn't provided
+      let finalPersonId = undefined;
+      
+      if (personId) {
+        // If personId is provided, use it directly
+        finalPersonId = parseInt(personId);
+      } else {
+        // Otherwise, try to find existing person by email
+        const existingPerson = await storage.getPersonByEmail(normalizedEmail);
+        if (existingPerson) {
+          console.log("Found existing person record by email:", {
+            email: normalizedEmail,
+            personId: existingPerson.id
+          });
+          finalPersonId = existingPerson.id;
+        } else {
+          console.log("No existing person record found for email:", normalizedEmail);
+          // Will be linked after event invitation and sync
+        }
+      }
+      
       // Create user with basic info
       const userData = {
         email: normalizedEmail,
         displayName: displayName || null, // Don't set a default display name
         bio: bio || null,
-        personId: personId ? parseInt(personId) : undefined,
+        personId: finalPersonId, // Use the resolved person ID (existing record or undefined)
         password: "", // Empty password - will be set during verification
       };
       
