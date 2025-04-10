@@ -490,53 +490,6 @@ export default function SummitPage() {
           </PageContainer>
         </div>
 
-        {/* VC Sponsors Section */}
-        <div 
-          className="py-16 relative bg-cover bg-center"
-          style={{ backgroundImage: `url(https://file-upload.replit.app/api/storage/images%2F1744267136780-3-VC-Sponsors.png)` }}
-        >
-          <div className="absolute inset-0 bg-black/30"></div>
-          <PageContainer className="relative z-10 max-w-[1440px]">
-            <h2 className="text-4xl font-bold text-white text-center mb-10">VC Sponsors</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {vcSponsors.map((sponsor, index) => (
-                <Card key={index} className="bg-white/10 backdrop-blur border-white/20 text-white h-full">
-                  <CardContent className="p-6 flex flex-col h-full">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-16 h-16 flex-shrink-0 bg-white rounded-lg p-2">
-                        <img 
-                          src={sponsor.logo} 
-                          alt={sponsor.name} 
-                          className="w-full h-full object-contain" 
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg">{sponsor.name}</h3>
-                        <p className="text-sm text-white/70">{sponsor.category}</p>
-                      </div>
-                    </div>
-                    <p className="text-white/80 flex-grow">
-                      {sponsor.description}
-                    </p>
-                    {sponsor.url && (
-                      <div className="mt-4">
-                        <a 
-                          href={sponsor.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-white hover:text-white/80 flex items-center text-sm font-medium"
-                        >
-                          Learn more <ExternalLink className="ml-1 h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </PageContainer>
-        </div>
-
         {/* Abstract Background Full-Width Section */}
         <div className="relative py-24 bg-fixed bg-center bg-cover" style={{ backgroundImage: `url(https://file-upload.replit.app/api/storage/images%2F1744267140023-4-Abstract-text.png)` }}>
           <div className="absolute inset-0 bg-black/40"></div>
@@ -548,7 +501,7 @@ export default function SummitPage() {
           </PageContainer>
         </div>
 
-        {/* Agenda Section with Slideshow */}
+        {/* Agenda Section with Gallery */}
         <div className="py-16 md:py-24 bg-gradient-to-b from-background to-primary/5">
           <PageContainer className="max-w-[1440px]">
             <div className="flex flex-col lg:flex-row gap-10">
@@ -675,117 +628,21 @@ export default function SummitPage() {
               </div>
               
               <div className="w-full lg:w-1/2">
+                <div className="h-full flex items-center">
+                  <ImageGallery images={galleryImages.slice(0, 4)} columns={2} />
+                </div>
+              </div>
+            </div>
+            
+            {/* Slideshow Section below agenda */}
+            <div className="mt-16">
+              <div className="text-center mb-10">
+                <h3 className="text-2xl font-bold">Agenda Highlights</h3>
+              </div>
+              <div className="mx-auto" style={{ maxWidth: "1000px", aspectRatio: "16/9" }}>
                 <SlideShow images={agendaSlides} />
               </div>
             </div>
-          </PageContainer>
-        </div>
-
-        {/* Startup Sponsors Section */}
-        <div 
-          className="py-16 relative bg-cover bg-center"
-          style={{ backgroundImage: `url(https://file-upload.replit.app/api/storage/images%2F1744267148243-5-Startup-Sponsors.png)` }}
-        >
-          <div className="absolute inset-0 bg-black/30"></div>
-          <PageContainer className="relative z-10 max-w-[1440px]">
-            <h2 className="text-4xl font-bold text-white text-center mb-10">Startup Sponsors</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {startupSponsors.map((sponsor, index) => (
-                <Card key={index} className="bg-white/10 backdrop-blur border-white/20 text-white h-full">
-                  <CardContent className="p-6 flex flex-col h-full">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 flex-shrink-0 bg-white rounded-lg p-1">
-                        <img 
-                          src={sponsor.logo} 
-                          alt={sponsor.name} 
-                          className="w-full h-full object-contain" 
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg">{sponsor.name}</h3>
-                        <p className="text-sm text-white/70">{sponsor.category}</p>
-                      </div>
-                    </div>
-                    <p className="text-white/80 text-sm flex-grow">
-                      {sponsor.description}
-                    </p>
-                    {sponsor.url && (
-                      <div className="mt-4">
-                        <a 
-                          href={sponsor.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-white hover:text-white/80 flex items-center text-sm font-medium"
-                        >
-                          Learn more <ExternalLink className="ml-1 h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </PageContainer>
-        </div>
-
-        {/* Advisory Sponsors Section */}
-        <div className="py-16 md:py-24">
-          <PageContainer className="max-w-[1440px]">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-bold">Advisory Sponsors</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-2">
-                The summit is proudly supported by these educational and professional organizations.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {advisorySponsors.map((sponsor, index) => (
-                <Card key={index} className="h-full hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6 flex flex-col h-full">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 flex-shrink-0">
-                        <img 
-                          src={sponsor.logo} 
-                          alt={sponsor.name} 
-                          className="w-full h-full object-contain" 
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg line-clamp-1">{sponsor.name}</h3>
-                        <p className="text-sm text-muted-foreground">{sponsor.category}</p>
-                      </div>
-                    </div>
-                    <p className="text-muted-foreground text-sm flex-grow">
-                      {sponsor.description}
-                    </p>
-                    {sponsor.url && (
-                      <div className="mt-4">
-                        <a 
-                          href={sponsor.url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-primary hover:text-primary/80 flex items-center text-sm font-medium"
-                        >
-                          Learn more <ExternalLink className="ml-1 h-3 w-3" />
-                        </a>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </PageContainer>
-        </div>
-
-        {/* Photo Gallery Section */}
-        <div className="py-16 bg-slate-50 dark:bg-slate-900">
-          <PageContainer className="max-w-[1440px]">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl font-bold">Event Gallery</h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-2">
-                Experience the Sarasota Tech Summit through our photo gallery.
-              </p>
-            </div>
-            <ImageGallery images={galleryImages} columns={3} />
           </PageContainer>
         </div>
 
@@ -911,95 +768,8 @@ export default function SummitPage() {
                 </CardContent>
               </Card>
             </div>
-            <div className="bg-primary/10 p-6 rounded-lg mt-8 max-w-4xl mx-auto">
-              <p className="text-lg flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <strong>Early bird discounts</strong> are available through December 20, offering 25% off any ticket 
-                purchase with the code <strong>EARLY25</strong>.
-              </p>
-              <p className="mt-2 pl-8">
-                For more information or to inquire about bulk ticket discounts please contact:
-                <br />
-                <strong>Raymmar Tirado</strong> - <a href="mailto:me@raymmar.com" className="text-primary hover:underline">me@raymmar.com</a>
-              </p>
-            </div>
           </PageContainer>
         </div>
-
-        {/* About Section */}
-        <div className="py-16 bg-black text-white">
-          <PageContainer className="max-w-[1440px]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6">
-                <h2 className="text-4xl font-bold">About Sarasota Tech</h2>
-                <div className="prose prose-lg prose-invert">
-                  <p>
-                    Sarasota Tech is a grassroots community initiative dedicated to connecting Sarasota's tech community and driving the city forward.
-                  </p>
-                  <p>
-                    We meet on the third Thursday of every month at different locations around town. Sometimes we meet at a bar/restaurant, 
-                    sometimes at a local business HQ. Either way, you'll be networking with Sarasota's top tech professionals.
-                  </p>
-                </div>
-                <div className="pt-4 flex space-x-4">
-                  <Button variant="outline" className="border-white text-white hover:bg-white hover:text-black">
-                    <Link href="/about" className="flex items-center">
-                      Learn More About Sarasota Tech
-                    </Link>
-                  </Button>
-                  <Button className="bg-white text-black hover:bg-white/90">
-                    <a 
-                      href="https://lu.ma/SarasotaTech" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="flex items-center"
-                    >
-                      View Upcoming Events <ExternalLink className="ml-2 h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <img 
-                  src="https://file-upload.replit.app/api/storage/images%2F1744267155376-7-Founding-Members.png" 
-                  alt="Founding Members" 
-                  className="rounded-lg shadow-lg w-full" 
-                />
-              </div>
-            </div>
-          </PageContainer>
-        </div>
-      </div>
-
-      {/* Footer powered by Atmos */}
-      <div className="bg-black text-white py-12">
-        <PageContainer className="max-w-[1440px]">
-          <div className="flex flex-col md:flex-row items-center justify-center md:justify-between gap-6">
-            <div className="text-center md:text-left">
-              <h2 className="text-xl font-bold mb-2">Powered by Atmos</h2>
-              <p className="max-w-md">
-                We're building a suite of tools designed to help real world communities amplify and monetize their online presence.
-              </p>
-              <a
-                href="https://atmospr.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block mt-4 text-white hover:text-primary transition-colors underline"
-              >
-                Learn more
-              </a>
-            </div>
-            <div>
-              <img
-                src="https://file-upload.replit.app/api/storage/images%2F1742336837549-OG%20placeholder%203%20reducedd.jpeg"
-                alt="Atmos"
-                className="w-48 h-auto object-contain"
-              />
-            </div>
-          </div>
-        </PageContainer>
       </div>
     </div>
   );
