@@ -18,7 +18,8 @@ import { User } from '@shared/schema';
 import { Link } from 'wouter';
 
 interface PersonProfileProps {
-  username: string;
+  identifier: string;
+  isApiId?: boolean;
 }
 
 interface StatsCardProps {
@@ -111,17 +112,30 @@ const generateSlug = (name: string): string => {
     .replace(/^-+|-+$/g, '');
 };
 
-export default function PersonProfile({ username }: PersonProfileProps) {
+export default function PersonProfile({ identifier, isApiId = false }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
 
-  console.log('PersonProfile - Attempting to fetch profile for username:', username);
+  console.log('PersonProfile - Attempting to fetch profile for:', { 
+    identifier, 
+    isApiId 
+  });
 
   const { data: person, isLoading: personLoading, error: personError } = useQuery<Person>({
-    queryKey: ['/api/people/by-username', username],
+    queryKey: isApiId 
+      ? ['/api/people', identifier] 
+      : ['/api/people/by-username', identifier],
     queryFn: async () => {
-      console.log('Fetching person details for username:', username);
-      const response = await fetch(`/api/people/by-username/${encodeURIComponent(username)}`);
+      let url;
+      if (isApiId) {
+        console.log('Fetching person details by API ID:', identifier);
+        url = `/api/people/${encodeURIComponent(identifier)}`;
+      } else {
+        console.log('Fetching person details by username:', identifier);
+        url = `/api/people/by-username/${encodeURIComponent(identifier)}`;
+      }
+      
+      const response = await fetch(url);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -129,7 +143,8 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           status: response.status,
           statusText: response.statusText,
           errorText,
-          username
+          identifier,
+          isApiId
         });
         throw new Error(`Failed to fetch person details: ${response.statusText}`);
       }
