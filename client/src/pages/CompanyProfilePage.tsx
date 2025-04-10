@@ -95,13 +95,13 @@ const INDUSTRY_OPTIONS = [
 
 // Company size options
 const COMPANY_SIZE_OPTIONS = [
-  "1-10",
-  "11-50",
-  "51-200",
-  "201-500",
-  "501-1000",
-  "1001-5000",
-  "5000+"
+  "1-10 employees",
+  "11-50 employees",
+  "51-200 employees",
+  "201-500 employees",
+  "501-1000 employees",
+  "1001-5000 employees",
+  "5000+ employees"
 ];
 
 // Founded year options (current year down to 1900)
@@ -668,7 +668,7 @@ export default function CompanyProfilePage() {
                                 </SelectContent>
                               </Select>
                               <FormDescription>
-                                Select the number of employees
+                                Select the number of employees at your company
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
