@@ -18,7 +18,6 @@ import AdminMembersPage from "@/pages/admin/AdminMembersPage";
 import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
 import RolesPage from "@/pages/admin/RolesPage";
-import MigrationPage from "@/pages/admin/MigrationPage";
 import AboutPage from "@/pages/AboutPage";
 import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
@@ -44,7 +43,6 @@ function Router() {
           <Route path="/admin/events" component={AdminEventsPage} />
           <Route path="/admin/people" component={AdminPeoplePage} />
           <Route path="/admin/roles" component={RolesPage} />
-          <Route path="/admin/migration" component={MigrationPage} />
           <Route path="/subscription/success" component={SubscriptionSuccessPage} />
           <Route path="/subscription/cancel" component={SubscriptionCancelPage} />
           <Route component={NotFound} />

@@ -8,7 +8,7 @@ import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
 import companiesRouter from "./routes/companies";
-import { migrateCompanyInformation } from "./migrations/company-migration";
+// Company migration import removed
 import {
   insertUserSchema,
   people,
@@ -280,112 +280,7 @@ export async function registerRoutes(app: Express) {
     },
   );
   
-  // Endpoint to migrate company information from user profiles to the new companies table
-  // GET endpoint for SSE connection
-  app.get(
-    "/api/admin/migrate-company-data",
-    async (_req: Request, res: Response) => {
-      try {
-        console.log("Setting up SSE connection for company data migration");
-        
-        // Check if user is authenticated and is an admin
-        if (!_req.session.userId) {
-          return res.status(401).json({ error: "Authentication required" });
-        }
-        
-        const user = await storage.getUserById(_req.session.userId);
-        if (!user || !user.isAdmin) {
-          return res.status(403).json({ error: "Admin privileges required" });
-        }
-        
-        // Set up SSE connection
-        initSSE(res);
-        
-        // Send initial message
-        sendSSEUpdate(res, {
-          type: "status",
-          message: "SSE connection established. Ready to start migration.",
-          progress: 0
-        });
-      } catch (error) {
-        console.error("Failed to set up SSE connection:", error);
-        
-        if (res.headersSent) {
-          sendSSEUpdate(res, {
-            type: "error",
-            message: "Failed to set up SSE connection: " + (error instanceof Error ? error.message : String(error)),
-            progress: 0,
-          });
-          res.end();
-        } else {
-          return res.status(500).json({ error: "Failed to set up SSE connection" });
-        }
-      }
-    },
-  );
-  
-  // POST endpoint to trigger migration
-  app.post(
-    "/api/admin/migrate-company-data",
-    async (_req: Request, res: Response) => {
-      try {
-        console.log("Received request to start company data migration process");
-        
-        // Check if user is authenticated and is an admin
-        if (!_req.session.userId) {
-          return res.status(401).json({ error: "Authentication required" });
-        }
-        
-        const user = await storage.getUserById(_req.session.userId);
-        if (!user || !user.isAdmin) {
-          return res.status(403).json({ error: "Admin privileges required" });
-        }
-        
-        // Send a response immediately to avoid timeout
-        res.status(200).json({ message: "Migration started" });
-        
-        // Start the migration process in the background
-        setTimeout(async () => {
-          try {
-            // Find any active SSE connections (this would need to be implemented with a proper store in production)
-            const activeSSEConnections = _req.app.get('activeSSEConnections') || [];
-            
-            if (activeSSEConnections.length === 0) {
-              console.error("No active SSE connections found for migration updates");
-              return;
-            }
-            
-            // Create a progress callback that sends SSE updates
-            const progressCallback = (message: string, progress: number, data?: any) => {
-              activeSSEConnections.forEach((connection: Response) => {
-                try {
-                  sendSSEUpdate(connection, {
-                    type: "status",
-                    message,
-                    progress,
-                    data
-                  });
-                } catch (err) {
-                  console.error("Error sending SSE update:", err);
-                }
-              });
-            };
-            
-            // Run the migration with the progress callback
-            await migrateCompanyInformation(progressCallback);
-            
-            console.log("Company data migration completed through SSE");
-          } catch (error) {
-            console.error("Error in background migration process:", error);
-          }
-        }, 100);
-        
-      } catch (error) {
-        console.error("Failed to start company data migration:", error);
-        return res.status(500).json({ error: "Failed to start migration" });
-      }
-    },
-  );
+  // Company migration endpoints have been removed as they are no longer needed
 
   app.get("/api/posts/:id", async (req, res) => {
     try {
