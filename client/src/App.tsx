@@ -20,6 +20,7 @@ import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
 import AdminCompaniesPage from "@/pages/admin/AdminCompaniesPage";
 import RolesPage from "@/pages/admin/RolesPage";
 import AboutPage from "@/pages/AboutPage";
+import SummitPage from "@/pages/SummitPage";
 import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
 import SubscriptionCancelPage from "@/pages/subscription/CancelPage";
@@ -31,6 +32,7 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/about" component={AboutPage} />
+          <Route path="/summit" component={SummitPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/settings" component={UserSettingsPage} />
