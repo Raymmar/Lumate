@@ -224,7 +224,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
             </CardHeader>
             {company.bio && (
               <CardContent>
-                <div className="prose prose-sm md:prose-base max-w-none">
+                <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
                   <p className="text-muted-foreground">{company.bio}</p>
                 </div>
               </CardContent>
@@ -235,7 +235,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {company.description && (
             <Card>
               <CardContent className="py-4">
-                <div className="prose prose-sm md:prose-base max-w-none">
+                <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
                   <p>{company.description}</p>
                 </div>
               </CardContent>
