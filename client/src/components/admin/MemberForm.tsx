@@ -68,6 +68,7 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
+        // Don't clear the search query when dropdown is closed
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -229,7 +230,17 @@ export function MemberForm({ onSuccess, onCancel }: MemberFormProps) {
                     className={`flex items-center justify-between border rounded-md h-10 px-3 py-2 text-sm ${
                       selectedPersonId ? 'bg-muted' : 'bg-background'
                     }`}
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    onClick={() => {
+                      // Toggle the dropdown state
+                      setIsDropdownOpen(!isDropdownOpen);
+                      // Focus the search input when opened
+                      if (!isDropdownOpen) {
+                        setTimeout(() => {
+                          const searchInput = document.querySelector('[placeholder="Search by email, name, or organization..."]') as HTMLInputElement;
+                          if (searchInput) searchInput.focus();
+                        }, 0);
+                      }
+                    }}
                   >
                     <span className={selectedPersonId ? "" : "text-muted-foreground"}>
                       {selectedPersonId && selectedPersonId !== "none" ? (
