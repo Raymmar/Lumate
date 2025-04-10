@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +20,7 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import type { User, Person, Badge as BadgeType } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +40,7 @@ interface MemberPreviewProps {
 
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
   const [isUpdating, setIsUpdating] = useState(false);
-  const [selectedBadge, setSelectedBadge] = useState<string>("");
+  const [optimisticMember, setOptimisticMember] = useState<Member>(member);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -101,15 +95,36 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       setIsUpdating(true);
       return await apiRequest(`/api/admin/members/${member.id}/badges/${badgeName}`, "POST");
     },
+    onMutate: async (badgeName: string) => {
+      // Cancel any outgoing queries to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/members"] });
+      
+      // Find the badge being added
+      const badge = availableBadges?.find(b => b.name === badgeName);
+      if (!badge) return;
+      
+      // Create optimistic update
+      const updatedMember = { 
+        ...optimisticMember,
+        badges: [
+          ...(optimisticMember.badges || []),
+          badge
+        ] 
+      };
+      
+      // Apply optimistic update
+      setOptimisticMember(updatedMember);
+    },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       toast({
         title: "Success",
         description: `Badge assigned to ${member.email}`,
       });
-      setSelectedBadge("");
     },
-    onError: (error: any) => {
+    onError: (error: any, badgeName: string) => {
+      // Revert to original state
+      setOptimisticMember(member);
       toast({
         title: "Error",
         description: error.message || "Failed to assign badge",
@@ -126,6 +141,19 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       setIsUpdating(true);
       return await apiRequest(`/api/admin/members/${member.id}/badges/${badgeName}`, "DELETE");
     },
+    onMutate: async (badgeName: string) => {
+      // Cancel any outgoing queries to prevent them from overwriting our optimistic update
+      await queryClient.cancelQueries({ queryKey: ["/api/admin/members"] });
+      
+      // Create optimistic update by filtering out the removed badge
+      const updatedMember = { 
+        ...optimisticMember,
+        badges: optimisticMember.badges?.filter(badge => badge.name !== badgeName) || []
+      };
+      
+      // Apply optimistic update
+      setOptimisticMember(updatedMember);
+    },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       toast({
@@ -133,7 +161,9 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         description: `Badge removed from ${member.email}`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, badgeName: string) => {
+      // Revert to original state
+      setOptimisticMember(member);
       toast({
         title: "Error",
         description: error.message || "Failed to remove badge",
@@ -149,9 +179,9 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     await updateAdminStatusMutation.mutateAsync(checked);
   };
 
-  const handleAssignBadge = async () => {
-    if (selectedBadge) {
-      await assignBadgeMutation.mutateAsync(selectedBadge);
+  const handleAssignBadge = async (badgeName: string) => {
+    if (badgeName) {
+      await assignBadgeMutation.mutateAsync(badgeName);
     }
   };
 
@@ -169,11 +199,16 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       .substring(0, 2);
   };
 
+  // Update optimistic member when the actual member changes
+  useEffect(() => {
+    setOptimisticMember(member);
+  }, [member]);
+
   // Filter out badges that the user already has
   const filterAvailableBadges = () => {
-    if (!availableBadges || !member.badges) return availableBadges || [];
+    if (!availableBadges || !optimisticMember.badges) return availableBadges || [];
     
-    const currentBadgeNames = new Set(member.badges.map(badge => badge.name));
+    const currentBadgeNames = new Set(optimisticMember.badges.map(badge => badge.name));
     return availableBadges.filter(badge => !currentBadgeNames.has(badge.name));
   };
 
@@ -247,7 +282,7 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         </div>
       </div>
 
-      <div className="mb-4">
+      <div>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
             <Tag className="h-4 w-4 mr-2" />
@@ -255,81 +290,57 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
           </div>
         </div>
         
-        {/* Badge Assignment Section */}
         <div className="mb-4">
-          <label className="text-sm font-medium mb-2 block">Add Badge</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {filteredBadges.map((badge) => (
-              <Badge
-                key={badge.id}
-                variant="outline"
-                className="cursor-pointer hover:bg-accent flex items-center gap-1"
-                onClick={() => setSelectedBadge(badge.name)}
-              >
-                {getBadgeIcon(badge.icon)}
-                <span className="ml-1">{badge.name}</span>
-              </Badge>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <Select 
-              value={selectedBadge} 
-              onValueChange={setSelectedBadge}
-              disabled={isUpdating || filteredBadges.length === 0}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Select badge" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredBadges.map((badge) => (
-                  <SelectItem key={badge.id} value={badge.name}>
-                    <div className="flex items-center gap-1">
-                      {getBadgeIcon(badge.icon)}
-                      <span className="ml-1">{badge.name}</span>
-                    </div>
-                  </SelectItem>
+          <div className="flex flex-col">
+            <label className="text-sm font-medium mb-2 block">Available Badges (click to add)</label>
+            {filteredBadges?.length === 0 ? (
+              <p className="text-sm text-muted-foreground">All badges assigned</p>
+            ) : (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {filteredBadges?.map((badge) => (
+                  <Badge
+                    key={badge.id}
+                    variant="outline"
+                    className={`cursor-pointer hover:bg-accent flex items-center gap-1 ${isUpdating ? 'opacity-50 pointer-events-none' : ''}`}
+                    onClick={() => !isUpdating && handleAssignBadge(badge.name)}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    {getBadgeIcon(badge.icon)}
+                    <span className="ml-1">{badge.name}</span>
+                  </Badge>
                 ))}
-              </SelectContent>
-            </Select>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              disabled={!selectedBadge || isUpdating}
-              onClick={handleAssignBadge}
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Badge
-            </Button>
+              </div>
+            )}
+            
+            <label className="text-sm font-medium mb-2 block">Current Badges (click X to remove)</label>
+            {(!optimisticMember.badges || optimisticMember.badges.length === 0) ? (
+              <p className="text-sm text-muted-foreground">No badges assigned</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {optimisticMember.badges.map((badge) => (
+                  <div key={badge.id} className="flex items-center gap-1">
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1 py-1 pl-2 pr-1"
+                    >
+                      {getBadgeIcon(badge.icon)}
+                      <span className="ml-1 mr-1">{badge.name}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-1 hover:bg-destructive/10 rounded-full"
+                        onClick={() => handleRemoveBadge(badge.name)}
+                        disabled={isUpdating}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-        
-        {/* Badge Display Section */}
-        {(!member.badges || member.badges.length === 0) ? (
-          <p className="text-sm text-muted-foreground">No badges assigned</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {member.badges.map((badge) => (
-              <div key={badge.id} className="flex items-center gap-1">
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 py-1 pl-2 pr-1"
-                >
-                  {getBadgeIcon(badge.icon)}
-                  <span className="ml-1 mr-1">{badge.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 ml-1 hover:bg-destructive/10 rounded-full"
-                    onClick={() => handleRemoveBadge(badge.name)}
-                    disabled={isUpdating}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <Separator className="my-4" />
@@ -348,7 +359,6 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
         </div>
 
         <div className="flex flex-col gap-2">
-          {/* Account actions */}
           <p className="text-sm text-muted-foreground">Actions</p>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="gap-1">
