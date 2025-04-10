@@ -345,7 +345,93 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-medium">Company Members</h3>
-            <Badge variant="outline">{data.members.length}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{data.members.length}</Badge>
+              <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-7 px-2">
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    <span className="text-xs">Add Member</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Member to {data.name}</DialogTitle>
+                    <DialogDescription>
+                      Select a user to add as a member of this company.
+                    </DialogDescription>
+                  </DialogHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="user-select">Select User</Label>
+                      <Select 
+                        value={selectedUserId} 
+                        onValueChange={setSelectedUserId}
+                      >
+                        <SelectTrigger id="user-select">
+                          <SelectValue placeholder="Select a user" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {users.map((user) => (
+                            <SelectItem key={user.id} value={user.id.toString()}>
+                              {user.displayName || user.email}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Title/Position</Label>
+                      <Input 
+                        id="title" 
+                        value={memberTitle}
+                        onChange={(e) => setMemberTitle(e.target.value)}
+                        placeholder="e.g. CEO, Developer, Marketing Manager"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="role">Company Admin</Label>
+                        <Switch
+                          id="role"
+                          checked={memberRole === "admin"}
+                          onCheckedChange={(checked) => 
+                            setMemberRole(checked ? "admin" : "user")
+                          }
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Company admins can manage company details and members
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsAddMemberOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddMember}
+                      disabled={isAddingMember || !selectedUserId}
+                    >
+                      {isAddingMember && (
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                      )}
+                      Add Member
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
           
           {data.members.length === 0 ? (
@@ -353,28 +439,58 @@ export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
           ) : (
             <div className="space-y-3">
               {data.members.map((member) => (
-                <div key={member.user.id} className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={member.user.avatarUrl || undefined}
-                      alt={member.user.displayName || member.user.email}
-                    />
-                    <AvatarFallback>
-                      {(member.user.displayName || member.user.email).charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">
-                      {member.user.displayName || member.user.email}
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-xs text-muted-foreground">
-                        {member.title || "No title"}
+                <div key={member.user.id} className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={member.user.avatarUrl || undefined}
+                        alt={member.user.displayName || member.user.email}
+                      />
+                      <AvatarFallback>
+                        {(member.user.displayName || member.user.email).charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {member.user.displayName || member.user.email}
                       </p>
-                      <Badge variant="secondary" className="text-xs">
-                        {member.role}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {member.title || "No title"}
+                        </p>
+                        <Badge variant="secondary" className="text-xs">
+                          {member.role}
+                        </Badge>
+                      </div>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="flex items-center mr-2">
+                      <Switch
+                        size="sm"
+                        checked={member.role === "admin"}
+                        onCheckedChange={(checked) => 
+                          toggleMemberRoleMutation.mutate({ 
+                            memberId: member.user.id, 
+                            isAdmin: checked 
+                          })
+                        }
+                        disabled={toggleMemberRoleMutation.isPending}
+                      />
+                      <span className="text-xs ml-1">Admin</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => {
+                        if (confirm(`Remove ${member.user.displayName || member.user.email} from ${data.name}?`)) {
+                          removeMemberMutation.mutate(member.user.id);
+                        }
+                      }}
+                    >
+                      <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                    </Button>
                   </div>
                 </div>
               ))}
