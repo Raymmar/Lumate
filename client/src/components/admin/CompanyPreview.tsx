@@ -248,8 +248,13 @@ export function CompanyPreview({
         </div>
       ) : isEditMode || isNew ? (
         <div className="p-4">
-          {/* Debug company data */}
-          {console.log("Company data being passed to CompanyForm:", company)}
+          {/* Debug company data - using a function to avoid React JSX issues */}
+          <span className="hidden">{
+            (() => { 
+              console.log("Company data being passed to CompanyForm:", company);
+              return null;
+            })()
+          }</span>
           <CompanyForm
             company={company}
             onSubmit={handleCompanySave}

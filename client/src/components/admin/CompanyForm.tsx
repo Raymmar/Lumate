@@ -234,8 +234,10 @@ export function CompanyForm({
         console.error("Failed to parse tags:", e);
       }
       
-      // Reset the form with all company properties
-      form.reset({
+      // Ensure all fields have proper defaults to prevent undefined values
+      // and make absolutely sure we handle all the fields from the schema
+      const formData = {
+        // Basic Information
         name: company.name || "",
         description: company.description || "",
         website: company.website || "",
@@ -243,30 +245,38 @@ export function CompanyForm({
         address: company.address || "",
         phoneNumber: company.phoneNumber || "",
         email: company.email || "",
+        
+        // Company Details
         industry: company.industry || "",
         size: company.size || "",
         founded: company.founded || "",
+        
+        // Media and Content
         featuredImageUrl: company.featuredImageUrl || "",
         bio: company.bio || "",
+        
+        // Privacy settings
         isPhonePublic: Boolean(company.isPhonePublic),
         isEmailPublic: Boolean(company.isEmailPublic),
+        
+        // Call to action and Social
         ctaText: company.ctaText || "",
         customLinks: parsedCustomLinks,
         tags: parsedTags,
-      });
+      };
+      
+      // Debug log the form data before reset
+      console.log("About to reset form with data:", formData);
+      
+      // Reset the form with all company properties
+      form.reset(formData);
       
       // Update state to match form data
       setCustomLinks(parsedCustomLinks);
       setTags(parsedTags);
       
-      console.log("Form reset with data:", {
-        name: company.name || "",
-        description: company.description || "",
-        logoUrl: company.logoUrl || "",
-        featuredImageUrl: company.featuredImageUrl || "",
-        tags: parsedTags,
-        customLinks: parsedCustomLinks,
-      }); // Debug log
+      // Output what was actually set on the form
+      console.log("Form values after reset:", form.getValues());
     }
   }, [company, form]);
   
