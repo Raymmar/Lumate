@@ -1,515 +1,528 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Company, User, Tag } from "@shared/schema";
-import { format } from "date-fns";
+import { Company, InsertCompany, User } from "@shared/schema";
 import { PreviewSidebar } from "./PreviewSidebar";
-import { useState } from "react";
-import {
-  Building2,
-  Users,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
-  Briefcase,
-  Calendar,
-  Link2,
-  Tag as TagIcon,
-  Plus,
-  UserPlus,
-  PlusCircle,
-  X,
-} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2 } from "lucide-react";
+import { CompanyForm } from "./CompanyForm";
+import { useEffect, useState } from 'react';
+import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { Link as RouterLink } from "wouter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { CompanyMembersList } from "./CompanyMembersList";
 
 interface CompanyPreviewProps {
-  company: Company;
+  company?: Company;
+  isNew?: boolean;
+  isEditing?: boolean;
   onClose: () => void;
+  onSave?: (data: InsertCompany) => Promise<void>;
+  readOnly?: boolean;
+  companies?: Company[];
+  onNavigate?: (company: Company) => void;
 }
 
-interface CompanyDetails extends Company {
-  members: Array<{
-    user: User & {
-      avatarUrl?: string | null;
-      displayName?: string | null;
-    };
-    role: string;
-    title?: string;
-  }>;
-  tags: Array<{
-    id: number;
-    text: string;
-    createdAt: string;
-  }>;
-}
-
-interface AddMemberFormData {
-  userId: string;
-  role: string;
-}
-
-export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
-  const queryClient = useQueryClient();
+export function CompanyPreview({
+  company,
+  isNew = false,
+  isEditing = false,
+  onClose,
+  onSave,
+  readOnly = false,
+  companies = [],
+  onNavigate
+}: CompanyPreviewProps) {
   const { toast } = useToast();
-  const [open, setOpen] = useState(true);
-  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [memberRole, setMemberRole] = useState<string>("user");
-  const [isAddingMember, setIsAddingMember] = useState(false);
+  const { user } = useAuth();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(isEditing);
+  const [error, setError] = useState<string | null>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  
+  // Check if user can edit this company
+  const canEditCompany = user?.isAdmin;
+  
+  // Fetch company members if we have a company ID
+  const { data: membersData, isLoading: isLoadingMembers } = useQuery({
+    queryKey: ['/api/companies/members', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return { members: [] };
+      const response = await fetch(`/api/companies/${company.id}/members`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch company members');
+      }
+      return response.json();
+    },
+    enabled: !!company?.id
+  });
+  
+  useEffect(() => {
+    if (membersData?.members) {
+      setMembers(membersData.members);
+    }
+  }, [membersData]);
 
-  const handleOpenChange = (isOpen: boolean) => {
-    setOpen(isOpen);
-    if (!isOpen) {
+  // Filter out the available companies for navigation
+  const availableCompanies = companies;
+  const currentIndex = availableCompanies.findIndex(c => c.id === company?.id);
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex < availableCompanies.length - 1;
+
+  // Handle navigation
+  const handleNavigate = async (nextCompany: Company) => {
+    if (onNavigate) {
+      onNavigate(nextCompany);
+    }
+  };
+
+  // Delete company mutation
+  const deleteCompanyMutation = useMutation({
+    mutationFn: async () => {
+      if (!company?.id) return;
+      
+      const response = await fetch(`/api/companies/${company.id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete company');
+      }
+      
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
+      toast({
+        title: 'Company deleted',
+        description: 'The company has been successfully deleted.',
+      });
       onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to delete company: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
     }
-  };
+  });
 
-  const { data, isLoading } = useQuery<CompanyDetails>({
-    queryKey: [`/api/admin/companies/${company.id}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/admin/companies/${company.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch company details");
-      }
-      return response.json();
-    },
-  });
-  
-  // Get the list of users for adding members
-  const { data: users = [] } = useQuery<Array<User>>({
-    queryKey: ["/api/admin/users"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/users");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      return response.json();
-    },
-    enabled: isAddMemberOpen, // Only fetch when the dialog is open
-  });
-  
-  // Add member mutation
-  const addMemberMutation = useMutation({
-    mutationFn: async (data: AddMemberFormData) => {
-      return apiRequest(`/api/companies/${company.id}/members`, "POST", {
-        userId: parseInt(data.userId),
-        role: data.role,
-        isPublic: true
+  // Update company mutation
+  const updateCompanyMutation = useMutation({
+    mutationFn: async (data: InsertCompany) => {
+      if (!company?.id) return;
+      
+      return apiRequest(`/api/companies/${company.id}`, {
+        method: 'PUT',
+        data
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      setIsAddMemberOpen(false);
-      setSelectedUserId("");
-      setMemberRole("user");
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
+      setIsEditMode(false);
       toast({
-        title: "Success",
-        description: "Member added to company",
+        title: 'Company updated',
+        description: 'The company has been successfully updated.',
       });
     },
     onError: (error) => {
-      console.error("Failed to add member:", error);
       toast({
-        title: "Error",
-        description: "Failed to add member to company",
-        variant: "destructive",
+        title: 'Error',
+        description: `Failed to update company: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
       });
     }
   });
-  
-  // Toggle member admin status mutation
-  const toggleMemberRoleMutation = useMutation({
-    mutationFn: async ({ memberId, isAdmin }: { memberId: number, isAdmin: boolean }) => {
-      return apiRequest(`/api/companies/${company.id}/members/${memberId}`, "PUT", {
-        role: isAdmin ? "admin" : "user"
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      toast({
-        title: "Success",
-        description: "Member role updated",
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to update member role:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update member role",
-        variant: "destructive",
-      });
-    }
-  });
-  
-  // Remove member mutation
-  const removeMemberMutation = useMutation({
-    mutationFn: async (memberId: number) => {
-      return apiRequest(`/api/companies/${company.id}/members/${memberId}`, "DELETE");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      toast({
-        title: "Success",
-        description: "Member removed from company",
-      });
-    },
-    onError: (error) => {
-      console.error("Failed to remove member:", error);
-      toast({
-        title: "Error",
-        description: "Failed to remove member from company",
-        variant: "destructive",
-      });
-    }
-  });
-  
-  const handleAddMember = async () => {
-    if (!selectedUserId) {
-      toast({
-        title: "Error",
-        description: "Please select a user",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsAddingMember(true);
+
+  // Handle company saving, either create or update
+  const handleCompanySave = async (data: InsertCompany) => {
     try {
-      await addMemberMutation.mutateAsync({
-        userId: selectedUserId,
-        role: memberRole
-      });
-    } finally {
-      setIsAddingMember(false);
+      if (isNew && onSave) {
+        await onSave(data);
+      } else if (company?.id) {
+        await updateCompanyMutation.mutateAsync(data);
+      }
+    } catch (error) {
+      console.error('Error saving company:', error);
     }
   };
 
-  if (isLoading) {
-    return (
-      <PreviewSidebar open={open} onOpenChange={handleOpenChange} title="Company Details">
-        <div className="flex items-center justify-center h-full">
-          <div className="flex flex-col items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="mt-2 text-sm text-muted-foreground">Loading company details...</p>
-          </div>
-        </div>
-      </PreviewSidebar>
-    );
-  }
-
-  if (!data) {
-    return (
-      <PreviewSidebar open={open} onOpenChange={handleOpenChange} title="Company Details">
-        <div className="flex items-center justify-center h-full">
-          <p>Failed to load company details</p>
-        </div>
-      </PreviewSidebar>
-    );
-  }
+  // Handle company deletion
+  const handleDeleteCompany = async () => {
+    if (!company?.id) return;
+    
+    try {
+      await deleteCompanyMutation.mutateAsync();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+    }
+  };
 
   return (
-    <PreviewSidebar open={open} onOpenChange={handleOpenChange} title={data.name}>
-      <div className="space-y-6 p-1">
-        {/* Company Header */}
-        <div className="flex items-center gap-4">
-          {data.logoUrl ? (
-            <img
-              src={data.logoUrl}
-              alt={data.name}
-              className="h-16 w-16 rounded-md object-cover border"
-            />
-          ) : (
-            <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center">
-              <Building2 className="h-8 w-8 text-muted-foreground" />
-            </div>
-          )}
-          <div>
-            <h2 className="text-xl font-semibold">{data.name}</h2>
-            <p className="text-sm text-muted-foreground">{data.industry || "No industry specified"}</p>
-          </div>
-        </div>
-
-        {/* Basic Info */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Basic Information</h3>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {data.website && (
-              <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4 text-muted-foreground" />
-                <a
-                  href={data.website.startsWith("http") ? data.website : `https://${data.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-primary hover:underline"
-                >
-                  {data.website.replace(/^https?:\/\/(www\.)?/, "")}
-                </a>
-              </div>
-            )}
-            
-            {data.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <a href={`mailto:${data.email}`} className="text-sm hover:underline">
-                  {data.email}
-                </a>
-              </div>
-            )}
-            
-            {data.phoneNumber && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-muted-foreground" />
-                <a href={`tel:${data.phoneNumber}`} className="text-sm hover:underline">
-                  {data.phoneNumber}
-                </a>
-              </div>
-            )}
-            
-            {data.address && (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {(() => {
-                    try {
-                      // Check if the address is a JSON string
-                      if (typeof data.address === 'string' && data.address.startsWith('{')) {
-                        const addressObj = JSON.parse(data.address);
-                        return addressObj.formatted_address || addressObj.address || data.address;
-                      }
-                      return data.address;
-                    } catch (error) {
-                      return data.address;
-                    }
-                  })()}
-                </span>
-              </div>
-            )}
-            
-            {data.size && (
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{data.size}</span>
-              </div>
-            )}
-            
-            {data.founded && (
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Founded {data.founded}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Description */}
-        {data.description && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Description</h3>
-            <p className="text-sm text-muted-foreground">{data.description}</p>
-          </div>
-        )}
-
-        {/* Tags */}
-        {data.tags && data.tags.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {data.tags.map((tag) => (
-                <Badge key={tag.id} variant="outline" className="text-xs">
-                  <TagIcon className="h-3 w-3 mr-1" />
-                  {tag.text}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <Separator />
-
-        {/* Company Members */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Company Members</h3>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline">{data.members.length}</Badge>
-              <Dialog open={isAddMemberOpen} onOpenChange={setIsAddMemberOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-7 px-2">
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    <span className="text-xs">Add Member</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Member to {data.name}</DialogTitle>
-                    <DialogDescription>
-                      Select a user to add as a member of this company.
-                    </DialogDescription>
-                  </DialogHeader>
-                  
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="user-select">Select User</Label>
-                      <Select 
-                        value={selectedUserId} 
-                        onValueChange={setSelectedUserId}
-                      >
-                        <SelectTrigger id="user-select">
-                          <SelectValue placeholder="Select a user" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {users.map((user) => (
-                            <SelectItem key={user.id} value={user.id.toString()}>
-                              {user.displayName || user.email}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="role">Company Admin</Label>
-                        <Switch
-                          id="role"
-                          checked={memberRole === "admin"}
-                          onCheckedChange={(checked) => 
-                            setMemberRole(checked ? "admin" : "user")
-                          }
-                          className="h-[18px] w-[34px]"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Company admins can manage company details and members
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setIsAddMemberOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleAddMember}
-                      disabled={isAddingMember || !selectedUserId}
-                    >
-                      {isAddingMember && (
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                      )}
-                      Add Member
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-          
-          {data.members.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No members associated with this company</p>
-          ) : (
-            <div className="space-y-3">
-              {data.members.map((member) => (
-                <div key={member.user.id} className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src={member.user.avatarUrl || undefined}
-                        alt={member.user.displayName || member.user.email}
-                      />
-                      <AvatarFallback>
-                        {(member.user.displayName || member.user.email).charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {member.user.displayName || member.user.email}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          {member.role}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="flex items-center mr-2">
-                      <Switch
-                        checked={member.role === "admin"}
-                        onCheckedChange={(checked) => 
-                          toggleMemberRoleMutation.mutate({ 
-                            memberId: member.user.id, 
-                            isAdmin: checked 
-                          })
-                        }
-                        disabled={toggleMemberRoleMutation.isPending}
-                        className="h-[18px] w-[34px]"
-                      />
-                      <span className="text-xs ml-1">Admin</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        if (confirm(`Remove ${member.user.displayName || member.user.email} from ${data.name}?`)) {
-                          removeMemberMutation.mutate(member.user.id);
-                        }
-                      }}
-                    >
-                      <X className="h-4 w-4 text-muted-foreground hover:text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Profile Details */}
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Profile Information</h3>
-          <div className="text-sm">
-            <div className="flex items-center justify-between text-muted-foreground">
-              <span>Created</span>
-              <span>{format(new Date(data.createdAt), "MMM d, yyyy")}</span>
-            </div>
-            <div className="flex items-center justify-between text-muted-foreground mt-1">
-              <span>Last Updated</span>
-              <span>{format(new Date(data.updatedAt), "MMM d, yyyy")}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="grid grid-cols-2 gap-2 mt-6">
-          <Button variant="outline" onClick={onClose}>
+    <PreviewSidebar
+      open={true}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={isNew ? "Create Company" : company?.name || "Company Details"}
+    >
+      {error ? (
+        <div className="p-4 text-center">
+          <div className="text-destructive mb-2">Error</div>
+          <p className="text-muted-foreground">{error}</p>
+          <Button className="mt-4" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button>
-            Edit Company
-          </Button>
         </div>
-      </div>
+      ) : isEditMode || isNew ? (
+        <div className="p-4">
+          <CompanyForm
+            company={company}
+            onSubmit={handleCompanySave}
+            isLoading={updateCompanyMutation.isPending}
+          />
+        </div>
+      ) : (
+        <div className="flex flex-col h-full">
+          {/* Navigation Controls */}
+          {!isNew && !readOnly && (
+            <div className="flex items-center justify-between p-2 border-b">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!hasPrevious}
+                onClick={() => 
+                  hasPrevious && 
+                  handleNavigate(availableCompanies[currentIndex - 1])
+                }
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={!hasNext}
+                onClick={() => 
+                  hasNext && 
+                  handleNavigate(availableCompanies[currentIndex + 1])
+                }
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+
+          {/* Company Content */}
+          <div className="flex-1 overflow-y-auto">
+            {company ? (
+              <div className="space-y-6 p-4">
+                {/* Company Header */}
+                <div className="relative">
+                  {company.featuredImageUrl && (
+                    <div className="aspect-video rounded-lg overflow-hidden bg-muted mb-4 relative group">
+                      <img 
+                        src={company.featuredImageUrl} 
+                        alt={company.name} 
+                        className="w-full h-full object-cover" 
+                      />
+                      
+                      {/* Top Right Action Menu */}
+                      {canEditCompany && (
+                        <div className="absolute top-3 right-3">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-sm"
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setIsEditMode(true)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setShowDeleteDialog(true)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-4 mb-4">
+                    {company.logoUrl ? (
+                      <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted">
+                        <img 
+                          src={company.logoUrl} 
+                          alt={`${company.name} logo`} 
+                          className="w-full h-full object-contain" 
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-20 w-20 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                        No logo
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h1 className="text-2xl font-bold">{company.name}</h1>
+                      <div className="text-muted-foreground">
+                        {company.industry && (
+                          <span className="inline-block">{company.industry}</span>
+                        )}
+                        {company.size && company.industry && (
+                          <span className="mx-1.5">•</span>
+                        )}
+                        {company.size && (
+                          <span className="inline-block">{company.size} employees</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Company Details */}
+                <div>
+                  {company.description && (
+                    <p className="text-lg mb-4">{company.description}</p>
+                  )}
+                  
+                  {company.bio && (
+                    <div className="mb-4">
+                      <h2 className="text-lg font-semibold mb-2">About</h2>
+                      <p>{company.bio}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {company.website && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Website</h3>
+                        <div className="flex items-center gap-1">
+                          <a 
+                            href={company.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center"
+                          >
+                            {company.website.replace(/^https?:\/\/(www\.)?/, '')}
+                            <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {company.email && company.isEmailPublic && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
+                        <a 
+                          href={`mailto:${company.email}`}
+                          className="text-primary hover:underline"
+                        >
+                          {company.email}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {company.phoneNumber && company.isPhonePublic && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
+                        <a 
+                          href={`tel:${company.phoneNumber}`}
+                          className="text-primary hover:underline"
+                        >
+                          {company.phoneNumber}
+                        </a>
+                      </div>
+                    )}
+                    
+                    {company.address && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
+                        <p>{company.address}</p>
+                      </div>
+                    )}
+                    
+                    {company.founded && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Founded</h3>
+                        <p>{company.founded}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Company Tags */}
+                  {company.tags && company.tags.length > 0 && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {company.tags.map((tag, index) => (
+                          <Badge key={index} variant="secondary">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Company Links */}
+                  {company.customLinks && 
+                   ((typeof company.customLinks === 'string' && company.customLinks.length > 0) || 
+                    (Array.isArray(company.customLinks) && company.customLinks.length > 0)) && (
+                    <div className="mb-4">
+                      <h3 className="text-sm font-medium text-muted-foreground mb-2">Links</h3>
+                      <div className="space-y-2">
+                        {(typeof company.customLinks === 'string' 
+                          ? JSON.parse(company.customLinks) 
+                          : company.customLinks
+                        ).map((link: { title: string, url: string }, index: number) => (
+                          <div key={index}>
+                            <a 
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline flex items-center"
+                            >
+                              {link.title}
+                              <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Company Members */}
+                <div>
+                  <h2 className="text-lg font-semibold mb-4">Company Members</h2>
+                  {isLoadingMembers ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : members.length > 0 ? (
+                    <CompanyMembersList 
+                      members={members} 
+                      companyId={company.id} 
+                      onMembersChanged={() => {
+                        queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
+                      }}
+                    />
+                  ) : (
+                    <div className="p-4 border rounded-md text-center text-muted-foreground">
+                      No members associated with this company
+                    </div>
+                  )}
+                  
+                  {/* Add Member Button (Only for admins) */}
+                  {canEditCompany && (
+                    <div className="mt-4">
+                      <RouterLink to={`/admin/companies/${company.id}/members`}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          Manage Company Members
+                        </Button>
+                      </RouterLink>
+                    </div>
+                  )}
+                </div>
+
+                {/* Admin Action Buttons */}
+                {canEditCompany && (
+                  <div className="border-t pt-4 flex justify-between">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsEditMode(true)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Company
+                    </Button>
+                    
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowDeleteDialog(true)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </div>
+                )}
+
+                {/* View Public Profile Button */}
+                <div className="mt-4">
+                  <RouterLink to={`/companies/${company.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <Button variant="outline" size="sm" className="w-full">
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View Public Profile
+                    </Button>
+                  </RouterLink>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 text-center">
+                <p className="text-muted-foreground">Company not found</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the company "{company?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCompany}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PreviewSidebar>
   );
 }

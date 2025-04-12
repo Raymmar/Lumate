@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
-import type { Company } from "@shared/schema";
+import type { Company, InsertCompany } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { CompanyPreview } from "./CompanyPreview";
@@ -15,9 +15,10 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Users, Globe, Plus } from "lucide-react";
+import { Building2, Users, Globe, Plus, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 // Extended Company type that includes member count
 interface CompanyWithMemberCount extends Company {
@@ -34,8 +35,40 @@ export function CompaniesTable() {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [page, setPage] = useState(1);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const ITEMS_PER_PAGE = 10;
+
+  // Create company mutation
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: InsertCompany) => {
+      return apiRequest('/api/companies', 'POST', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
+      setIsCreating(false);
+      toast({
+        title: 'Company created',
+        description: 'The company has been successfully created',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to create company: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Handle creating a new company
+  const handleCreateCompany = async (data: InsertCompany) => {
+    try {
+      await createCompanyMutation.mutateAsync(data);
+    } catch (error) {
+      console.error('Error creating company:', error);
+    }
+  };
 
   const { data, isLoading, error } = useQuery<CompaniesResponse>({
     queryKey: ["/api/admin/companies", debouncedSearch, page],
@@ -158,8 +191,20 @@ export function CompaniesTable() {
             onChange={setSearchQuery}
             placeholder="Search companies..."
           />
-          <Button variant="outline" size="sm">
-            <Plus className="mr-2 h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => {
+              setSelectedCompany(null);
+              setIsCreating(true);
+            }}
+            disabled={createCompanyMutation.isPending}
+          >
+            {createCompanyMutation.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
             Add Company
           </Button>
         </div>
@@ -221,6 +266,17 @@ export function CompaniesTable() {
         <CompanyPreview
           company={selectedCompany}
           onClose={() => setSelectedCompany(null)}
+          companies={data?.companies || []}
+          onNavigate={(company) => setSelectedCompany(company)}
+        />
+      )}
+
+      {isCreating && (
+        <CompanyPreview
+          isNew={true}
+          onClose={() => setIsCreating(false)}
+          onSave={handleCreateCompany}
+          isEditing={true}
         />
       )}
     </div>
