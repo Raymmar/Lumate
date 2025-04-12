@@ -405,12 +405,29 @@ router.get("/revenue", async (req, res) => {
       return res.status(403).json({ error: "Admin access required" });
     }
 
-    // Parse query parameters
+    // Parse query parameters if provided
     const priceIds = req.query.priceIds 
       ? Array.isArray(req.query.priceIds) 
         ? req.query.priceIds as string[] 
         : [req.query.priceIds as string]
       : undefined;
+    
+    // Always include the specific product ID we want to track
+    const productIds = ['prod_RXzIPHBkm0MCM7'];
+    
+    // Get additional product IDs from query params if provided
+    if (req.query.productIds) {
+      const queryProductIds = Array.isArray(req.query.productIds)
+        ? req.query.productIds as string[]
+        : [req.query.productIds as string];
+      
+      // Add any additional product IDs that aren't already in our array
+      queryProductIds.forEach(id => {
+        if (!productIds.includes(id)) {
+          productIds.push(id);
+        }
+      });
+    }
       
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
@@ -418,6 +435,7 @@ router.get("/revenue", async (req, res) => {
     // Get revenue data
     const revenueData = await StripeService.getSubscriptionRevenue({
       priceIds,
+      productIds,
       startDate,
       endDate
     });
