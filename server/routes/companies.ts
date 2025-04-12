@@ -103,20 +103,65 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     const { customLinks, tags, ...otherData } = req.body;
     const companyData = insertCompanySchema.partial().parse(otherData);
     
-    // Log what we're updating for debugging
-    console.log("Updating company with data:", {
-      ...companyData,
-      customLinks: customLinks ? "Present" : "None",
-      tags: tags ? "Present" : "None"
+    // Log detailed information about what we're receiving 
+    console.log("Raw company update data received:", {
+      customLinks: JSON.stringify(customLinks),
+      tags: JSON.stringify(tags),
+      otherData: JSON.stringify(otherData)
     });
     
     // Update the company
-    // Handle special fields separately to avoid type issues
-    const company = await storage.updateCompany(id, {
-      ...companyData,
-      customLinks: customLinks || null,
-      tags: tags || null
-    });
+    // Fix the issue with special fields
+    const updateData: any = {
+      ...companyData
+    };
+    
+    // Handle customLinks properly
+    if (customLinks !== undefined) {
+      // If it's already an array, use it directly
+      if (Array.isArray(customLinks)) {
+        updateData.customLinks = customLinks;
+      } 
+      // If it's a string (from JSON), parse it
+      else if (typeof customLinks === 'string') {
+        try {
+          updateData.customLinks = JSON.parse(customLinks);
+        } catch (e) {
+          console.error("Failed to parse customLinks:", e);
+          updateData.customLinks = null;
+        }
+      }
+      // Default to null if not provided
+      else {
+        updateData.customLinks = null;
+      }
+    }
+    
+    // Handle tags properly
+    if (tags !== undefined) {
+      // If it's already an array, use it directly
+      if (Array.isArray(tags)) {
+        updateData.tags = tags;
+      }
+      // If it's a string (from JSON), parse it
+      else if (typeof tags === 'string') {
+        try {
+          updateData.tags = JSON.parse(tags);
+        } catch (e) {
+          console.error("Failed to parse tags:", e);
+          updateData.tags = null;
+        }
+      }
+      // Default to null if not provided
+      else {
+        updateData.tags = null;
+      }
+    }
+    
+    console.log("Final company update data:", updateData);
+    
+    // Update the company with properly formatted data
+    const company = await storage.updateCompany(id, updateData);
     
     res.json({ company });
   } catch (error) {
