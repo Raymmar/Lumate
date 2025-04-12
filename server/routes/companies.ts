@@ -88,7 +88,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Update a company (requires company admin)
+// Update a company (requires company admin or system admin)
 router.put("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -96,9 +96,14 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid company ID" });
     }
 
-    // Verify the user is a company admin
-    const isAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
-    if (!isAdmin) {
+    // Check if the user is a system admin
+    const user = await storage.getUserById(req.session.userId!);
+    const isSystemAdmin = user?.isAdmin === true;
+    
+    // If not a system admin, verify if they're a company admin
+    const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+    
+    if (!isSystemAdmin && !isCompanyAdmin) {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
@@ -130,7 +135,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Delete a company (requires company admin)
+// Delete a company (requires company admin or system admin)
 router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
@@ -138,9 +143,14 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid company ID" });
     }
 
-    // Verify the user is a company admin
-    const isAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
-    if (!isAdmin) {
+    // Check if the user is a system admin
+    const user = await storage.getUserById(req.session.userId!);
+    const isSystemAdmin = user?.isAdmin === true;
+    
+    // If not a system admin, verify if they're a company admin
+    const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+    
+    if (!isSystemAdmin && !isCompanyAdmin) {
       return res.status(403).json({ error: "Unauthorized" });
     }
 
