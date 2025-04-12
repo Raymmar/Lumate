@@ -1,7 +1,7 @@
 // Simple script to test admin login
-import axios from 'axios';
-import http from 'http';
-import https from 'https';
+const axios = require('axios');
+const http = require('http');
+const https = require('https');
 
 // Create axios instance with keep-alive to reuse connections
 const api = axios.create({
