@@ -154,13 +154,18 @@ export function CompanyPreview({
 
   // Mutation for adding members to a company
   const addCompanyMembersMutation = useMutation({
-    mutationFn: async ({ companyId, userIds }: { companyId: number, userIds: number[] }) => {
+    mutationFn: async ({ companyId, userIds, ownerUserId }: { 
+      companyId: number, 
+      userIds: number[], 
+      ownerUserId: number | null 
+    }) => {
       // For each user ID, make a request to add them as a company member
       const promises = userIds.map(userId => 
         apiRequest('/api/companies/members', 'POST', { 
           companyId, 
           userId, 
-          role: 'admin',  // Default role for members added during company edit
+          // If this user is the owner, set role to 'owner', otherwise 'member'
+          role: userId === ownerUserId ? 'owner' : 'member',
           isPublic: true
         })
       );
@@ -182,14 +187,19 @@ export function CompanyPreview({
   // Handle company saving, either create or update
   const handleCompanySave = async (data: any) => {
     try {
-      // Extract selected members if present
-      const { _selectedMembers, ...companyData } = data;
+      // Extract selected members and owner if present
+      const { _selectedMembers, _ownerUserId, ...companyData } = data;
       const selectedMembers = _selectedMembers || [];
+      const ownerUserId = _ownerUserId || null;
 
       if (isNew && onSave) {
         // For new companies, pass the data to the parent component (CompaniesTable)
         // which will handle creating the company and assigning members
-        await onSave({...companyData, _selectedMembers: selectedMembers});
+        await onSave({
+          ...companyData, 
+          _selectedMembers: selectedMembers,
+          _ownerUserId: ownerUserId
+        });
       } else if (company?.id) {
         // For existing companies, update the company data
         await updateCompanyMutation.mutateAsync(companyData);
@@ -199,7 +209,8 @@ export function CompanyPreview({
           // Add the selected members to the company
           await addCompanyMembersMutation.mutateAsync({
             companyId: company.id,
-            userIds: selectedMembers
+            userIds: selectedMembers,
+            ownerUserId: ownerUserId
           });
         }
       }

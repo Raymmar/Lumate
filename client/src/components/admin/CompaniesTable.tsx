@@ -64,13 +64,14 @@ export function CompaniesTable() {
 
   // Mutation for adding members to a company
   const addCompanyMembersMutation = useMutation({
-    mutationFn: async ({ companyId, userIds }: { companyId: number, userIds: number[] }) => {
+    mutationFn: async ({ companyId, userIds, ownerUserId }: { companyId: number, userIds: number[], ownerUserId: number | null }) => {
       // For each user ID, make a request to add them as a company member
       const promises = userIds.map(userId => 
         apiRequest('/api/companies/members', 'POST', { 
           companyId, 
           userId, 
-          role: 'admin',  // Default role for members added during company creation
+          // If this user is the owner, set role to 'owner', otherwise 'member'
+          role: userId === ownerUserId ? 'owner' : 'member',
           isPublic: true
         })
       );
@@ -107,7 +108,8 @@ export function CompaniesTable() {
       if (selectedMembers.length > 0 && createdCompany && createdCompany.id) {
         await addCompanyMembersMutation.mutateAsync({
           companyId: createdCompany.id,
-          userIds: selectedMembers
+          userIds: selectedMembers,
+          ownerUserId: ownerUserId
         });
       }
     } catch (error) {
