@@ -823,6 +823,54 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin endpoint for creating a company with specified owner
+  app.post("/api/admin/companies", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Extract the owner user ID from the request body (if provided)
+      const { _ownerUserId, _selectedMembers, customLinks, ...companyData } = req.body;
+      
+      // Create the company
+      const company = await storage.createCompany({
+        ...companyData,
+        customLinks: customLinks ? customLinks : null
+      });
+      
+      // If selected members are provided, add them to the company
+      if (_selectedMembers && Array.isArray(_selectedMembers) && _selectedMembers.length > 0) {
+        for (const memberId of _selectedMembers) {
+          // Determine if this member is the owner
+          const isOwner = _ownerUserId && memberId === _ownerUserId;
+          
+          await storage.addMemberToCompany({
+            companyId: company.id,
+            userId: memberId,
+            role: isOwner ? "owner" : "member",
+            title: isOwner ? "Owner" : "Member",
+            isPublic: true,
+            addedBy: req.session.userId
+          });
+        }
+      }
+      
+      res.status(201).json({ company });
+    } catch (error) {
+      console.error("Failed to create company via admin API:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create company" });
+    }
+  });
+
   app.get("/api/admin/companies", async (req, res) => {
     try {
       if (!req.session.userId) {

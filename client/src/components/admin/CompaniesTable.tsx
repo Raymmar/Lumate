@@ -42,7 +42,7 @@ export function CompaniesTable() {
   // Create company mutation
   const createCompanyMutation = useMutation({
     mutationFn: async (data: InsertCompany) => {
-      return apiRequest('/api/companies', 'POST', data);
+      return apiRequest('/api/admin/companies', 'POST', data);
     },
     onSuccess: (createdCompany) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
@@ -93,25 +93,8 @@ export function CompaniesTable() {
   // Handle creating a new company
   const handleCreateCompany = async (data: any) => {
     try {
-      // Check if there are selected members and owner in the data
-      const selectedMembers = data._selectedMembers || [];
-      const ownerUserId = data._ownerUserId || null;
-      
-      // Remove metadata fields before creating company
-      delete data._selectedMembers;
-      delete data._ownerUserId;
-
-      // Create the company first
-      const createdCompany = await createCompanyMutation.mutateAsync(data) as Company;
-      
-      // If we have selected members and the company was created successfully, add the members
-      if (selectedMembers.length > 0 && createdCompany && createdCompany.id) {
-        await addCompanyMembersMutation.mutateAsync({
-          companyId: createdCompany.id,
-          userIds: selectedMembers,
-          ownerUserId: ownerUserId
-        });
-      }
+      // Just pass the data as-is to the admin endpoint, which will handle members and ownership
+      await createCompanyMutation.mutateAsync(data);
     } catch (error) {
       console.error('Error creating company:', error);
     }
