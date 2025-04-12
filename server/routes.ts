@@ -1028,6 +1028,43 @@ export async function registerRoutes(app: Express) {
       const tags = await storage.getCompanyTags(companyId);
       console.log(`Found ${tags.length} tags for company ${companyId}`);
 
+      // Raw company data for debugging
+      console.log("RAW COMPANY DATA FULL OBJECT:", JSON.stringify(company, null, 2));
+      
+      // Custom Links and Tags - special handling and debug
+      let parsedCustomLinks = [];
+      let parsedTags = [];
+      
+      try {
+        if (typeof company.customLinks === 'string') {
+          parsedCustomLinks = JSON.parse(company.customLinks);
+          console.log("Parsed custom links from string:", parsedCustomLinks);
+        } else if (Array.isArray(company.customLinks)) {
+          parsedCustomLinks = company.customLinks;
+          console.log("Custom links already an array:", parsedCustomLinks);
+        } else {
+          console.log("Custom links is neither string nor array:", company.customLinks);
+        }
+      } catch (error) {
+        console.error("Error parsing custom links:", error);
+        parsedCustomLinks = [];
+      }
+      
+      try {
+        if (typeof company.tags === 'string') {
+          parsedTags = JSON.parse(company.tags);
+          console.log("Parsed tags from string:", parsedTags);
+        } else if (Array.isArray(company.tags)) {
+          parsedTags = company.tags;
+          console.log("Tags already an array:", parsedTags);
+        } else {
+          console.log("Tags is neither string nor array:", company.tags);
+        }
+      } catch (error) {
+        console.error("Error parsing tags:", error);
+        parsedTags = [];
+      }
+      
       // Create a comprehensive response with all fields explicitly included
       const response = {
         id: company.id,
@@ -1046,19 +1083,16 @@ export async function registerRoutes(app: Express) {
         isPhonePublic: company.isPhonePublic || false,
         isEmailPublic: company.isEmailPublic || false, 
         ctaText: company.ctaText || "",
-        // Make sure custom links are properly passed
-        customLinks: typeof company.customLinks === 'string' 
-          ? JSON.parse(company.customLinks) 
-          : (Array.isArray(company.customLinks) ? company.customLinks : []),
-        // Make sure tags are properly passed
-        tags: typeof company.tags === 'string' 
-          ? JSON.parse(company.tags) 
-          : (Array.isArray(company.tags) ? company.tags : []),
+        customLinks: parsedCustomLinks,
+        tags: parsedTags,
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,
         members,
         tagsList: tags, // Add this additional field for the tag objects from the separate table
       };
+      
+      // Debug the final response
+      console.log("FINAL API RESPONSE:", JSON.stringify(response, null, 2));
 
       console.log(`Sending company data to frontend for ID ${companyId}`);
       res.json(response);
