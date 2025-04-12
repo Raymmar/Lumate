@@ -305,10 +305,37 @@ export function CompaniesTable() {
         </>
       )}
 
+      {/* Show company preview when a company is selected */}
       {selectedCompany && (
         <CompanyPreview
           company={selectedCompany}
           onClose={() => setSelectedCompany(null)}
+        />
+      )}
+      
+      {/* Show company creation form when Add Company is clicked */}
+      {isAddCompanyOpen && (
+        <CompanyPreview
+          isNew={true}
+          onClose={() => setIsAddCompanyOpen(false)}
+          onSave={async (data) => {
+            try {
+              await apiRequest('/api/companies', 'POST', data);
+              toast({
+                title: "Success",
+                description: "Company created successfully"
+              });
+              queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
+              setIsAddCompanyOpen(false);
+            } catch (error) {
+              toast({
+                title: "Error",
+                description: "Failed to create company",
+                variant: "destructive"
+              });
+              console.error('Failed to create company:', error);
+            }
+          }}
         />
       )}
     </div>
