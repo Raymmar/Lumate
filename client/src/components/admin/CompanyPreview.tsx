@@ -672,7 +672,7 @@ export function CompanyPreview({
                 {/* View Public Profile Button */}
                 {company?.name && (
                   <div className="mt-4">
-                    <RouterLink to={`/companies/${company?.slug || (company?.name ? company?.name?.toLowerCase().replace(/\s+/g, '-') : '')}`}>
+                    <RouterLink to={`/companies/${company?.slug}`}>
                       <Button variant="outline" size="sm" className="w-full">
                         <ExternalLink className="h-4 w-4 mr-2" />
                         View Public Profile

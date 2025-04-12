@@ -199,7 +199,7 @@ export default function CompanyDirectory() {
             industry={company.industry}
             bio={company.bio}
             tags={company.tags}
-            slug={company.slug || generateSlug(company.name)}
+            slug={company.slug}
           />
         ))}
       </div>
