@@ -670,9 +670,10 @@ export function CompanyPreview({
                 )}
 
                 {/* View Public Profile Button */}
-                {company?.name && company?.slug && (
+                {/* Use companyDetails when available, otherwise fall back to company prop */}
+                {(companyDetails?.slug || company?.slug) && (
                   <div className="mt-4">
-                    <RouterLink to={`/companies/${company.slug}`}>
+                    <RouterLink to={`/companies/${companyDetails?.slug || company?.slug}`}>
                       <Button variant="outline" size="sm" className="w-full">
                         <ExternalLink className="h-4 w-4 mr-2" />
                         View Public Profile
@@ -682,7 +683,7 @@ export function CompanyPreview({
                 )}
                 
                 {/* Show explanation if company exists but has no slug */}
-                {company?.name && !company?.slug && (
+                {(companyDetails || company)?.name && !(companyDetails?.slug || company?.slug) && (
                   <div className="mt-4 p-2 border border-yellow-200 bg-yellow-50 rounded-md text-sm text-amber-800">
                     No public profile URL is available. Please edit the company to regenerate its URL.
                   </div>
