@@ -663,12 +663,19 @@ export function CompanyPreview({
                 {/* View Public Profile Button */}
                 {company?.name && (
                   <div className="mt-4">
-                    <RouterLink to={`/companies/${company?.slug || formatCompanyNameForUrl(company?.name, String(company?.id || 0))}`}>
-                      <Button variant="outline" size="sm" className="w-full">
+                    {company?.slug ? (
+                      <RouterLink to={`/companies/${company.slug}`}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View Public Profile
+                        </Button>
+                      </RouterLink>
+                    ) : (
+                      <Button variant="outline" size="sm" className="w-full" disabled>
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        View Public Profile
+                        Public Profile Unavailable
                       </Button>
-                    </RouterLink>
+                    )}
                   </div>
                 )}
               </div>

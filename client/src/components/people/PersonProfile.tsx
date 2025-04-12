@@ -310,9 +310,15 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   asChild
                   className="w-full mt-2"
                 >
-                  <Link href={`/companies/${userCompany.slug || formatCompanyNameForUrl(userCompany.name, String(userCompany.id))}`}>
-                    View full company profile
-                  </Link>
+                  {userCompany.slug ? (
+                    <Link href={`/companies/${userCompany.slug}`}>
+                      View full company profile
+                    </Link>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Company profile unavailable
+                    </span>
+                  )}
                 </Button>
               </CardContent>
             </Card>
