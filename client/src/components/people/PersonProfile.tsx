@@ -56,6 +56,7 @@ interface UserCompany {
   industry: string | null;
   bio: string | null;
   tags: string[] | null;
+  slug: string | null;
   role: string; // member role in company: 'admin' or 'user'
 }
 
