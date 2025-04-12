@@ -560,7 +560,7 @@ export function CompanyForm({
                         <SelectValue placeholder="Select an industry" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="z-[99999999]">
                       <div className="max-h-[400px] overflow-y-auto">
                         <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
                         {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
@@ -602,7 +602,7 @@ export function CompanyForm({
                         <SelectValue placeholder="Select company size" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="z-[99999999]">
                       {COMPANY_SIZE_OPTIONS.map((size) => (
                         <SelectItem key={size} value={size}>
                           {size}
@@ -637,7 +637,7 @@ export function CompanyForm({
                         <SelectValue placeholder="Select year founded" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="max-h-[200px]">
+                    <SelectContent className="max-h-[200px] z-[99999999]">
                       {FOUNDED_YEAR_OPTIONS.map((year) => (
                         <SelectItem key={year} value={year}>
                           {year}
@@ -756,7 +756,7 @@ export function CompanyForm({
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full md:w-80 p-0 z-[100]" align="start">
+                  <PopoverContent className="w-full md:w-80 p-0 z-[99999999]" align="start">
                     <Command>
                       <CommandInput placeholder="Search users..." />
                       <CommandEmpty>
