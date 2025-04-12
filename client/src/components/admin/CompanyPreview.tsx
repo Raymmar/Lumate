@@ -147,7 +147,23 @@ export function CompanyPreview({
     mutationFn: async (data: InsertCompany) => {
       if (!company?.id) return;
       
-      return apiRequest<Company>(`/api/companies/${company.id}`, 'PUT', data);
+      // Import formatCompanyNameForUrl from utils
+      const { formatCompanyNameForUrl } = await import('@/lib/utils');
+      
+      // Create a copy of the data to modify
+      const updatedData = { ...data };
+      
+      // Generate a URL-friendly slug from company name if name is being updated
+      if (updatedData.name) {
+        // Use company ID as fallback if slug generation fails
+        const slug = formatCompanyNameForUrl(updatedData.name, String(company.id));
+        
+        // Add the slug to the data being updated
+        updatedData.slug = slug;
+        console.log(`Generated slug "${slug}" for company "${updatedData.name}"`);
+      }
+      
+      return apiRequest<Company>(`/api/companies/${company.id}`, 'PUT', updatedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
