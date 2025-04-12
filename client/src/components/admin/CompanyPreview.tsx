@@ -485,9 +485,9 @@ export function CompanyPreview({
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
                       <div className="flex flex-wrap gap-2">
-                        {(companyDetails?.tags || company?.tags)?.map((tag: string, index: number) => (
+                        {(companyDetails?.tags || company?.tags)?.map((tag: any, index: number) => (
                           <Badge key={index} variant="secondary">
-                            {tag}
+                            {typeof tag === 'string' ? tag : tag.text || ''}
                           </Badge>
                         ))}
                       </div>
