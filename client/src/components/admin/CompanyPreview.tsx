@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Company, User, Tag, InsertCompany } from "@shared/schema";
+import { Company, User, Tag } from "@shared/schema";
 import { format } from "date-fns";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { useState } from "react";
@@ -10,10 +10,13 @@ import {
   Mail,
   Phone,
   MapPin,
+  Briefcase,
   Calendar,
+  Link2,
   Tag as TagIcon,
-  Edit,
+  Plus,
   UserPlus,
+  PlusCircle,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -27,25 +30,13 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { apiRequest } from "@/lib/queryClient";
-import { CompanyForm } from "./CompanyForm";
 
 interface CompanyPreviewProps {
-  company?: Company;
+  company: Company;
   onClose: () => void;
-  isNew?: boolean;
-  isEditing?: boolean;
-  onSave?: (data: any) => Promise<void>;
-  readOnly?: boolean;
 }
 
-// Custom tags interface for the detailed company view
-interface CompanyTag {
-  id: number;
-  text: string;
-  createdAt: string;
-}
-
-interface CompanyDetails extends Omit<Company, 'tags'> {
+interface CompanyDetails extends Company {
   members: Array<{
     user: User & {
       avatarUrl?: string | null;
@@ -54,7 +45,11 @@ interface CompanyDetails extends Omit<Company, 'tags'> {
     role: string;
     title?: string;
   }>;
-  tags: Array<CompanyTag>;
+  tags: Array<{
+    id: number;
+    text: string;
+    createdAt: string;
+  }>;
 }
 
 interface AddMemberFormData {
@@ -62,14 +57,7 @@ interface AddMemberFormData {
   role: string;
 }
 
-export function CompanyPreview({ 
-  company, 
-  onClose, 
-  isNew = false, 
-  isEditing = false, 
-  onSave,
-  readOnly = false
-}: CompanyPreviewProps) {
+export function CompanyPreview({ company, onClose }: CompanyPreviewProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState(true);
@@ -77,7 +65,6 @@ export function CompanyPreview({
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [memberRole, setMemberRole] = useState<string>("user");
   const [isAddingMember, setIsAddingMember] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(isEditing);
 
   const handleOpenChange = (isOpen: boolean) => {
     setOpen(isOpen);
@@ -86,55 +73,18 @@ export function CompanyPreview({
     }
   };
 
-  // Create or edit company mutation
-  const updateCompanyMutation = useMutation({
-    mutationFn: async (data: any) => {
-      if (company) {
-        // Update existing company
-        return apiRequest(`/api/companies/${company.id}`, "PUT", data);
-      } else {
-        // Create new company
-        return apiRequest("/api/companies", "POST", data);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/companies"] });
-      if (company) {
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      }
-      toast({
-        title: "Success",
-        description: company ? "Company updated successfully" : "Company created successfully",
-      });
-      setIsEditMode(false);
-    },
-    onError: (error) => {
-      console.error("Failed to save company:", error);
-      toast({
-        title: "Error",
-        description: `Failed to ${company ? "update" : "create"} company`,
-        variant: "destructive",
-      });
-    }
-  });
-
-  // If we're creating a new company, don't need to fetch anything
-  const shouldFetchCompany = !isNew && !isEditMode && company?.id !== undefined;
-
-  // Fetch company details if viewing an existing company
   const { data, isLoading } = useQuery<CompanyDetails>({
-    queryKey: [`/api/admin/companies/${company?.id}`],
+    queryKey: [`/api/admin/companies/${company.id}`],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/companies/${company?.id}`);
+      const response = await fetch(`/api/admin/companies/${company.id}`);
       if (!response.ok) {
         throw new Error("Failed to fetch company details");
       }
       return response.json();
     },
-    enabled: shouldFetchCompany,
   });
   
-  // Get the list of users for adding members or creating a company
+  // Get the list of users for adding members
   const { data: users = [] } = useQuery<Array<User>>({
     queryKey: ["/api/admin/users"],
     queryFn: async () => {
@@ -144,13 +94,12 @@ export function CompanyPreview({
       }
       return response.json();
     },
-    enabled: isAddMemberOpen || isNew || isEditMode,
+    enabled: isAddMemberOpen, // Only fetch when the dialog is open
   });
   
   // Add member mutation
   const addMemberMutation = useMutation({
     mutationFn: async (data: AddMemberFormData) => {
-      if (!company?.id) return null;
       return apiRequest(`/api/companies/${company.id}/members`, "POST", {
         userId: parseInt(data.userId),
         role: data.role,
@@ -158,9 +107,7 @@ export function CompanyPreview({
       });
     },
     onSuccess: () => {
-      if (company?.id) {
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      }
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
       setIsAddMemberOpen(false);
       setSelectedUserId("");
       setMemberRole("user");
@@ -182,15 +129,12 @@ export function CompanyPreview({
   // Toggle member admin status mutation
   const toggleMemberRoleMutation = useMutation({
     mutationFn: async ({ memberId, isAdmin }: { memberId: number, isAdmin: boolean }) => {
-      if (!company?.id) return null;
       return apiRequest(`/api/companies/${company.id}/members/${memberId}`, "PUT", {
         role: isAdmin ? "admin" : "user"
       });
     },
     onSuccess: () => {
-      if (company?.id) {
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      }
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
       toast({
         title: "Success",
         description: "Member role updated",
@@ -209,13 +153,10 @@ export function CompanyPreview({
   // Remove member mutation
   const removeMemberMutation = useMutation({
     mutationFn: async (memberId: number) => {
-      if (!company?.id) return null;
       return apiRequest(`/api/companies/${company.id}/members/${memberId}`, "DELETE");
     },
     onSuccess: () => {
-      if (company?.id) {
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
-      }
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/companies/${company.id}`] });
       toast({
         title: "Success",
         description: "Member removed from company",
@@ -251,40 +192,7 @@ export function CompanyPreview({
       setIsAddingMember(false);
     }
   };
-  
-  const handleUpdateCompany = async (formData: any) => {
-    try {
-      if (isNew || isEditMode) {
-        // For new company or edit mode, use the update mutation
-        await updateCompanyMutation.mutateAsync(formData);
-        // If this is a new company and we have an onSave handler, call it
-        if (isNew && onSave) {
-          await onSave(formData);
-        }
-      }
-    } catch (error) {
-      console.error("Error creating/updating company:", error);
-    }
-  };
 
-  // If we're creating a new company or editing, show the form
-  if (isNew || isEditMode) {
-    return (
-      <PreviewSidebar 
-        open={open} 
-        onOpenChange={handleOpenChange} 
-        title={isNew ? "Create New Company" : `Edit ${company?.name || "Company"}`}
-      >
-        <CompanyForm
-          defaultValues={company || undefined}
-          onSubmit={handleUpdateCompany}
-          isEditing={!isNew}
-        />
-      </PreviewSidebar>
-    );
-  }
-  
-  // Show loading state when fetching company details
   if (isLoading) {
     return (
       <PreviewSidebar open={open} onOpenChange={handleOpenChange} title="Company Details">
@@ -298,7 +206,6 @@ export function CompanyPreview({
     );
   }
 
-  // Show error state if company details failed to load
   if (!data) {
     return (
       <PreviewSidebar open={open} onOpenChange={handleOpenChange} title="Company Details">
@@ -454,7 +361,7 @@ export function CompanyPreview({
                     <div className="space-y-2">
                       <Label htmlFor="user-select">Select User</Label>
                       <Select 
-                        value={selectedUserId || ""} 
+                        value={selectedUserId} 
                         onValueChange={setSelectedUserId}
                       >
                         <SelectTrigger id="user-select">
@@ -598,8 +505,8 @@ export function CompanyPreview({
           <Button variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button onClick={() => setIsEditMode(true)}>
-            <Edit className="h-4 w-4 mr-2" /> Edit Company
+          <Button>
+            Edit Company
           </Button>
         </div>
       </div>
