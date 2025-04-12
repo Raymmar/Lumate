@@ -18,7 +18,6 @@ interface RevenueData {
     id: string;
     nickname?: string;
     productName?: string;
-    productId?: string;
     revenue: number;
     subscriptionCount: number;
     unitAmount?: number;
@@ -198,7 +197,6 @@ export default function AdminDashboard() {
                   <th className="px-4 py-3 text-right font-medium">Price</th>
                   <th className="px-4 py-3 text-right font-medium">Active Subscriptions</th>
                   <th className="px-4 py-3 text-right font-medium">Revenue</th>
-                  <th className="px-4 py-3 text-left font-medium hidden md:table-cell">Product ID</th>
                 </tr>
               </thead>
               <tbody>
@@ -215,10 +213,6 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
                       ${item.revenue.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground hidden md:table-cell truncate max-w-[150px]" title={item.productId}>
-                      {item.productId}
-                      {item.productId === 'prod_RXzIPHBkm0MCM7' && <span className="ml-1 text-green-500">✓</span>}
                     </td>
                   </tr>
                 ))}

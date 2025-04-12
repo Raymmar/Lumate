@@ -225,140 +225,63 @@ export class StripeService {
 
   static async getSubscriptionRevenue(options: {
     priceIds?: string[];
-    productIds?: string[];
     startDate?: Date;
     endDate?: Date;
   } = {}) {
     try {
       console.log("🔍 Fetching subscription revenue data", options);
       
-      // Always default to Jan 1, 2025 if no startDate is provided
-      const defaultStartDate = new Date('2025-01-01T00:00:00Z');
-      
-      // Always ensure the product ID prod_RXzIPHBkm0MCM7 is included in the productIds filter
-      const productIdsFilter = options.productIds || [];
-      const targetProductId = 'prod_RXzIPHBkm0MCM7';
-      
-      if (!productIdsFilter.includes(targetProductId)) {
-        productIdsFilter.push(targetProductId);
-      }
-      
-      console.log(`🎯 Filtering for product ID: ${targetProductId}`);
-      
       // Prepare date filters for the query
       const dateFilter: any = {};
-      
-      // Always use at least the default start date
-      dateFilter.created = { 
-        gte: Math.floor(options.startDate ? 
-          Math.max(options.startDate.getTime(), defaultStartDate.getTime()) / 1000 : 
-          defaultStartDate.getTime() / 1000) 
-      };
-      
+      if (options.startDate) {
+        dateFilter.created = { gte: Math.floor(options.startDate.getTime() / 1000) };
+      }
       if (options.endDate) {
-        dateFilter.created.lte = Math.floor(options.endDate.getTime() / 1000);
+        if (dateFilter.created) {
+          dateFilter.created.lte = Math.floor(options.endDate.getTime() / 1000);
+        } else {
+          dateFilter.created = { lte: Math.floor(options.endDate.getTime() / 1000) };
+        }
       }
       
-      console.log(`📅 Using date filter: From ${new Date(dateFilter.created.gte * 1000).toISOString()}${
-        dateFilter.created.lte ? ` to ${new Date(dateFilter.created.lte * 1000).toISOString()}` : ''
-      }`);
-      
-      // Instead of using invoices, let's get subscription data directly with expanded latest_invoice
-      // This ensures we only count real subscription charges
-      const subscriptionsWithInvoice = await stripe.subscriptions.list({
+      // Get all invoices that are paid
+      const invoices = await stripe.invoices.list({
         limit: 100,
-        expand: ['data.latest_invoice'],
-        status: 'active',
+        status: 'paid',
         ...dateFilter
       });
-
-      // Get additional subscriptions that might be canceled but had payments in our timeframe
-      const canceledSubscriptions = await stripe.subscriptions.list({
-        limit: 100,
-        expand: ['data.latest_invoice'],
-        status: 'canceled',
-        ...dateFilter
-      });
-      
-      // Combine all subscriptions
-      const allSubscriptions = [...subscriptionsWithInvoice.data, ...canceledSubscriptions.data];
-      
-      console.log(`📊 Found ${allSubscriptions.length} subscriptions within date range`);
       
       // Setup revenue tracking by price
       const revenueByPrice: Record<string, number> = {};
       let totalRevenue = 0;
       
-      // Use a set to track processed invoice IDs to avoid duplicates
-      const processedInvoiceIds = new Set<string>();
-      
-      // First, get all subscription invoices in the date range
-      const invoices = await stripe.invoices.list({
-        limit: 100,
-        subscription: { exists: true }, // Only get subscription invoices
-        status: 'paid',
-        ...dateFilter
-      });
-      
-      console.log(`📊 Found ${invoices.data.length} paid subscription invoices within date range`);
-      
       // Process each invoice
       for (const invoice of invoices.data) {
-        // Skip if already processed
-        if (processedInvoiceIds.has(invoice.id)) continue;
-        processedInvoiceIds.add(invoice.id);
-        
-        // Skip if not a subscription invoice (extra safety check)
+        // Skip if not a subscription invoice
         if (!invoice.subscription) continue;
         
-        // Only include recurring charges
+        // Get line items from invoice
         for (const lineItem of invoice.lines.data) {
-          // We only want recurring subscription charges
-          if (lineItem.type !== 'subscription') continue;
-          
           const priceId = lineItem.price?.id;
-          if (!priceId) continue;
           
           // Skip if we're filtering by price IDs and this one doesn't match
           if (options.priceIds && options.priceIds.length > 0 && !options.priceIds.includes(priceId)) {
             continue;
           }
           
-          // For each price, retrieve its product to check if it matches our product filter
-          try {
-            const price = await stripe.prices.retrieve(priceId, {
-              expand: ['product']
-            });
-            
-            const productId = (price.product as Stripe.Product).id;
-            
-            // Skip if the product doesn't match our filter
-            if (productIdsFilter.length > 0 && !productIdsFilter.includes(productId)) {
-              console.log(`⏭️ Skipping price ${priceId} with product ${productId} (not in filter)`);
-              continue;
-            }
-            
-            // Calculate amount (Stripe amounts are in cents, convert to dollars)
-            const amount = lineItem.amount / 100;
-            
-            console.log(`💰 Adding revenue: $${amount} from price ${priceId} (${price.nickname || 'Unnamed Price'}) for product ${productId}`);
-            
-            // Add to totals
+          // Calculate amount (Stripe amounts are in cents, convert to dollars)
+          const amount = lineItem.amount / 100;
+          
+          // Add to totals
+          if (priceId) {
             if (!revenueByPrice[priceId]) {
               revenueByPrice[priceId] = 0;
             }
             revenueByPrice[priceId] += amount;
-            totalRevenue += amount;
-            
-          } catch (error) {
-            console.error(`❌ Error processing price ${priceId}:`, error);
-            // If we can't verify the product, skip this line item
-            continue;
           }
+          totalRevenue += amount;
         }
       }
-      
-      console.log(`💲 Total revenue calculated: $${totalRevenue}`);
       
       // Get price details to include names
       const priceIds = Object.keys(revenueByPrice);
@@ -376,10 +299,9 @@ export class StripeService {
               nickname: price.nickname,
               productName: (price.product as Stripe.Product).name,
               unitAmount: price.unit_amount ? price.unit_amount / 100 : 0,
-              productId: (price.product as Stripe.Product).id,
             };
           } catch (error) {
-            console.error(`❌ Error fetching price details for ${priceId}:`, error);
+            console.error(`Error fetching price details for ${priceId}:`, error);
             priceDetails[priceId] = { id: priceId, nickname: 'Unknown' };
           }
         }
@@ -395,28 +317,10 @@ export class StripeService {
       for (const subscription of subscriptions.data) {
         for (const item of subscription.items.data) {
           const priceId = item.price.id;
-          
-          try {
-            // Check if this subscription's price belongs to our target product
-            const price = await stripe.prices.retrieve(priceId, {
-              expand: ['product']
-            });
-            const productId = (price.product as Stripe.Product).id;
-            
-            // Skip if not in our product filter
-            if (productIdsFilter.length > 0 && !productIdsFilter.includes(productId)) {
-              continue;
-            }
-            
-            if (!activeSubscriptionsByPrice[priceId]) {
-              activeSubscriptionsByPrice[priceId] = 0;
-            }
-            activeSubscriptionsByPrice[priceId]++;
-            
-          } catch (error) {
-            console.error(`❌ Error checking product for subscription price ${priceId}:`, error);
-            continue;
+          if (!activeSubscriptionsByPrice[priceId]) {
+            activeSubscriptionsByPrice[priceId] = 0;
           }
+          activeSubscriptionsByPrice[priceId]++;
         }
       }
       
