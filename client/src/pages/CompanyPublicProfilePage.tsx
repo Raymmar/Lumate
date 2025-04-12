@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function CompanyPublicProfilePage() {
-  // Now using slug instead of companyName - matches with stored company slug
-  const params = useParams<{ companyName: string }>();
+  // Using the companySlug parameter from the URL
+  const params = useParams<{ companySlug: string }>();
   
-  // The companyName parameter is actually the slug from our route
-  const companySlug = params.companyName;
+  // Get the slug directly from the URL parameters
+  const companySlug = params.companySlug;
 
   if (!companySlug) {
     return (

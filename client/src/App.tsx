@@ -38,7 +38,7 @@ function Router() {
           <Route path="/settings" component={UserSettingsPage} />
           <Route path="/company-profile" component={CompanyProfilePage} />
           <Route path="/companies" component={CompaniesPage} />
-          <Route path="/companies/:companyName" component={CompanyPublicProfilePage} />
+          <Route path="/companies/:companySlug" component={CompanyPublicProfilePage} />
           <Route path="/people/:username" component={PersonProfilePage} />
           <Route path="/verify" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
