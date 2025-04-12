@@ -263,26 +263,59 @@ export class StripeService {
         dateFilter.created.lte ? ` to ${new Date(dateFilter.created.lte * 1000).toISOString()}` : ''
       }`);
       
-      // Get all invoices that are paid
-      const invoices = await stripe.invoices.list({
+      // Instead of using invoices, let's get subscription data directly with expanded latest_invoice
+      // This ensures we only count real subscription charges
+      const subscriptionsWithInvoice = await stripe.subscriptions.list({
         limit: 100,
-        status: 'paid',
+        expand: ['data.latest_invoice'],
+        status: 'active',
+        ...dateFilter
+      });
+
+      // Get additional subscriptions that might be canceled but had payments in our timeframe
+      const canceledSubscriptions = await stripe.subscriptions.list({
+        limit: 100,
+        expand: ['data.latest_invoice'],
+        status: 'canceled',
         ...dateFilter
       });
       
-      console.log(`📊 Found ${invoices.data.length} paid invoices within date range`);
+      // Combine all subscriptions
+      const allSubscriptions = [...subscriptionsWithInvoice.data, ...canceledSubscriptions.data];
+      
+      console.log(`📊 Found ${allSubscriptions.length} subscriptions within date range`);
       
       // Setup revenue tracking by price
       const revenueByPrice: Record<string, number> = {};
       let totalRevenue = 0;
       
+      // Use a set to track processed invoice IDs to avoid duplicates
+      const processedInvoiceIds = new Set<string>();
+      
+      // First, get all subscription invoices in the date range
+      const invoices = await stripe.invoices.list({
+        limit: 100,
+        subscription: { exists: true }, // Only get subscription invoices
+        status: 'paid',
+        ...dateFilter
+      });
+      
+      console.log(`📊 Found ${invoices.data.length} paid subscription invoices within date range`);
+      
       // Process each invoice
       for (const invoice of invoices.data) {
-        // Skip if not a subscription invoice
+        // Skip if already processed
+        if (processedInvoiceIds.has(invoice.id)) continue;
+        processedInvoiceIds.add(invoice.id);
+        
+        // Skip if not a subscription invoice (extra safety check)
         if (!invoice.subscription) continue;
         
-        // Get line items from invoice
+        // Only include recurring charges
         for (const lineItem of invoice.lines.data) {
+          // We only want recurring subscription charges
+          if (lineItem.type !== 'subscription') continue;
+          
           const priceId = lineItem.price?.id;
           if (!priceId) continue;
           
