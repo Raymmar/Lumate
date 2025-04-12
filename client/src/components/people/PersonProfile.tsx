@@ -49,6 +49,7 @@ interface Badge {
 interface UserCompany {
   id: number;
   name: string;
+  slug: string | null;
   description: string | null;
   website: string | null;
   logoUrl: string | null;

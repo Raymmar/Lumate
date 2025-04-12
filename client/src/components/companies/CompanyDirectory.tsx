@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Building } from "lucide-react";
 
-// Helper function to generate slug from company name
+// Helper function as fallback only if slug isn't available
 const generateSlug = (name: string): string => {
   return name
     .replace(/\./g, '')
@@ -23,6 +23,7 @@ const generateSlug = (name: string): string => {
 interface Company {
   id: number;
   name: string;
+  slug: string | null;
   description: string | null;
   website: string | null;
   logoUrl: string | null;
@@ -198,7 +199,7 @@ export default function CompanyDirectory() {
             industry={company.industry}
             bio={company.bio}
             tags={company.tags}
-            slug={generateSlug(company.name)}
+            slug={company.slug || generateSlug(company.name)}
           />
         ))}
       </div>
