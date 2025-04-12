@@ -756,7 +756,7 @@ export function CompanyForm({
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full md:w-80 p-0" align="start">
+                  <PopoverContent className="w-full md:w-80 p-0 z-[100]" align="start">
                     <Command>
                       <CommandInput placeholder="Search users..." />
                       <CommandEmpty>
