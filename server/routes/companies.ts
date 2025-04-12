@@ -308,14 +308,9 @@ router.get("/user/company-profile/:userId", async (req: Request, res: Response) 
     // This could be enhanced in the future to return the primary company
     const company = companies[0];
     
-    // Generate a slug for the company name
-    const nameSlug = generateSlug(company.name);
-    
-    // Return the company with additional needed properties
-    res.json({
-      ...company,
-      slug: nameSlug
-    });
+    // Return the company data using the stored database slug
+    // We no longer generate a slug dynamically - use only what's in the database
+    res.json(company);
   } catch (error) {
     console.error("Failed to fetch company profile for user:", error);
     res.status(500).json({ error: "Failed to fetch company profile" });
