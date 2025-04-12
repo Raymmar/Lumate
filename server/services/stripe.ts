@@ -222,4 +222,120 @@ export class StripeService {
       throw error;
     }
   }
+
+  static async getSubscriptionRevenue(options: {
+    priceIds?: string[];
+    startDate?: Date;
+    endDate?: Date;
+  } = {}) {
+    try {
+      console.log("🔍 Fetching subscription revenue data", options);
+      
+      // Prepare date filters for the query
+      const dateFilter: any = {};
+      if (options.startDate) {
+        dateFilter.created = { gte: Math.floor(options.startDate.getTime() / 1000) };
+      }
+      if (options.endDate) {
+        if (dateFilter.created) {
+          dateFilter.created.lte = Math.floor(options.endDate.getTime() / 1000);
+        } else {
+          dateFilter.created = { lte: Math.floor(options.endDate.getTime() / 1000) };
+        }
+      }
+      
+      // Get all invoices that are paid
+      const invoices = await stripe.invoices.list({
+        limit: 100,
+        status: 'paid',
+        ...dateFilter
+      });
+      
+      // Setup revenue tracking by price
+      const revenueByPrice: Record<string, number> = {};
+      let totalRevenue = 0;
+      
+      // Process each invoice
+      for (const invoice of invoices.data) {
+        // Skip if not a subscription invoice
+        if (!invoice.subscription) continue;
+        
+        // Get line items from invoice
+        for (const lineItem of invoice.lines.data) {
+          const priceId = lineItem.price?.id;
+          
+          // Skip if we're filtering by price IDs and this one doesn't match
+          if (options.priceIds && options.priceIds.length > 0 && !options.priceIds.includes(priceId)) {
+            continue;
+          }
+          
+          // Calculate amount (Stripe amounts are in cents, convert to dollars)
+          const amount = lineItem.amount / 100;
+          
+          // Add to totals
+          if (priceId) {
+            if (!revenueByPrice[priceId]) {
+              revenueByPrice[priceId] = 0;
+            }
+            revenueByPrice[priceId] += amount;
+          }
+          totalRevenue += amount;
+        }
+      }
+      
+      // Get price details to include names
+      const priceIds = Object.keys(revenueByPrice);
+      const priceDetails: Record<string, any> = {};
+      
+      if (priceIds.length > 0) {
+        // Fetch details for each price to get their names
+        for (const priceId of priceIds) {
+          try {
+            const price = await stripe.prices.retrieve(priceId, {
+              expand: ['product']
+            });
+            priceDetails[priceId] = {
+              id: price.id,
+              nickname: price.nickname,
+              productName: (price.product as Stripe.Product).name,
+              unitAmount: price.unit_amount ? price.unit_amount / 100 : 0,
+            };
+          } catch (error) {
+            console.error(`Error fetching price details for ${priceId}:`, error);
+            priceDetails[priceId] = { id: priceId, nickname: 'Unknown' };
+          }
+        }
+      }
+      
+      // Count active subscriptions by price
+      const activeSubscriptionsByPrice: Record<string, number> = {};
+      const subscriptions = await stripe.subscriptions.list({
+        status: 'active',
+        limit: 100
+      });
+      
+      for (const subscription of subscriptions.data) {
+        for (const item of subscription.items.data) {
+          const priceId = item.price.id;
+          if (!activeSubscriptionsByPrice[priceId]) {
+            activeSubscriptionsByPrice[priceId] = 0;
+          }
+          activeSubscriptionsByPrice[priceId]++;
+        }
+      }
+      
+      // Return formatted results
+      return {
+        totalRevenue,
+        revenueByPrice: Object.keys(revenueByPrice).map(priceId => ({
+          ...priceDetails[priceId],
+          revenue: revenueByPrice[priceId],
+          subscriptionCount: activeSubscriptionsByPrice[priceId] || 0
+        }))
+      };
+    } catch (error) {
+      console.error("❌ Error fetching subscription revenue:", error);
+      throw error;
+    }
+  }
 }
