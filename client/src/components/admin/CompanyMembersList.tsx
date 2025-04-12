@@ -54,11 +54,7 @@ export function CompanyMembersList({
   // Remove member mutation
   const removeMemberMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const url = `/api/companies/${companyId}/members/${userId}`;
-      const options = {
-        method: 'DELETE'
-      };
-      return apiRequest(url, options);
+      return apiRequest<any>(`/api/companies/${companyId}/members/${userId}`, 'DELETE');
     },
     onSuccess: () => {
       toast({
