@@ -152,7 +152,7 @@ export function CompanyForm({
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   
   // Fetch all users for member assignment
-  const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ members: User[] }>({
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[], total: number }>({
     queryKey: ["/api/admin/members"],
     queryFn: async () => {
       const response = await fetch("/api/admin/members?limit=100");
@@ -770,7 +770,7 @@ export function CompanyForm({
                             </div>
                           ) : (
                             <ScrollArea className="h-72">
-                              {usersData?.members?.map((user: User) => (
+                              {usersData?.users?.map((user: User) => (
                                 <CommandItem
                                   key={user.id}
                                   value={user.email}
@@ -802,7 +802,7 @@ export function CompanyForm({
                 {selectedMembers.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2">
                     {selectedMembers.map(userId => {
-                      const user = usersData?.members?.find((u: User) => u.id === userId);
+                      const user = usersData?.users?.find((u: User) => u.id === userId);
                       return user ? (
                         <Badge key={userId} variant="secondary" className="flex items-center gap-1">
                           {user.displayName || user.email}
