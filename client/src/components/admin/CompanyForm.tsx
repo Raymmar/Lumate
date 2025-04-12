@@ -285,11 +285,24 @@ export function CompanyForm({
   const handleMemberToggle = (userId: number) => {
     setSelectedMembers(current => {
       if (current.includes(userId)) {
+        // If the user is being removed and they are the owner, clear the owner
+        if (ownerUserId === userId) {
+          setOwnerUserId(null);
+        }
         return current.filter(id => id !== userId);
       } else {
+        // If this is the first member, automatically set as owner
+        if (current.length === 0) {
+          setOwnerUserId(userId);
+        }
         return [...current, userId];
       }
     });
+  };
+  
+  // Handle setting a member as the company owner
+  const handleSetOwner = (userId: number) => {
+    setOwnerUserId(userId);
   };
 
   // Handle form submission
@@ -805,23 +818,61 @@ export function CompanyForm({
                 </Popover>
                 
                 {selectedMembers.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {selectedMembers.map(userId => {
-                      const user = usersData?.users?.find((u: User) => u.id === userId);
-                      return user ? (
-                        <Badge key={userId} variant="secondary" className="flex items-center gap-1">
-                          {user.displayName || user.email}
-                          <button
-                            type="button"
-                            onClick={() => handleMemberToggle(userId)}
-                            className="text-muted-foreground hover:text-foreground"
+                  <>
+                    <div className="flex flex-col gap-4 mt-4 mb-4">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Company Owner <span className="text-destructive">*</span>
+                        </label>
+                        <FormDescription className="mt-0 mb-2">
+                          Select which member will be the company owner/admin
+                        </FormDescription>
+                        <Select
+                          disabled={readOnly}
+                          onValueChange={(value) => handleSetOwner(parseInt(value))}
+                          value={ownerUserId?.toString() || undefined}
+                          defaultValue={ownerUserId?.toString() || undefined}
+                        >
+                          <SelectTrigger className="w-full md:w-80">
+                            <SelectValue placeholder="Select company owner" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[99999999]">
+                            {selectedMembers.map(userId => {
+                              const user = usersData?.users?.find((u: User) => u.id === userId);
+                              return user ? (
+                                <SelectItem key={userId} value={userId.toString()}>
+                                  {user.displayName || user.email}
+                                </SelectItem>
+                              ) : null;
+                            })}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {selectedMembers.map(userId => {
+                        const user = usersData?.users?.find((u: User) => u.id === userId);
+                        return user ? (
+                          <Badge 
+                            key={userId} 
+                            variant={userId === ownerUserId ? "default" : "secondary"} 
+                            className="flex items-center gap-1"
                           >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ) : null;
-                    })}
-                  </div>
+                            {userId === ownerUserId && "👑 "}
+                            {user.displayName || user.email}
+                            <button
+                              type="button"
+                              onClick={() => handleMemberToggle(userId)}
+                              className="ml-1 text-muted-foreground hover:text-foreground"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
+                    </div>
+                  </>
                 )}
               </div>
             )}

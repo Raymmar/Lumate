@@ -92,9 +92,13 @@ export function CompaniesTable() {
   // Handle creating a new company
   const handleCreateCompany = async (data: any) => {
     try {
-      // Check if there are selected members in the data
+      // Check if there are selected members and owner in the data
       const selectedMembers = data._selectedMembers || [];
-      delete data._selectedMembers; // Remove from company data before creating
+      const ownerUserId = data._ownerUserId || null;
+      
+      // Remove metadata fields before creating company
+      delete data._selectedMembers;
+      delete data._ownerUserId;
 
       // Create the company first
       const createdCompany = await createCompanyMutation.mutateAsync(data) as Company;
