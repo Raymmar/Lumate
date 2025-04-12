@@ -100,14 +100,22 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     }
 
     // Validate the company data
-    const { customLinks, ...otherData } = req.body;
+    const { customLinks, tags, ...otherData } = req.body;
     const companyData = insertCompanySchema.partial().parse(otherData);
     
+    // Log what we're updating for debugging
+    console.log("Updating company with data:", {
+      ...companyData,
+      customLinks: customLinks ? "Present" : "None",
+      tags: tags ? "Present" : "None"
+    });
+    
     // Update the company
-    // Handle custom links separately to avoid type issues
+    // Handle special fields separately to avoid type issues
     const company = await storage.updateCompany(id, {
       ...companyData,
-      customLinks: customLinks ? customLinks : null
+      customLinks: customLinks || null,
+      tags: tags || null
     });
     
     res.json({ company });
