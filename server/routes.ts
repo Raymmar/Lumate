@@ -2791,12 +2791,13 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      const [eventCount, peopleCount, userCount, totalAttendeesCount] =
+      const [eventCount, peopleCount, userCount, totalAttendeesCount, paidUsersCount] =
         await Promise.all([
           storage.getEventCount(),
           storage.getPeopleCount(),
           storage.getUserCount(),
           storage.getTotalAttendeesCount(),
+          storage.getPaidUsersCount(),
         ]);
 
       res.json({
@@ -2805,7 +2806,7 @@ export async function registerRoutes(app: Express) {
         users: userCount,
         uniqueAttendees: peopleCount,
         totalAttendees: totalAttendeesCount,
-        paidUsers: 0,
+        paidUsers: paidUsersCount,
       });
     } catch (error) {
       console.error("Failed to fetch admin stats:", error);

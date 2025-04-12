@@ -646,6 +646,21 @@ export class PostgresStorage implements IStorage {
     const count = Number(result[0].count);
     return count;
   }
+  
+  async getPaidUsersCount(): Promise<number> {
+    try {
+      const result = await db
+        .select({ count: sql`COUNT(*)` })
+        .from(users)
+        .where(eq(users.subscriptionStatus, 'active'));
+      
+      const count = Number(result[0].count);
+      return count;
+    } catch (error) {
+      console.error('Failed to get paid users count:', error);
+      return 0;
+    }
+  }
 
   async getRsvpStatus(userApiId: string, eventApiId: string): Promise<EventRsvpStatus | null> {
     try {
