@@ -614,6 +614,10 @@ export function CompanyPreview({
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="p-4 text-center">
+                <p className="text-muted-foreground">Company not found</p>
+              </div>
             )}
           </div>
         </div>
