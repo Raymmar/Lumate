@@ -4,7 +4,21 @@ import { CompanyCard } from "@/components/companies/CompanyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Building } from "lucide-react";
-import { formatCompanyNameForUrl } from "@/lib/utils";
+
+// Helper function to generate slug from company name
+const generateSlug = (name: string): string => {
+  return name
+    .replace(/\./g, '')
+    .replace(/&/g, 'and')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, ' ')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
 
 interface Company {
   id: number;
@@ -29,7 +43,6 @@ interface Company {
     icon?: string;
   }> | null;
   tags: string[] | null;
-  slug: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,11 +63,8 @@ export default function CompanyDirectory() {
 
   const companies = data?.companies || [];
   
-  // Filter companies based on search query and ensure they have slugs
+  // Filter companies based on search query
   const filteredCompanies = companies.filter((company: Company) => {
-    // First make sure company has a slug
-    if (!company.slug) return false;
-    
     const query = searchQuery.toLowerCase();
     return (
       company.name.toLowerCase().includes(query) ||
@@ -188,7 +198,7 @@ export default function CompanyDirectory() {
             industry={company.industry}
             bio={company.bio}
             tags={company.tags}
-            slug={company.slug as string}
+            slug={generateSlug(company.name)}
           />
         ))}
       </div>

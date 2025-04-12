@@ -373,12 +373,12 @@ export default function CompanyProfilePage() {
             <div>
               Company profile updated. View your public profile at{' '}
               <a 
-                href={`/companies/${result.company.slug}`} 
+                href={`/companies/${formatCompanyNameForUrl(data.name, company.id.toString())}`} 
                 className="underline font-medium"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                /companies/{result.company.slug}
+                /companies/{formatCompanyNameForUrl(data.name, company.id.toString())}
               </a>
             </div>
           ),
@@ -386,18 +386,19 @@ export default function CompanyProfilePage() {
         });
       } else {
         const result = await createCompanyMutation.mutateAsync(data);
+        const newCompanyId = result.company.id;
         toast({
           title: "Success",
           description: (
             <div>
               Company profile created. View your public profile at{' '}
               <a 
-                href={`/companies/${result.company.slug}`}
+                href={`/companies/${formatCompanyNameForUrl(data.name, newCompanyId.toString())}`}
                 className="underline font-medium"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                /companies/{result.company.slug}
+                /companies/{formatCompanyNameForUrl(data.name, newCompanyId.toString())}
               </a>
             </div>
           ),

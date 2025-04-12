@@ -38,7 +38,6 @@ interface Company {
     icon?: string;
   }> | null;
   tags: string[] | null;
-  slug: string | null;
   createdAt: string;
   updatedAt: string;
 }

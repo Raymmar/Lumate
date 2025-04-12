@@ -5,6 +5,21 @@ import { Card } from "@/components/ui/card";
 import { ArrowRight, Building } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Helper function to generate slug from company name
+const generateSlug = (name: string): string => {
+  return name
+    .replace(/\./g, '')
+    .replace(/&/g, 'and')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, ' ')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+};
+
 interface Company {
   id: number;
   name: string;
@@ -13,7 +28,6 @@ interface Company {
   industry: string | null;
   bio: string | null;
   tags: string[] | null;
-  slug: string | null;
 }
 
 export function FeaturedCompaniesGrid() {
@@ -30,9 +44,9 @@ export function FeaturedCompaniesGrid() {
 
   const allCompanies = data?.companies || [];
   
-  // Filter out companies without featured images and slugs
+  // Filter out companies without featured images
   const companiesWithImages = allCompanies.filter(
-    (company: Company) => company.featuredImageUrl && company.slug
+    (company: Company) => company.featuredImageUrl
   );
   
   // Render loading skeletons
@@ -76,7 +90,7 @@ export function FeaturedCompaniesGrid() {
       
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {randomCompanies.map((company: Company) => (
-          <Link key={company.id} href={`/companies/${company.slug}`} className="no-underline">
+          <Link key={company.id} href={`/companies/${generateSlug(company.name)}`} className="no-underline">
             <Card className="overflow-hidden h-full transition-all hover:shadow-md cursor-pointer">
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
                 <img 

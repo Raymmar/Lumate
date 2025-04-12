@@ -10,7 +10,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Link as RouterLink } from "wouter";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -148,11 +147,21 @@ export function CompanyPreview({
     mutationFn: async (data: InsertCompany) => {
       if (!company?.id) return;
       
+      // Import formatCompanyNameForUrl from utils
+      const { formatCompanyNameForUrl } = await import('@/lib/utils');
+      
       // Create a copy of the data to modify
       const updatedData = { ...data };
       
-      // We no longer generate slugs dynamically on the client
-      // This is now handled by the server
+      // Generate a URL-friendly slug from company name if name is being updated
+      if (updatedData.name) {
+        // Use company ID as fallback if slug generation fails
+        const slug = formatCompanyNameForUrl(updatedData.name, String(company.id));
+        
+        // Add the slug to the data being updated
+        updatedData.slug = slug;
+        console.log(`Generated slug "${slug}" for company "${updatedData.name}"`);
+      }
       
       return apiRequest<Company>(`/api/companies/${company.id}`, 'PUT', updatedData);
     },
@@ -663,19 +672,12 @@ export function CompanyPreview({
                 {/* View Public Profile Button */}
                 {company?.name && (
                   <div className="mt-4">
-                    {company?.slug ? (
-                      <RouterLink to={`/companies/${company.slug}`}>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          View Public Profile
-                        </Button>
-                      </RouterLink>
-                    ) : (
-                      <Button variant="outline" size="sm" className="w-full" disabled>
+                    <RouterLink to={`/companies/${company?.name?.toLowerCase().replace(/\s+/g, '-')}`}>
+                      <Button variant="outline" size="sm" className="w-full">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Public Profile Unavailable
+                        View Public Profile
                       </Button>
-                    )}
+                    </RouterLink>
                   </div>
                 )}
               </div>
