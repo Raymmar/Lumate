@@ -499,6 +499,7 @@ export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 export const companies = pgTable("companies", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
+  slug: varchar("slug", { length: 255 }),  // URL-friendly version of the name
   description: text("description"),
   website: varchar("website", { length: 255 }),
   logoUrl: varchar("logo_url", { length: 255 }),
