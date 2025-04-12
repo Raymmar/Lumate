@@ -173,17 +173,67 @@ export function CompanyPreview({
       userIds: number[], 
       ownerUserId: number | null 
     }) => {
-      // For each user ID, make a request to add them as a company member
-      const promises = userIds.map(userId => 
-        apiRequest('/api/companies/members', 'POST', { 
-          companyId, 
-          userId, 
-          // If this user is the owner, set role to 'owner', otherwise 'member'
-          role: userId === ownerUserId ? 'owner' : 'member',
-          isPublic: true
-        })
-      );
-      return Promise.all(promises);
+      try {
+        // First, get the existing members to avoid adding duplicates
+        const existingMembersResponse = await fetch(`/api/companies/${companyId}/members`);
+        if (!existingMembersResponse.ok) {
+          throw new Error('Failed to fetch company members');
+        }
+        const existingMembersData = await existingMembersResponse.json();
+        const existingMemberIds = existingMembersData.members.map((member: any) => member.userId);
+        
+        // Filter out any user IDs that are already members
+        const newMemberIds = userIds.filter(id => !existingMemberIds.includes(id));
+        
+        // Find existing owner to update role if needed
+        const existingOwner = existingMembersData.members.find((member: any) => member.role === 'owner');
+        
+        // Update roles if ownership is changing
+        let updatePromises: Promise<any>[] = [];
+        
+        // If we have a new owner and it's different from the current owner
+        if (ownerUserId && existingOwner && existingOwner.userId !== ownerUserId) {
+          // Demote the existing owner to member
+          updatePromises.push(
+            apiRequest(`/api/companies/${companyId}/members/${existingOwner.userId}`, 'PATCH', { 
+              role: 'member' 
+            })
+          );
+          
+          // If the new owner is already a member, promote them to owner
+          if (existingMemberIds.includes(ownerUserId)) {
+            updatePromises.push(
+              apiRequest(`/api/companies/${companyId}/members/${ownerUserId}`, 'PATCH', { 
+                role: 'owner' 
+              })
+            );
+            // Remove new owner from the list of members to add since they're already a member
+            const index = newMemberIds.indexOf(ownerUserId);
+            if (index > -1) {
+              newMemberIds.splice(index, 1);
+            }
+          }
+        }
+        
+        // Now add any new members
+        const addPromises = newMemberIds.map(userId => 
+          apiRequest('/api/companies/members', 'POST', { 
+            companyId, 
+            userId, 
+            // If this user is the owner and not already a member, set role to 'owner'
+            role: userId === ownerUserId ? 'owner' : 'member',
+            isPublic: true
+          })
+        );
+        
+        // Execute all promises
+        await Promise.all([...updatePromises, ...addPromises]);
+        
+        return { success: true };
+      } catch (error) {
+        console.error('Error processing company members:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company?.id] });
@@ -192,7 +242,7 @@ export function CompanyPreview({
       console.error('Error adding company members:', error);
       toast({
         title: 'Warning',
-        description: 'Company was updated, but there was an issue adding some members',
+        description: 'Company was updated, but there was an issue managing the company members',
         variant: 'destructive',
       });
     }

@@ -264,10 +264,23 @@ export function CompanyForm({
       const memberUserIds = companyMembersData.members.map(member => member.userId);
       setSelectedMembers(memberUserIds);
       
-      // Find the owner (member with role 'owner')
-      const ownerMember = companyMembersData.members.find(member => member.role === 'owner');
+      // First try to find a member with explicit 'owner' role
+      let ownerMember = companyMembersData.members.find(member => member.role === 'owner');
+      
+      // If no explicit owner found, look for 'admin' role as fallback 
+      // (since existing companies may use admin instead of owner)
+      if (!ownerMember) {
+        ownerMember = companyMembersData.members.find(member => member.role === 'admin');
+      }
+      
+      // If still no owner found but we have members, use the first member as owner
+      if (!ownerMember && companyMembersData.members.length > 0) {
+        ownerMember = companyMembersData.members[0];
+      }
+      
       if (ownerMember) {
         setOwnerUserId(ownerMember.userId);
+        console.log(`Set owner to user ID ${ownerMember.userId} with role ${ownerMember.role}`);
       }
     }
   }, [companyMembersData]);
