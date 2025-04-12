@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 async function fetchRevenueData() {
   try {
-    // Just use the localhost URL since we're running in the Replit environment
+    // Access through localhost with the appropriate port (which is 3000 for Express)
     const replitUrl = 'http://localhost:3000';
     
     console.log(`Fetching revenue data from: ${replitUrl}/api/stripe/revenue`);
