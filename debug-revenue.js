@@ -2,12 +2,14 @@ import fetch from 'node-fetch';
 
 async function fetchRevenueData() {
   try {
-    // You'll need to be logged in as admin to access this endpoint
-    console.log('Fetching revenue data...');
+    // Just use the localhost URL since we're running in the Replit environment
+    const replitUrl = 'http://localhost:3000';
     
-    const response = await fetch('http://localhost:3000/api/stripe/revenue', {
-      credentials: 'include'
-    });
+    console.log(`Fetching revenue data from: ${replitUrl}/api/stripe/revenue`);
+    
+    // You'll need to be logged in as admin to access this endpoint
+    // The test-admin-login.js script can help with that if needed
+    const response = await fetch(`${replitUrl}/api/stripe/revenue`);
     
     if (!response.ok) {
       console.error('Error fetching revenue data:', response.status, response.statusText);
