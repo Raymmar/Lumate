@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink, Tickets, Coins } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink, Tickets, Coins, Building } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
@@ -10,8 +10,10 @@ import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 export default function AdminDashboard() {
+  const [_, navigate] = useLocation();
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
     queryFn: async () => {
@@ -27,6 +29,15 @@ export default function AdminDashboard() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+  
+  // Navigation functions
+  const handleNewMember = () => {
+    navigate("/admin/members?action=new");
+  };
+  
+  const handleNewCompany = () => {
+    navigate("/admin/companies?action=new");
+  };
 
   // Fetch all posts for navigation
   const { data: postsData } = useQuery<{ posts: Post[] }>({
@@ -55,7 +66,7 @@ export default function AdminDashboard() {
     <AdminLayout title={
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             onClick={() => window.open('https://lu.ma/calendar/manage/cal-piKozq5UuJw79D', '_blank')}
@@ -70,6 +81,20 @@ export default function AdminDashboard() {
           >
             <Plus className="w-4 h-4 mr-2" />
             New Post
+          </Button>
+          <Button 
+            className="bg-primary hover:bg-primary/90 text-sm"
+            onClick={handleNewMember}
+          >
+            <UserPlus className="w-4 h-4 mr-2" />
+            New Member
+          </Button>
+          <Button 
+            className="bg-primary hover:bg-primary/90 text-sm"
+            onClick={handleNewCompany}
+          >
+            <Building className="w-4 h-4 mr-2" />
+            New Company
           </Button>
         </div>
       </div>

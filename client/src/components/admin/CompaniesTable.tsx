@@ -2,11 +2,12 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import type { Company, InsertCompany } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { CompanyPreview } from "./CompanyPreview";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useLocation } from "wouter";
 import {
   Pagination,
   PaginationContent,
@@ -37,7 +38,21 @@ export function CompaniesTable() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
+  const [location, setLocation] = useLocation();
   const ITEMS_PER_PAGE = 10;
+  
+  // Check URL params for "action=new" to automatically open the create company form
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const action = url.searchParams.get('action');
+    
+    if (action === 'new') {
+      setIsCreating(true);
+      // Remove the query parameter from the URL without refreshing the page
+      url.searchParams.delete('action');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [location]);
 
   // Create company mutation
   const createCompanyMutation = useMutation({

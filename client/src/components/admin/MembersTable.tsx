@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import type { User, Person, Badge } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { MemberPreview } from "./MemberPreview";
 import { MemberForm } from "./MemberForm";
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { UserPlus } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -46,6 +47,20 @@ export function MembersTable() {
   const debouncedSearch = useDebounce(searchQuery, 300);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [location, setLocation] = useLocation();
+  
+  // Check URL params for "action=new" to automatically open the create member modal
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const action = url.searchParams.get('action');
+    
+    if (action === 'new') {
+      setIsCreatingMember(true);
+      // Remove the query parameter from the URL without refreshing the page
+      url.searchParams.delete('action');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [location]);
 
   const itemsPerPage = 100;
 
