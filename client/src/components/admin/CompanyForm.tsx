@@ -150,6 +150,7 @@ export function CompanyForm({
   const [newLinkTitle, setNewLinkTitle] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const [ownerUserId, setOwnerUserId] = useState<number | null>(null);
   
   // Fetch all users for member assignment
   const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[], total: number }>({
@@ -301,13 +302,17 @@ export function CompanyForm({
         customLinks: values.customLinks || [],
       };
       
+      // Check if we have an owner selected, otherwise default to first member
+      const owner = ownerUserId || (selectedMembers.length > 0 ? selectedMembers[0] : null);
+      
       // We'll pass the form data and selected members to the onSubmit handler
       // This way the CompanyPreview component can handle both the company creation
       // and the company member assignments
       await onSubmit({
         ...formData,
         // Pass along selected members as additional data (not part of InsertCompany type)
-        _selectedMembers: selectedMembers
+        _selectedMembers: selectedMembers,
+        _ownerUserId: owner
       } as any);
     } catch (error) {
       console.error("Error submitting company form:", error);
