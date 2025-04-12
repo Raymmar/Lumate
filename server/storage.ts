@@ -1973,13 +1973,52 @@ export class PostgresStorage implements IStorage {
 
   async getCompanyById(id: number): Promise<Company | null> {
     try {
+      console.log(`Fetching company with ID: ${id}`);
+      
+      // Use a more explicit selection to ensure we get all fields
       const result = await db
-        .select()
+        .select({
+          id: companies.id,
+          name: companies.name,
+          description: companies.description,
+          industry: companies.industry,
+          size: companies.size,
+          founded: companies.founded,
+          address: companies.address,
+          phoneNumber: companies.phoneNumber,
+          email: companies.email,
+          website: companies.website,
+          logoUrl: companies.logoUrl,
+          featuredImageUrl: companies.featuredImageUrl,
+          bio: companies.bio,
+          isPhonePublic: companies.isPhonePublic,
+          isEmailPublic: companies.isEmailPublic,
+          ctaText: companies.ctaText,
+          customLinks: companies.customLinks,
+          tags: companies.tags,
+          createdAt: companies.createdAt,
+          updatedAt: companies.updatedAt
+        })
         .from(companies)
         .where(eq(companies.id, id))
         .limit(1);
       
-      return result.length > 0 ? result[0] : null;
+      if (result.length > 0) {
+        const company = result[0];
+        console.log(`Found company details for ID ${id}:`, { 
+          name: company.name,
+          hasFoundedData: company.founded ? 'Yes' : 'No',
+          hasAddressData: company.address ? 'Yes' : 'No',
+          hasBioData: company.bio ? 'Yes' : 'No',
+          hasFeaturedImageUrl: company.featuredImageUrl ? 'Yes' : 'No',
+          hasCtaText: company.ctaText ? 'Yes' : 'No',
+          hasCustomLinks: company.customLinks ? 'Yes' : 'No',
+          hasTags: company.tags ? 'Yes' : 'No'
+        });
+        return company;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Failed to get company by ID:', error);
       throw error;

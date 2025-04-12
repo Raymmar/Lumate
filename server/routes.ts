@@ -988,23 +988,71 @@ export async function registerRoutes(app: Express) {
       }
 
       const companyId = parseInt(req.params.id);
+      console.log(`API: Fetching company ID ${companyId} for edit form`);
+      
       const company = await storage.getCompanyById(companyId);
 
       if (!company) {
+        console.log(`Company with ID ${companyId} not found`);
         return res.status(404).json({ error: "Company not found" });
       }
 
+      // Log the raw company data to diagnose missing fields
+      console.log(`Company data retrieved from storage for ${companyId}:`, {
+        id: company.id,
+        name: company.name,
+        hasDescription: company.description ? 'Yes' : 'No',
+        hasIndustry: company.industry ? 'Yes' : 'No',
+        hasSize: company.size ? 'Yes' : 'No',
+        hasFounded: company.founded ? 'Yes' : 'No',
+        hasAddress: company.address ? 'Yes' : 'No',
+        hasPhone: company.phoneNumber ? 'Yes' : 'No',
+        hasEmail: company.email ? 'Yes' : 'No',
+        hasWebsite: company.website ? 'Yes' : 'No',
+        hasLogoUrl: company.logoUrl ? 'Yes' : 'No',
+        hasFeaturedImageUrl: company.featuredImageUrl ? 'Yes' : 'No',
+        hasBio: company.bio ? 'Yes' : 'No',
+        hasCustomLinks: company.customLinks ? 'Yes' : 'No',
+        hasTags: company.tags ? 'Yes' : 'No',
+        hasCtaText: company.ctaText ? 'Yes' : 'No'
+      });
+
       // Get company members
       const members = await storage.getCompanyMembers(companyId);
+      console.log(`Found ${members.length} members for company ${companyId}`);
       
       // Get company tags
       const tags = await storage.getCompanyTags(companyId);
+      console.log(`Found ${tags.length} tags for company ${companyId}`);
 
-      res.json({
-        ...company,
+      // Create a comprehensive response with all fields explicitly included
+      const response = {
+        id: company.id,
+        name: company.name,
+        description: company.description || "",
+        industry: company.industry || "",
+        size: company.size || "",
+        founded: company.founded || "",
+        address: company.address || "",
+        phoneNumber: company.phoneNumber || "",
+        email: company.email || "",
+        website: company.website || "",
+        logoUrl: company.logoUrl || "",
+        featuredImageUrl: company.featuredImageUrl || "",
+        bio: company.bio || "",
+        isPhonePublic: company.isPhonePublic || false,
+        isEmailPublic: company.isEmailPublic || false, 
+        ctaText: company.ctaText || "",
+        customLinks: company.customLinks,
+        tags: company.tags,
+        createdAt: company.createdAt,
+        updatedAt: company.updatedAt,
         members,
-        tags,
-      });
+        tagsList: tags, // Add this additional field for the tag objects from the separate table
+      };
+
+      console.log(`Sending company data to frontend for ID ${companyId}`);
+      res.json(response);
     } catch (error) {
       console.error("Failed to fetch company details:", error);
       res.status(500).json({ error: "Failed to fetch company details" });

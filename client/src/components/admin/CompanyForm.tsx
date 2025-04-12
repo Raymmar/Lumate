@@ -217,6 +217,7 @@ export function CompanyForm({
         } else if (Array.isArray(company.customLinks)) {
           parsedCustomLinks = company.customLinks;
         }
+        console.log("Parsed custom links:", parsedCustomLinks);
       } catch (e) {
         console.error("Failed to parse custom links:", e);
       }
@@ -225,11 +226,20 @@ export function CompanyForm({
       let parsedTags: string[] = [];
       
       try {
+        // First try to use the tags from the company record
         if (typeof company.tags === 'string') {
           parsedTags = JSON.parse(company.tags as string);
         } else if (Array.isArray(company.tags)) {
           parsedTags = company.tags;
         }
+        
+        // If we have a separate tagsList field (from tag objects in the database), use those
+        if (company.tagsList && Array.isArray(company.tagsList) && company.tagsList.length > 0) {
+          // Extract just the text value from each tag object
+          parsedTags = company.tagsList.map(tag => tag.text || tag.name);
+        }
+        
+        console.log("Parsed tags:", parsedTags);
       } catch (e) {
         console.error("Failed to parse tags:", e);
       }
