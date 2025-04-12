@@ -189,26 +189,9 @@ export function CompanyForm({
     reValidateMode: "onBlur",
   });
 
-  // Fetch company members if editing an existing company
-  const { data: membersData, isLoading: isLoadingMembers } = useQuery({
-    queryKey: ['/api/companies/members', company?.id],
-    queryFn: async () => {
-      if (!company?.id) return { members: [] };
-      const response = await fetch(`/api/companies/${company.id}/members`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch company members');
-      }
-      return response.json();
-    },
-    enabled: !!company?.id
-  });
-
   // Update form values when company data is loaded
   useEffect(() => {
     if (company) {
-      console.log("Loading company data:", company); // Debug log
-      
-      // Parse custom links
       let parsedCustomLinks: UserCustomLink[] = [];
       
       try {
@@ -217,37 +200,11 @@ export function CompanyForm({
         } else if (Array.isArray(company.customLinks)) {
           parsedCustomLinks = company.customLinks;
         }
-        console.log("Parsed custom links:", parsedCustomLinks);
       } catch (e) {
         console.error("Failed to parse custom links:", e);
       }
       
-      // Parse tags
-      let parsedTags: string[] = [];
-      
-      try {
-        // First try to use the tags from the company record
-        if (typeof company.tags === 'string') {
-          parsedTags = JSON.parse(company.tags as string);
-        } else if (Array.isArray(company.tags)) {
-          parsedTags = company.tags;
-        }
-        
-        // If we have a separate tagsList field (from tag objects in the database), use those
-        if ((company as any).tagsList && Array.isArray((company as any).tagsList) && (company as any).tagsList.length > 0) {
-          // Extract just the text value from each tag object
-          parsedTags = (company as any).tagsList.map((tag: any) => tag.text || tag.name);
-        }
-        
-        console.log("Parsed tags:", parsedTags);
-      } catch (e) {
-        console.error("Failed to parse tags:", e);
-      }
-      
-      // Ensure all fields have proper defaults to prevent undefined values
-      // and make absolutely sure we handle all the fields from the schema
-      const formData = {
-        // Basic Information
+      form.reset({
         name: company.name || "",
         description: company.description || "",
         website: company.website || "",
@@ -255,61 +212,22 @@ export function CompanyForm({
         address: company.address || "",
         phoneNumber: company.phoneNumber || "",
         email: company.email || "",
-        
-        // Company Details
         industry: company.industry || "",
         size: company.size || "",
         founded: company.founded || "",
-        
-        // Media and Content
         featuredImageUrl: company.featuredImageUrl || "",
         bio: company.bio || "",
-        
-        // Privacy settings
-        isPhonePublic: Boolean(company.isPhonePublic),
-        isEmailPublic: Boolean(company.isEmailPublic),
-        
-        // Call to action and Social
+        isPhonePublic: company.isPhonePublic || false,
+        isEmailPublic: company.isEmailPublic || false,
         ctaText: company.ctaText || "",
         customLinks: parsedCustomLinks,
-        tags: parsedTags,
-      };
+        tags: company.tags || [],
+      });
       
-      // Debug log the form data before reset
-      console.log("About to reset form with data:", formData);
-      
-      // Reset the form with all company properties
-      form.reset(formData);
-      
-      // Update state to match form data
       setCustomLinks(parsedCustomLinks);
-      setTags(parsedTags);
-      
-      // Output what was actually set on the form
-      console.log("Form values after reset:", form.getValues());
+      setTags(company.tags || []);
     }
   }, [company, form]);
-  
-  // Update selected members when members data is loaded
-  useEffect(() => {
-    if (membersData?.members && membersData.members.length > 0) {
-      // Extract user IDs from members
-      const memberUserIds = membersData.members.map((member: any) => member.user.id);
-      setSelectedMembers(memberUserIds);
-      
-      // Find the owner (member with role 'admin' or 'owner')
-      const owner = membersData.members.find((member: any) => 
-        member.role === 'owner' || member.role === 'admin'
-      );
-      
-      if (owner) {
-        setOwnerUserId(owner.user.id);
-      } else if (memberUserIds.length > 0) {
-        // If no explicit owner, set the first member as owner
-        setOwnerUserId(memberUserIds[0]);
-      }
-    }
-  }, [membersData]);
 
   // Handle tag addition
   const handleAddTag = () => {

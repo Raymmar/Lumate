@@ -62,36 +62,6 @@ export function CompanyPreview({
   // Check if user can edit this company
   const canEditCompany = user?.isAdmin;
   
-  // Fetch complete company data for editing
-  const { data: companyFullData, isLoading: isLoadingCompanyData } = useQuery({
-    queryKey: ['/api/admin/companies/details', company?.id],
-    queryFn: async () => {
-      if (!company?.id) return null;
-      try {
-        const response = await fetch(`/api/admin/companies/${company.id}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch complete company data');
-        }
-        console.log("Fetched complete company data for editing");
-        return response.json();
-      } catch (err) {
-        console.error("Error fetching company data:", err);
-        return null;
-      }
-    },
-    enabled: !!company?.id && isEditMode
-  });
-  
-  // Debug - log company data changes
-  useEffect(() => {
-    if (company) {
-      console.log("CompanyPreview: Company data from table:", company);
-    }
-    if (companyFullData) {
-      console.log("CompanyPreview: Complete company data for editing:", companyFullData);
-    }
-  }, [company, companyFullData]);
-
   // Fetch company members if we have a company ID
   const { data: membersData, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['/api/companies/members', company?.id],
@@ -278,18 +248,11 @@ export function CompanyPreview({
         </div>
       ) : isEditMode || isNew ? (
         <div className="p-4">
-          {isLoadingCompanyData ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
-              <p className="text-sm text-muted-foreground">Loading complete company data...</p>
-            </div>
-          ) : (
-            <CompanyForm
-              company={companyFullData || company}
-              onSubmit={handleCompanySave}
-              isLoading={updateCompanyMutation.isPending}
-            />
-          )}
+          <CompanyForm
+            company={company}
+            onSubmit={handleCompanySave}
+            isLoading={updateCompanyMutation.isPending}
+          />
         </div>
       ) : (
         <div className="flex flex-col h-full">

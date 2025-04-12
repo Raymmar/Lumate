@@ -100,68 +100,15 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     }
 
     // Validate the company data
-    const { customLinks, tags, ...otherData } = req.body;
+    const { customLinks, ...otherData } = req.body;
     const companyData = insertCompanySchema.partial().parse(otherData);
     
-    // Log detailed information about what we're receiving 
-    console.log("Raw company update data received:", {
-      customLinks: JSON.stringify(customLinks),
-      tags: JSON.stringify(tags),
-      otherData: JSON.stringify(otherData)
-    });
-    
     // Update the company
-    // Fix the issue with special fields
-    const updateData: any = {
-      ...companyData
-    };
-    
-    // Handle customLinks properly
-    if (customLinks !== undefined) {
-      // If it's already an array, use it directly
-      if (Array.isArray(customLinks)) {
-        updateData.customLinks = customLinks;
-      } 
-      // If it's a string (from JSON), parse it
-      else if (typeof customLinks === 'string') {
-        try {
-          updateData.customLinks = JSON.parse(customLinks);
-        } catch (e) {
-          console.error("Failed to parse customLinks:", e);
-          updateData.customLinks = null;
-        }
-      }
-      // Default to null if not provided
-      else {
-        updateData.customLinks = null;
-      }
-    }
-    
-    // Handle tags properly
-    if (tags !== undefined) {
-      // If it's already an array, use it directly
-      if (Array.isArray(tags)) {
-        updateData.tags = tags;
-      }
-      // If it's a string (from JSON), parse it
-      else if (typeof tags === 'string') {
-        try {
-          updateData.tags = JSON.parse(tags);
-        } catch (e) {
-          console.error("Failed to parse tags:", e);
-          updateData.tags = null;
-        }
-      }
-      // Default to null if not provided
-      else {
-        updateData.tags = null;
-      }
-    }
-    
-    console.log("Final company update data:", updateData);
-    
-    // Update the company with properly formatted data
-    const company = await storage.updateCompany(id, updateData);
+    // Handle custom links separately to avoid type issues
+    const company = await storage.updateCompany(id, {
+      ...companyData,
+      customLinks: customLinks ? customLinks : null
+    });
     
     res.json({ company });
   } catch (error) {
