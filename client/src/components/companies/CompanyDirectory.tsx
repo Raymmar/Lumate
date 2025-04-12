@@ -50,8 +50,11 @@ export default function CompanyDirectory() {
 
   const companies = data?.companies || [];
   
-  // Filter companies based on search query
+  // Filter companies based on search query and ensure they have slugs
   const filteredCompanies = companies.filter((company: Company) => {
+    // First make sure company has a slug
+    if (!company.slug) return false;
+    
     const query = searchQuery.toLowerCase();
     return (
       company.name.toLowerCase().includes(query) ||
@@ -185,7 +188,7 @@ export default function CompanyDirectory() {
             industry={company.industry}
             bio={company.bio}
             tags={company.tags}
-            slug={company.slug}
+            slug={company.slug as string}
           />
         ))}
       </div>

@@ -30,9 +30,9 @@ export function FeaturedCompaniesGrid() {
 
   const allCompanies = data?.companies || [];
   
-  // Filter out companies without featured images
+  // Filter out companies without featured images and slugs
   const companiesWithImages = allCompanies.filter(
-    (company: Company) => company.featuredImageUrl
+    (company: Company) => company.featuredImageUrl && company.slug
   );
   
   // Render loading skeletons
@@ -76,7 +76,7 @@ export function FeaturedCompaniesGrid() {
       
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {randomCompanies.map((company: Company) => (
-          <Link key={company.id} href={`/companies/${company.slug || generateSlug(company.name)}`} className="no-underline">
+          <Link key={company.id} href={`/companies/${company.slug}`} className="no-underline">
             <Card className="overflow-hidden h-full transition-all hover:shadow-md cursor-pointer">
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
                 <img 
