@@ -239,7 +239,6 @@ export function CompaniesTable() {
             placeholder="Search companies..."
           />
           <Button 
-            variant="outline" 
             size="sm"
             onClick={() => {
               setSelectedCompany(null);
