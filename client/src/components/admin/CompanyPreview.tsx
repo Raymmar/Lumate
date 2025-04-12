@@ -62,6 +62,20 @@ export function CompanyPreview({
   // Check if user can edit this company
   const canEditCompany = user?.isAdmin;
   
+  // Fetch complete company data for detailed view
+  const { data: companyDetails, isLoading: isLoadingDetails } = useQuery({
+    queryKey: ['/api/admin/companies', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return null;
+      const response = await fetch(`/api/admin/companies/${company.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch company details');
+      }
+      return response.json();
+    },
+    enabled: !!company?.id && !isNew && !isEditMode
+  });
+  
   // Fetch company members if we have a company ID
   const { data: membersData, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['/api/companies/members', company?.id],
@@ -288,15 +302,34 @@ export function CompanyPreview({
 
           {/* Company Content */}
           <div className="flex-1 overflow-y-auto">
-            {company ? (
+            {isLoadingDetails ? (
+              <div className="p-4 space-y-4">
+                <div className="w-full aspect-video bg-muted rounded-lg animate-pulse"></div>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-lg bg-muted animate-pulse"></div>
+                  <div className="space-y-2">
+                    <div className="h-6 w-48 bg-muted rounded animate-pulse"></div>
+                    <div className="h-4 w-32 bg-muted rounded animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-20 bg-muted rounded animate-pulse"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="h-10 bg-muted rounded animate-pulse"></div>
+                  <div className="h-10 bg-muted rounded animate-pulse"></div>
+                  <div className="h-10 bg-muted rounded animate-pulse"></div>
+                  <div className="h-10 bg-muted rounded animate-pulse"></div>
+                </div>
+              </div>
+            ) : (
               <div className="space-y-6 p-4">
                 {/* Company Header */}
                 <div className="relative">
-                  {company.featuredImageUrl && (
+                  {/* Use companyDetails if available, otherwise fall back to company prop */}
+                  {(companyDetails?.featuredImageUrl || company?.featuredImageUrl) && (
                     <div className="aspect-video rounded-lg overflow-hidden bg-muted mb-4 relative group">
                       <img 
-                        src={company.featuredImageUrl} 
-                        alt={company.name} 
+                        src={companyDetails?.featuredImageUrl || company?.featuredImageUrl} 
+                        alt={(companyDetails?.name || company?.name) || "Company"} 
                         className="w-full h-full object-cover" 
                       />
                       
@@ -334,11 +367,11 @@ export function CompanyPreview({
                   )}
 
                   <div className="flex items-center gap-4 mb-4">
-                    {company.logoUrl ? (
+                    {(companyDetails?.logoUrl || company?.logoUrl) ? (
                       <div className="h-20 w-20 rounded-lg overflow-hidden bg-muted">
                         <img 
-                          src={company.logoUrl} 
-                          alt={`${company.name} logo`} 
+                          src={companyDetails?.logoUrl || company?.logoUrl} 
+                          alt={`${companyDetails?.name || company?.name} logo`} 
                           className="w-full h-full object-contain" 
                         />
                       </div>
@@ -349,16 +382,16 @@ export function CompanyPreview({
                     )}
                     
                     <div>
-                      <h1 className="text-2xl font-bold">{company.name}</h1>
+                      <h1 className="text-2xl font-bold">{companyDetails?.name || company?.name}</h1>
                       <div className="text-muted-foreground">
-                        {company.industry && (
-                          <span className="inline-block">{company.industry}</span>
+                        {(companyDetails?.industry || company?.industry) && (
+                          <span className="inline-block">{companyDetails?.industry || company?.industry}</span>
                         )}
-                        {company.size && company.industry && (
+                        {(companyDetails?.size || company?.size) && (companyDetails?.industry || company?.industry) && (
                           <span className="mx-1.5">•</span>
                         )}
-                        {company.size && (
-                          <span className="inline-block">{company.size} employees</span>
+                        {(companyDetails?.size || company?.size) && (
+                          <span className="inline-block">{companyDetails?.size || company?.size} employees</span>
                         )}
                       </div>
                     </div>
@@ -367,80 +400,92 @@ export function CompanyPreview({
 
                 {/* Company Details */}
                 <div>
-                  {company.description && (
-                    <p className="text-lg mb-4">{company.description}</p>
+                  {(companyDetails?.description || company?.description) && (
+                    <p className="text-lg mb-4">{companyDetails?.description || company?.description}</p>
                   )}
                   
-                  {company.bio && (
+                  {(companyDetails?.bio || company?.bio) && (
                     <div className="mb-4">
                       <h2 className="text-lg font-semibold mb-2">About</h2>
-                      <p>{company.bio}</p>
+                      <p>{companyDetails?.bio || company?.bio}</p>
                     </div>
                   )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {company.website && (
+                    {(companyDetails?.website || company?.website) && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground">Website</h3>
                         <div className="flex items-center gap-1">
                           <a 
-                            href={company.website} 
+                            href={companyDetails?.website || company?.website} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="text-primary hover:underline flex items-center"
                           >
-                            {company.website.replace(/^https?:\/\/(www\.)?/, '')}
+                            {(companyDetails?.website || company?.website)?.replace(/^https?:\/\/(www\.)?/, '')}
                             <ExternalLink className="h-3.5 w-3.5 ml-1" />
                           </a>
                         </div>
                       </div>
                     )}
                     
-                    {company.email && company.isEmailPublic && (
+                    {((companyDetails?.email || company?.email) && 
+                      (companyDetails?.isEmailPublic || company?.isEmailPublic)) && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground">Email</h3>
                         <a 
-                          href={`mailto:${company.email}`}
+                          href={`mailto:${companyDetails?.email || company?.email}`}
                           className="text-primary hover:underline"
                         >
-                          {company.email}
+                          {companyDetails?.email || company?.email}
                         </a>
                       </div>
                     )}
                     
-                    {company.phoneNumber && company.isPhonePublic && (
+                    {((companyDetails?.phoneNumber || company?.phoneNumber) && 
+                      (companyDetails?.isPhonePublic || company?.isPhonePublic)) && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground">Phone</h3>
                         <a 
-                          href={`tel:${company.phoneNumber}`}
+                          href={`tel:${companyDetails?.phoneNumber || company?.phoneNumber}`}
                           className="text-primary hover:underline"
                         >
-                          {company.phoneNumber}
+                          {companyDetails?.phoneNumber || company?.phoneNumber}
                         </a>
                       </div>
                     )}
                     
-                    {company.address && (
+                    {(companyDetails?.address || company?.address) && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground">Address</h3>
-                        <p>{company.address}</p>
+                        <p>{companyDetails?.address || company?.address}</p>
                       </div>
                     )}
                     
-                    {company.founded && (
+                    {(companyDetails?.founded || company?.founded) && (
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground">Founded</h3>
-                        <p>{company.founded}</p>
+                        <p>{companyDetails?.founded || company?.founded}</p>
+                      </div>
+                    )}
+                    
+                    {/* Display Slug field if available */}
+                    {((companyDetails as any)?.slug || (company as any)?.slug) && (
+                      <div>
+                        <h3 className="text-sm font-medium text-muted-foreground">Slug</h3>
+                        <p>{(companyDetails as any)?.slug || (company as any)?.slug}</p>
                       </div>
                     )}
                   </div>
                   
                   {/* Company Tags */}
-                  {company.tags && Array.isArray(company.tags) && company.tags.length > 0 && (
+                  {((companyDetails?.tags || company?.tags) && 
+                    Array.isArray(companyDetails?.tags || company?.tags) && 
+                    (companyDetails?.tags || company?.tags)?.length > 0) && (
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
                       <div className="flex flex-wrap gap-2">
-                        {company.tags.map((tag, index) => (
+                        {(companyDetails?.tags || company?.tags)?.map((tag: string, index: number) => (
                           <Badge key={index} variant="secondary">
                             {tag}
                           </Badge>
@@ -454,19 +499,22 @@ export function CompanyPreview({
                     // Use an IIFE (Immediately Invoked Function Expression) to safely handle custom links
                     let displayLinks: Array<{ title: string, url: string }> = [];
                     
+                    // Get customLinks from either companyDetails or company
+                    const customLinks = companyDetails?.customLinks || company?.customLinks;
+                    
                     // Safely parse customLinks
-                    if (company.customLinks) {
-                      if (typeof company.customLinks === 'string') {
+                    if (customLinks) {
+                      if (typeof customLinks === 'string') {
                         try {
-                          const parsed = JSON.parse(company.customLinks);
+                          const parsed = JSON.parse(customLinks);
                           if (Array.isArray(parsed) && parsed.length > 0) {
                             displayLinks = parsed;
                           }
                         } catch (e) {
                           console.error('Error parsing customLinks:', e);
                         }
-                      } else if (Array.isArray(company.customLinks) && company.customLinks.length > 0) {
-                        displayLinks = company.customLinks;
+                      } else if (Array.isArray(customLinks) && customLinks.length > 0) {
+                        displayLinks = customLinks;
                       }
                     }
                     
@@ -506,9 +554,11 @@ export function CompanyPreview({
                   ) : members.length > 0 ? (
                     <CompanyMembersList 
                       members={members} 
-                      companyId={company.id} 
+                      companyId={company?.id || 0} 
                       onMembersChanged={() => {
-                        queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
+                        if (company?.id) {
+                          queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
+                        }
                       }}
                     />
                   ) : (
@@ -520,7 +570,7 @@ export function CompanyPreview({
                   {/* Add Member Button (Only for admins) */}
                   {canEditCompany && (
                     <div className="mt-4">
-                      <RouterLink to={`/admin/companies/${company.id}/members`}>
+                      <RouterLink to={`/admin/companies/${company?.id || 0}/members`}>
                         <Button variant="outline" size="sm" className="w-full">
                           Manage Company Members
                         </Button>
@@ -553,14 +603,16 @@ export function CompanyPreview({
                 )}
 
                 {/* View Public Profile Button */}
-                <div className="mt-4">
-                  <RouterLink to={`/companies/${company.name.toLowerCase().replace(/\s+/g, '-')}`}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      View Public Profile
-                    </Button>
-                  </RouterLink>
-                </div>
+                {company?.name && (
+                  <div className="mt-4">
+                    <RouterLink to={`/companies/${company?.name?.toLowerCase().replace(/\s+/g, '-')}`}>
+                      <Button variant="outline" size="sm" className="w-full">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        View Public Profile
+                      </Button>
+                    </RouterLink>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-4 text-center">
