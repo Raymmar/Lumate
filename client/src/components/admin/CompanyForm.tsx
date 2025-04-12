@@ -22,13 +22,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Loader2, Plus } from "lucide-react";
+import { X, Loader2, Plus, Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Industry options
 const INDUSTRY_OPTIONS = [
@@ -265,6 +280,17 @@ export function CompanyForm({
     form.setValue("customLinks", updatedLinks);
   };
 
+  // Handle member selection
+  const handleMemberToggle = (userId: number) => {
+    setSelectedMembers(current => {
+      if (current.includes(userId)) {
+        return current.filter(id => id !== userId);
+      } else {
+        return [...current, userId];
+      }
+    });
+  };
+
   // Handle form submission
   const handleSubmit = async (values: CompanyFormValues) => {
     try {
@@ -273,6 +299,8 @@ export function CompanyForm({
         // Ensure proper types for DB insert
         tags: values.tags || [],
         customLinks: values.customLinks || [],
+        // Include selected member IDs for assignment during company creation
+        selectedMembers: selectedMembers,
       };
       
       await onSubmit(formData);
