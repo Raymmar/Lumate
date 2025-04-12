@@ -317,15 +317,26 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   </div>
                 )}
                 
-                <Button 
-                  variant="outline" 
-                  asChild
-                  className="w-full mt-2"
-                >
-                  <Link href={`/companies/${userCompany.slug}`}>
+                {userCompany.slug ? (
+                  <Button 
+                    variant="outline" 
+                    asChild
+                    className="w-full mt-2"
+                  >
+                    <Link href={`/companies/${userCompany.slug}`}>
+                      View full company profile
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    disabled
+                    className="w-full mt-2"
+                    title="Company profile URL not available"
+                  >
                     View full company profile
-                  </Link>
-                </Button>
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
