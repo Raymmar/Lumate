@@ -309,6 +309,72 @@ export function CompanyForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField
               control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex justify-between items-center">
+                    <FormLabel>Email Contact</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={form.watch("isEmailPublic")}
+                        onCheckedChange={(checked) => form.setValue("isEmailPublic", checked)}
+                        disabled={readOnly}
+                        className="scale-75"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {form.watch("isEmailPublic") ? "Public" : "Private"}
+                      </span>
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Input 
+                      placeholder="contact@yourcompany.com" 
+                      {...field} 
+                      value={field.value || ""} 
+                      disabled={readOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex justify-between items-center">
+                    <FormLabel>Phone Number</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={form.watch("isPhonePublic")}
+                        onCheckedChange={(checked) => form.setValue("isPhonePublic", checked)}
+                        disabled={readOnly}
+                        className="scale-75"
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {form.watch("isPhonePublic") ? "Public" : "Private"}
+                      </span>
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Input 
+                      placeholder="(941) 123-4567" 
+                      {...field} 
+                      value={field.value || ""} 
+                      disabled={readOnly}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
               name="website"
               render={({ field }) => (
                 <FormItem>
@@ -328,18 +394,21 @@ export function CompanyForm({
 
             <FormField
               control={form.control}
-              name="email"
+              name="ctaText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Contact</FormLabel>
+                  <FormLabel>Call-to-Action Text</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="contact@yourcompany.com" 
+                      placeholder="Contact Us" 
                       {...field} 
                       value={field.value || ""} 
                       disabled={readOnly}
                     />
                   </FormControl>
+                  <FormDescription>
+                    Text for your call-to-action button
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -574,97 +643,7 @@ export function CompanyForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="phoneNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Phone Number</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="(941) 123-4567" 
-                      {...field} 
-                      value={field.value || ""} 
-                      disabled={readOnly}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="ctaText"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Call-to-Action Text</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Contact Us" 
-                      {...field} 
-                      value={field.value || ""} 
-                      disabled={readOnly}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Text for your call-to-action button
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="isPhonePublic"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Make Phone Public
-                    </FormLabel>
-                    <FormDescription>
-                      Display phone number on public profile
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={readOnly}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="isEmailPublic"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">
-                      Make Email Public
-                    </FormLabel>
-                    <FormDescription>
-                      Display email on public profile
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={readOnly}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
+          {/* Privacy settings are now integrated directly with the email/phone fields */}
         </div>
 
         {/* Company Tags */}
