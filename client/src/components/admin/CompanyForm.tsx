@@ -22,26 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown, X, Loader2, Plus } from "lucide-react";
+import { X, Loader2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
-import { cn } from "@/lib/utils";
 
 // Industry options
 const INDUSTRY_OPTIONS = [
@@ -527,78 +514,36 @@ export function CompanyForm({
               control={form.control}
               name="industry"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Industry</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          disabled={readOnly}
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? INDUSTRY_OPTIONS.find(
-                                (industry) => industry === field.value
-                              )
-                            : "Select an industry"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 100 }}>
-                      <Command>
-                        <CommandInput placeholder="Search industry..." />
-                        <CommandEmpty>No industry found.</CommandEmpty>
-                        <CommandGroup className="max-h-[400px] overflow-y-auto">
-                          <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
-                          {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
-                            <CommandItem
-                              key={industry}
-                              value={industry}
-                              onSelect={() => {
-                                form.setValue("industry", industry);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  industry === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {industry}
-                            </CommandItem>
-                          ))}
-                          <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
-                          {INDUSTRY_OPTIONS.slice(14).map((industry) => (
-                            <CommandItem
-                              key={industry}
-                              value={industry}
-                              onSelect={() => {
-                                form.setValue("industry", industry);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  industry === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {industry}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select
+                    disabled={readOnly}
+                    onValueChange={field.onChange}
+                    value={field.value || undefined}
+                    defaultValue={field.value || undefined}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an industry" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <div className="max-h-[400px] overflow-y-auto">
+                        <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
+                        {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
+                          <SelectItem key={industry} value={industry}>
+                            {industry}
+                          </SelectItem>
+                        ))}
+                        <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
+                        {INDUSTRY_OPTIONS.slice(14).map((industry) => (
+                          <SelectItem key={industry} value={industry}>
+                            {industry}
+                          </SelectItem>
+                        ))}
+                      </div>
+                    </SelectContent>
+                  </Select>
                   <FormDescription>
                     Select the industry your company operates in
                   </FormDescription>
