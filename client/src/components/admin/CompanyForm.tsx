@@ -190,7 +190,21 @@ export function CompanyForm({
     reValidateMode: "onBlur",
   });
 
-  // Update form values when company data is loaded
+  // Fetch company members when company id changes
+  const { data: companyMembersData, isLoading: isLoadingCompanyMembers } = useQuery<{members: Array<{userId: number, role: string}>}>({
+    queryKey: ['/api/companies/members', company?.id],
+    queryFn: async () => {
+      if (!company?.id) return { members: [] };
+      const response = await fetch(`/api/companies/${company.id}/members`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch company members');
+      }
+      return response.json();
+    },
+    enabled: !!company?.id
+  });
+
+  // Update form values and members when company data is loaded
   useEffect(() => {
     if (company) {
       let parsedCustomLinks: UserCustomLink[] = [];
@@ -242,6 +256,21 @@ export function CompanyForm({
       setTags(processedTags);
     }
   }, [company, form]);
+  
+  // Set members and owner when member data is loaded
+  useEffect(() => {
+    if (companyMembersData?.members && companyMembersData.members.length > 0) {
+      // Get all member user IDs
+      const memberUserIds = companyMembersData.members.map(member => member.userId);
+      setSelectedMembers(memberUserIds);
+      
+      // Find the owner (member with role 'owner')
+      const ownerMember = companyMembersData.members.find(member => member.role === 'owner');
+      if (ownerMember) {
+        setOwnerUserId(ownerMember.userId);
+      }
+    }
+  }, [companyMembersData]);
 
   // Handle tag addition
   const handleAddTag = () => {

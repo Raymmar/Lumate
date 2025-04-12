@@ -266,6 +266,7 @@ export function CompanyPreview({
             company={companyDetails || company}
             onSubmit={handleCompanySave}
             isLoading={updateCompanyMutation.isPending}
+            onCancel={() => setIsEditMode(false)}
           />
         </div>
       ) : (
