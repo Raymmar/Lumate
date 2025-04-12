@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink, Tickets, Coins, Building } from "lucide-react";
+import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink, Tickets, Coins, Building, RefreshCw } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import { Plus } from "lucide-react";
@@ -11,6 +11,18 @@ import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
+
+interface RevenueData {
+  totalRevenue: number;
+  revenueByPrice: {
+    id: string;
+    nickname?: string;
+    productName?: string;
+    revenue: number;
+    subscriptionCount: number;
+    unitAmount?: number;
+  }[];
+}
 
 export default function AdminDashboard() {
   const [_, navigate] = useLocation();
@@ -23,6 +35,19 @@ export default function AdminDashboard() {
       }
       return response.json();
     }
+  });
+  
+  const { data: revenueData, isLoading: isRevenueLoading, refetch: refetchRevenue } = useQuery<RevenueData>({
+    queryKey: ["/api/stripe/revenue"],
+    queryFn: async () => {
+      const response = await fetch("/api/stripe/revenue");
+      if (!response.ok) {
+        throw new Error("Failed to fetch revenue data");
+      }
+      return response.json();
+    },
+    retry: 1, // Limit retries in case of failure
+    enabled: true // Always enabled so we get data on page load
   });
 
   // Posts management state
@@ -138,12 +163,74 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Membership Revenue"
-          value="--"
+          value={revenueData?.totalRevenue ? `$${revenueData.totalRevenue.toFixed(2)}` : '--'}
           icon={DollarSign}
-          isLoading={isLoading}
-          description="Total revenue from memberships"
+          isLoading={isLoading || isRevenueLoading}
+          description={
+            revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 
+              ? `${revenueData.revenueByPrice.length} subscription types active`
+              : "Total revenue from memberships"
+          }
         />
       </div>
+
+      {/* Revenue Breakdown Section */}
+      {revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Membership Revenue Breakdown</h2>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetchRevenue()}
+              className="flex items-center gap-1 text-xs"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Refresh
+            </Button>
+          </div>
+          <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium">Subscription</th>
+                  <th className="px-4 py-3 text-right font-medium">Price</th>
+                  <th className="px-4 py-3 text-right font-medium">Active Subscriptions</th>
+                  <th className="px-4 py-3 text-right font-medium">Revenue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {revenueData.revenueByPrice.map((item) => (
+                  <tr key={item.id} className="border-t">
+                    <td className="px-4 py-3">
+                      {item.nickname || item.productName || 'Unknown Subscription'}
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      ${item.unitAmount ? item.unitAmount.toFixed(2) : '--'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {item.subscriptionCount}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                      ${item.revenue.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t bg-muted/20">
+                  <td className="px-4 py-3 font-medium">Total</td>
+                  <td className="px-4 py-3"></td>
+                  <td className="px-4 py-3 text-right font-medium">
+                    {revenueData.revenueByPrice.reduce((sum, item) => sum + item.subscriptionCount, 0)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                    ${revenueData.totalRevenue.toFixed(2)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Posts Section */}
       <div className="mt-8">

@@ -282,17 +282,17 @@ router.post("/cancel-subscription", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    if (!user.stripeSubscriptionId || user.stripeSubscriptionId === "NULL") {
+    if (!user.subscriptionId || user.subscriptionId === "NULL") {
       return res.status(400).json({ error: "No active subscription found" });
     }
 
     console.log("🔄 Cancelling subscription:", {
       userId,
-      subscriptionId: user.stripeSubscriptionId,
+      subscriptionId: user.subscriptionId,
     });
 
     const cancelledSubscription = await StripeService.cancelSubscription(
-      user.stripeSubscriptionId,
+      user.subscriptionId,
     );
 
     console.log("✅ Subscription cancelled:", {
@@ -388,6 +388,45 @@ router.get("/subscription-status", async (req, res) => {
     console.error("Error checking subscription status:", error);
     return res.status(500).json({
       error: "Failed to check subscription status",
+      message: error.message,
+    });
+  }
+});
+
+router.get("/revenue", async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    // Parse query parameters
+    const priceIds = req.query.priceIds 
+      ? Array.isArray(req.query.priceIds) 
+        ? req.query.priceIds as string[] 
+        : [req.query.priceIds as string]
+      : undefined;
+      
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+    // Get revenue data
+    const revenueData = await StripeService.getSubscriptionRevenue({
+      priceIds,
+      startDate,
+      endDate
+    });
+
+    return res.json(revenueData);
+  } catch (error: any) {
+    console.error("Error fetching revenue data:", error);
+    return res.status(500).json({
+      error: "Failed to fetch revenue data",
       message: error.message,
     });
   }
