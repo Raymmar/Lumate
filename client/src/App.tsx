@@ -42,6 +42,7 @@ function Router() {
           <Route path="/people/:username" component={PersonProfilePage} />
           <Route path="/verify" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route path="/admin/members" component={AdminMembersPage} />
           <Route path="/admin/events" component={AdminEventsPage} />
           <Route path="/admin/people" component={AdminPeoplePage} />
