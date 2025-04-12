@@ -556,55 +556,27 @@ export function CompanyForm({
               control={form.control}
               name="size"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Company Size</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          disabled={readOnly}
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? COMPANY_SIZE_OPTIONS.find(
-                                (size) => size === field.value
-                              )
-                            : "Select company size"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 100 }}>
-                      <Command>
-                        <CommandInput placeholder="Search size..." />
-                        <CommandEmpty>No size option found.</CommandEmpty>
-                        <CommandGroup className="max-h-[300px] overflow-y-auto">
-                          {COMPANY_SIZE_OPTIONS.map((size) => (
-                            <CommandItem
-                              key={size}
-                              value={size}
-                              onSelect={() => {
-                                form.setValue("size", size);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  size === field.value ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {size}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select
+                    disabled={readOnly}
+                    onValueChange={field.onChange}
+                    value={field.value || undefined}
+                    defaultValue={field.value || undefined}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select company size" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {COMPANY_SIZE_OPTIONS.map((size) => (
+                        <SelectItem key={size} value={size}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormDescription>
                     Select the number of employees at your company
                   </FormDescription>
@@ -619,55 +591,27 @@ export function CompanyForm({
               control={form.control}
               name="founded"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
+                <FormItem>
                   <FormLabel>Founded Year</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          disabled={readOnly}
-                          className={cn(
-                            "w-full justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value
-                            ? FOUNDED_YEAR_OPTIONS.find(
-                                (year) => year === field.value
-                              )
-                            : "Select founded year"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 100 }}>
-                      <Command>
-                        <CommandInput placeholder="Search year..." />
-                        <CommandEmpty>No year found.</CommandEmpty>
-                        <CommandGroup className="max-h-[400px] overflow-y-auto">
-                          {FOUNDED_YEAR_OPTIONS.map((year) => (
-                            <CommandItem
-                              key={year}
-                              value={year}
-                              onSelect={() => {
-                                form.setValue("founded", year);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  year === field.value ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {year}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Select
+                    disabled={readOnly}
+                    onValueChange={field.onChange}
+                    value={field.value || undefined}
+                    defaultValue={field.value || undefined}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select year founded" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-[200px]">
+                      {FOUNDED_YEAR_OPTIONS.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormDescription>
                     Year the company was founded
                   </FormDescription>
