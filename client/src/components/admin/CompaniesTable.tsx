@@ -44,13 +44,14 @@ export function CompaniesTable() {
     mutationFn: async (data: InsertCompany) => {
       return apiRequest('/api/companies', 'POST', data);
     },
-    onSuccess: () => {
+    onSuccess: (createdCompany) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
       setIsCreating(false);
       toast({
         title: 'Company created',
         description: 'The company has been successfully created',
       });
+      return createdCompany;
     },
     onError: (error) => {
       toast({
@@ -61,10 +62,50 @@ export function CompaniesTable() {
     }
   });
 
+  // Mutation for adding members to a company
+  const addCompanyMembersMutation = useMutation({
+    mutationFn: async ({ companyId, userIds }: { companyId: number, userIds: number[] }) => {
+      // For each user ID, make a request to add them as a company member
+      const promises = userIds.map(userId => 
+        apiRequest('/api/companies/members', 'POST', { 
+          companyId, 
+          userId, 
+          role: 'admin',  // Default role for members added during company creation
+          isPublic: true
+        })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/companies/members'] });
+    },
+    onError: (error) => {
+      console.error('Error adding company members:', error);
+      toast({
+        title: 'Warning',
+        description: 'Company was created, but there was an issue adding some members',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Handle creating a new company
-  const handleCreateCompany = async (data: InsertCompany) => {
+  const handleCreateCompany = async (data: any) => {
     try {
-      await createCompanyMutation.mutateAsync(data);
+      // Check if there are selected members in the data
+      const selectedMembers = data._selectedMembers || [];
+      delete data._selectedMembers; // Remove from company data before creating
+
+      // Create the company first
+      const createdCompany = await createCompanyMutation.mutateAsync(data) as Company;
+      
+      // If we have selected members and the company was created successfully, add the members
+      if (selectedMembers.length > 0 && createdCompany && createdCompany.id) {
+        await addCompanyMembersMutation.mutateAsync({
+          companyId: createdCompany.id,
+          userIds: selectedMembers
+        });
+      }
     } catch (error) {
       console.error('Error creating company:', error);
     }

@@ -395,7 +395,7 @@ export function CompanyPreview({
                   </div>
                   
                   {/* Company Tags */}
-                  {company.tags && company.tags.length > 0 && (
+                  {company.tags && Array.isArray(company.tags) && company.tags.length > 0 && (
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2">Tags</h3>
                       <div className="flex flex-wrap gap-2">
@@ -409,34 +409,48 @@ export function CompanyPreview({
                   )}
                   
                   {/* Company Links */}
-                  {company.customLinks && (
-                    ((typeof company.customLinks === 'string' && 
-                      company.customLinks.length > 0 && 
-                      JSON.parse(company.customLinks).length > 0) || 
-                     (Array.isArray(company.customLinks) && company.customLinks.length > 0))
-                  ) && (
-                    <div className="mb-4">
-                      <h3 className="text-sm font-medium text-muted-foreground mb-2">Links</h3>
-                      <div className="space-y-2">
-                        {(typeof company.customLinks === 'string' 
-                          ? JSON.parse(company.customLinks) 
-                          : company.customLinks
-                        ).map((link: { title: string, url: string }, index: number) => (
-                          <div key={index}>
-                            <a 
-                              href={link.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline flex items-center"
-                            >
-                              {link.title}
-                              <ExternalLink className="h-3.5 w-3.5 ml-1" />
-                            </a>
-                          </div>
-                        ))}
+                  {(() => {
+                    // Use an IIFE (Immediately Invoked Function Expression) to safely handle custom links
+                    let displayLinks: Array<{ title: string, url: string }> = [];
+                    
+                    // Safely parse customLinks
+                    if (company.customLinks) {
+                      if (typeof company.customLinks === 'string') {
+                        try {
+                          const parsed = JSON.parse(company.customLinks);
+                          if (Array.isArray(parsed) && parsed.length > 0) {
+                            displayLinks = parsed;
+                          }
+                        } catch (e) {
+                          console.error('Error parsing customLinks:', e);
+                        }
+                      } else if (Array.isArray(company.customLinks) && company.customLinks.length > 0) {
+                        displayLinks = company.customLinks;
+                      }
+                    }
+                    
+                    // Only render the links section if we have valid links
+                    return displayLinks.length > 0 ? (
+                      <div className="mb-4">
+                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Links</h3>
+                        <div className="space-y-2">
+                          {displayLinks.map((link, index) => (
+                            <div key={index}>
+                              <a 
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center"
+                              >
+                                {link.title}
+                                <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                              </a>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    ) : null;
+                  })()}
                 </div>
 
                 {/* Company Members */}
