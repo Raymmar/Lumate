@@ -5,21 +5,6 @@ import { Card } from "@/components/ui/card";
 import { ArrowRight, Building } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Helper function to generate slug from company name
-const generateSlug = (name: string): string => {
-  return name
-    .replace(/\./g, '')
-    .replace(/&/g, 'and')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s-]/g, ' ')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
-
 interface Company {
   id: number;
   name: string;

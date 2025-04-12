@@ -4,21 +4,7 @@ import { CompanyCard } from "@/components/companies/CompanyCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { Building } from "lucide-react";
-
-// Helper function to generate slug from company name
-const generateSlug = (name: string): string => {
-  return name
-    .replace(/\./g, '')
-    .replace(/&/g, 'and')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s-]/g, ' ')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
+import { formatCompanyNameForUrl } from "@/lib/utils";
 
 interface Company {
   id: number;
@@ -199,7 +185,7 @@ export default function CompanyDirectory() {
             industry={company.industry}
             bio={company.bio}
             tags={company.tags}
-            slug={company.slug || generateSlug(company.name)}
+            slug={company.slug}
           />
         ))}
       </div>
