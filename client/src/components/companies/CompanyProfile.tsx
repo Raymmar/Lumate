@@ -97,9 +97,9 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
   });
 
   const { data: companyData, isLoading, error } = useQuery<{company: Company}>({
-    queryKey: ['/api/companies/by-name', nameSlug],
+    queryKey: ['/api/companies/by-slug', nameSlug],
     queryFn: async () => {
-      const response = await fetch(`/api/companies/by-name/${encodeURIComponent(nameSlug)}`);
+      const response = await fetch(`/api/companies/by-slug/${encodeURIComponent(nameSlug)}`);
 
       if (!response.ok) {
         const errorText = await response.text();

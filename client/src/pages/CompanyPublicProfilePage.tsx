@@ -6,9 +6,13 @@ import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function CompanyPublicProfilePage() {
+  // Now using slug instead of companyName - matches with stored company slug
   const params = useParams<{ companyName: string }>();
+  
+  // The companyName parameter is actually the slug from our route
+  const companySlug = params.companyName;
 
-  if (!params.companyName) {
+  if (!companySlug) {
     return (
       <DashboardLayout>
         <div className="container mx-auto py-12 text-center">
@@ -25,8 +29,8 @@ export default function CompanyPublicProfilePage() {
   return (
     <DashboardLayout>
       <div className="container max-w-7xl mx-auto pb-24">
-        
-        <CompanyProfile nameSlug={params.companyName} />
+        {/* Pass the slug to the CompanyProfile component */}
+        <CompanyProfile nameSlug={companySlug} />
       </div>
     </DashboardLayout>
   );

@@ -337,7 +337,7 @@ const generateSlug = (name: string): string => {
     .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
 };
 
-// Get a company by name slug - now using stored slug field
+// Get a company by name slug (legacy endpoint - keeps compatibility)
 router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
   try {
     const nameSlug = req.params.nameSlug;
@@ -373,6 +373,28 @@ router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
         }
       }
     }
+    
+    if (company) {
+      return res.json({ company });
+    }
+
+    return res.status(404).json({ error: "Company not found" });
+  } catch (error) {
+    console.error("Error getting company by slug:", error);
+    res.status(500).json({ error: "Failed to fetch company" });
+  }
+});
+
+// Get a company by slug - new endpoint using the slug field
+router.get("/by-slug/:slug", async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug;
+    if (!slug) {
+      return res.status(400).json({ error: "Invalid company slug" });
+    }
+
+    // Attempt to find the company by the stored slug field
+    let company = await storage.getCompanyBySlug(slug);
     
     if (company) {
       return res.json({ company });
