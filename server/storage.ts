@@ -125,6 +125,7 @@ export interface IStorage {
   updateUserSubscription(userId: number, subscriptionId: string, status: string): Promise<User>;
   setStripeCustomerId(userId: number, customerId: string): Promise<User>;
   getPersonByUsername(username: string): Promise<Person | null>;
+  getPaidUsersCount(): Promise<number>;
 
   // Add this new method
   updatePost(postId: number, data: Partial<Post>): Promise<Post>;
