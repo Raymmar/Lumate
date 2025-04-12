@@ -235,7 +235,7 @@ export class StripeService {
       const subscriptions = await stripe.subscriptions.list({
         status: 'active',
         limit: 100,
-        expand: ['data.items.data.price.product']
+        expand: ['data.items.data.price']
       });
       
       // Setup revenue tracking by price
@@ -269,9 +269,8 @@ export class StripeService {
             revenueByPrice[priceId] = {
               id: priceId,
               nickname: price.nickname || '',
-              productName: price.product && typeof price.product !== 'string' && 'name' in price.product
-                ? price.product.name 
-                : '',
+              // Get product name if available, but since we can't expand data.items.data.price.product, we use the price nickname
+              productName: price.nickname || '',
               unitAmount,
               subscriptionCount: 0,
               revenue: 0
