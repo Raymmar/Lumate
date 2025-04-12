@@ -26,6 +26,8 @@ import { X, Loader2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { LocationPicker } from "@/components/ui/location-picker";
+import { initGoogleMaps } from "@/lib/google-maps";
 
 // Industry options
 const INDUSTRY_OPTIONS = [
@@ -630,11 +632,9 @@ export function CompanyForm({
                 <FormItem>
                   <FormLabel>Address</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Company address" 
-                      {...field} 
-                      value={field.value || ""} 
-                      disabled={readOnly}
+                    <LocationPicker
+                      defaultValue={field.value ? { address: field.value } : null}
+                      onLocationSelect={(location) => field.onChange(location?.address || "")}
                     />
                   </FormControl>
                   <FormMessage />

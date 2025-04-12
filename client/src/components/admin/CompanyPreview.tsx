@@ -133,10 +133,12 @@ export function CompanyPreview({
     mutationFn: async (data: InsertCompany) => {
       if (!company?.id) return;
       
-      return apiRequest(`/api/companies/${company.id}`, {
+      const url = `/api/companies/${company.id}`;
+      const options = {
         method: 'PUT',
         data
-      });
+      };
+      return apiRequest(url, options);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/companies'] });
@@ -399,9 +401,10 @@ export function CompanyPreview({
                   )}
                   
                   {/* Company Links */}
-                  {company.customLinks && 
-                   ((typeof company.customLinks === 'string' && company.customLinks.length > 0) || 
-                    (Array.isArray(company.customLinks) && company.customLinks.length > 0)) && (
+                  {company.customLinks && (
+                    (typeof company.customLinks === 'string' && JSON.parse(company.customLinks as string).length > 0) || 
+                    (Array.isArray(company.customLinks) && company.customLinks.length > 0)
+                  ) && (
                     <div className="mb-4">
                       <h3 className="text-sm font-medium text-muted-foreground mb-2">Links</h3>
                       <div className="space-y-2">
