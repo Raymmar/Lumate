@@ -60,11 +60,11 @@ export async function migrateCompanySlugs() {
 }
 
 // Run the migration when this script is executed directly
-if (require.main === module) {
-  migrateCompanySlugs()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error('Migration failed:', error);
-      process.exit(1);
-    });
-}
+migrateCompanySlugs()
+  .then(() => {
+    console.log('Migration completed successfully');
+    // No need to exit process explicitly in ESM
+  })
+  .catch((error) => {
+    console.error('Migration failed:', error);
+  });
