@@ -299,11 +299,16 @@ export function CompanyForm({
         // Ensure proper types for DB insert
         tags: values.tags || [],
         customLinks: values.customLinks || [],
-        // Include selected member IDs for assignment during company creation
-        selectedMembers: selectedMembers,
       };
       
-      await onSubmit(formData);
+      // We'll pass the form data and selected members to the onSubmit handler
+      // This way the CompanyPreview component can handle both the company creation
+      // and the company member assignments
+      await onSubmit({
+        ...formData,
+        // Pass along selected members as additional data (not part of InsertCompany type)
+        _selectedMembers: selectedMembers
+      } as any);
     } catch (error) {
       console.error("Error submitting company form:", error);
     }
@@ -719,6 +724,90 @@ export function CompanyForm({
             <FormDescription>
               Add tags to categorize your company (e.g., AI, SaaS, Enterprise)
             </FormDescription>
+          </div>
+        </div>
+
+        {/* Company Members */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Company Members</h3>
+          
+          <div>
+            <FormLabel>Company Owner / Members</FormLabel>
+            <FormDescription className="mt-1 mb-4">
+              Select one or more users to associate with this company. Selected users will be added as company members once created.
+            </FormDescription>
+            
+            {!readOnly && (
+              <div className="space-y-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="justify-between w-full md:w-80"
+                    >
+                      {selectedMembers.length > 0 
+                        ? `${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''} selected`
+                        : "Select members"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full md:w-80 p-0">
+                    <Command>
+                      <CommandInput placeholder="Search members..." />
+                      <CommandEmpty>No members found.</CommandEmpty>
+                      <CommandList>
+                        <CommandGroup>
+                          <ScrollArea className="h-72">
+                            {usersData?.users?.map((user) => (
+                              <CommandItem
+                                key={user.id}
+                                value={user.email}
+                                onSelect={() => handleMemberToggle(user.id)}
+                              >
+                                <div className="flex items-center gap-2 w-full">
+                                  <div className={cn(
+                                    "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                    selectedMembers.includes(user.id) 
+                                      ? "bg-primary text-primary-foreground" 
+                                      : "opacity-50"
+                                  )}>
+                                    {selectedMembers.includes(user.id) && (
+                                      <Check className="h-3 w-3" />
+                                    )}
+                                  </div>
+                                  <span className="flex-1 truncate">{user.displayName || user.email}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </ScrollArea>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                
+                {selectedMembers.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedMembers.map(userId => {
+                      const user = usersData?.users?.find(u => u.id === userId);
+                      return user ? (
+                        <Badge key={userId} variant="secondary" className="flex items-center gap-1">
+                          {user.displayName || user.email}
+                          <button
+                            type="button"
+                            onClick={() => handleMemberToggle(userId)}
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

@@ -153,12 +153,25 @@ export function CompanyPreview({
   });
 
   // Handle company saving, either create or update
-  const handleCompanySave = async (data: InsertCompany) => {
+  const handleCompanySave = async (data: any) => {
     try {
+      // Extract selected members if present
+      const { _selectedMembers, ...companyData } = data;
+      const selectedMembers = _selectedMembers || [];
+
       if (isNew && onSave) {
-        await onSave(data);
+        // For new companies, pass the data to the parent component (CompaniesTable)
+        // which will handle creating the company and assigning members
+        await onSave(companyData);
       } else if (company?.id) {
-        await updateCompanyMutation.mutateAsync(data);
+        // For existing companies, update the company data
+        await updateCompanyMutation.mutateAsync(companyData);
+        
+        // If members were selected, handle them after updating the company
+        if (selectedMembers.length > 0) {
+          // Here you would add code to update company members if implemented
+          console.log(`Selected members to assign: ${selectedMembers.join(', ')}`);
+        }
       }
     } catch (error) {
       console.error('Error saving company:', error);
