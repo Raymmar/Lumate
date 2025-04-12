@@ -454,7 +454,7 @@ export function CompanyPreview({
                     <div className="space-y-2">
                       <Label htmlFor="user-select">Select User</Label>
                       <Select 
-                        value={selectedUserId} 
+                        value={selectedUserId || ""} 
                         onValueChange={setSelectedUserId}
                       >
                         <SelectTrigger id="user-select">

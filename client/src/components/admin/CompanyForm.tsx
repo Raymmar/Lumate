@@ -205,8 +205,7 @@ export function CompanyForm({ defaultValues, onSubmit, isEditing = false }: Comp
                     <FormLabel>Industry</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value || undefined}
-                      defaultValue={field.value || undefined}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -259,8 +258,7 @@ export function CompanyForm({ defaultValues, onSubmit, isEditing = false }: Comp
                     <FormLabel>Company Size</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value || undefined}
-                      defaultValue={field.value || undefined}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -288,8 +286,7 @@ export function CompanyForm({ defaultValues, onSubmit, isEditing = false }: Comp
                     <FormLabel>Founded Year</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value || undefined}
-                      defaultValue={field.value || undefined}
+                      value={field.value || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -529,7 +526,7 @@ export function CompanyForm({ defaultValues, onSubmit, isEditing = false }: Comp
                   <FormLabel>Select Member</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || ""}
                   >
                     <FormControl>
                       <SelectTrigger>
