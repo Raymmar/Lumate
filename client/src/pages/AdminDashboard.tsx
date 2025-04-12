@@ -65,7 +65,7 @@ export default function AdminDashboard() {
   return (
     <AdminLayout title={
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h1 className="text-2xl font-bold">Dashboard Overview</h1>
+        <h1 className="text-2xl font-bold">Community Overview</h1>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
@@ -87,14 +87,14 @@ export default function AdminDashboard() {
             onClick={handleNewMember}
           >
             <UserPlus className="w-4 h-4 mr-2" />
-            New Member
+            Add Member
           </Button>
           <Button 
             className="bg-primary hover:bg-primary/90 text-sm"
             onClick={handleNewCompany}
           >
             <Building className="w-4 h-4 mr-2" />
-            New Company
+            Add Company
           </Button>
         </div>
       </div>
