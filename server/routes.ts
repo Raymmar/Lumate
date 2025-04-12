@@ -996,6 +996,9 @@ export async function registerRoutes(app: Express) {
         console.log(`Company with ID ${companyId} not found`);
         return res.status(404).json({ error: "Company not found" });
       }
+      
+      // Debug logging to see exactly what company data is being returned
+      console.log("Company data being returned for editing:", JSON.stringify(company, null, 2));
 
       // Log the raw company data to diagnose missing fields
       console.log(`Company data retrieved from storage for ${companyId}:`, {
@@ -1043,8 +1046,14 @@ export async function registerRoutes(app: Express) {
         isPhonePublic: company.isPhonePublic || false,
         isEmailPublic: company.isEmailPublic || false, 
         ctaText: company.ctaText || "",
-        customLinks: company.customLinks,
-        tags: company.tags,
+        // Make sure custom links are properly passed
+        customLinks: typeof company.customLinks === 'string' 
+          ? JSON.parse(company.customLinks) 
+          : (Array.isArray(company.customLinks) ? company.customLinks : []),
+        // Make sure tags are properly passed
+        tags: typeof company.tags === 'string' 
+          ? JSON.parse(company.tags) 
+          : (Array.isArray(company.tags) ? company.tags : []),
         createdAt: company.createdAt,
         updatedAt: company.updatedAt,
         members,

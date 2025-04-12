@@ -234,9 +234,9 @@ export function CompanyForm({
         }
         
         // If we have a separate tagsList field (from tag objects in the database), use those
-        if (company.tagsList && Array.isArray(company.tagsList) && company.tagsList.length > 0) {
+        if ((company as any).tagsList && Array.isArray((company as any).tagsList) && (company as any).tagsList.length > 0) {
           // Extract just the text value from each tag object
-          parsedTags = company.tagsList.map(tag => tag.text || tag.name);
+          parsedTags = (company as any).tagsList.map((tag: any) => tag.text || tag.name);
         }
         
         console.log("Parsed tags:", parsedTags);
