@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Link as RouterLink } from "wouter";
-import { formatCompanyNameForUrl } from "@/lib/utils";
+
 import {
   DropdownMenu,
   DropdownMenuContent,

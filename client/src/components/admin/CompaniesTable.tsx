@@ -42,22 +42,11 @@ export function CompaniesTable() {
   // Create company mutation
   const createCompanyMutation = useMutation({
     mutationFn: async (data: InsertCompany) => {
-      // Import formatCompanyNameForUrl from utils
-      const { formatCompanyNameForUrl } = await import('@/lib/utils');
-      
       // Create a copy of the data to modify
       const updatedData = { ...data };
       
-      // Generate a URL-friendly slug from company name if name is provided
-      if (updatedData.name) {
-        // Generate a temporary ID for new companies
-        const tempId = new Date().getTime().toString();
-        const slug = formatCompanyNameForUrl(updatedData.name, tempId);
-        
-        // Add the slug to the data being created
-        updatedData.slug = slug;
-        console.log(`Generated slug "${slug}" for new company "${updatedData.name}"`);
-      }
+      // Slug generation is now handled server-side
+      // No need to generate or assign a slug on the client
       
       return apiRequest('/api/admin/companies', 'POST', updatedData);
     },
