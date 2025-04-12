@@ -143,7 +143,8 @@ export function CompanyForm({
   onSubmit,
   isLoading = false,
   readOnly = false,
-}: CompanyFormProps) {
+  onCancel
+}: CompanyFormProps & { onCancel?: () => void }) {
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [customLinks, setCustomLinks] = useState<UserCustomLink[]>([]);
@@ -958,10 +959,21 @@ export function CompanyForm({
 
         {/* Submit Button */}
         {!readOnly && (
-          <div className="flex justify-end">
+          <div className="flex justify-between">
+            {onCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onCancel}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+            )}
             <Button
               type="submit"
               disabled={isLoading}
+              className={onCancel ? "" : "ml-auto"}
             >
               {isLoading && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
