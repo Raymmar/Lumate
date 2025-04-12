@@ -1985,6 +1985,21 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  async getCompanyBySlug(slug: string): Promise<Company | null> {
+    try {
+      const result = await db
+        .select()
+        .from(companies)
+        .where(eq(companies.slug, slug))
+        .limit(1);
+      
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get company by slug:', error);
+      throw error;
+    }
+  }
 
   async createCompany(companyData: InsertCompany): Promise<Company> {
     try {

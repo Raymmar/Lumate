@@ -51,11 +51,14 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
     const { customLinks, ...otherData } = req.body;
     const companyData = insertCompanySchema.parse(otherData);
     
-    // Create the company
-    // Handle custom links separately to avoid type issues
+    // Generate a slug from the company name for URL-friendly references
+    const slug = companyData.name ? generateSlug(companyData.name) : null;
+    
+    // Create the company with the generated slug
     const company = await storage.createCompany({
       ...companyData,
-      customLinks: customLinks ? customLinks : null
+      customLinks: customLinks ? customLinks : null,
+      slug: slug
     });
     
     // Add the current user as an admin of the company
@@ -103,12 +106,19 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     const { customLinks, ...otherData } = req.body;
     const companyData = insertCompanySchema.partial().parse(otherData);
     
-    // Update the company
-    // Handle custom links separately to avoid type issues
-    const company = await storage.updateCompany(id, {
+    // If the name is being updated, generate a new slug
+    let updatedData: any = {
       ...companyData,
       customLinks: customLinks ? customLinks : null
-    });
+    };
+    
+    if (companyData.name) {
+      updatedData.slug = generateSlug(companyData.name);
+      console.log(`Generated slug "${updatedData.slug}" for company "${companyData.name}"`);
+    }
+    
+    // Update the company with potentially new slug
+    const company = await storage.updateCompany(id, updatedData);
     
     res.json({ company });
   } catch (error) {
@@ -327,7 +337,7 @@ const generateSlug = (name: string): string => {
     .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
 };
 
-// Get a company by name slug - optimized to avoid loading all companies
+// Get a company by name slug - now using stored slug field
 router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
   try {
     const nameSlug = req.params.nameSlug;
@@ -335,19 +345,42 @@ router.get("/by-name/:nameSlug", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid company name slug" });
     }
 
-    // Directly fetch all companies (we'll optimize this with storage.getCompanyBySlug later)
-    const companies = await storage.getCompanies();
+    // First attempt to find the company by the stored slug field
+    let company = await storage.getCompanyBySlug(nameSlug);
     
-    // For now, optimize by reducing the processing workload and early exiting
-    for (const company of companies) {
-      const companyNameSlug = generateSlug(company.name);
-      if (companyNameSlug === nameSlug) {
-        return res.json({ company });
+    // If not found by slug, fall back to generating slugs from company names
+    if (!company) {
+      const companies = await storage.getCompanies();
+      
+      for (const comp of companies) {
+        // First check stored slug if available
+        if (comp.slug === nameSlug) {
+          company = comp;
+          break;
+        }
+        
+        // Then try generating a slug from the name as fallback
+        const companyNameSlug = generateSlug(comp.name);
+        if (companyNameSlug === nameSlug) {
+          company = comp;
+          
+          // Update the company to store the generated slug for future use
+          await storage.updateCompany(comp.id, { 
+            slug: companyNameSlug 
+          });
+          
+          break;
+        }
       }
+    }
+    
+    if (company) {
+      return res.json({ company });
     }
 
     return res.status(404).json({ error: "Company not found" });
   } catch (error) {
+    console.error("Error getting company by slug:", error);
     res.status(500).json({ error: "Failed to fetch company" });
   }
 });
