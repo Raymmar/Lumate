@@ -148,21 +148,11 @@ export function CompanyPreview({
     mutationFn: async (data: InsertCompany) => {
       if (!company?.id) return;
       
-      // Import formatCompanyNameForUrl from utils
-      const { formatCompanyNameForUrl } = await import('@/lib/utils');
-      
       // Create a copy of the data to modify
       const updatedData = { ...data };
       
-      // Generate a URL-friendly slug from company name if name is being updated
-      if (updatedData.name) {
-        // Use company ID as fallback if slug generation fails
-        const slug = formatCompanyNameForUrl(updatedData.name, String(company.id));
-        
-        // Add the slug to the data being updated
-        updatedData.slug = slug;
-        console.log(`Generated slug "${slug}" for company "${updatedData.name}"`);
-      }
+      // We no longer generate slugs dynamically on the client
+      // This is now handled by the server
       
       return apiRequest<Company>(`/api/companies/${company.id}`, 'PUT', updatedData);
     },
