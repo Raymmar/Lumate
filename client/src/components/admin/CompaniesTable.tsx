@@ -242,7 +242,11 @@ export function CompaniesTable() {
             onChange={setSearchQuery}
             placeholder="Search companies..."
           />
-          <Button variant="outline" size="sm">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsAddCompanyOpen(true)}
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Company
           </Button>
