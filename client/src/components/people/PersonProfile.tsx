@@ -322,7 +322,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                   asChild
                   className="w-full mt-2"
                 >
-                  <Link href={`/companies/${generateSlug(userCompany.name)}`}>
+                  <Link href={`/companies/${userCompany.slug || generateSlug(userCompany.name)}`}>
                     View full company profile
                   </Link>
                 </Button>
