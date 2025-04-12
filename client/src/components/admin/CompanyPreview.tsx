@@ -263,7 +263,7 @@ export function CompanyPreview({
       ) : isEditMode || isNew ? (
         <div className="p-4">
           <CompanyForm
-            company={company}
+            company={companyDetails || company}
             onSubmit={handleCompanySave}
             isLoading={updateCompanyMutation.isPending}
           />

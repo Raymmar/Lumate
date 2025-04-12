@@ -204,6 +204,19 @@ export function CompanyForm({
         console.error("Failed to parse custom links:", e);
       }
       
+      // Process tags to handle both string tags and object tags
+      let processedTags: string[] = [];
+      if (company.tags && Array.isArray(company.tags)) {
+        processedTags = company.tags.map((tag: any) => {
+          if (typeof tag === 'string') {
+            return tag;
+          } else if (tag && typeof tag === 'object' && tag.text) {
+            return tag.text;
+          }
+          return '';
+        }).filter(Boolean);
+      }
+      
       form.reset({
         name: company.name || "",
         description: company.description || "",
@@ -221,11 +234,11 @@ export function CompanyForm({
         isEmailPublic: company.isEmailPublic || false,
         ctaText: company.ctaText || "",
         customLinks: parsedCustomLinks,
-        tags: company.tags || [],
+        tags: processedTags,
       });
       
       setCustomLinks(parsedCustomLinks);
-      setTags(company.tags || []);
+      setTags(processedTags);
     }
   }, [company, form]);
 
