@@ -835,39 +835,66 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      // Extract the owner user ID from the request body (if provided)
+      // Extract the owner user ID and selected members from the request body
       const { _ownerUserId, _selectedMembers, customLinks, ...companyData } = req.body;
       
-      // Create the company
-      const company = await storage.createCompany({
-        ...companyData,
-        customLinks: customLinks ? customLinks : null
-      });
+      // Validate the company data - remove metadata fields that aren't part of the schema
+      const validCompanyData = {
+        name: companyData.name || "",
+        industry: companyData.industry || null,
+        size: companyData.size || null,
+        email: companyData.email || null,
+        isEmailPublic: companyData.isEmailPublic || false,
+        phoneNumber: companyData.phoneNumber || null,
+        isPhonePublic: companyData.isPhonePublic || false,
+        website: companyData.website || null,
+        address: companyData.address || null,
+        description: companyData.description || null,
+        bio: companyData.bio || null,
+        founded: companyData.founded || null,
+        logoUrl: companyData.logoUrl || null,
+        featuredImageUrl: companyData.featuredImageUrl || null,
+        customLinks: customLinks || null,
+      };
       
-      // If selected members are provided, add them to the company
-      if (_selectedMembers && Array.isArray(_selectedMembers) && _selectedMembers.length > 0) {
-        for (const memberId of _selectedMembers) {
-          // Determine if this member is the owner
-          const isOwner = _ownerUserId && memberId === _ownerUserId;
+      // Create the company
+      const company = await storage.createCompany(validCompanyData);
+      console.log("Created company:", company);
+      
+      // Process member assignments if provided
+      try {
+        if (_selectedMembers && Array.isArray(_selectedMembers) && _selectedMembers.length > 0) {
+          console.log(`Adding ${_selectedMembers.length} members to company ${company.id}`);
           
-          await storage.addMemberToCompany({
-            companyId: company.id,
-            userId: memberId,
-            role: isOwner ? "owner" : "member",
-            title: isOwner ? "Owner" : "Member",
-            isPublic: true,
-            addedBy: req.session.userId
-          });
+          for (const memberId of _selectedMembers) {
+            // Determine if this member is the owner (using loose equality to handle string/number conversion)
+            const isOwner = _ownerUserId && Number(memberId) === Number(_ownerUserId);
+            const role = isOwner ? "owner" : "member";
+            
+            console.log(`Adding member ${memberId} as ${role} to company ${company.id}`);
+            
+            await storage.addMemberToCompany({
+              companyId: company.id,
+              userId: Number(memberId),
+              role: role,
+              title: isOwner ? "Owner" : "Member",
+              isPublic: true,
+              addedBy: req.session.userId
+            });
+          }
         }
+      } catch (memberError) {
+        console.error("Error assigning members to company:", memberError);
+        // Don't fail the entire operation if member assignment fails
       }
       
-      res.status(201).json({ company });
+      return res.status(201).json({ company });
     } catch (error) {
       console.error("Failed to create company via admin API:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
       }
-      res.status(500).json({ error: "Failed to create company" });
+      return res.status(500).json({ error: "Failed to create company", details: String(error) });
     }
   });
 
