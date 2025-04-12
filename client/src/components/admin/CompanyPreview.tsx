@@ -248,6 +248,8 @@ export function CompanyPreview({
         </div>
       ) : isEditMode || isNew ? (
         <div className="p-4">
+          {/* Debug company data */}
+          {console.log("Company data being passed to CompanyForm:", company)}
           <CompanyForm
             company={company}
             onSubmit={handleCompanySave}
