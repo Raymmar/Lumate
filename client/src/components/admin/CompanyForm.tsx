@@ -152,10 +152,10 @@ export function CompanyForm({
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   
   // Fetch all users for member assignment
-  const { data: usersData } = useQuery<{ users: User[] }>({
-    queryKey: ["/api/admin/users"],
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[] }>({
+    queryKey: ["/api/users"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/users?limit=100");
+      const response = await fetch("/api/users?limit=100");
       if (!response.ok) {
         throw new Error("Failed to fetch users");
       }
@@ -739,12 +739,16 @@ export function CompanyForm({
             
             {!readOnly && (
               <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Company Members
+                  <span className="text-muted-foreground ml-1 text-xs">(Optional)</span>
+                </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
                       role="combobox"
-                      className="justify-between w-full md:w-80"
+                      className="justify-between w-full md:w-80 border-primary/40"
                     >
                       {selectedMembers.length > 0 
                         ? `${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''} selected`
@@ -752,35 +756,43 @@ export function CompanyForm({
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full md:w-80 p-0">
+                  <PopoverContent className="w-full md:w-80 p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search members..." />
-                      <CommandEmpty>No members found.</CommandEmpty>
+                      <CommandInput placeholder="Search users..." />
+                      <CommandEmpty>
+                        {isLoadingUsers ? "Loading users..." : "No users found."}
+                      </CommandEmpty>
                       <CommandList>
                         <CommandGroup>
-                          <ScrollArea className="h-72">
-                            {usersData?.users?.map((user) => (
-                              <CommandItem
-                                key={user.id}
-                                value={user.email}
-                                onSelect={() => handleMemberToggle(user.id)}
-                              >
-                                <div className="flex items-center gap-2 w-full">
-                                  <div className={cn(
-                                    "flex h-4 w-4 items-center justify-center rounded-sm border",
-                                    selectedMembers.includes(user.id) 
-                                      ? "bg-primary text-primary-foreground" 
-                                      : "opacity-50"
-                                  )}>
-                                    {selectedMembers.includes(user.id) && (
-                                      <Check className="h-3 w-3" />
-                                    )}
+                          {isLoadingUsers ? (
+                            <div className="flex justify-center items-center py-6">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <ScrollArea className="h-72">
+                              {usersData?.users?.map((user) => (
+                                <CommandItem
+                                  key={user.id}
+                                  value={user.email}
+                                  onSelect={() => handleMemberToggle(user.id)}
+                                >
+                                  <div className="flex items-center gap-2 w-full">
+                                    <div className={cn(
+                                      "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                      selectedMembers.includes(user.id) 
+                                        ? "bg-primary text-primary-foreground" 
+                                        : "opacity-50"
+                                    )}>
+                                      {selectedMembers.includes(user.id) && (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                    </div>
+                                    <span className="flex-1 truncate">{user.displayName || user.email}</span>
                                   </div>
-                                  <span className="flex-1 truncate">{user.displayName || user.email}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </ScrollArea>
+                                </CommandItem>
+                              ))}
+                            </ScrollArea>
+                          )}
                         </CommandGroup>
                       </CommandList>
                     </Command>
