@@ -152,6 +152,33 @@ export function CompanyPreview({
     }
   });
 
+  // Mutation for adding members to a company
+  const addCompanyMembersMutation = useMutation({
+    mutationFn: async ({ companyId, userIds }: { companyId: number, userIds: number[] }) => {
+      // For each user ID, make a request to add them as a company member
+      const promises = userIds.map(userId => 
+        apiRequest('/api/companies/members', 'POST', { 
+          companyId, 
+          userId, 
+          role: 'admin',  // Default role for members added during company edit
+          isPublic: true
+        })
+      );
+      return Promise.all(promises);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company?.id] });
+    },
+    onError: (error) => {
+      console.error('Error adding company members:', error);
+      toast({
+        title: 'Warning',
+        description: 'Company was updated, but there was an issue adding some members',
+        variant: 'destructive',
+      });
+    }
+  });
+
   // Handle company saving, either create or update
   const handleCompanySave = async (data: any) => {
     try {
@@ -162,15 +189,18 @@ export function CompanyPreview({
       if (isNew && onSave) {
         // For new companies, pass the data to the parent component (CompaniesTable)
         // which will handle creating the company and assigning members
-        await onSave(companyData);
+        await onSave({...companyData, _selectedMembers: selectedMembers});
       } else if (company?.id) {
         // For existing companies, update the company data
         await updateCompanyMutation.mutateAsync(companyData);
         
         // If members were selected, handle them after updating the company
         if (selectedMembers.length > 0) {
-          // Here you would add code to update company members if implemented
-          console.log(`Selected members to assign: ${selectedMembers.join(', ')}`);
+          // Add the selected members to the company
+          await addCompanyMembersMutation.mutateAsync({
+            companyId: company.id,
+            userIds: selectedMembers
+          });
         }
       }
     } catch (error) {
