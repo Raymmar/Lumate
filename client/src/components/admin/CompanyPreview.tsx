@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Link as RouterLink } from "wouter";
+import { formatCompanyNameForUrl } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -672,7 +673,7 @@ export function CompanyPreview({
                 {/* View Public Profile Button */}
                 {company?.name && (
                   <div className="mt-4">
-                    <RouterLink to={`/companies/${company?.slug || company?.name?.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <RouterLink to={`/companies/${company?.slug || formatCompanyNameForUrl(company?.name, String(company?.id || 0))}`}>
                       <Button variant="outline" size="sm" className="w-full">
                         <ExternalLink className="h-4 w-4 mr-2" />
                         View Public Profile
