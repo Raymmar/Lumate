@@ -28,6 +28,7 @@ interface Company {
   industry: string | null;
   bio: string | null;
   tags: string[] | null;
+  slug: string | null;
 }
 
 export function FeaturedCompaniesGrid() {
@@ -90,7 +91,7 @@ export function FeaturedCompaniesGrid() {
       
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {randomCompanies.map((company: Company) => (
-          <Link key={company.id} href={`/companies/${generateSlug(company.name)}`} className="no-underline">
+          <Link key={company.id} href={`/companies/${company.slug || generateSlug(company.name)}`} className="no-underline">
             <Card className="overflow-hidden h-full transition-all hover:shadow-md cursor-pointer">
               <div className="relative aspect-video w-full overflow-hidden bg-muted">
                 <img 
