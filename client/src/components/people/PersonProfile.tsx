@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { BusinessProfile } from "@/components/ui/business-profile";
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
+import { formatCompanyNameForUrl } from '@/lib/utils';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
 import { User } from '@shared/schema';
 import { Link } from 'wouter';
@@ -96,20 +97,7 @@ const renderBadgeIcon = (badge: Badge) => {
   return getBadgeIcon(badge.icon);
 };
 
-// Helper function to generate slug from company name - matches the one in CompanyDirectory.tsx
-const generateSlug = (name: string): string => {
-  return name
-    .replace(/\./g, '')
-    .replace(/&/g, 'and')
-    .normalize('NFKD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^\w\s-]/g, ' ')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-{2,}/g, '-')
-    .replace(/^-+|-+$/g, '');
-};
+// We're using the shared formatCompanyNameForUrl from utils.ts instead of a local function
 
 export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
