@@ -206,6 +206,9 @@ export function CompanyForm({
   // Update form values when company data is loaded
   useEffect(() => {
     if (company) {
+      console.log("Loading company data:", company); // Debug log
+      
+      // Parse custom links
       let parsedCustomLinks: UserCustomLink[] = [];
       
       try {
@@ -218,6 +221,20 @@ export function CompanyForm({
         console.error("Failed to parse custom links:", e);
       }
       
+      // Parse tags
+      let parsedTags: string[] = [];
+      
+      try {
+        if (typeof company.tags === 'string') {
+          parsedTags = JSON.parse(company.tags as string);
+        } else if (Array.isArray(company.tags)) {
+          parsedTags = company.tags;
+        }
+      } catch (e) {
+        console.error("Failed to parse tags:", e);
+      }
+      
+      // Reset the form with all company properties
       form.reset({
         name: company.name || "",
         description: company.description || "",
@@ -231,15 +248,25 @@ export function CompanyForm({
         founded: company.founded || "",
         featuredImageUrl: company.featuredImageUrl || "",
         bio: company.bio || "",
-        isPhonePublic: company.isPhonePublic || false,
-        isEmailPublic: company.isEmailPublic || false,
+        isPhonePublic: Boolean(company.isPhonePublic),
+        isEmailPublic: Boolean(company.isEmailPublic),
         ctaText: company.ctaText || "",
         customLinks: parsedCustomLinks,
-        tags: company.tags || [],
+        tags: parsedTags,
       });
       
+      // Update state to match form data
       setCustomLinks(parsedCustomLinks);
-      setTags(company.tags || []);
+      setTags(parsedTags);
+      
+      console.log("Form reset with data:", {
+        name: company.name || "",
+        description: company.description || "",
+        logoUrl: company.logoUrl || "",
+        featuredImageUrl: company.featuredImageUrl || "",
+        tags: parsedTags,
+        customLinks: parsedCustomLinks,
+      }); // Debug log
     }
   }, [company, form]);
   
@@ -247,11 +274,11 @@ export function CompanyForm({
   useEffect(() => {
     if (membersData?.members && membersData.members.length > 0) {
       // Extract user IDs from members
-      const memberUserIds = membersData.members.map(member => member.user.id);
+      const memberUserIds = membersData.members.map((member: any) => member.user.id);
       setSelectedMembers(memberUserIds);
       
       // Find the owner (member with role 'admin' or 'owner')
-      const owner = membersData.members.find(member => 
+      const owner = membersData.members.find((member: any) => 
         member.role === 'owner' || member.role === 'admin'
       );
       
