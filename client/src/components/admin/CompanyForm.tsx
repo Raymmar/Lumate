@@ -22,13 +22,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Loader2, Plus } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown, X, Loader2, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
+import { cn } from "@/lib/utils";
 
 // Industry options
 const INDUSTRY_OPTIONS = [
@@ -514,36 +527,78 @@ export function CompanyForm({
               control={form.control}
               name="industry"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Industry</FormLabel>
-                  <Select
-                    disabled={readOnly}
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an industry" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <div className="max-h-[400px] overflow-y-auto">
-                        <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
-                        {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                        <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
-                        {INDUSTRY_OPTIONS.slice(14).map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </div>
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={readOnly}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? INDUSTRY_OPTIONS.find(
+                                (industry) => industry === field.value
+                              )
+                            : "Select an industry"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 100 }}>
+                      <Command>
+                        <CommandInput placeholder="Search industry..." />
+                        <CommandEmpty>No industry found.</CommandEmpty>
+                        <CommandGroup className="max-h-[400px] overflow-y-auto">
+                          <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
+                          {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
+                            <CommandItem
+                              key={industry}
+                              value={industry}
+                              onSelect={() => {
+                                form.setValue("industry", industry);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  industry === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {industry}
+                            </CommandItem>
+                          ))}
+                          <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
+                          {INDUSTRY_OPTIONS.slice(14).map((industry) => (
+                            <CommandItem
+                              key={industry}
+                              value={industry}
+                              onSelect={() => {
+                                form.setValue("industry", industry);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  industry === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {industry}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormDescription>
                     Select the industry your company operates in
                   </FormDescription>
@@ -556,27 +611,55 @@ export function CompanyForm({
               control={form.control}
               name="size"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Company Size</FormLabel>
-                  <Select
-                    disabled={readOnly}
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select company size" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {COMPANY_SIZE_OPTIONS.map((size) => (
-                        <SelectItem key={size} value={size}>
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={readOnly}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? COMPANY_SIZE_OPTIONS.find(
+                                (size) => size === field.value
+                              )
+                            : "Select company size"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 100 }}>
+                      <Command>
+                        <CommandInput placeholder="Search size..." />
+                        <CommandEmpty>No size option found.</CommandEmpty>
+                        <CommandGroup className="max-h-[300px] overflow-y-auto">
+                          {COMPANY_SIZE_OPTIONS.map((size) => (
+                            <CommandItem
+                              key={size}
+                              value={size}
+                              onSelect={() => {
+                                form.setValue("size", size);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  size === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {size}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormDescription>
                     Select the number of employees at your company
                   </FormDescription>
@@ -591,29 +674,55 @@ export function CompanyForm({
               control={form.control}
               name="founded"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Founded Year</FormLabel>
-                  <Select
-                    disabled={readOnly}
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select founded year" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <div className="max-h-[400px] overflow-y-auto">
-                        {FOUNDED_YEAR_OPTIONS.map((year) => (
-                          <SelectItem key={year} value={year}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </div>
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={readOnly}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? FOUNDED_YEAR_OPTIONS.find(
+                                (year) => year === field.value
+                              )
+                            : "Select founded year"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start" side="bottom" sideOffset={8} style={{ zIndex: 100 }}>
+                      <Command>
+                        <CommandInput placeholder="Search year..." />
+                        <CommandEmpty>No year found.</CommandEmpty>
+                        <CommandGroup className="max-h-[400px] overflow-y-auto">
+                          {FOUNDED_YEAR_OPTIONS.map((year) => (
+                            <CommandItem
+                              key={year}
+                              value={year}
+                              onSelect={() => {
+                                form.setValue("founded", year);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  year === field.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {year}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormDescription>
                     Year the company was founded
                   </FormDescription>
