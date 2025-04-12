@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
+import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 
 // Industry options
 const INDUSTRY_OPTIONS = [
@@ -423,17 +424,15 @@ export function CompanyForm({
               name="logoUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Logo URL</FormLabel>
+                  <FormLabel>Company Logo</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="https://example.com/logo.png" 
-                      {...field} 
+                    <UnsplashPicker 
                       value={field.value || ""} 
-                      disabled={readOnly}
+                      onChange={field.onChange} 
                     />
                   </FormControl>
                   <FormDescription>
-                    URL to your company logo
+                    Select or upload your company logo
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -445,17 +444,15 @@ export function CompanyForm({
               name="featuredImageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Featured Image URL</FormLabel>
+                  <FormLabel>Featured Image</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="https://example.com/featured.jpg" 
-                      {...field} 
+                    <UnsplashPicker 
                       value={field.value || ""} 
-                      disabled={readOnly}
+                      onChange={field.onChange} 
                     />
                   </FormControl>
                   <FormDescription>
-                    URL to a featured image for company profile
+                    Select or upload a featured image for your company profile
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
