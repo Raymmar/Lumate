@@ -110,8 +110,8 @@ export function CompanyMembersList({
           </div>
           
           <div className="flex items-center gap-2">
-            {/* Don't display the 'owner' role publicly, but show other roles */}
-            {member.role !== 'owner' && <Badge variant="outline">{member.role}</Badge>}
+            {/* Only show administrative roles (not ownership/internal roles) to avoid confusion */}
+            {member.role === 'admin' && <Badge variant="outline">{member.role}</Badge>}
             
             {canManageMembers && (
               <Button

@@ -495,9 +495,9 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                     .filter(member => member.isPublic)
                     .map((member) => {
                       const userName = member.user.displayName || member.user.email.split('@')[0];
-                      // Don't show "owner" as job title
+                      // Never display the title if it's the same as the role for internal permissions
                       let jobTitle = member.user.person?.jobTitle || '';
-                      if (member.title && member.title.toLowerCase() !== 'owner') {
+                      if (member.title && member.title.toLowerCase() !== member.role.toLowerCase()) {
                         jobTitle = member.title;
                       }
                       

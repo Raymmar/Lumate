@@ -67,7 +67,7 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
         companyId: company.id,
         userId: req.session.userId,
         role: "admin",
-        title: "Owner",
+        title: null, // Don't set a title that matches the role
         isPublic: true,
         addedBy: req.session.userId
       });
