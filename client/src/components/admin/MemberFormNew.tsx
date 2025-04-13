@@ -307,7 +307,9 @@ export function MemberFormNew({ onSuccess, onCancel }: MemberFormProps) {
                 <Input placeholder="Display name" {...field} />
               </FormControl>
               <FormDescription>
-                The name that will be shown on the member's profile.
+                {selectedPersonId && selectedPersonId !== "none" 
+                  ? "Using display name from the selected person's Luma profile."
+                  : "The name that will be shown on the member's profile."}
               </FormDescription>
               <FormMessage />
             </FormItem>

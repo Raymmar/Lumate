@@ -1396,10 +1396,24 @@ export async function registerRoutes(app: Express) {
         }
       }
       
+      // Get the display name from the person record if available
+      let userDisplayName = displayName;
+      
+      // If we have a person record, prioritize using their userName as the display name
+      if (personRecord && personRecord.userName) {
+        userDisplayName = personRecord.userName;
+      } else if (finalPersonId) {
+        // We might have a person ID but not the full record loaded
+        const linkedPerson = await storage.getPerson(finalPersonId);
+        if (linkedPerson && linkedPerson.userName) {
+          userDisplayName = linkedPerson.userName;
+        }
+      }
+      
       // Create user with basic info
       const userData = {
         email: normalizedEmail,
-        displayName: displayName || null, // Don't set a default display name
+        displayName: userDisplayName || null, // Use person's userName or provided displayName
         bio: bio || null,
         personId: finalPersonId, // Use the resolved person ID (existing record or undefined)
         password: "", // Empty password - will be set during verification
