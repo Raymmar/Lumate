@@ -495,7 +495,11 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                     .filter(member => member.isPublic)
                     .map((member) => {
                       const userName = member.user.displayName || member.user.email.split('@')[0];
-                      const jobTitle = member.title || member.user.person?.jobTitle || '';
+                      // Don't show "owner" as job title
+                      let jobTitle = member.user.person?.jobTitle || '';
+                      if (member.title && member.title.toLowerCase() !== 'owner') {
+                        jobTitle = member.title;
+                      }
                       
                       // Create avatar initials
                       const initials = userName
