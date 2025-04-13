@@ -2118,6 +2118,14 @@ export class PostgresStorage implements IStorage {
         userId: companyMembership.userId
       });
       
+      // Prevent title from being set to the same as role (e.g., "owner"/"Owner")
+      // This ensures internal roles don't appear as public titles
+      let title = companyMembership.title;
+      if (title && companyMembership.role && 
+          title.toLowerCase() === companyMembership.role.toLowerCase()) {
+        title = null;
+      }
+      
       // Check if membership already exists
       const existingMembership = await db
         .select()
@@ -2134,7 +2142,7 @@ export class PostgresStorage implements IStorage {
           .update(companyMembers)
           .set({
             role: companyMembership.role,
-            title: companyMembership.title,
+            title: title, // Use processed title
             isPublic: companyMembership.isPublic,
             addedBy: companyMembership.addedBy,
             updatedAt: new Date().toISOString()
@@ -2147,11 +2155,12 @@ export class PostgresStorage implements IStorage {
         
         return updatedMembership;
       } else {
-        // Create new membership
+        // Create new membership with processed title
         const [newMembership] = await db
           .insert(companyMembers)
           .values({
             ...companyMembership,
+            title: title, // Use processed title
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           })
