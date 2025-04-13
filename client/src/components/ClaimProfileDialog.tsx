@@ -113,31 +113,11 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
           <DialogTitle>Claim Your Profile</DialogTitle>
           <DialogDescription className="space-y-4">
             <p>
-              If you've attended one of our events in the past, enter your email to claim your member profile.
+              If you've attended one of our events in the past, enter your email to claim your member profile. <b>Make sure it's the same email you use to register for our events</b>.
             </p>
             <ol className="list-decimal pl-5 space-y-2 text-sm">
-              <li>
-                Enter your{' '}
-                <TooltipProvider delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="underline decoration-dotted cursor-help">lu.ma</span>
-                    </TooltipTrigger>
-                    <TooltipContent 
-                      side="right" 
-                      align="start"
-                      sideOffset={5}
-                    >
-                      <p className="max-w-xs">Make sure this is the same email you use to register for our events</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                {' '}email to claim your account
-              </li>
-              <li>If we find a match, we'll send a confirmation email</li>
-              <li>Click that email to activate your account</li>
-              <li>Create a password</li>
-              <li>Log in</li>
+              <li>If there's a match, we'll send an activation email</li>
+              <li>Confirm your email. Set a password. Log in.</li>
             </ol>
           </DialogDescription>
         </DialogHeader>

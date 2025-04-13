@@ -175,7 +175,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
                 ? "Loading event details..."
                 : !featuredEvent
                   ? "No upcoming events available at the moment."
-                  : "Enter your email for an invite to our next event."}
+                  : "Enter your email for an invite to our next event along with occasional updates about our growing community."}
             </p>
           </form>
         )}

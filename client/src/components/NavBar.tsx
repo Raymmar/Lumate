@@ -152,7 +152,7 @@ export function NavBar() {
             <ClaimProfileDialog 
               trigger={
                 <Button variant="outline" size="sm">
-                  Claim Account
+                  Claim Your Profile
                 </Button>
               }
             />
