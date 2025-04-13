@@ -857,6 +857,27 @@ export async function registerRoutes(app: Express) {
         customLinks: customLinks || null,
       };
       
+      // Generate a slug for the company
+      const generateSlug = (name: string): string => {
+        return name
+          .replace(/\./g, '') // Remove periods
+          .replace(/&/g, 'and') // Replace & with 'and'
+          .normalize('NFKD') // Normalize Unicode characters
+          .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+          .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces
+          .toLowerCase()
+          .trim()
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .replace(/-{2,}/g, '-') // Collapse multiple hyphens
+          .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
+      };
+      
+      // Add the slug to the company data
+      if (validCompanyData.name) {
+        validCompanyData.slug = generateSlug(validCompanyData.name);
+        console.log(`Generated slug "${validCompanyData.slug}" for new company "${validCompanyData.name}"`);
+      }
+      
       // Create the company
       const company = await storage.createCompany(validCompanyData);
       console.log("Created company:", company);
