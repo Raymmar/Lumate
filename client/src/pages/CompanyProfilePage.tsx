@@ -919,16 +919,26 @@ export default function CompanyProfilePage() {
                             name="logoUrl"
                             render={({ field }) => (
                               <FormItem className="mb-6">
-                                <FormLabel>Company Logo URL</FormLabel>
+                                <FormLabel>Company Logo</FormLabel>
                                 <div className="grid gap-2">
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="https://example.com/logo.png" 
-                                      {...field} 
-                                      value={field.value || ""}
-                                      disabled={!canEditCompany && !!company}
-                                    />
-                                  </FormControl>
+                                  {(canEditCompany || !company) ? (
+                                    <>
+                                      <FormControl>
+                                        <UnsplashPicker
+                                          value={field.value || ""}
+                                          onChange={(value) => field.onChange(value)}
+                                        />
+                                      </FormControl>
+                                    </>
+                                  ) : (
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="https://example.com/logo.png" 
+                                        value={field.value || ""}
+                                        disabled
+                                      />
+                                    </FormControl>
+                                  )}
                                   {field.value && (
                                     <div className="flex justify-center p-2 border rounded-md">
                                       <img 
@@ -956,16 +966,26 @@ export default function CompanyProfilePage() {
                             name="featuredImageUrl"
                             render={({ field }) => (
                               <FormItem className="mb-4">
-                                <FormLabel>Featured Image URL</FormLabel>
+                                <FormLabel>Featured Image</FormLabel>
                                 <div className="grid gap-2">
-                                  <FormControl>
-                                    <Input 
-                                      placeholder="https://example.com/featured.jpg" 
-                                      {...field} 
-                                      value={field.value || ""}
-                                      disabled={!canEditCompany && !!company}
-                                    />
-                                  </FormControl>
+                                  {(canEditCompany || !company) ? (
+                                    <>
+                                      <FormControl>
+                                        <UnsplashPicker
+                                          value={field.value || ""}
+                                          onChange={(value) => field.onChange(value)}
+                                        />
+                                      </FormControl>
+                                    </>
+                                  ) : (
+                                    <FormControl>
+                                      <Input 
+                                        placeholder="https://example.com/featured.jpg" 
+                                        value={field.value || ""}
+                                        disabled
+                                      />
+                                    </FormControl>
+                                  )}
                                   {field.value && (
                                     <div className="p-2 border rounded-md">
                                       <img 
@@ -986,15 +1006,6 @@ export default function CompanyProfilePage() {
                               </FormItem>
                             )}
                           />
-                          
-                          {/* Unsplash Image Picker */}
-                          {(canEditCompany || !company) && (
-                            <UnsplashPicker
-                              onImageSelect={(url) => {
-                                form.setValue("featuredImageUrl", url);
-                              }}
-                            />
-                          )}
                         </div>
                         
                         <div className="pt-4">
