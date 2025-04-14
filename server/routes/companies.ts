@@ -229,13 +229,13 @@ router.post("/:id/members", requireAuth, async (req: Request, res: Response) => 
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company admin
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+      // If not a system admin, verify if they're a company member (any role)
+      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, companyId);
+      if (!isCompanyMember) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company admin`);
+      console.log(`Access granted: User ${req.session.userId} is a company member`);
     }
 
     // Validate the member data
@@ -284,13 +284,13 @@ router.put("/:companyId/members/:userId", requireAuth, async (req: Request, res:
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company admin
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+      // If not a system admin, verify if they're a company member (any role)
+      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, companyId);
+      if (!isCompanyMember) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company admin`);
+      console.log(`Access granted: User ${req.session.userId} is a company member`);
     }
 
     // Validate the role data
@@ -329,13 +329,13 @@ router.delete("/:companyId/members/:userId", requireAuth, async (req: Request, r
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company admin
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+      // If not a system admin, verify if they're a company member (any role)
+      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, companyId);
+      if (!isCompanyMember) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company admin`);
+      console.log(`Access granted: User ${req.session.userId} is a company member`);
     }
 
     // Remove the member
@@ -458,14 +458,12 @@ router.get("/by-slug/:slug", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid company slug" });
     }
 
-    // Attempt to find the company by the stored slug field
-    let company = await storage.getCompanyBySlug(slug);
-    
-    if (company) {
-      return res.json({ company });
+    const company = await storage.getCompanyBySlug(slug);
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
     }
 
-    return res.status(404).json({ error: "Company not found" });
+    res.json({ company });
   } catch (error) {
     console.error("Error getting company by slug:", error);
     res.status(500).json({ error: "Failed to fetch company" });
