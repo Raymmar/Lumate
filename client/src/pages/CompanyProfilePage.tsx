@@ -565,7 +565,7 @@ export default function CompanyProfilePage() {
                                   placeholder="Short company description or tagline (max 300 characters)"
                                   className="resize-none h-20 min-h-[80px]"
                                   maxLength={300}
-                                  disabled={!isCompanyAdmin && !!company}
+                                  disabled={!canEditCompany && !!company}
                                 />
                                 <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
                                   {(field.value?.length || 0)}/300
@@ -612,7 +612,7 @@ export default function CompanyProfilePage() {
                             <FormItem>
                               <FormLabel>Industry</FormLabel>
                               <Select
-                                disabled={!isCompanyAdmin && !!company}
+                                disabled={!canEditCompany && !!company}
                                 onValueChange={field.onChange}
                                 value={field.value || undefined}
                                 defaultValue={field.value || undefined}
@@ -654,7 +654,7 @@ export default function CompanyProfilePage() {
                             <FormItem>
                               <FormLabel>Company Size</FormLabel>
                               <Select
-                                disabled={!isCompanyAdmin && !!company}
+                                disabled={!canEditCompany && !!company}
                                 onValueChange={field.onChange}
                                 value={field.value || undefined}
                                 defaultValue={field.value || undefined}
@@ -689,7 +689,7 @@ export default function CompanyProfilePage() {
                             <FormItem>
                               <FormLabel>Founded Year</FormLabel>
                               <Select
-                                disabled={!isCompanyAdmin && !!company}
+                                disabled={!canEditCompany && !!company}
                                 onValueChange={field.onChange}
                                 value={field.value || undefined}
                                 defaultValue={field.value || undefined}
@@ -729,7 +729,7 @@ export default function CompanyProfilePage() {
                                   value={field.value || ""}
                                   placeholder="Detailed company description"
                                   className="h-full min-h-[80px]"
-                                  disabled={!isCompanyAdmin && !!company}
+                                  disabled={!canEditCompany && !!company}
                                 />
                               </FormControl>
                               <FormMessage />
