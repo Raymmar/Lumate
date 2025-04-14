@@ -174,14 +174,14 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company admin
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+      // If not a system admin, verify if they're a company member (any role)
+      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, id);
       
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+      if (!isCompanyMember) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company admin`);
+      console.log(`Access granted: User ${req.session.userId} is a company member`);
     }
 
     // Delete the company
