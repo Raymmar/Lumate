@@ -285,7 +285,7 @@ export function BulletinBoard() {
           value={statsData?.uniqueAttendees || 0}
           icon={UserPlus}
           isLoading={isLoading}
-          description="63% open rate 21% click rate"
+          description="68% open rate 23% click rate"
         />
       </div>
 
