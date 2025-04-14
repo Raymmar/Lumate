@@ -66,7 +66,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     queryKey: ['/api/people', currentPage, pageSize, searchQuery],
     queryFn: async () => {
       const response = await fetch(
-        `/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events&verifiedOnly=true`,
+        `/api/people?page=${currentPage}&limit=${pageSize}&search=${encodeURIComponent(searchQuery)}&sort=events&verifiedOnly=false`,
         {
           credentials: 'include',
           headers: {
@@ -176,7 +176,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
       <div className="flex-none relative mb-2">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search verified members..."
+          placeholder="Search all members..."
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -232,7 +232,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
           </div>
           <div className="flex-none pt-2 mt-2 border-t">
             <div className="text-xs text-muted-foreground mb-2 text-center">
-              Showing {sortedPeople.length} of {data?.total} verified members
+              Showing {sortedPeople.length} of {data?.total} members
             </div>
             <Pagination>
               <PaginationContent>
@@ -259,7 +259,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
         </>
       ) : (
         <p className="text-sm text-muted-foreground">
-          {searchQuery ? "No matching verified members found" : "No verified members available"}
+          {searchQuery ? "No matching members found" : "No members available"}
         </p>
       )}
     </div>
