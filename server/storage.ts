@@ -151,6 +151,9 @@ export interface IStorage {
   getUserCompanies(userId: number): Promise<(Company & { role: string })[]>;
   isCompanyAdmin(userId: number, companyId: number): Promise<boolean>;
   
+  // Check if a user is a member of a company (any role)
+  isCompanyMember(userId: number, companyId: number): Promise<boolean>;
+  
   // Company tags management
   getCompanyTags(companyId: number): Promise<Tag[]>;
   addTagToCompany(companyTag: InsertCompanyTag): Promise<CompanyTag>;
@@ -2248,6 +2251,24 @@ export class PostgresStorage implements IStorage {
       return result.length > 0;
     } catch (error) {
       console.error('Failed to check if user is company admin:', error);
+      throw error;
+    }
+  }
+  
+  async isCompanyMember(userId: number, companyId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .select()
+        .from(companyMembers)
+        .where(and(
+          eq(companyMembers.companyId, companyId),
+          eq(companyMembers.userId, userId)
+        ))
+        .limit(1);
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error('Failed to check if user is company member:', error);
       throw error;
     }
   }

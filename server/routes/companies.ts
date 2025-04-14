@@ -103,15 +103,16 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     // Log the system admin check
     console.log(`User ${req.session.userId} isAdmin check: ${isSystemAdmin}`);
     
-    // If not a system admin, verify if they're a company admin
+    // If not a system admin, verify if they're a company member (any role)
     if (!isSystemAdmin) {
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
-      console.log(`User ${req.session.userId} isCompanyAdmin check: ${isCompanyAdmin}`);
+      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, id);
+      console.log(`User ${req.session.userId} isCompanyMember check: ${isCompanyMember}`);
       
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+      if (!isCompanyMember) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
         return res.status(403).json({ error: "Unauthorized" });
       }
+      console.log(`Access granted: User ${req.session.userId} is a company member`);
     } else {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     }
