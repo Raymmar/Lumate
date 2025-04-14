@@ -922,14 +922,19 @@ export default function CompanyProfilePage() {
                                 <FormLabel>Company Logo</FormLabel>
                                 <div className="grid gap-2">
                                   {(canEditCompany || !company) ? (
-                                    <>
-                                      <FormControl>
+                                    <FormControl>
+                                      <div className="space-y-2">
+                                        <Input 
+                                          placeholder="https://example.com/logo.png" 
+                                          {...field} 
+                                          value={field.value || ""}
+                                        />
                                         <UnsplashPicker
                                           value={field.value || ""}
                                           onChange={(value) => field.onChange(value)}
                                         />
-                                      </FormControl>
-                                    </>
+                                      </div>
+                                    </FormControl>
                                   ) : (
                                     <FormControl>
                                       <Input 
@@ -969,14 +974,19 @@ export default function CompanyProfilePage() {
                                 <FormLabel>Featured Image</FormLabel>
                                 <div className="grid gap-2">
                                   {(canEditCompany || !company) ? (
-                                    <>
-                                      <FormControl>
+                                    <FormControl>
+                                      <div className="space-y-2">
+                                        <Input 
+                                          placeholder="https://example.com/featured.jpg" 
+                                          {...field} 
+                                          value={field.value || ""}
+                                        />
                                         <UnsplashPicker
                                           value={field.value || ""}
                                           onChange={(value) => field.onChange(value)}
                                         />
-                                      </FormControl>
-                                    </>
+                                      </div>
+                                    </FormControl>
                                   ) : (
                                     <FormControl>
                                       <Input 
