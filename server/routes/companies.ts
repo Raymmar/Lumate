@@ -108,7 +108,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     }
 
     // Validate the company data
-    const { customLinks, ...otherData } = req.body;
+    const { customLinks, tags: tagsList, ...otherData } = req.body;
     const companyData = insertCompanySchema.partial().parse(otherData);
     
     // If the name is being updated, generate a new slug
@@ -125,7 +125,20 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     // Update the company with potentially new slug
     const company = await storage.updateCompany(id, updatedData);
     
-    res.json({ company });
+    // Process tags if provided
+    let updatedTags = [];
+    if (tagsList && Array.isArray(tagsList)) {
+      console.log(`Processing tags for company update:`, tagsList);
+      // Sync tags for the company
+      updatedTags = await storage.syncCompanyTags(id, tagsList);
+      console.log(`Updated tags for company ${id}:`, updatedTags);
+    }
+    
+    // Include updated tags in the response
+    res.json({ 
+      company,
+      tags: updatedTags
+    });
   } catch (error) {
     console.error("Failed to update company:", error);
     if (error instanceof z.ZodError) {

@@ -2298,6 +2298,62 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
+  
+  async syncCompanyTags(companyId: number, tagsList: string[]): Promise<Tag[]> {
+    try {
+      console.log(`Syncing tags for company ${companyId}:`, tagsList);
+      
+      // Get existing company tags
+      const existingTags = await this.getCompanyTags(companyId);
+      
+      // Create a set of existing tag text for easy lookup
+      const existingTagsSet = new Set(existingTags.map(tag => tag.text));
+      
+      // Process each tag in the new list
+      for (const tagText of tagsList) {
+        // Skip if tag is empty
+        if (!tagText.trim()) continue;
+        
+        // Skip if tag already exists for this company
+        if (existingTagsSet.has(tagText.toLowerCase())) {
+          console.log(`Tag "${tagText}" already exists for company ${companyId}`);
+          continue;
+        }
+        
+        console.log(`Adding tag "${tagText}" to company ${companyId}`);
+        
+        // Check if tag exists in the tags table
+        let tag = await db.query.tags.findFirst({
+          where: sql`text = ${tagText.toLowerCase()}`
+        });
+        
+        // If not, create the tag
+        if (!tag) {
+          const tagData: InsertTag = {
+            text: tagText.toLowerCase()
+          };
+          
+          [tag] = await db.insert(tags)
+            .values(tagData)
+            .returning();
+            
+          console.log(`Created new tag with ID ${tag.id}`);
+        }
+        
+        // Create company-tag relationship
+        await this.addTagToCompany({
+          companyId,
+          tagId: tag.id
+        });
+      }
+      
+      // Get updated tags after sync
+      return this.getCompanyTags(companyId);
+    } catch (error) {
+      console.error(`Failed to sync tags for company ${companyId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new PostgresStorage();
