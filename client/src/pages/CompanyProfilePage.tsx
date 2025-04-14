@@ -805,13 +805,29 @@ export default function CompanyProfilePage() {
                               <FormItem className="mb-4">
                                 <FormLabel>Address</FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    placeholder="123 Main St, Sarasota, FL 34236" 
-                                    {...field} 
-                                    value={field.value || ""}
-                                    disabled={!canEditCompany && !!company}
-                                  />
+                                  {(canEditCompany || !company) ? (
+                                    <LocationPicker
+                                      defaultValue={field.value ? { address: field.value } : null}
+                                      onLocationSelect={(location) => {
+                                        if (location) {
+                                          field.onChange(location.formatted_address || location.address);
+                                        } else {
+                                          field.onChange("");
+                                        }
+                                      }}
+                                      className="w-full"
+                                    />
+                                  ) : (
+                                    <Input 
+                                      placeholder="123 Main St, Sarasota, FL 34236" 
+                                      value={field.value || ""}
+                                      disabled
+                                    />
+                                  )}
                                 </FormControl>
+                                <FormDescription>
+                                  Enter your company's address to help customers find you
+                                </FormDescription>
                                 <FormMessage />
                               </FormItem>
                             )}
