@@ -217,8 +217,8 @@ export default function CompanyProfilePage() {
   // Check if user is a company admin or has system admin privileges
   const isCompanyAdmin = company?.role === 'admin' || user?.isAdmin === true;
   
-  // Determine if user can edit the company profile - must be admin AND have subscription (or be system admin)
-  const canEditCompany = (isCompanyAdmin && hasActiveSubscription) || user?.isAdmin === true;
+  // Determine if user can edit the company profile - any member of the company can edit (not just admins)
+  const canEditCompany = company !== undefined || user?.isAdmin === true;
   
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -494,14 +494,7 @@ export default function CompanyProfilePage() {
               </div>
             ) : (
               <>
-                {company && !isCompanyAdmin && (
-                  <Alert variant="default" className="mb-6">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      You are a member of this company but not an administrator. Contact a company admin to make changes to this profile.
-                    </AlertDescription>
-                  </Alert>
-                )}
+
                 
                 {!hasActiveSubscription && !isSubscriptionLoading ? (
                   <Card className="border-2 border-dashed">
