@@ -100,11 +100,20 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     const user = await storage.getUserById(req.session.userId!);
     const isSystemAdmin = user?.isAdmin === true;
     
-    // If not a system admin, verify if they're a company admin
-    const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+    // Log the system admin check
+    console.log(`User ${req.session.userId} isAdmin check: ${isSystemAdmin}`);
     
-    if (!isSystemAdmin && !isCompanyAdmin) {
-      return res.status(403).json({ error: "Unauthorized" });
+    // If not a system admin, verify if they're a company admin
+    if (!isSystemAdmin) {
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+      console.log(`User ${req.session.userId} isCompanyAdmin check: ${isCompanyAdmin}`);
+      
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+    } else {
+      console.log(`Access granted: User ${req.session.userId} is a system admin`);
     }
 
     // Validate the company data
@@ -160,11 +169,18 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
     const user = await storage.getUserById(req.session.userId!);
     const isSystemAdmin = user?.isAdmin === true;
     
-    // If not a system admin, verify if they're a company admin
-    const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
-    
-    if (!isSystemAdmin && !isCompanyAdmin) {
-      return res.status(403).json({ error: "Unauthorized" });
+    // If the user is a system admin, they have full access
+    if (isSystemAdmin) {
+      console.log(`Access granted: User ${req.session.userId} is a system admin`);
+    } else {
+      // If not a system admin, verify if they're a company admin
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+      
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin`);
+        return res.status(403).json({ error: "Unauthorized" });
+      }
+      console.log(`Access granted: User ${req.session.userId} is a company admin`);
     }
 
     // Delete the company
