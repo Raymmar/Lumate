@@ -190,16 +190,21 @@ export function CompanyPreview({
       ownerUserId: number | null 
     }) => {
       try {
+        console.log("Processing company members:", { companyId, userIds, ownerUserId });
+        
         // First, get the existing members to avoid adding duplicates
         const existingMembersResponse = await fetch(`/api/companies/${companyId}/members`);
         if (!existingMembersResponse.ok) {
           throw new Error('Failed to fetch company members');
         }
         const existingMembersData = await existingMembersResponse.json();
+        console.log("Existing members data:", existingMembersData);
+        
         const existingMemberIds = existingMembersData.members.map((member: any) => member.userId);
         
         // Filter out any user IDs that are already members
         const newMemberIds = userIds.filter(id => !existingMemberIds.includes(id));
+        console.log("New member IDs to add:", newMemberIds);
         
         // Find existing owner to update role if needed
         const existingOwner = existingMembersData.members.find((member: any) => member.role === 'owner');
@@ -209,9 +214,10 @@ export function CompanyPreview({
         
         // If we have a new owner and it's different from the current owner
         if (ownerUserId && existingOwner && existingOwner.userId !== ownerUserId) {
+          console.log(`Demoting existing owner (${existingOwner.userId}) to member`);
           // Demote the existing owner to member
           updatePromises.push(
-            apiRequest(`/api/companies/${companyId}/members/${existingOwner.userId}`, 'PATCH', { 
+            apiRequest(`/api/companies/${companyId}/members/${existingOwner.userId}`, 'PUT', { 
               role: 'member' 
             })
           );
@@ -267,8 +273,10 @@ export function CompanyPreview({
   // Handle company saving, either create or update
   const handleCompanySave = async (data: any) => {
     try {
-      // Extract selected members and owner if present
-      const { _selectedMembers, _ownerUserId, ...companyData } = data;
+      console.log("Company save data:", data);
+      
+      // Extract selected members, owner, and tags if present
+      const { _selectedMembers, _ownerUserId, tags, ...companyData } = data;
       const selectedMembers = _selectedMembers || [];
       const ownerUserId = _ownerUserId || null;
 
@@ -276,16 +284,25 @@ export function CompanyPreview({
         // For new companies, pass the data to the parent component (CompaniesTable)
         // which will handle creating the company and assigning members
         await onSave({
-          ...companyData, 
+          ...companyData,
+          tags: tags || [], // Ensure tags are included
           _selectedMembers: selectedMembers,
           _ownerUserId: ownerUserId
         });
       } else if (company?.id) {
         // For existing companies, update the company data
-        await updateCompanyMutation.mutateAsync(companyData);
+        // Make sure tags are included in the update
+        const dataToUpdate = {
+          ...companyData,
+          tags: tags || [] // Ensure tags are properly passed to the API
+        };
+        
+        console.log("Updating company with data:", dataToUpdate);
+        await updateCompanyMutation.mutateAsync(dataToUpdate);
         
         // If members were selected, handle them after updating the company
         if (selectedMembers.length > 0) {
+          console.log("Processing selected members:", selectedMembers);
           // Add the selected members to the company
           await addCompanyMembersMutation.mutateAsync({
             companyId: company.id,
@@ -296,6 +313,11 @@ export function CompanyPreview({
       }
     } catch (error) {
       console.error('Error saving company:', error);
+      toast({
+        title: 'Error',
+        description: `Failed to save company: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      });
     }
   };
 
