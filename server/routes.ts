@@ -615,6 +615,7 @@ export async function registerRoutes(app: Express) {
         attendanceCounts.rows.map((row: any) => [row.email.toLowerCase(), row]),
       );
 
+      // Include all users but capture verification status
       let query = db
         .select({
           id: people.id,
@@ -630,8 +631,9 @@ export async function registerRoutes(app: Express) {
           jobTitle: people.jobTitle,
         })
         .from(people);
-
-      // Add join with users table if verifiedOnly is true
+      
+      // If verifiedOnly is true, only show verified users
+      // Otherwise, get all users but we'll add verification status later
       if (verifiedOnly) {
         query = query
           .innerJoin(users, eq(users.personId, people.id))
@@ -654,9 +656,33 @@ export async function registerRoutes(app: Express) {
       }
 
       const allPeople = await query.orderBy(people.id);
+      
+      // Check verification status for each person and add it to the response
+      const peopleWithVerification = await Promise.all(
+        allPeople.map(async (person) => {
+          const userCheckResult = await db
+            .select()
+            .from(users)
+            .where(and(
+              eq(users.personId, person.id),
+              eq(users.isVerified, true)
+            ))
+            .limit(1);
+            
+          return {
+            ...person,
+            isVerified: userCheckResult.length > 0
+          };
+        })
+      );
 
       if (sort === "events") {
-        const sortedPeople = allPeople.sort((a, b) => {
+        const sortedPeople = peopleWithVerification.sort((a, b) => {
+          // First prioritize verified users
+          if (a.isVerified && !b.isVerified) return -1;
+          if (!a.isVerified && b.isVerified) return 1;
+          
+          // Then sort by event count
           const aCount = countMap.get(a.email.toLowerCase())?.event_count || 0;
           const bCount = countMap.get(b.email.toLowerCase())?.event_count || 0;
 
@@ -664,6 +690,7 @@ export async function registerRoutes(app: Express) {
             return bCount - aCount;
           }
 
+          // If event count is tied, sort by most recent attendance
           const aDate =
             countMap.get(a.email.toLowerCase())?.last_attended || "1970-01-01";
           const bDate =
@@ -688,18 +715,36 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
+      // For the non-sorted case, sort by verification status first, then alphabetically by name
+      const sortedPeopleByVerification = peopleWithVerification.sort((a, b) => {
+        // First prioritize verified users
+        if (a.isVerified && !b.isVerified) return -1;
+        if (!a.isVerified && b.isVerified) return 1;
+        
+        // Then sort alphabetically by name if available
+        if (a.fullName && b.fullName) {
+          return a.fullName.localeCompare(b.fullName);
+        }
+        if (a.userName && b.userName) {
+          return a.userName.localeCompare(b.userName);
+        }
+        
+        // Fall back to id if no names are available
+        return a.id - b.id;
+      });
+      
       const start = (page - 1) * limit;
       const end = start + limit;
-      const paginatedPeople = allPeople.slice(start, end).map((p) => {
+      const paginatedPeople = sortedPeopleByVerification.slice(start, end).map((p) => {
         return { ...p, email: "" };
       });
       console.log(
-        `Returning paginated verified people, total: ${allPeople.length}`,
+        `Returning paginated people (verified first), total: ${sortedPeopleByVerification.length}`,
       );
 
       res.json({
         people: paginatedPeople,
-        total: allPeople.length,
+        total: sortedPeopleByVerification.length,
       });
     } catch (error) {
       console.error("Failed to fetch people:", error);

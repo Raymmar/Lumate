@@ -136,7 +136,7 @@ export default function CompanyDirectory() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
           <div className="relative z-10 w-full max-w-2xl mx-auto py-12 px-4 text-center">
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-              Sarasota Tech Member Directory
+              Sarasota Tech Business Directory
             </h1>
             <p className="text-lg text-white/90 mb-8">
               Explore a growing directory of Sarasota's most innovative companies.
@@ -172,7 +172,7 @@ export default function CompanyDirectory() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/40"></div>
         <div className="relative z-10 w-full max-w-2xl mx-auto py-12 px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-            Sarasota Tech Member Directory
+            Sarasota Tech Business Directory
           </h1>
           <p className="text-lg text-white/90 mb-8">
             Explore a growing directory of Sarasota's most innovative companies.
