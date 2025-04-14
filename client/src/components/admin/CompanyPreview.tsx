@@ -224,8 +224,9 @@ export function CompanyPreview({
           
           // If the new owner is already a member, promote them to owner
           if (existingMemberIds.includes(ownerUserId)) {
+            console.log(`Promoting user ${ownerUserId} to owner`);
             updatePromises.push(
-              apiRequest(`/api/companies/${companyId}/members/${ownerUserId}`, 'PATCH', { 
+              apiRequest(`/api/companies/${companyId}/members/${ownerUserId}`, 'PUT', { 
                 role: 'owner' 
               })
             );
@@ -238,15 +239,15 @@ export function CompanyPreview({
         }
         
         // Now add any new members
-        const addPromises = newMemberIds.map(userId => 
-          apiRequest('/api/companies/members', 'POST', { 
-            companyId, 
+        const addPromises = newMemberIds.map(userId => {
+          console.log(`Adding member ${userId} to company ${companyId}`);
+          return apiRequest(`/api/companies/${companyId}/members`, 'POST', { 
             userId, 
             // If this user is the owner and not already a member, set role to 'owner'
             role: userId === ownerUserId ? 'owner' : 'member',
             isPublic: true
-          })
-        );
+          });
+        });
         
         // Execute all promises
         await Promise.all([...updatePromises, ...addPromises]);
