@@ -214,7 +214,11 @@ export default function CompanyProfilePage() {
 
   // For simplicity, we'll work with the first company found for this user
   const company = userCompanies?.companies?.[0];
-  const isCompanyAdmin = company?.role === 'admin';
+  // Check if user is a company admin or has system admin privileges
+  const isCompanyAdmin = company?.role === 'admin' || user?.isAdmin === true;
+  
+  // Determine if user can edit the company profile - must be admin AND have subscription (or be system admin)
+  const canEditCompany = (isCompanyAdmin && hasActiveSubscription) || user?.isAdmin === true;
   
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -539,7 +543,7 @@ export default function CompanyProfilePage() {
                               <Input
                                 {...field}
                                 placeholder="Company Name"
-                                disabled={!isCompanyAdmin && !!company}
+                                disabled={!canEditCompany && !!company}
                               />
                             </FormControl>
                             <FormMessage />
