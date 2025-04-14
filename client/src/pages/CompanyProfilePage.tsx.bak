@@ -763,7 +763,7 @@ export default function CompanyProfilePage() {
                                         <Switch
                                           checked={switchField.value}
                                           onCheckedChange={switchField.onChange}
-                                          disabled={!canEditCompany && !!company}
+                                          disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -777,7 +777,7 @@ export default function CompanyProfilePage() {
                                     {...field}
                                     value={field.value || ""}
                                     placeholder="company@example.com"
-                                    disabled={!canEditCompany && !!company}
+                                    disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                                   />
                                 </div>
                               </FormControl>
@@ -805,7 +805,7 @@ export default function CompanyProfilePage() {
                                         <Switch
                                           checked={switchField.value}
                                           onCheckedChange={switchField.onChange}
-                                          disabled={!canEditCompany && !!company}
+                                          disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                                         />
                                       </FormControl>
                                     </FormItem>
@@ -819,7 +819,7 @@ export default function CompanyProfilePage() {
                                     {...field}
                                     value={field.value || ""}
                                     placeholder="+1 (555) 123-4567"
-                                    disabled={!canEditCompany && !!company}
+                                    disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                                   />
                                 </div>
                               </FormControl>
@@ -871,7 +871,7 @@ export default function CompanyProfilePage() {
                               variant="outline"
                               size="icon"
                               onClick={() => handleRemoveCustomLink(index)}
-                              disabled={!canEditCompany && !!company}
+                              disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -984,7 +984,7 @@ export default function CompanyProfilePage() {
                                   {...field}
                                   value={field.value || ""}
                                   placeholder="Contact Us, Learn More, etc."
-                                  disabled={!canEditCompany && !!company}
+                                  disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -1005,7 +1005,7 @@ export default function CompanyProfilePage() {
                                     {...field}
                                     value={field.value || ""}
                                     placeholder="https://example.com"
-                                    disabled={!canEditCompany && !!company}
+                                    disabled={!canEditCompany disabled={!isCompanyAdmin && !!company}disabled={!isCompanyAdmin && !!company} !!company}
                                   />
                                 </div>
                               </FormControl>
