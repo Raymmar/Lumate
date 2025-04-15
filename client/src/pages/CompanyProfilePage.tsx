@@ -24,6 +24,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { Badge } from "@/components/ui/badge";
 import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
+import { TagSelector } from "@/components/ui/tag-selector";
 import { cn, formatCompanyNameForUrl } from "@/lib/utils";
 import { type UserCustomLink } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";

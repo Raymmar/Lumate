@@ -26,6 +26,7 @@ import { X, Loader2, Plus, Check, ChevronsUpDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
+import { TagSelector } from "@/components/ui/tag-selector";
 import { LocationPicker } from "@/components/ui/location-picker";
 import { initGoogleMaps } from "@/lib/google-maps";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
@@ -754,47 +755,18 @@ export function CompanyForm({
           
           <div>
             <FormLabel>Company Tags</FormLabel>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="text-sm px-2 py-1">
-                  {tag}
-                  {!readOnly && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTag(tag)}
-                      className="ml-1.5 text-muted-foreground hover:text-foreground"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </Badge>
-              ))}
-            </div>
             
-            {!readOnly && (
-              <div className="flex gap-2">
-                <Input
-                  value={currentTag}
-                  onChange={(e) => setCurrentTag(e.target.value)}
-                  placeholder="Add a tag"
-                  className="max-w-xs"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddTag();
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddTag}
-                >
-                  Add
-                </Button>
-              </div>
-            )}
+            <TagSelector
+              tags={tags}
+              maxTags={5}
+              onTagsChange={(newTags) => {
+                setTags(newTags);
+                form.setValue("tags", newTags);
+              }}
+              readOnly={readOnly}
+              placeholder="Search or add new tag..."
+            />
+            
             <FormDescription>
               Add tags to categorize your company (e.g., AI, SaaS, Enterprise)
             </FormDescription>
