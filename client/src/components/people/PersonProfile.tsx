@@ -15,7 +15,6 @@ import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
 import { User } from '@shared/schema';
 import { Link } from 'wouter';
-import { SEO } from "@/components/ui/seo";
 
 interface PersonProfileProps {
   username: string;
@@ -219,16 +218,10 @@ export default function PersonProfile({ username }: PersonProfileProps) {
     return <div>Person not found</div>;
   }
 
-  // Generate SEO metadata for this profile
-  const seoTitle = person.userName || 'Member Profile';
-  const seoDescription = person.user?.bio || `Member profile for ${person.userName} on Sarasota Tech.`;
-  const seoImage = person.avatarUrl || undefined;
+  // SEO metadata is now handled at the page level
 
   return (
     <div className="grid gap-4 md:grid-cols-3 w-full max-w-full">
-      {/* SEO component for social sharing metadata */}
-      <SEO title={seoTitle} description={seoDescription} image={seoImage} />
-      
       <div className="md:col-span-2 space-y-4 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">

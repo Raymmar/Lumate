@@ -40,15 +40,32 @@ export default function CompanyPublicProfilePage() {
 
   const company = companyData?.company;
 
-  // Generate SEO metadata
+  // Generate SEO metadata with properly formatted values
   const seoTitle = company?.name ? `${company.name} | Sarasota Tech` : 'Company Profile | Sarasota Tech';
   const seoDescription = company?.bio || company?.description || 'View company profile on Sarasota Tech - connecting Sarasota\'s tech community.';
-  const seoImage = company?.featuredImageUrl || undefined;
+  
+  // Ensure we have an absolute URL for the image
+  let seoImage = undefined;
+  if (company?.featuredImageUrl) {
+    seoImage = company.featuredImageUrl;
+  } else if (company?.logoUrl) {
+    seoImage = company.logoUrl;
+  }
+
+  console.log("Setting SEO for company:", {
+    title: seoTitle,
+    description: seoDescription,
+    image: seoImage
+  });
 
   return (
     <DashboardLayout>
       {/* Place SEO component at the page level for proper social sharing */}
-      {company && <SEO title={seoTitle} description={seoDescription} image={seoImage} />}
+      <SEO 
+        title={seoTitle} 
+        description={seoDescription} 
+        image={seoImage} 
+      />
       
       <div className="container max-w-7xl mx-auto pb-24">
         {/* Pass the slug to the CompanyProfile component */}
