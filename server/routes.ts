@@ -3411,7 +3411,6 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // Industries API endpoints
   app.get("/api/industries", async (_req, res) => {
     try {
       const result = await db
@@ -3419,6 +3418,7 @@ export async function registerRoutes(app: Express) {
           id: industries.id,
           name: industries.name,
           category: industries.category,
+          isActive: industries.isActive,
         })
         .from(industries)
         .where(eq(industries.isActive, true))
@@ -3431,43 +3431,49 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // Admin endpoint to add industries
-  app.post("/api/admin/industries", async (req, res) => {
+  app.post("/api/industries", async (req, res) => {
     try {
+      // Require admin access
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
       }
-
+      
       const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
+      if (!user || !user.isAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
       }
-
+      
       const { name, category } = req.body;
       
-      if (!name || !name.trim()) {
+      if (!name || typeof name !== 'string' || !name.trim()) {
         return res.status(400).json({ error: "Industry name is required" });
       }
       
       // Check if industry already exists
-      const existingIndustry = await db.query.industries.findFirst({
-        where: sql`LOWER(name) = ${name.toLowerCase()}`
-      });
-      
-      if (existingIndustry) {
-        return res.status(409).json({ error: "Industry already exists" });
+      const existingIndustry = await db
+        .select()
+        .from(industries)
+        .where(sql`LOWER(name) = ${name.toLowerCase().trim()}`)
+        .limit(1);
+        
+      if (existingIndustry.length > 0) {
+        return res.status(409).json({ 
+          error: "Industry already exists",
+          industry: existingIndustry[0]
+        });
       }
       
-      // Create new industry
-      const [industry] = await db.insert(industries)
+      // Create the new industry
+      const [newIndustry] = await db
+        .insert(industries)
         .values({
           name: name.trim(),
-          category: category ? category.trim() : null,
-          isActive: true
+          category: category || "Other",
+          isActive: true,
         })
         .returning();
-      
-      res.status(201).json(industry);
+        
+      res.status(201).json({ industry: newIndustry });
     } catch (error) {
       console.error("Failed to create industry:", error);
       res.status(500).json({ error: "Failed to create industry" });
@@ -3499,11 +3505,13 @@ export async function registerRoutes(app: Express) {
       }
       
       // Check if industry exists
-      const existingIndustry = await db.query.industries.findFirst({
-        where: eq(industries.id, industryId)
-      });
+      const existingIndustry = await db
+        .select()
+        .from(industries)
+        .where(eq(industries.id, industryId))
+        .limit(1);
       
-      if (!existingIndustry) {
+      if (!existingIndustry.length) {
         return res.status(404).json({ error: "Industry not found" });
       }
       
@@ -3512,7 +3520,6 @@ export async function registerRoutes(app: Express) {
       if (name !== undefined) updateData.name = name.trim();
       if (category !== undefined) updateData.category = category?.trim() || null;
       if (isActive !== undefined) updateData.isActive = isActive;
-      updateData.updatedAt = new Date().toISOString();
       
       // Update industry
       const [updatedIndustry] = await db.update(industries)
