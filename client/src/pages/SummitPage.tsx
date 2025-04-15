@@ -57,8 +57,8 @@ function SlideShow({ images }: SlideShowProps) {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-xl">
-      <div className="relative w-full h-[350px] md:h-[500px]">
+    <div className="relative overflow-hidden rounded-xl shadow-md">
+      <div className="relative w-full h-[300px] sm:h-[350px] md:h-[500px]">
         {images.map((image, index) => (
           <div
             key={index}
@@ -72,9 +72,9 @@ function SlideShow({ images }: SlideShowProps) {
               className="w-full h-full object-cover"
             />
             {(image.title || image.description) && (
-              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white p-4">
+              <div className="absolute bottom-0 left-0 right-0 bg-background/80 dark:bg-background/90 backdrop-blur-sm border-t border-border p-4">
                 {image.title && <h3 className="text-lg md:text-xl font-bold">{image.title}</h3>}
-                {image.description && <p className="text-sm md:text-base mt-1">{image.description}</p>}
+                {image.description && <p className="text-sm md:text-base mt-1 text-muted-foreground">{image.description}</p>}
               </div>
             )}
           </div>
@@ -85,17 +85,17 @@ function SlideShow({ images }: SlideShowProps) {
       <div className="absolute inset-0 flex items-center justify-between p-2">
         <button
           onClick={goToPrevious}
-          className="bg-black/50 text-white rounded-full p-2 hover:bg-black/70 transition-colors focus:outline-none"
+          className="bg-background/70 dark:bg-background/80 text-foreground rounded-full p-1.5 sm:p-2 hover:bg-background/90 dark:hover:bg-background/90 transition-colors focus:outline-none focus:ring-2 ring-primary/30 shadow-sm"
           aria-label="Previous slide"
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
         <button
           onClick={goToNext}
-          className="bg-black/50 text-white rounded-full p-2 hover:bg-black/70 transition-colors focus:outline-none"
+          className="bg-background/70 dark:bg-background/80 text-foreground rounded-full p-1.5 sm:p-2 hover:bg-background/90 dark:hover:bg-background/90 transition-colors focus:outline-none focus:ring-2 ring-primary/30 shadow-sm"
           aria-label="Next slide"
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
       </div>
       
@@ -115,8 +115,8 @@ function SlideShow({ images }: SlideShowProps) {
               }, 5000);
             }}
             className={`h-2 w-2 rounded-full ${
-              index === currentIndex ? "bg-white" : "bg-white/50"
-            }`}
+              index === currentIndex ? "bg-primary" : "bg-primary/30 dark:bg-primary/20"
+            } transition-colors`}
             aria-label={`Go to slide ${index + 1}`}
           />
         ))}
@@ -213,40 +213,57 @@ function SponsorSection({ title, sponsors, columns = 3, backgroundImage }: Spons
     : {};
 
   return (
-    <div className="py-16 md:py-20 relative" style={containerStyle}>
-      {backgroundImage && <div className="absolute inset-0 bg-black/50"></div>}
+    <div className="py-12 sm:py-16 md:py-20 relative" style={containerStyle}>
+      {backgroundImage && <div className="absolute inset-0 bg-black/50 dark:bg-black/70"></div>}
       <PageContainer className={`max-w-[1140px] relative ${backgroundImage ? 'z-10 text-white' : ''}`}>
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-10">{title}</h2>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-10">{title}</h2>
         <div 
-          className="grid gap-6"
-          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${Math.floor(100/columns)}%, 1fr))` }}
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6"
+          style={{ 
+            gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${Math.floor(100/Math.min(columns, 3))}%), 1fr))` 
+          }}
         >
           {sponsors.map((sponsor, index) => (
-            <Card key={index} className={`h-full ${backgroundImage ? 'bg-white/10 backdrop-blur border-none text-white' : ''}`}>
-              <CardContent className="p-6 flex flex-col h-full">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-16 h-16 flex-shrink-0">
+            <Card 
+              key={index} 
+              className={`h-full ${
+                backgroundImage 
+                  ? 'bg-white/10 dark:bg-white/5 backdrop-blur border-none text-white' 
+                  : 'bg-card dark:bg-card/80 hover:shadow-md transition-shadow'
+              }`}
+            >
+              <CardContent className="p-4 sm:p-6 flex flex-col h-full">
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 bg-white/90 dark:bg-white/80 rounded-md p-1 flex items-center justify-center">
                     <img 
                       src={sponsor.logo} 
                       alt={sponsor.name} 
-                      className="w-full h-full object-contain" 
+                      className="max-w-full max-h-full object-contain" 
                     />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg">{sponsor.name}</h3>
-                    {sponsor.category && <p className="text-sm text-muted-foreground">{sponsor.category}</p>}
+                    <h3 className="font-bold text-md sm:text-lg">{sponsor.name}</h3>
+                    {sponsor.category && <p className="text-xs sm:text-sm text-muted-foreground dark:text-muted-foreground/90">{sponsor.category}</p>}
                   </div>
                 </div>
-                <p className={`text-sm flex-grow ${backgroundImage ? 'text-white/80' : 'text-muted-foreground'}`}>
+                <p className={`text-xs sm:text-sm flex-grow ${
+                  backgroundImage 
+                    ? 'text-white/80 dark:text-white/70' 
+                    : 'text-muted-foreground dark:text-muted-foreground/90'
+                }`}>
                   {sponsor.description}
                 </p>
                 {sponsor.url && (
-                  <div className="mt-4">
+                  <div className="mt-3 sm:mt-4">
                     <a 
                       href={sponsor.url} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className={`text-sm font-medium ${backgroundImage ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'} flex items-center`}
+                      className={`text-xs sm:text-sm font-medium ${
+                        backgroundImage 
+                          ? 'text-white hover:text-white/80' 
+                          : 'text-primary hover:text-primary/80'
+                      } flex items-center`}
                     >
                       Learn more <ExternalLink className="ml-1 h-3 w-3" />
                     </a>
@@ -526,7 +543,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">6:00</div>
                           <div>
                             <div className="font-bold">Opening Remarks</div>
@@ -539,7 +556,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">6:05 - 6:35</div>
                           <div>
                             <div className="font-bold">Is Sarasota Investable?</div>
@@ -554,7 +571,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">6:35 - 7:00</div>
                           <div>
                             <div className="font-bold">Emerging Tech Trends</div>
@@ -570,7 +587,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">7:10 - 7:45</div>
                           <div>
                             <div className="font-bold">How to move a city forward?</div>
@@ -582,7 +599,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">7:45 - 8:15</div>
                           <div>
                             <div className="font-bold">Town hall discussion</div>
@@ -595,7 +612,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">8:15 - 8:30</div>
                           <div>
                             <div className="font-bold">Looking Ahead</div>
@@ -610,7 +627,7 @@ export default function SummitPage() {
                       </li>
                       
                       <li>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">8:30 - 10:00</div>
                           <div>
                             <div className="font-bold">VIP Afterparty</div>
