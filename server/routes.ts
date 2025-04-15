@@ -30,6 +30,7 @@ import {
   companies,
   companyMembers,
   companyTags,
+  industries,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
