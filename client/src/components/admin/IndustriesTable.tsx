@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -173,14 +173,12 @@ export default function IndustriesTable() {
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
+                <TableCell colSpan={3} className="text-center py-4">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -198,27 +196,11 @@ export default function IndustriesTable() {
                       <span>{industry.isActive ? "Active" : "Inactive"}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {new Date(industry.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Implement edit functionality if needed
-                        // For now, just toggle active status
-                        handleToggleActive(industry);
-                      }}
-                    >
-                      {industry.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
+                <TableCell colSpan={3} className="text-center py-4">
                   No industries found.
                 </TableCell>
               </TableRow>
@@ -232,6 +214,9 @@ export default function IndustriesTable() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add New Industry</DialogTitle>
+            <DialogDescription>
+              Create a new industry category for companies to select
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -257,7 +242,7 @@ export default function IndustriesTable() {
                   setNewIndustry({ ...newIndustry, category: value })
                 }
               >
-                <SelectTrigger className="col-span-3">
+                <SelectTrigger id="category" className="col-span-3">
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
