@@ -440,7 +440,7 @@ export default function SummitPage() {
                   Can Sarasota become a tech town?
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center">
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-white text-lg px-6 py-6">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground dark:text-primary-foreground text-lg px-6 py-6">
                     <a 
                       href="https://lu.ma/r21g3q5c?coupon=EARLY25" 
                       target="_blank" 
@@ -450,7 +450,7 @@ export default function SummitPage() {
                       Get Tickets <ExternalLink className="ml-2 h-4 w-4" />
                     </a>
                   </Button>
-                  <Button size="lg" variant="outline" className="bg-white/20 backdrop-blur-sm border-white text-white hover:bg-white/30 text-lg px-6 py-6">
+                  <Button size="lg" variant="outline" className="bg-white/20 dark:bg-white/10 backdrop-blur-sm border-white text-white hover:bg-white/30 dark:hover:bg-white/20 text-lg px-6 py-6">
                     <a 
                       href="https://www.dropbox.com/scl/fo/tx5vb725ywzytkfog1iv1/AGfyY_yWKWKsnOn64QjCXiA?rlkey=ue2nlaso4lrb3ug59memgqqmh&dl=0" 
                       target="_blank" 
@@ -478,16 +478,16 @@ export default function SummitPage() {
                 />
               </div>
               <div className="w-full md:w-1/2 space-y-6">
-                <h2 className="text-4xl font-bold">Can Sarasota Become a Tech Town?</h2>
-                <div className="prose prose-lg">
-                  <p>
-                    The inaugural <strong>Sarasota Tech Summit</strong> brought together more than 300 tech professionals, 
+                <h2 className="text-4xl font-bold text-foreground">Can Sarasota Become a Tech Town?</h2>
+                <div className="prose prose-lg dark:prose-invert">
+                  <p className="text-muted-foreground dark:text-muted-foreground">
+                    The inaugural <strong className="text-foreground dark:text-foreground">Sarasota Tech Summit</strong> brought together more than 300 tech professionals, 
                     investors, and thought leaders to explore whether Sarasota has what it takes to become 
                     a thriving tech hub.
                   </p>
                 </div>
                 <div className="pt-2">
-                  <Button className="bg-black hover:bg-black/90 text-white">
+                  <Button className="bg-primary hover:bg-primary/90 text-primary-foreground dark:text-primary-foreground">
                     <a 
                       href="https://lu.ma/r21g3q5c?coupon=EARLY25" 
                       target="_blank" 
