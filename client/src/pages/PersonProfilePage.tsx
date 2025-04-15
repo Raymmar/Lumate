@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PersonProfile from "@/components/people/PersonProfile";
 import { useParams } from "wouter";
+import { SEO } from "@/components/ui/seo";
 
 export default function PersonProfilePage() {
   const params = useParams<{ username: string }>();

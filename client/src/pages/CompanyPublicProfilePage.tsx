@@ -4,6 +4,7 @@ import CompanyProfile from "@/components/companies/CompanyProfile";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { SEO } from "@/components/ui/seo";
 
 export default function CompanyPublicProfilePage() {
   // Using the companySlug parameter from the URL
@@ -26,8 +27,28 @@ export default function CompanyPublicProfilePage() {
     );
   }
 
+  // Fetch company data for SEO at the page level
+  const { data: companyData } = useQuery<{company: any}>({
+    queryKey: ['/api/companies/by-slug', companySlug],
+    queryFn: async () => {
+      const response = await fetch(`/api/companies/by-slug/${encodeURIComponent(companySlug)}`);
+      if (!response.ok) return { company: null };
+      return await response.json();
+    }
+  });
+
+  const company = companyData?.company;
+
+  // Generate SEO metadata
+  const seoTitle = company?.name ? `${company.name} | Sarasota Tech` : 'Company Profile | Sarasota Tech';
+  const seoDescription = company?.bio || company?.description || 'View company profile on Sarasota Tech - connecting Sarasota\'s tech community.';
+  const seoImage = company?.featuredImageUrl || undefined;
+
   return (
     <DashboardLayout>
+      {/* Place SEO component at the page level for proper social sharing */}
+      {company && <SEO title={seoTitle} description={seoDescription} image={seoImage} />}
+      
       <div className="container max-w-7xl mx-auto pb-24">
         {/* Pass the slug to the CompanyProfile component */}
         <CompanyProfile nameSlug={companySlug} />
