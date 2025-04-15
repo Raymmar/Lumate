@@ -509,11 +509,11 @@ export default function SummitPage() {
                   </p>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <div className="bg-card rounded-xl shadow-lg p-6 md:p-8">
                   <div className="space-y-6">
                     <ul className="space-y-6">
                       <li className="pb-5 border-b">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <div className="font-bold min-w-[120px]">5:00 - 6:00</div>
                           <div>
                             <div className="font-bold">Let's Taco Bout Tech</div>
