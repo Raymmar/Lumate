@@ -3418,7 +3418,6 @@ export async function registerRoutes(app: Express) {
         .select({
           id: industries.id,
           name: industries.name,
-          category: industries.category,
           isActive: industries.isActive,
         })
         .from(industries)
@@ -3444,7 +3443,7 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Admin access required" });
       }
       
-      const { name, category } = req.body;
+      const { name } = req.body;
       
       if (!name || typeof name !== 'string' || !name.trim()) {
         return res.status(400).json({ error: "Industry name is required" });
@@ -3469,7 +3468,6 @@ export async function registerRoutes(app: Express) {
         .insert(industries)
         .values({
           name: name.trim(),
-          category: category || "Other",
           isActive: true,
         })
         .returning();
@@ -3559,7 +3557,7 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
       
-      const { name, category } = req.body;
+      const { name } = req.body;
       
       if (!name || !name.trim()) {
         return res.status(400).json({ error: "Industry name is required" });

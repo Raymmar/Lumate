@@ -101,7 +101,7 @@ export function IndustrySelector({
                   </div>
                 </CommandEmpty>
                 <CommandGroup>
-                  {filteredIndustries.map((ind: { id: number; name: string; category: string | null }) => (
+                  {filteredIndustries.map((ind: { id: number; name: string }) => (
                     <CommandItem
                       key={ind.id}
                       value={ind.name}
@@ -115,9 +115,6 @@ export function IndustrySelector({
                         )}
                       />
                       <span className="flex-1">{ind.name}</span>
-                      {ind.category && (
-                        <span className="text-xs text-muted-foreground">{ind.category}</span>
-                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
