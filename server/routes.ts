@@ -3516,6 +3516,88 @@ export async function registerRoutes(app: Express) {
     }
   }
   
+  // Admin get all industries endpoint
+  app.get("/api/admin/industries", async (req, res) => {
+    try {
+      // Check if user is admin
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      // Get all industries
+      const allIndustries = await db
+        .select()
+        .from(industries)
+        .orderBy(industries.name);
+      
+      console.log(`Fetched ${allIndustries.length} industries for admin`);
+      
+      res.json({ industries: allIndustries });
+    } catch (error) {
+      console.error("Error fetching industries for admin:", error);
+      res.status(500).json({ error: "Failed to fetch industries" });
+    }
+  });
+  
+  // Admin create industry endpoint
+  app.post("/api/admin/industries", async (req, res) => {
+    try {
+      // Check if user is admin
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const { name, category } = req.body;
+      
+      if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Industry name is required" });
+      }
+      
+      // Check if industry with same name already exists
+      const existingIndustry = await db
+        .select()
+        .from(industries)
+        .where(sql`LOWER(name) = ${name.toLowerCase()}`)
+        .limit(1);
+      
+      if (existingIndustry.length > 0) {
+        return res.status(409).json({ 
+          error: "Industry with this name already exists",
+          industry: existingIndustry[0] 
+        });
+      }
+      
+      // Insert new industry
+      const now = new Date().toISOString();
+      const newIndustry = await db.insert(industries).values({
+        name,
+        category: category || null,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      }).returning();
+      
+      console.log("Created new industry:", newIndustry[0]);
+      
+      res.status(201).json({ industry: newIndustry[0] });
+    } catch (error) {
+      console.error("Error creating industry:", error);
+      res.status(500).json({ error: "Failed to create industry" });
+    }
+  });
+
   // Update industries for a company
   app.post("/api/companies/:id/industries", authenticateUser, async (req, res) => {
     try {
