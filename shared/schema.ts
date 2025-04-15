@@ -558,7 +558,7 @@ export const companyTags = pgTable("company_tags", {
   tagId: serial("tag_id").references(() => tags.id).notNull(),
 });
 
-// Industry schema
+// Add industry insert schema
 export const insertIndustrySchema = createInsertSchema(industries).omit({
   id: true,
   createdAt: true,
