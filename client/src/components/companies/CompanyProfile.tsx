@@ -10,6 +10,7 @@ import { Link } from 'wouter';
 import { useEffect, useState } from 'react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 import { formatUsernameForUrl } from '@/lib/utils';
+import { SEO } from "@/components/ui/seo";
 
 interface CompanyProfileProps {
   nameSlug: string;
@@ -261,8 +262,16 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
 
   const defaultMapCenter = { lat: 27.3364, lng: -82.5308 }; // Default to Sarasota if geocoding fails
 
+  // Set SEO metadata
+  const seoTitle = company.name || 'Company Profile';
+  const seoDescription = company.bio || company.description || 'Sarasota Tech Company Profile';
+  const seoImage = company.featuredImageUrl || undefined;
+
   return (
     <div className="w-full space-y-4">
+      {/* SEO Component */}
+      <SEO title={seoTitle} description={seoDescription} image={seoImage} />
+      
       {/* Cover Image Banner - Only show if there's an image */}
       {company.featuredImageUrl && (
         <div className="relative w-full h-64 overflow-hidden rounded-lg bg-muted">
