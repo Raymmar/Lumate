@@ -3583,7 +3583,6 @@ export async function registerRoutes(app: Express) {
       const now = new Date().toISOString();
       const newIndustry = await db.insert(industries).values({
         name,
-        category: category || null,
         isActive: true,
         createdAt: now,
         updatedAt: now,

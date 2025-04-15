@@ -372,7 +372,6 @@ export const foundingMembers = pgTable("founding_members", {
 export const industries = pgTable("industries", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 100 }).notNull().unique(),
-  category: varchar("category", { length: 50 }), // e.g., "Tech", "Other"
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),

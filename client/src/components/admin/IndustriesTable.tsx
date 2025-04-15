@@ -10,7 +10,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -21,26 +20,10 @@ import { apiRequest } from "@/lib/queryClient";
 interface Industry {
   id: number;
   name: string;
-  category: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
-
-// Available industry categories
-const INDUSTRY_CATEGORIES = [
-  "Digital Marketing",
-  "Media & Entertainment",
-  "Finance & Banking",
-  "AI & Machine Learning",
-  "IT Services & Consulting",
-  "Legal Services",
-  "Software Development",
-  "Healthcare & Biotech",
-  "Education & Training",
-  "E-commerce & Retail",
-  "Other"
-];
 
 export default function IndustriesTable() {
   const { toast } = useToast();
@@ -49,7 +32,6 @@ export default function IndustriesTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [newIndustry, setNewIndustry] = useState({
     name: "",
-    category: INDUSTRY_CATEGORIES[0],
   });
 
   // Fetch all industries
@@ -64,7 +46,7 @@ export default function IndustriesTable() {
 
   // Create new industry
   const createIndustryMutation = useMutation({
-    mutationFn: async (data: { name: string; category: string }) => {
+    mutationFn: async (data: { name: string }) => {
       const response = await fetch("/api/admin/industries", {
         method: "POST",
         headers: {
@@ -81,7 +63,7 @@ export default function IndustriesTable() {
         description: "The industry has been created successfully.",
       });
       setIsAddDialogOpen(false);
-      setNewIndustry({ name: "", category: INDUSTRY_CATEGORIES[0] });
+      setNewIndustry({ name: "" });
     },
     onError: (error) => {
       toast({
@@ -99,7 +81,7 @@ export default function IndustriesTable() {
       data,
     }: {
       id: number;
-      data: { name?: string; category?: string; isActive?: boolean };
+      data: { name?: string; isActive?: boolean };
     }) => {
       const response = await fetch(`/api/admin/industries/${id}`, {
         method: "PATCH",
@@ -130,7 +112,6 @@ export default function IndustriesTable() {
   const handleCreateIndustry = () => {
     createIndustryMutation.mutate({
       name: newIndustry.name,
-      category: newIndustry.category,
     });
   };
 
@@ -145,9 +126,7 @@ export default function IndustriesTable() {
   // Filter industries based on search query
   const filteredIndustries = industries?.filter(
     (industry) =>
-      industry.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (industry.category &&
-        industry.category.toLowerCase().includes(searchQuery.toLowerCase()))
+      industry.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -171,14 +150,13 @@ export default function IndustriesTable() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Category</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={3} className="text-center py-4">
+                <TableCell colSpan={2} className="text-center py-4">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -186,7 +164,6 @@ export default function IndustriesTable() {
               filteredIndustries.map((industry) => (
                 <TableRow key={industry.id}>
                   <TableCell className="font-medium">{industry.name}</TableCell>
-                  <TableCell>{industry.category || "-"}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Switch
@@ -200,7 +177,7 @@ export default function IndustriesTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center py-4">
+                <TableCell colSpan={2} className="text-center py-4">
                   No industries found.
                 </TableCell>
               </TableRow>
@@ -215,7 +192,7 @@ export default function IndustriesTable() {
           <DialogHeader>
             <DialogTitle>Add New Industry</DialogTitle>
             <DialogDescription>
-              Create a new industry category for companies to select
+              Create a new industry for companies to select
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -231,28 +208,6 @@ export default function IndustriesTable() {
                 }
                 className="col-span-3"
               />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
-                Category
-              </Label>
-              <Select
-                value={newIndustry.category}
-                onValueChange={(value) =>
-                  setNewIndustry({ ...newIndustry, category: value })
-                }
-              >
-                <SelectTrigger id="category" className="col-span-3">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDUSTRY_CATEGORIES.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>
