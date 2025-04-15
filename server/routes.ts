@@ -3684,10 +3684,10 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid industry ID" });
       }
       
-      const { name, category, isActive } = req.body;
+      const { name, isActive } = req.body;
       
       // Make sure at least one field is being updated
-      if (name === undefined && category === undefined && isActive === undefined) {
+      if (name === undefined && isActive === undefined) {
         return res.status(400).json({ error: "No update fields provided" });
       }
       
@@ -3705,7 +3705,6 @@ export async function registerRoutes(app: Express) {
       // Build update object
       const updateData: any = {};
       if (name !== undefined) updateData.name = name.trim();
-      if (category !== undefined) updateData.category = category?.trim() || null;
       if (isActive !== undefined) updateData.isActive = isActive;
       
       // Update industry

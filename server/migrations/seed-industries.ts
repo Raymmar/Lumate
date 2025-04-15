@@ -5,35 +5,42 @@ export async function seedIndustries() {
   console.log("Starting industry seeding process...");
   
   const defaultIndustries = [
-    { name: "Technology", category: "Tech" },
-    { name: "Software Development", category: "Tech" },
-    { name: "Information Technology", category: "Tech" },
-    { name: "Artificial Intelligence", category: "Tech" },
-    { name: "Fintech", category: "Tech" },
-    { name: "Cybersecurity", category: "Tech" },
-    { name: "E-commerce", category: "Tech" },
-    { name: "SaaS", category: "Tech" },
-    { name: "Web3", category: "Tech" },
-    { name: "Healthcare", category: "Healthcare" },
-    { name: "Biotech", category: "Healthcare" },
-    { name: "Finance", category: "Business" },
-    { name: "Real Estate", category: "Business" },
-    { name: "Marketing", category: "Business" },
-    { name: "Education", category: "Other" },
-    { name: "Consulting", category: "Business" },
-    { name: "Design", category: "Creative" },
-    { name: "Media", category: "Creative" },
-    { name: "Aerospace", category: "Manufacturing" },
-    { name: "Agriculture", category: "Other" },
-    { name: "Food & Beverage", category: "Other" },
-    { name: "Retail", category: "Business" },
-    { name: "Transportation", category: "Other" },
-    { name: "Hospitality", category: "Service" },
-    { name: "Environmental", category: "Other" },
-    { name: "Energy", category: "Other" },
-    { name: "Non-profit", category: "Other" },
-    { name: "Government", category: "Other" },
-    { name: "Manufacturing", category: "Manufacturing" }
+    { name: "Technology" },
+    { name: "Software Development" },
+    { name: "Information Technology" },
+    { name: "Artificial Intelligence" },
+    { name: "Fintech" },
+    { name: "Cybersecurity" },
+    { name: "E-commerce" },
+    { name: "SaaS" },
+    { name: "Web3" },
+    { name: "Healthcare" },
+    { name: "Biotech" },
+    { name: "Finance" },
+    { name: "Real Estate" },
+    { name: "Marketing" },
+    { name: "Education" },
+    { name: "Consulting" },
+    { name: "Design" },
+    { name: "Media" },
+    { name: "Aerospace" },
+    { name: "Agriculture" },
+    { name: "Food & Beverage" },
+    { name: "Retail" },
+    { name: "Transportation" },
+    { name: "Hospitality" },
+    { name: "Environmental" },
+    { name: "Energy" },
+    { name: "Non-profit" },
+    { name: "Government" },
+    { name: "Manufacturing" },
+    { name: "Digital Marketing" },
+    { name: "Media & Entertainment" },
+    { name: "Finance & Banking" },
+    { name: "AI & Machine Learning" },
+    { name: "IT Services & Consulting" },
+    { name: "Legal Services" },
+    { name: "Other" }
   ];
 
   try {
@@ -54,7 +61,6 @@ export async function seedIndustries() {
       for (const industry of industriesToAdd) {
         await db.insert(industries).values({
           name: industry.name,
-          category: industry.category,
           isActive: true
         });
         console.log(`Added industry: ${industry.name}`);
@@ -69,7 +75,6 @@ export async function seedIndustries() {
         try {
           await db.insert(industries).values({
             name: industry.name,
-            category: industry.category,
             isActive: true
           });
           console.log(`Added industry: ${industry.name}`);
