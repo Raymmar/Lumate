@@ -45,42 +45,9 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { IndustrySelector } from "@/components/ui/industry-selector";
 
-// Industry options
-const INDUSTRY_OPTIONS = [
-  // Tech-focused industries
-  "Software Development",
-  "IT Services & Consulting",
-  "Cybersecurity",
-  "AI & Machine Learning",
-  "Cloud Computing",
-  "Data & Analytics",
-  "Web Development",
-  "Mobile Development",
-  "Digital Marketing",
-  "E-commerce",
-  "EdTech",
-  "FinTech",
-  "HealthTech",
-  "Telecommunications",
-  
-  // Other major industries
-  "Healthcare",
-  "Finance & Banking",
-  "Education",
-  "Manufacturing",
-  "Retail",
-  "Real Estate",
-  "Construction",
-  "Energy",
-  "Transportation",
-  "Hospitality & Tourism",
-  "Media & Entertainment",
-  "Legal Services",
-  "Consulting",
-  "Non-profit",
-  "Other"
-];
+// Industry options moved to database, see IndustrySelector component
 
 // Company size options
 const COMPANY_SIZE_OPTIONS = [
@@ -624,34 +591,14 @@ export function CompanyForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Industry</FormLabel>
-                  <Select
-                    disabled={readOnly}
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                    defaultValue={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select an industry" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="z-[99999999]">
-                      <div className="max-h-[400px] overflow-y-auto">
-                        <div className="p-2 font-semibold text-xs text-muted-foreground">Tech Industries</div>
-                        {INDUSTRY_OPTIONS.slice(0, 14).map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                        <div className="p-2 font-semibold text-xs text-muted-foreground">Other Industries</div>
-                        {INDUSTRY_OPTIONS.slice(14).map((industry) => (
-                          <SelectItem key={industry} value={industry}>
-                            {industry}
-                          </SelectItem>
-                        ))}
-                      </div>
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <IndustrySelector 
+                      industry={field.value}
+                      onIndustryChange={field.onChange}
+                      readOnly={readOnly}
+                      placeholder="Select an industry"
+                    />
+                  </FormControl>
                   <FormDescription>
                     Select the industry your company operates in
                   </FormDescription>
