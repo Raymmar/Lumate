@@ -1,4 +1,5 @@
 import { useParams, Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { PageContainer } from "@/components/layout/PageContainer";
 import CompanyProfile from "@/components/companies/CompanyProfile";
 import { ArrowLeft } from "lucide-react";
