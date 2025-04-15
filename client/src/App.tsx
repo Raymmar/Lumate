@@ -18,6 +18,7 @@ import AdminMembersPage from "@/pages/admin/AdminMembersPage";
 import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
 import AdminCompaniesPage from "@/pages/admin/AdminCompaniesPage";
+import IndustriesPage from "@/pages/admin/IndustriesPage";
 import RolesPage from "@/pages/admin/RolesPage";
 import AboutPage from "@/pages/AboutPage";
 import SummitPage from "@/pages/SummitPage";
@@ -47,6 +48,7 @@ function Router() {
           <Route path="/admin/events" component={AdminEventsPage} />
           <Route path="/admin/people" component={AdminPeoplePage} />
           <Route path="/admin/companies" component={AdminCompaniesPage} />
+          <Route path="/admin/industries" component={IndustriesPage} />
           <Route path="/admin/roles" component={RolesPage} />
           <Route path="/subscription/success" component={SubscriptionSuccessPage} />
           <Route path="/subscription/cancel" component={SubscriptionCancelPage} />

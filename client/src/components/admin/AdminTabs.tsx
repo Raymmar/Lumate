@@ -8,6 +8,7 @@ const ADMIN_TABS = [
   { id: "events", label: "Events", path: "/admin/events" },
   { id: "people", label: "People", path: "/admin/people" },
   { id: "companies", label: "Companies", path: "/admin/companies" },
+  { id: "industries", label: "Industries", path: "/admin/industries" },
   { id: "roles", label: "Roles & Permissions", path: "/admin/roles" },
 ] as const;
 
