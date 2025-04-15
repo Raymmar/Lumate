@@ -368,6 +368,16 @@ export const foundingMembers = pgTable("founding_members", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+// Industries for company classification
+export const industries = pgTable("industries", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull().unique(),
+  category: varchar("category", { length: 50 }), // e.g., "Tech", "Other"
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
   id: true,
   createdAt: true,
@@ -540,6 +550,14 @@ export const companyTags = pgTable("company_tags", {
   tagId: serial("tag_id").references(() => tags.id).notNull(),
 });
 
+// Industry schema
+export const insertIndustrySchema = createInsertSchema(industries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isActive: true,
+});
+
 // Insert schemas
 export const insertCompanySchema = createInsertSchema(companies).omit({
   id: true,
@@ -558,6 +576,8 @@ export const insertCompanyTagSchema = createInsertSchema(companyTags).omit({
 });
 
 // Type definitions
+export type Industry = typeof industries.$inferSelect;
+export type InsertIndustry = z.infer<typeof insertIndustrySchema>;
 export type Company = typeof companies.$inferSelect;
 export type InsertCompany = z.infer<typeof insertCompanySchema>;
 export type CompanyMember = typeof companyMembers.$inferSelect;
