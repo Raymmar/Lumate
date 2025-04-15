@@ -122,7 +122,7 @@ export function TagSelector({
                   )}
                 </CommandEmpty>
                 <CommandGroup>
-                  {filteredTags.map((tag) => (
+                  {filteredTags.map((tag: string) => (
                     <CommandItem
                       key={tag}
                       value={tag}

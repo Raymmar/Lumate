@@ -143,7 +143,6 @@ export default function CompanyProfilePage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [tags, setTags] = useState<string[]>([]);
-  const [currentTag, setCurrentTag] = useState("");
   const [customLinks, setCustomLinks] = useState<UserCustomLink[]>([]);
   const [newLinkTitle, setNewLinkTitle] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
@@ -415,17 +414,7 @@ export default function CompanyProfilePage() {
     }
   });
 
-  const handleSelectTag = (tag: string) => {
-    const normalizedTag = tag.toLowerCase().trim();
-    if (!tags.includes(normalizedTag) && tags.length < 5) {
-      setTags([...tags, normalizedTag]);
-    }
-    setCurrentTag("");
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter((tag) => tag !== tagToRemove));
-  };
+  // Tag handling is now managed by the TagSelector component
 
   const handleAddCustomLink = () => {
     if (newLinkTitle && newLinkUrl) {
@@ -1026,49 +1015,16 @@ export default function CompanyProfilePage() {
                           </p>
                           
                           <div className="space-y-4">
-                            <div className="flex flex-wrap gap-2">
-                              {tags.map((tag) => (
-                                <Badge 
-                                  key={tag} 
-                                  variant="outline"
-                                  className="flex items-center gap-1 px-3 py-1 text-xs"
-                                >
-                                  {tag}
-                                  {(canEditCompany || !company) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => handleRemoveTag(tag)}
-                                      className="text-muted-foreground hover:text-foreground"
-                                    >
-                                      <X className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </Badge>
-                              ))}
-                            </div>
-                            
-                            {(canEditCompany || !company) && tags.length < 5 && (
-                              <div className="relative">
-                                <Command className="border rounded-md overflow-visible">
-                                  <CommandInput
-                                    placeholder="Search or add new tag..."
-                                    value={currentTag}
-                                    onValueChange={setCurrentTag}
-                                    disabled={!canEditCompany && !!company}
-                                  />
-                                  {currentTag && (
-                                    <div className="absolute w-full bg-background border border-t-0 rounded-b-md mt-[-1px] p-2">
-                                      <CommandItem
-                                        onSelect={() => handleSelectTag(currentTag)}
-                                        className="cursor-pointer"
-                                      >
-                                        Add tag: <span className="font-medium ml-1">{currentTag}</span>
-                                      </CommandItem>
-                                    </div>
-                                  )}
-                                </Command>
-                              </div>
-                            )}
+                            <TagSelector
+                              tags={tags}
+                              maxTags={5}
+                              onTagsChange={(newTags) => {
+                                setTags(newTags);
+                                form.setValue("tags", newTags);
+                              }}
+                              readOnly={!(canEditCompany || !company)}
+                              placeholder="Search or add new tag..."
+                            />
                           </div>
                         </div>
                         
