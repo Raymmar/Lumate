@@ -1,9 +1,5 @@
 // Script to run the industry seeding migration
-
-require('tsx/cjs').register();
-
-// Import the migration
-const { seedIndustries } = require('../server/migrations/seed-industries');
+import { seedIndustries } from '../server/migrations/seed-industries.js';
 
 // Run the migration
 console.log('Running industry migration...');

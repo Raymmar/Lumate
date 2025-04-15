@@ -9,6 +9,7 @@ import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
 import companiesRouter from "./routes/companies";
 import { resendVerification } from "./routes/admin/resendVerification";
+import { requireAuth as authenticateUser, requireAdmin } from "./routes/middleware";
 // Company migration import removed
 import {
   insertUserSchema,
@@ -3480,7 +3481,112 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // Admin endpoint to update industries
+  // Get industries for a company by ID
+  app.get("/api/companies/:id/industries", async (req, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      
+      if (isNaN(companyId)) {
+        return res.status(400).json({ error: "Invalid company ID" });
+      }
+      
+      const companyIndustriesResult = await db.execute(sql`
+        SELECT i.*
+        FROM industries i
+        JOIN company_industries ci ON i.id = ci.industry_id
+        WHERE ci.company_id = ${companyId} AND i.is_active = true
+        ORDER BY i.name ASC
+      `);
+      
+      res.json({ industries: companyIndustriesResult.rows || [] });
+    } catch (error) {
+      console.error("Error fetching company industries:", error);
+      res.status(500).json({ error: "Failed to fetch company industries" });
+    }
+  });
+  
+  // Helper function to check if a user is an admin
+  async function checkUserIsAdmin(userId: number): Promise<boolean> {
+    try {
+      const user = await storage.getUser(userId);
+      return !!user?.isAdmin;
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      return false;
+    }
+  }
+  
+  // Update industries for a company
+  app.post("/api/companies/:id/industries", authenticateUser, async (req, res) => {
+    try {
+      const companyId = parseInt(req.params.id);
+      const industryIds: number[] = req.body.industryIds || [];
+      
+      if (isNaN(companyId)) {
+        return res.status(400).json({ error: "Invalid company ID" });
+      }
+      
+      // Check if user is authorized to update this company
+      const company = await db
+        .select()
+        .from(companies)
+        .where(eq(companies.id, companyId))
+        .limit(1);
+        
+      if (company.length === 0) {
+        return res.status(404).json({ error: "Company not found" });
+      }
+      
+      // Check company membership
+      const userMembership = await db
+        .select()
+        .from(companyMembers)
+        .where(
+          and(
+            eq(companyMembers.companyId, companyId),
+            eq(companyMembers.userId, req.session.userId!)
+          )
+        )
+        .limit(1);
+        
+      const isAdmin = await checkUserIsAdmin(req.session.userId!);
+      
+      if (userMembership.length === 0 && !isAdmin) {
+        return res.status(403).json({ error: "Not authorized to update this company" });
+      }
+      
+      // Delete all existing industry associations
+      await db.execute(sql`
+        DELETE FROM company_industries
+        WHERE company_id = ${companyId}
+      `);
+      
+      // Add new industry associations
+      if (industryIds.length > 0) {
+        const industryValues = industryIds.map(industryId => `(${companyId}, ${industryId}, NOW(), NOW())`).join(", ");
+        
+        await db.execute(sql`
+          INSERT INTO company_industries (company_id, industry_id, created_at, updated_at)
+          VALUES ${sql.raw(industryValues)}
+        `);
+      }
+      
+      // Get updated industries
+      const updatedIndustries = await db.execute(sql`
+        SELECT i.*
+        FROM industries i
+        JOIN company_industries ci ON i.id = ci.industry_id
+        WHERE ci.company_id = ${companyId} AND i.is_active = true
+        ORDER BY i.name ASC
+      `);
+      
+      res.json({ industries: updatedIndustries.rows || [] });
+    } catch (error) {
+      console.error("Error updating company industries:", error);
+      res.status(500).json({ error: "Failed to update company industries" });
+    }
+  });
+
   app.patch("/api/admin/industries/:id", async (req, res) => {
     try {
       if (!req.session.userId) {

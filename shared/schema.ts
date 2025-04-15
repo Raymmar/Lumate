@@ -378,6 +378,15 @@ export const industries = pgTable("industries", {
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+// Many-to-many relationship between companies and industries
+export const companyIndustries = pgTable("company_industries", {
+  id: serial("id").primaryKey(),
+  companyId: serial("company_id").references(() => companies.id).notNull(),
+  industryId: serial("industry_id").references(() => industries.id).notNull(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
 export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
   id: true,
   createdAt: true,
@@ -575,6 +584,12 @@ export const insertCompanyTagSchema = createInsertSchema(companyTags).omit({
   id: true,
 });
 
+export const insertCompanyIndustrySchema = createInsertSchema(companyIndustries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type definitions
 export type Industry = typeof industries.$inferSelect;
 export type InsertIndustry = z.infer<typeof insertIndustrySchema>;
@@ -584,3 +599,5 @@ export type CompanyMember = typeof companyMembers.$inferSelect;
 export type InsertCompanyMember = z.infer<typeof insertCompanyMemberSchema>;
 export type CompanyTag = typeof companyTags.$inferSelect;
 export type InsertCompanyTag = z.infer<typeof insertCompanyTagSchema>;
+export type CompanyIndustry = typeof companyIndustries.$inferSelect;
+export type InsertCompanyIndustry = z.infer<typeof insertCompanyIndustrySchema>;

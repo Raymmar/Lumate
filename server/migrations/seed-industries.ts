@@ -1,5 +1,5 @@
-import { db } from "../db";
-import { industries } from "../../shared/schema";
+import { db } from "../db.js";
+import { industries } from "../../shared/schema.js";
 
 export async function seedIndustries() {
   console.log("Starting industry seeding process...");
@@ -37,43 +37,49 @@ export async function seedIndustries() {
   ];
 
   try {
-    const existingIndustries = await db.query.industries.findMany();
-    const existingIndustryNames = new Set(existingIndustries.map(i => i.name.toLowerCase()));
-    
-    const industriesToAdd = defaultIndustries.filter(
-      industry => !existingIndustryNames.has(industry.name.toLowerCase())
-    );
-    
-    if (industriesToAdd.length === 0) {
-      console.log("No new industries to add, all defaults already exist.");
-      return;
+    // Check if the industries table exists
+    try {
+      const existingIndustries = await db.query.industries.findMany();
+      const existingIndustryNames = new Set(existingIndustries.map(i => i.name.toLowerCase()));
+      
+      const industriesToAdd = defaultIndustries.filter(
+        industry => !existingIndustryNames.has(industry.name.toLowerCase())
+      );
+      
+      if (industriesToAdd.length === 0) {
+        console.log("No new industries to add, all defaults already exist.");
+        return;
+      }
+      
+      for (const industry of industriesToAdd) {
+        await db.insert(industries).values({
+          name: industry.name,
+          category: industry.category,
+          isActive: true
+        });
+        console.log(`Added industry: ${industry.name}`);
+      }
+      
+      console.log(`Successfully added ${industriesToAdd.length} new industries.`);
+    } catch (err) {
+      console.log("Error checking existing industries, inserting all defaults:", err);
+      
+      // If table doesn't exist or other error, add all industries
+      for (const industry of defaultIndustries) {
+        try {
+          await db.insert(industries).values({
+            name: industry.name,
+            category: industry.category,
+            isActive: true
+          });
+          console.log(`Added industry: ${industry.name}`);
+        } catch (insertErr) {
+          console.error(`Failed to add industry ${industry.name}:`, insertErr);
+        }
+      }
     }
-    
-    for (const industry of industriesToAdd) {
-      await db.insert(industries).values({
-        name: industry.name,
-        category: industry.category,
-        isActive: true
-      });
-      console.log(`Added industry: ${industry.name}`);
-    }
-    
-    console.log(`Successfully added ${industriesToAdd.length} new industries.`);
   } catch (error) {
     console.error("Error seeding industries:", error);
     throw error;
   }
-}
-
-// Run the migration if this file is executed directly
-if (require.main === module) {
-  seedIndustries()
-    .then(() => {
-      console.log("Industry seeding complete.");
-      process.exit(0);
-    })
-    .catch(error => {
-      console.error("Industry seeding failed:", error);
-      process.exit(1);
-    });
 }
