@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Command, CommandInput, CommandItem } from "@/components/ui/command";
 import { Switch } from "@/components/ui/switch";
 import { TagSelector } from "@/components/ui/tag-selector";
+import { IndustrySelector } from "@/components/ui/industry-selector";
 import { cn, formatCompanyNameForUrl } from "@/lib/utils";
 import { type UserCustomLink } from "@shared/schema";
 import { LocationPicker } from "@/components/ui/location-picker";
@@ -58,41 +59,7 @@ import {
 } from "@/components/ui/select";
 import * as z from "zod";
 
-// Industry options
-const INDUSTRY_OPTIONS = [
-  // Tech-focused industries
-  "Software Development",
-  "IT Services & Consulting",
-  "Cybersecurity",
-  "AI & Machine Learning",
-  "Cloud Computing",
-  "Data & Analytics",
-  "Web Development",
-  "Mobile Development",
-  "Digital Marketing",
-  "E-commerce",
-  "EdTech",
-  "FinTech",
-  "HealthTech",
-  "Telecommunications",
-  
-  // Other major industries
-  "Healthcare",
-  "Finance & Banking",
-  "Education",
-  "Manufacturing",
-  "Retail",
-  "Real Estate",
-  "Construction",
-  "Energy",
-  "Transportation",
-  "Hospitality & Tourism",
-  "Media & Entertainment",
-  "Legal Services",
-  "Consulting",
-  "Non-profit",
-  "Other"
-];
+// Company size and founded year options are kept as static arrays since they're unlikely to change frequently
 
 // Company size options
 const COMPANY_SIZE_OPTIONS = [
@@ -540,25 +507,14 @@ export default function CompanyProfilePage() {
                             render={({ field }) => (
                               <FormItem className="mb-4">
                                 <FormLabel>Industry</FormLabel>
-                                <Select 
-                                  onValueChange={field.onChange} 
-                                  defaultValue={field.value || ""} 
-                                  value={field.value || ""}
-                                  disabled={!canEditCompany && !!company}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Select industry" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {INDUSTRY_OPTIONS.map((industry) => (
-                                      <SelectItem key={industry} value={industry}>
-                                        {industry}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <FormControl>
+                                  <IndustrySelector 
+                                    industry={field.value || null}
+                                    onIndustryChange={field.onChange}
+                                    readOnly={!canEditCompany && !!company}
+                                    placeholder="Select an industry"
+                                  />
+                                </FormControl>
                                 <FormMessage />
                               </FormItem>
                             )}

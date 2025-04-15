@@ -593,7 +593,7 @@ export function CompanyForm({
                   <FormLabel>Industry</FormLabel>
                   <FormControl>
                     <IndustrySelector 
-                      industry={field.value}
+                      industry={field.value || null}
                       onIndustryChange={field.onChange}
                       readOnly={readOnly}
                       placeholder="Select an industry"
