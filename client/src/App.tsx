@@ -13,6 +13,7 @@ import UserSettingsPage from "@/pages/UserSettingsPage";
 import CompanyProfilePage from "@/pages/CompanyProfilePage";
 import CompaniesPage from "@/pages/CompaniesPage";
 import CompanyPublicProfilePage from "@/pages/CompanyPublicProfilePage";
+import NewsPage from "@/pages/NewsPage";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminMembersPage from "@/pages/admin/AdminMembersPage";
 import AdminEventsPage from "@/pages/admin/AdminEventsPage";
@@ -34,6 +35,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/about" component={AboutPage} />
           <Route path="/summit" component={SummitPage} />
+          <Route path="/news" component={NewsPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/settings" component={UserSettingsPage} />

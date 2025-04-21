@@ -15,7 +15,7 @@ import {
   DrawerContent,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase, Newspaper } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
@@ -50,6 +50,12 @@ export function NavBar() {
           <Button variant="ghost" size="sm" className="flex items-center">
             <Briefcase className="h-4 w-4 mr-2" />
             Directory
+          </Button>
+        </Link>
+        <Link href="/news" className="no-underline hover:no-underline">
+          <Button variant="ghost" size="sm" className="flex items-center">
+            <Newspaper className="h-4 w-4 mr-2" />
+            News
           </Button>
         </Link>
       </div>
