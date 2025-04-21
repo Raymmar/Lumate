@@ -20,7 +20,22 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imagesLoaded, setImagesLoaded] = useState<Record<number, boolean>>({});
+
+  // Preload all images to ensure they're available when switching slides
+  useEffect(() => {
+    if (!pinnedPosts.length) return;
+    
+    pinnedPosts.forEach((post, index) => {
+      if (!post.featuredImage) return;
+      
+      const img = new Image();
+      img.onload = () => {
+        setImagesLoaded(prev => ({ ...prev, [index]: true }));
+      };
+      img.src = post.featuredImage;
+    });
+  }, [pinnedPosts]);
 
   useEffect(() => {
     if (pinnedPosts.length <= 1) return;
@@ -54,10 +69,18 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
       onClick={() => onSelect(currentPost)}
     >
       {/* Background image with overlay */}
-      <div
-        className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-        style={{ backgroundImage: `url(${backgroundImage})` }}
-      />
+      <div className="absolute inset-0 bg-muted">
+        <img 
+          src={backgroundImage}
+          alt={currentPost.title}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          onError={(e) => {
+            // If image fails to load, fall back to a default image
+            const target = e.target as HTMLImageElement;
+            target.src = fallbackImage;
+          }}
+        />
+      </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
       
       {/* Post content */}
