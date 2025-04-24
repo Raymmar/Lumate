@@ -110,15 +110,14 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Become a Member</DialogTitle>
           <DialogDescription className="space-y-4">
-            <p>
-              Join Sarasota Tech as a member to access exclusive content and benefits. If you've attended one of our events, enter your email below. <b>Make sure it's the same email you use to register for our events</b>.
+            <p className="text-xl">
+              Enter your email below to claim yor member profile. Make sure it's <b>the same email address</b> you use to register for our events!
             </p>
-            <ol className="list-decimal pl-5 space-y-2 text-sm">
-              <li>If there's a match, we'll send an activation email</li>
-              <li>Confirm your email. Set a password. Log in.</li>
-            </ol>
+            <ul className="list-decimal pl-5 space-y-2 text-sm">
+              <li>If we find a match, we'll send you an activation email</li>
+              <li>From there you can set a password, log in & upgrade to add company details.</li>
+            </ul>
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

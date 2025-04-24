@@ -166,7 +166,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
                     Processing...
                   </>
                 ) : (
-                  "Join us"
+                  "Subscribe"
                 )}
               </Button>
             </div>
