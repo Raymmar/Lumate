@@ -157,8 +157,8 @@ export function NavBar() {
           <div className="flex items-center gap-2">
             <ClaimProfileDialog 
               trigger={
-                <Button variant="outline" size="sm">
-                  Claim Your Profile
+                <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  Become a Member
                 </Button>
               }
             />
