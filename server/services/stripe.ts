@@ -5,7 +5,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("STRIPE_SECRET_KEY must be defined");
 }
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: "2025-02-24.acacia",
 });
 
@@ -39,6 +39,55 @@ export class StripeService {
       }
 
       console.log("Creating checkout session:", {
+        customerId,
+        priceId,
+        userId,
+      });
+      
+      return this.createGenericCheckoutSession(customerId, priceId, userId);
+    } catch (error) {
+      console.error("❌ Error creating checkout session:", error);
+      throw error;
+    }
+  }
+  
+  static async createCompanyCheckoutSession(
+    customerId: string,
+    userId: number,
+  ) {
+    try {
+      if (!customerId) {
+        throw new Error("Customer ID is required");
+      }
+      
+      if (!process.env.STRIPE_COMPANY_PRICE_ID) {
+        throw new Error("Stripe company price ID is not configured");
+      }
+      
+      console.log("Creating company checkout session:", {
+        customerId,
+        priceId: process.env.STRIPE_COMPANY_PRICE_ID,
+        userId,
+      });
+      
+      return this.createGenericCheckoutSession(customerId, process.env.STRIPE_COMPANY_PRICE_ID, userId);
+    } catch (error) {
+      console.error("❌ Error creating company checkout session:", error);
+      throw error;
+    }
+  }
+  
+  private static async createGenericCheckoutSession(
+    customerId: string,
+    priceId: string,
+    userId: number,
+  ) {
+    try {
+      if (!customerId) {
+        throw new Error("Customer ID is required");
+      }
+
+      console.log("Creating generic checkout session:", {
         customerId,
         priceId,
         userId,
@@ -265,7 +314,7 @@ export class StripeService {
           const priceId = lineItem.price?.id;
           
           // Skip if we're filtering by price IDs and this one doesn't match
-          if (options.priceIds && options.priceIds.length > 0 && !options.priceIds.includes(priceId)) {
+          if (options.priceIds && options.priceIds.length > 0 && priceId && !options.priceIds.includes(priceId)) {
             continue;
           }
           
