@@ -157,15 +157,7 @@ export function NavBar() {
           <div className="flex items-center gap-2">
             <ClaimProfileDialog 
               trigger={
-                <Button 
-                  size="sm" 
-                  style={{ 
-                    backgroundColor: "#FEA30E", 
-                    color: "white",
-                    border: "none" 
-                  }}
-                  className="hover:opacity-90"
-                >
+                <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   Become a Member
                 </Button>
               }

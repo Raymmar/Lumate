@@ -106,34 +106,21 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button 
-            style={{ 
-              backgroundColor: "#FEA30E", 
-              color: "white",
-              border: "none" 
-            }}
-            className="hover:opacity-90"
-          >
-            Become a Member
-          </Button>
-        )}
+        {trigger || <Button variant="outline">Claim Profile</Button>}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Become a Member</DialogTitle>
-          <DialogDescription>
-            Join Sarasota Tech as a member to access exclusive content and benefits. If you've attended one of our events, enter your email below. <b>Make sure it's the same email you use to register for our events</b>.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div className="text-sm">
-            <ol className="list-decimal pl-5 space-y-2">
+          <DialogDescription className="space-y-4">
+            <p>
+              Join Sarasota Tech as a member to access exclusive content and benefits. If you've attended one of our events, enter your email below. <b>Make sure it's the same email you use to register for our events</b>.
+            </p>
+            <ol className="list-decimal pl-5 space-y-2 text-sm">
               <li>If there's a match, we'll send an activation email</li>
               <li>Confirm your email. Set a password. Log in.</li>
             </ol>
-          </div>
-        </div>
+          </DialogDescription>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
@@ -150,11 +137,6 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
             type="submit"
             disabled={claimProfileMutation.isPending}
             className="w-full"
-            style={{ 
-              backgroundColor: claimProfileMutation.isPending ? "#ccc" : "#FEA30E", 
-              color: "white",
-              border: "none" 
-            }}
           >
             {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
           </Button>
