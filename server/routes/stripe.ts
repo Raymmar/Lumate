@@ -7,12 +7,11 @@
 
 import express from "express";
 import Stripe from "stripe";
-import crypto from "crypto";
 import { storage } from "../storage";
 import { StripeService } from "../services/stripe";
 
 const router = express.Router();
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-02-24.acacia",
 });
 
@@ -49,7 +48,6 @@ router.get("/ping", (req, res) => {
 });
 
 // Create checkout session
-// Regular checkout for authenticated users
 router.post("/create-checkout-session", async (req, res) => {
   try {
     if (!process.env.STRIPE_PRICE_ID) {
@@ -83,107 +81,6 @@ router.post("/create-checkout-session", async (req, res) => {
   } catch (error: any) {
     console.error("Error creating checkout session:", error);
     res.status(500).json({ error: "Failed to create checkout session" });
-  }
-});
-
-// Streamlined checkout for new users - creates an account and subscribes in one step
-router.post("/create-direct-checkout", async (req, res) => {
-  try {
-    if (!process.env.STRIPE_PRICE_ID) {
-      throw new Error("Stripe price ID is not configured");
-    }
-
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: "Email is required" });
-    }
-
-    // Check if this is an existing email
-    const normalizedEmail = email.toLowerCase().trim();
-    const existingUser = await storage.getUserByEmail(normalizedEmail);
-    
-    if (existingUser) {
-      return res.status(400).json({ 
-        error: "Account already exists", 
-        message: "An account with this email already exists. Please log in first." 
-      });
-    }
-
-    // Check if there's a matching person record
-    const existingPerson = await storage.getPersonByEmail(normalizedEmail);
-
-    // Create a temporary token to pass in metadata to identify this user later
-    const tempToken = crypto.randomUUID();
-    
-    // Create a checkout session with the user's email in metadata
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: process.env.STRIPE_PRICE_ID,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      customer_email: normalizedEmail,
-      metadata: {
-        tempToken,
-        emailToVerify: normalizedEmail,
-        existingPersonId: existingPerson?.id?.toString() || '',
-        directSignup: 'true'
-      },
-      allow_promotion_codes: true,
-      billing_address_collection: 'auto',
-      success_url: `${process.env.APP_URL || 'http://localhost:3000'}/complete-signup?session_id={CHECKOUT_SESSION_ID}&token=${tempToken}`,
-      cancel_url: `${process.env.APP_URL || 'http://localhost:3000'}/become-member`,
-    });
-
-    // Store the temporary token for verification when user completes signup
-    await storage.createVerificationToken(normalizedEmail);
-
-    res.json({ url: session.url });
-  } catch (error: any) {
-    console.error("Error creating direct checkout session:", error);
-    res.status(500).json({ 
-      error: "Failed to create checkout session",
-      message: error.message 
-    });
-  }
-});
-
-// Create company checkout session
-router.post("/create-company-checkout", async (req, res) => {
-  try {
-    if (!process.env.STRIPE_COMPANY_PRICE_ID) {
-      throw new Error("Stripe company price ID is not configured");
-    }
-
-    const userId = req.session?.userId;
-    if (!userId) {
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-
-    const user = await storage.getUserById(userId);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    // Create a new customer if one doesn't exist
-    if (!user.stripeCustomerId || user.stripeCustomerId === "NULL") {
-      const customer = await StripeService.createCustomer(user.email, user.id);
-      await storage.setStripeCustomerId(user.id, customer.id);
-      user.stripeCustomerId = customer.id;
-    }
-
-    const session = await StripeService.createCompanyCheckoutSession(
-      user.stripeCustomerId,
-      user.id,
-    );
-
-    res.json({ url: session.url });
-  } catch (error: any) {
-    console.error("Error creating company checkout session:", error);
-    res.status(500).json({ error: "Failed to create company checkout session" });
   }
 });
 

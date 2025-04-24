@@ -26,7 +26,6 @@ import SummitPage from "@/pages/SummitPage";
 import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
 import SubscriptionCancelPage from "@/pages/subscription/CancelPage";
-import BecomeMemberPage from "@/pages/BecomeMemberPage";
 
 function Router() {
   return (
@@ -40,7 +39,6 @@ function Router() {
           <Route path="/login" component={LoginPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/settings" component={UserSettingsPage} />
-          <Route path="/become-member" component={BecomeMemberPage} />
           <Route path="/company-profile" component={CompanyProfilePage} />
           <Route path="/companies" component={CompaniesPage} />
           <Route path="/companies/:companySlug" component={CompanyPublicProfilePage} />
