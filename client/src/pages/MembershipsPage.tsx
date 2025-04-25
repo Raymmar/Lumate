@@ -187,7 +187,7 @@ export default function MembershipsPage() {
                       <ClaimProfileDialog
                         trigger={
                           <Button
-                            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium"
+                            className="w-full bg-[#FEA30E] hover:bg-[#E5930D] text-black font-medium"
                           >
                             {plan.cta.text}
                           </Button>

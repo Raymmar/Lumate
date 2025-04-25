@@ -29,6 +29,7 @@ export function NavBar() {
   const [location] = useLocation();
   const isAdmin = Boolean(user?.isAdmin);
   const isAdminPage = location.startsWith("/admin");
+  const isMembershipsPage = location === "/memberships";
   const [isOpen, setIsOpen] = useState(false);
   const { isPremium, startSubscription, isLoading } = useSubscription();
 
@@ -177,11 +178,13 @@ export function NavBar() {
           </DropdownMenu>
         ) : (
           <div className="flex items-center gap-2">
-            <Link href="/memberships">
-              <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                Become a Member
-              </Button>
-            </Link>
+            {!isMembershipsPage && (
+              <Link href="/memberships">
+                <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  Become a Member
+                </Button>
+              </Link>
+            )}
             <Link href="/login">
               <Button variant="default" size="sm">
                 <LogIn className="mr-2 h-4 w-4" />
