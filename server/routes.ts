@@ -1799,63 +1799,34 @@ export async function registerRoutes(app: Express) {
         decoded: username,
       });
 
-      // Initialize person variable that will hold our result
-      let person = null;
+      let person = await storage.getPersonByUsername(username);
 
-      // Check if this is using the special u-{apiId} format
-      const apiIdMatch = username.match(/^u-(.+)$/);
-      if (apiIdMatch) {
-        const apiId = apiIdMatch[1];
-        console.log("Detected special u-{apiId} format, looking up by API ID:", apiId);
-        person = await storage.getPersonByApiId(apiId);
-        
-        if (person) {
-          console.log("Found person by API ID from u-{apiId} format:", {
-            id: person.id,
-            apiId: person.api_id,
-            hasUsername: !!person.userName
-          });
-          
-          // Continue with this person without redirecting
-        } else {
-          console.log("No person found for API ID:", apiId);
-        }
-      } else {
-        // Regular username lookup
-        person = await storage.getPersonByUsername(username);
-        
-        if (!person) {
-          // Try API ID as a fallback for backward compatibility
-          console.log("Person not found by username, trying API ID directly:", username);
-          person = await storage.getPersonByApiId(username);
-  
-          if (!person) {
-            console.log("Person not found by either username or API ID");
-            return res.status(404).json({ error: "Person not found" });
-          }
-  
-          if (person.userName) {
-            const formattedUsername = person.userName
-              .trim()
-              .toLowerCase()
-              .replace(/\s+/g, "-");
-            console.log("Found by API ID, has username:", formattedUsername);
-  
-            // Only redirect browser requests
-            if (req.headers.accept?.includes("text/html")) {
-              console.log("Browser request - redirecting to username URL");
-              return res.redirect(
-                301,
-                `/people/${encodeURIComponent(formattedUsername)}`,
-              );
-            }
-          }
-        }
-      }
-      
-      // Ensure we have a valid person record at this point
       if (!person) {
-        return res.status(404).json({ error: "Person not found" });
+        // Try API ID as a fallback
+        console.log("Person not found by username, trying API ID:", username);
+        person = await storage.getPersonByApiId(username);
+
+        if (!person) {
+          console.log("Person not found by either username or API ID");
+          return res.status(404).json({ error: "Person not found" });
+        }
+
+        if (person.userName) {
+          const formattedUsername = person.userName
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "-");
+          console.log("Found by API ID, has username:", formattedUsername);
+
+          // Only redirect browser requests
+          if (req.headers.accept?.includes("text/html")) {
+            console.log("Browser request - redirecting to username URL");
+            return res.redirect(
+              301,
+              `/people/${encodeURIComponent(formattedUsername)}`,
+            );
+          }
+        }
       }
 
       // Fetch the associated user data if it exists

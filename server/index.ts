@@ -90,7 +90,7 @@ app.use(
   // Set up Vite or serve static files
   if (process.env.NODE_ENV === "development") {
     console.log("[Server] Setting up Vite development server");
-    await setupVite(app, server);
+    await setupVite(app);
   } else {
     const staticDir = path.resolve(__dirname, "../dist/public");
     console.log("[Server] Setting up static file serving from:", staticDir);
