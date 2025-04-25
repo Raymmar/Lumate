@@ -177,13 +177,11 @@ export function NavBar() {
           </DropdownMenu>
         ) : (
           <div className="flex items-center gap-2">
-            <ClaimProfileDialog 
-              trigger={
-                <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  Become a Member
-                </Button>
-              }
-            />
+            <Link href="/memberships">
+              <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                Become a Member
+              </Button>
+            </Link>
             <Link href="/login">
               <Button variant="default" size="sm">
                 <LogIn className="mr-2 h-4 w-4" />

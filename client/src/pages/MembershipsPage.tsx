@@ -60,7 +60,7 @@ export default function MembershipsPage() {
         { text: "Keep up with community updates", included: true },
       ],
       cta: {
-        text: isPremium ? "Current Plan" : isLoggedIn ? "Current Plan" : "Claim Profile",
+        text: isPremium ? "Current Plan" : isLoggedIn ? "Current Plan" : "Start Here",
         disabled: isPremium || isLoggedIn,
       },
     },
@@ -82,9 +82,9 @@ export default function MembershipsPage() {
           ? "Current Plan"
           : isLoading
           ? "Loading..."
-          : "Upgrade Now",
-        action: isPremium ? undefined : startSubscription,
-        disabled: isPremium || isLoading,
+          : isLoggedIn ? "Upgrade Now" : "Claim Profile to Upgrade",
+        action: isPremium ? undefined : isLoggedIn ? startSubscription : undefined,
+        disabled: isPremium || isLoading || !isLoggedIn,
         accent: true,
       },
     },
@@ -187,7 +187,7 @@ export default function MembershipsPage() {
                       <ClaimProfileDialog
                         trigger={
                           <Button
-                            className="w-full"
+                            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium"
                           >
                             {plan.cta.text}
                           </Button>
