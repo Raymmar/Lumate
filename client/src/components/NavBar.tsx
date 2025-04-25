@@ -15,12 +15,14 @@ import {
   DrawerContent,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase, Newspaper } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase, Newspaper, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { useState } from "react";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
+import { PremiumBadge } from "@/components/PremiumBadge";
+import { useSubscription } from "@/hooks/use-subscription";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -28,6 +30,7 @@ export function NavBar() {
   const isAdmin = Boolean(user?.isAdmin);
   const isAdminPage = location.startsWith("/admin");
   const [isOpen, setIsOpen] = useState(false);
+  const { isPremium, startSubscription, isLoading } = useSubscription();
 
   // Generate profile URL using username if available, fallback to API ID
   const profileUrl = user?.api_id ? 
@@ -83,6 +86,17 @@ export function NavBar() {
         {user && isAdmin && (
           <AdminBadge className="mr-2" asLink />
         )}
+        {user && isPremium && !isAdmin && (
+          <PremiumBadge />
+        )}
+        {user && !isPremium && !isLoading && (
+          <Link href="/memberships">
+            <Button variant="outline" size="sm" className="text-xs flex items-center gap-1">
+              <Sparkles className="h-3 w-3" />
+              Upgrade
+            </Button>
+          </Link>
+        )}
         {user ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -134,6 +148,14 @@ export function NavBar() {
                       <path d="M10 15h4" />
                     </svg>
                     Company Profile
+                  </span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/memberships">
+                  <span className="flex items-center">
+                    <Sparkles className="mr-2 h-4 w-4 text-foreground" />
+                    Memberships
                   </span>
                 </Link>
               </DropdownMenuItem>

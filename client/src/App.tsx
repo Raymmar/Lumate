@@ -23,6 +23,7 @@ import IndustriesPage from "@/pages/admin/IndustriesPage";
 import RolesPage from "@/pages/admin/RolesPage";
 import AboutPage from "@/pages/AboutPage";
 import SummitPage from "@/pages/SummitPage";
+import MembershipsPage from "@/pages/MembershipsPage";
 import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
 import SubscriptionCancelPage from "@/pages/subscription/CancelPage";
@@ -43,6 +44,7 @@ function Router() {
           <Route path="/companies" component={CompaniesPage} />
           <Route path="/companies/:companySlug" component={CompanyPublicProfilePage} />
           <Route path="/people/:username" component={PersonProfilePage} />
+          <Route path="/memberships" component={MembershipsPage} />
           <Route path="/verify" component={VerifyPage} />
           <Route path="/admin" component={AdminDashboard} />
           <Route path="/admin/dashboard" component={AdminDashboard} />
