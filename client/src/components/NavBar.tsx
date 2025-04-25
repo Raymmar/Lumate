@@ -88,7 +88,7 @@ export function NavBar() {
           <AdminBadge className="mr-2" asLink />
         )}
         {user && isPremium && !isAdmin && (
-          <PremiumBadge />
+          <PremiumBadge className="mr-2" />
         )}
         {user && !isPremium && !isLoading && (
           <Link href="/memberships">
@@ -134,7 +134,7 @@ export function NavBar() {
                 <Link href="/settings">
                   <span className="flex items-center">
                     <Settings className="mr-2 h-4 w-4 text-foreground" />
-                    Edit Profile
+                    Settings
                   </span>
                 </Link>
               </DropdownMenuItem>
@@ -149,14 +149,6 @@ export function NavBar() {
                       <path d="M10 15h4" />
                     </svg>
                     Company Profile
-                  </span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/memberships">
-                  <span className="flex items-center">
-                    <Sparkles className="mr-2 h-4 w-4 text-foreground" />
-                    Memberships
                   </span>
                 </Link>
               </DropdownMenuItem>

@@ -342,7 +342,7 @@ export default function UserSettingsPage() {
                           onClick={() => window.location.href = '/company-profile'}
                           className="mb-4"
                         >
-                          Go to Company Profile
+                          Edit Company Profile
                         </Button>
                       </>
                     ) : (

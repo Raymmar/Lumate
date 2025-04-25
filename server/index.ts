@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import * as http from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import session from "express-session";
@@ -87,10 +88,13 @@ app.use(
   app.use("/api/unsplash", unsplashRoutes);
   await registerRoutes(app);
 
+  // Create the server
+  const server = http.createServer(app);
+
   // Set up Vite or serve static files
   if (process.env.NODE_ENV === "development") {
     console.log("[Server] Setting up Vite development server");
-    await setupVite(app);
+    await setupVite(app, server);
   } else {
     const staticDir = path.resolve(__dirname, "../dist/public");
     console.log("[Server] Setting up static file serving from:", staticDir);
@@ -144,7 +148,7 @@ app.use(
 
   // Start server with improved logging
   const port = parseInt(process.env.PORT || "5000");
-  const server = app.listen(port, "0.0.0.0", () => {
+  server.listen(port, "0.0.0.0", () => {
     console.log(`[Server] Starting in ${process.env.NODE_ENV || 'development'} mode`);
     console.log(`[Server] Listening on port ${port} bound to 0.0.0.0`);
     if (isProduction) {
