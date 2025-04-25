@@ -117,6 +117,7 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
             <ul className="list-decimal pl-5 space-y-2 text-sm">
               <li>If we find a match, we'll send you an activation email</li>
               <li>From there you can set a password, log in & upgrade to add company details.</li>
+              <li>If you are not in our system, we'll send you an invite to our next event.</li>
             </ul>
           </DialogDescription>
         </DialogHeader>
