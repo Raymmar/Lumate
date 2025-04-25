@@ -112,10 +112,11 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
         <DialogHeader>
           <DialogDescription className="space-y-4">
             <p className="text-xl">
-              Enter your email below to claim yor member profile. Make sure it's <b>the same email address</b> you use to register for our events!
+              Enter your email below to claim yor member profile.
             </p>
             <ul className="list-decimal pl-5 space-y-2 text-sm">
-              <li>If we find a match, we'll send you an activation email</li>
+              <li>Make sure you use the same email you use to register for our events!</li>
+              <li>If we find a match, we'll send you an activation email.</li>
               <li>From there you can set a password, log in & upgrade to add company details.</li>
               <li>If you are not in our system, we'll send you an invite to our next event.</li>
             </ul>
@@ -138,7 +139,7 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
             disabled={claimProfileMutation.isPending}
             className="w-full"
           >
-            {claimProfileMutation.isPending ? "Sending..." : "Send Verification Email"}
+            {claimProfileMutation.isPending ? "Sending..." : "Claim your profile"}
           </Button>
         </form>
       </DialogContent>
