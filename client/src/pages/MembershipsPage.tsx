@@ -14,6 +14,7 @@ import { Check, Briefcase, UserCircle2, Building2, Sparkles } from "lucide-react
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/hooks/use-auth";
+import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 
 interface PlanFeature {
   text: string;
@@ -59,8 +60,8 @@ export default function MembershipsPage() {
         { text: "Keep up with community updates", included: true },
       ],
       cta: {
-        text: isPremium ? "Current Plan" : isLoggedIn ? "Current Plan" : "Sign Up",
-        disabled: true,
+        text: isPremium ? "Current Plan" : isLoggedIn ? "Current Plan" : "Claim Profile",
+        disabled: isPremium || isLoggedIn,
       },
     },
     {
@@ -182,15 +183,27 @@ export default function MembershipsPage() {
                     </ul>
                   </CardContent>
                   <CardFooter>
-                    <Button
-                      className={`w-full ${
-                        plan.cta.accent ? "bg-primary hover:bg-primary/90" : ""
-                      }`}
-                      disabled={plan.cta.disabled}
-                      onClick={plan.cta.action}
-                    >
-                      {plan.cta.text}
-                    </Button>
+                    {plan.name === "Free" && !isLoggedIn ? (
+                      <ClaimProfileDialog
+                        trigger={
+                          <Button
+                            className="w-full"
+                          >
+                            {plan.cta.text}
+                          </Button>
+                        }
+                      />
+                    ) : (
+                      <Button
+                        className={`w-full ${
+                          plan.cta.accent ? "bg-primary hover:bg-primary/90" : ""
+                        }`}
+                        disabled={plan.cta.disabled}
+                        onClick={plan.cta.action}
+                      >
+                        {plan.cta.text}
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               ))}
