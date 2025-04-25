@@ -10,6 +10,7 @@ import { startEventSyncService } from "./services/eventSyncService";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import { Server } from "http";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -87,29 +88,7 @@ app.use(
   app.use("/api/unsplash", unsplashRoutes);
   await registerRoutes(app);
 
-  // Set up Vite or serve static files
-  if (process.env.NODE_ENV === "development") {
-    console.log("[Server] Setting up Vite development server");
-    await setupVite(app);
-  } else {
-    const staticDir = path.resolve(__dirname, "../dist/public");
-    console.log("[Server] Setting up static file serving from:", staticDir);
-
-    // Check if the directory exists
-    if (!fs.existsSync(staticDir)) {
-      console.error(`[Server] Static directory not found: ${staticDir}`);
-      throw new Error(`Could not find the build directory: ${staticDir}, make sure to build the client first`);
-    }
-
-    app.use(express.static(staticDir));
-
-    // For routes that don't match a file, send index.html
-    app.use("*", (_req, res) => {
-      res.sendFile(path.resolve(staticDir, "index.html"));
-    });
-  }
-
-  // Error handling
+  // Error handling middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.error("Server error:", err);
     res
@@ -142,23 +121,55 @@ app.use(
 
   startEventSyncService(false); // pass true if you want to sync future events immediately
 
+  // Import our process manager for graceful shutdown
+  const { setupGracefulShutdown } = await import("./processManager");
+  
   // Start server with improved logging
   const port = parseInt(process.env.PORT || "5000");
-  const server = app.listen(port, "0.0.0.0", () => {
-    console.log(`[Server] Starting in ${process.env.NODE_ENV || 'development'} mode`);
-    console.log(`[Server] Listening on port ${port} bound to 0.0.0.0`);
-    if (isProduction) {
-      console.log(`[Server] Production webhook endpoint: ${process.env.APP_URL}/api/stripe/webhook`);
-    } else {
-      console.log(`[Server] Development webhook endpoint: http://localhost:${port}/api/stripe/webhook`);
-    }
-  });
+  
+  try {
+    // Simple server setup without complex retry logic
+    const server = app.listen(port, "0.0.0.0", () => {
+      console.log(`[Server] Starting in ${process.env.NODE_ENV || 'development'} mode`);
+      console.log(`[Server] Listening on port ${port} bound to 0.0.0.0`);
+      if (isProduction) {
+        console.log(`[Server] Production webhook endpoint: ${process.env.APP_URL}/api/stripe/webhook`);
+      } else {
+        console.log(`[Server] Development webhook endpoint: http://localhost:${port}/api/stripe/webhook`);
+      }
+    });
+    
+    // Add error handling for the server
+    server.on('error', (error: any) => {
+      console.error('[Server] Error:', error);
+      if (error.code === 'EADDRINUSE') {
+        console.error(`[Server] Port ${port} is already in use`);
+        process.exit(1);
+      }
+    });
+    
+    // Set up graceful shutdown
+    setupGracefulShutdown(server, app);
+  
+  // Set up Vite or serve static files
+  if (process.env.NODE_ENV === "development") {
+    console.log("[Server] Setting up Vite development server");
+    await setupVite(app, server);
+  } else {
+    const staticDir = path.resolve(__dirname, "../dist/public");
+    console.log("[Server] Setting up static file serving from:", staticDir);
 
-  // Add error handling for the server
-  server.on('error', (error: any) => {
-    console.error('[Server] Error:', error);
-    if (error.code === 'EADDRINUSE') {
-      console.error(`[Server] Port ${port} is already in use`);
+    // Check if the directory exists
+    if (!fs.existsSync(staticDir)) {
+      console.error(`[Server] Static directory not found: ${staticDir}`);
+      throw new Error(`Could not find the build directory: ${staticDir}, make sure to build the client first`);
     }
-  });
+
+    app.use(express.static(staticDir));
+
+    // For routes that don't match a file, send index.html
+    app.use("*", (_req, res) => {
+      res.sendFile(path.resolve(staticDir, "index.html"));
+    });
+  }
 })();
