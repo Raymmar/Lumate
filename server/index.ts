@@ -109,7 +109,12 @@ app.use(
 
     // For routes that don't match a file, send index.html
     app.use("*", (_req, res) => {
-      res.sendFile(path.resolve(staticDir, "index.html"));
+      console.log("[Server] Serving index.html for unknown route");
+      res.sendFile(path.resolve(staticDir, "index.html"), (err) =>{
+        if (err){
+          console.error("Error serving index.html:", err);
+        }
+      });
     });
   }
 
