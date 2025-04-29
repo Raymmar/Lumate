@@ -333,9 +333,6 @@ export default function UserSettingsPage() {
                       </div>
                     ) : hasActiveSubscription ? (
                       <>
-                        <p className="text-sm text-muted-foreground mb-3">
-                          Manage your company details, contact information, and tags on the company profile page
-                        </p>
                         <Button 
                           type="button" 
                           variant="outline"
