@@ -163,44 +163,67 @@ export default function AdminDashboard() {
         />
         <StatCard
           title="Membership Revenue"
-          value={revenueData?.totalRevenue ? `$${revenueData.totalRevenue.toFixed(2)}` : '--'}
+          value={
+            statsData?.paidUsers && statsData.paidUsers > 0
+              ? `$${(statsData.paidUsers * 199).toFixed(2)}`
+              : revenueData?.totalRevenue 
+                ? `$${revenueData.totalRevenue.toFixed(2)}` 
+                : '--'
+          }
           icon={DollarSign}
           isLoading={isLoading || isRevenueLoading}
           description={
-            revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 
-              ? `${revenueData.revenueByPrice.length} subscription types active`
-              : "Total revenue from memberships"
+            statsData?.paidUsers && statsData.paidUsers > 0
+              ? `${statsData.paidUsers} subscriptions at $199 each`
+              : revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 
+                ? `${revenueData.revenueByPrice.length} subscription types active`
+                : "Total revenue from memberships"
           }
         />
       </div>
 
       {/* Revenue Breakdown Section */}
-      {revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 && (
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Membership Revenue Breakdown</h2>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => refetchRevenue()}
-              className="flex items-center gap-1 text-xs"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Refresh
-            </Button>
-          </div>
-          <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium">Subscription</th>
-                  <th className="px-4 py-3 text-right font-medium">Price</th>
-                  <th className="px-4 py-3 text-right font-medium">Active Subscriptions</th>
-                  <th className="px-4 py-3 text-right font-medium">Revenue</th>
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Membership Revenue Breakdown</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetchRevenue()}
+            className="flex items-center gap-1 text-xs"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refresh
+          </Button>
+        </div>
+        <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Subscription</th>
+                <th className="px-4 py-3 text-right font-medium">Price</th>
+                <th className="px-4 py-3 text-right font-medium">Active Subscriptions</th>
+                <th className="px-4 py-3 text-right font-medium">Revenue</th>
+              </tr>
+            </thead>
+            <tbody>
+              {statsData?.paidUsers && statsData.paidUsers > 0 ? (
+                <tr className="border-t">
+                  <td className="px-4 py-3">
+                    Sarasota Tech Membership
+                  </td>
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                    $199.00
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {statsData.paidUsers}
+                  </td>
+                  <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                    ${(statsData.paidUsers * 199).toFixed(2)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {revenueData.revenueByPrice.map((item) => (
+              ) : (
+                revenueData?.revenueByPrice && revenueData.revenueByPrice.map((item) => (
                   <tr key={item.id} className="border-t">
                     <td className="px-4 py-3">
                       {item.nickname || item.productName || 'Unknown Subscription'}
@@ -215,22 +238,27 @@ export default function AdminDashboard() {
                       ${item.revenue.toFixed(2)}
                     </td>
                   </tr>
-                ))}
-                <tr className="border-t bg-muted/20">
-                  <td className="px-4 py-3 font-medium">Total</td>
-                  <td className="px-4 py-3"></td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    {revenueData.revenueByPrice.reduce((sum, item) => sum + item.subscriptionCount, 0)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                    ${revenueData.totalRevenue.toFixed(2)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+              <tr className="border-t bg-muted/20">
+                <td className="px-4 py-3 font-medium">Total</td>
+                <td className="px-4 py-3"></td>
+                <td className="px-4 py-3 text-right font-medium">
+                  {statsData?.paidUsers || revenueData?.revenueByPrice?.reduce((sum, item) => sum + item.subscriptionCount, 0) || 0}
+                </td>
+                <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                  ${statsData?.paidUsers 
+                    ? (statsData.paidUsers * 199).toFixed(2) 
+                    : revenueData?.totalRevenue 
+                      ? revenueData.totalRevenue.toFixed(2) 
+                      : '0.00'
+                  }
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* Posts Section */}
       <div className="mt-8">
