@@ -9,8 +9,6 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
   // If no username provided, use a prefix with fallbackId to indicate it's an ID
   if (!username) return `u-${fallbackId}`;
 
-  console.log('Original username:', username);
-
   // Special handling for titles and accented characters
   let processed = username
     .replace(/Dr\./i, 'dr') // Replace "Dr." with "dr"
@@ -25,11 +23,8 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
     .trim()
     .replace(/\s+/g, '-'); // Replace spaces with hyphens
 
-  console.log('After normalization and accent removal:', processed);
-
   // If normalized string is empty after processing, use fallback format
   if (!processed) {
-    console.log('Empty processed string, using fallback');
     return `u-${fallbackId}`;
   }
 
@@ -38,7 +33,6 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
     .replace(/-{2,}/g, '-') // Collapse multiple hyphens
     .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
 
-  console.log('Final processed username:', processed);
   return processed;
 }
 

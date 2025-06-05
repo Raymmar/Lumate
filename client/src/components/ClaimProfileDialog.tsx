@@ -110,18 +110,19 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogDescription className="space-y-4">
-            <p className="text-xl">
-              Enter your email below to claim yor member profile.
-            </p>
-            <ul className="list-decimal pl-5 space-y-2 text-sm">
-              <li>Make sure you use the same email you use to register for our events!</li>
-              <li>If we find a match, we'll send you an activation email.</li>
-              <li>From there you can set a password, log in & upgrade to add company details.</li>
-              <li>If you are not in our system, we'll send you an invite to our next event.</li>
-            </ul>
+          <DialogTitle>Claim Your Profile</DialogTitle>
+          <DialogDescription>
+            Enter your email below to claim your member profile.
           </DialogDescription>
         </DialogHeader>
+        <div className="space-y-4">
+          <ul className="list-decimal pl-5 space-y-2 text-sm">
+            <li>Make sure you use the same email you use to register for our events!</li>
+            <li>If we find a match, we'll send you an activation email.</li>
+            <li>From there you can set a password, log in & upgrade to add company details.</li>
+            <li>If you are not in our system, we'll send you an invite to our next event.</li>
+          </ul>
+        </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="email">Email</Label>
