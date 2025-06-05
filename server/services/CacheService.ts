@@ -12,19 +12,13 @@ export class CacheService extends EventEmitter {
   private readonly BATCH_SIZE = 50;  // Luma API's pagination limit
   private readonly MAX_RETRIES = 3;  // Maximum number of retries for failed requests
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
-  private readonly MAX_PROCESSING_TIME = 30 * 60 * 1000; // 30 minutes max processing time
-  private readonly MAX_PEOPLE_PER_SYNC = 500; // Limit people processing to prevent infinite loops
-  private readonly MAX_EVENTS_PER_SYNC = 200; // Limit events processing
   private lastSuccessfulSync: Date | null = null;
   private readonly SYNC_INTERVAL = 60 * 60 * 1000; // Fixed 1-hour interval in milliseconds
 
   private constructor() {
     super();
-    this.logSync('CacheService initialized');
-    // Start sync with a delay to allow server to fully initialize
-    setTimeout(() => {
-      this.startSync();
-    }, 5000); // 5 second delay
+    this.logSync('Starting CacheService...');
+    this.startSync();
   }
 
   static getInstance() {
@@ -144,12 +138,6 @@ export class CacheService extends EventEmitter {
     this.logSync('Starting cache update process...');
     this.emitProgress('Starting cache update process...', 0);
 
-    // Set up timeout to prevent infinite processing
-    const timeoutId = setTimeout(() => {
-      this.logSync('Cache update timed out after 30 minutes, aborting...');
-      this.isCaching = false;
-    }, this.MAX_PROCESSING_TIME);
-
     try {
       const lastUpdate = await storage.getLastCacheUpdate();
       this.logSync(`Last cache update was`, lastUpdate);
@@ -158,7 +146,7 @@ export class CacheService extends EventEmitter {
       const now = new Date();
       const lastUpdateTime = lastUpdate || new Date(0); // Use epoch time for fresh sync
 
-      // First fetch all data from Luma API with limits
+      // First fetch all data from Luma API
       this.emitProgress('Fetching events and people from Luma API...', 10);
       this.logSync('Fetching events and people from Luma API...');
 
@@ -167,60 +155,42 @@ export class CacheService extends EventEmitter {
         this.fetchAllPeople(lastUpdateTime)
       ]);
 
-      // Apply limits to prevent infinite processing
-      const limitedEvents = events.slice(0, this.MAX_EVENTS_PER_SYNC);
-      const limitedPeople = people.slice(0, this.MAX_PEOPLE_PER_SYNC);
-
       this.logSync(`Successfully fetched data from API`, {
-        eventsCount: limitedEvents.length,
-        peopleCount: limitedPeople.length,
-        eventsLimited: events.length > this.MAX_EVENTS_PER_SYNC,
-        peopleLimited: people.length > this.MAX_PEOPLE_PER_SYNC
+        eventsCount: events.length,
+        peopleCount: people.length
       });
 
-      this.emitProgress(`Successfully fetched ${limitedEvents.length} events and ${limitedPeople.length} people from API`, 50);
+      this.emitProgress(`Successfully fetched ${events.length} events and ${people.length} people from API`, 50);
 
       // Process events in batches
-      if (limitedEvents.length > 0) {
-        this.logSync(`Processing ${limitedEvents.length} events in batches...`);
-        this.emitProgress(`Processing ${limitedEvents.length} events...`, 60);
+      if (events.length > 0) {
+        this.logSync(`Processing ${events.length} events in batches...`);
+        this.emitProgress(`Processing ${events.length} events...`, 60);
 
-        for (let i = 0; i < limitedEvents.length; i += this.BATCH_SIZE) {
-          // Check if we've exceeded processing time
-          if (Date.now() - syncStartTime > this.MAX_PROCESSING_TIME) {
-            this.logSync('Processing time limit reached, stopping event processing');
-            break;
-          }
-
-          const batch = limitedEvents.slice(i, i + this.BATCH_SIZE);
+        for (let i = 0; i < events.length; i += this.BATCH_SIZE) {
+          const batch = events.slice(i, i + this.BATCH_SIZE);
           await this.batchInsertEvents(batch);
-          const progress = 60 + (i / limitedEvents.length) * 20;
-          this.logSync(`Processed events batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(limitedEvents.length / this.BATCH_SIZE)}`);
+          const progress = 60 + (i / events.length) * 20;
+          this.logSync(`Processed events batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`);
           this.emitProgress(
-            `Processed events batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(limitedEvents.length / this.BATCH_SIZE)}`,
+            `Processed events batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(events.length / this.BATCH_SIZE)}`,
             progress
           );
         }
       }
 
       // Process people in batches while preserving email relationships
-      if (limitedPeople.length > 0) {
-        this.logSync(`Processing ${limitedPeople.length} people in batches...`);
-        this.emitProgress(`Processing ${limitedPeople.length} people...`, 80);
+      if (people.length > 0) {
+        this.logSync(`Processing ${people.length} people in batches...`);
+        this.emitProgress(`Processing ${people.length} people...`, 80);
 
-        for (let i = 0; i < limitedPeople.length; i += this.BATCH_SIZE) {
-          // Check if we've exceeded processing time
-          if (Date.now() - syncStartTime > this.MAX_PROCESSING_TIME) {
-            this.logSync('Processing time limit reached, stopping people processing');
-            break;
-          }
-
-          const batch = limitedPeople.slice(i, i + this.BATCH_SIZE);
+        for (let i = 0; i < people.length; i += this.BATCH_SIZE) {
+          const batch = people.slice(i, i + this.BATCH_SIZE);
           await this.batchInsertPeople(batch);
-          const progress = 80 + (i / limitedPeople.length) * 15;
-          this.logSync(`Processed people batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(limitedPeople.length / this.BATCH_SIZE)}`);
+          const progress = 80 + (i / people.length) * 15;
+          this.logSync(`Processed people batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`);
           this.emitProgress(
-            `Processed people batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(limitedPeople.length / this.BATCH_SIZE)}`,
+            `Processed people batch ${Math.floor(i / this.BATCH_SIZE) + 1} of ${Math.ceil(people.length / this.BATCH_SIZE)}`,
             progress
           );
         }
@@ -231,7 +201,7 @@ export class CacheService extends EventEmitter {
       this.lastSuccessfulSync = now;
 
       const totalDuration = (Date.now() - syncStartTime) / 1000;
-      const finalMessage = `Cache update completed in ${totalDuration}s. Processed ${limitedEvents.length} events and ${limitedPeople.length} people.`;
+      const finalMessage = `Cache update completed in ${totalDuration}s. Processed ${events.length} events and ${people.length} people.`;
       this.logSync(finalMessage);
 
       // Emit completion event with stats
@@ -240,8 +210,8 @@ export class CacheService extends EventEmitter {
         message: finalMessage,
         progress: 100,
         data: {
-          eventCount: limitedEvents.length,
-          peopleCount: limitedPeople.length,
+          eventCount: events.length,
+          peopleCount: people.length,
           duration: totalDuration
         }
       });
@@ -255,7 +225,6 @@ export class CacheService extends EventEmitter {
       });
       throw error;
     } finally {
-      clearTimeout(timeoutId);
       this.isCaching = false;
     }
   }

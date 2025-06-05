@@ -149,10 +149,7 @@ app.use(
     24 * 60 * 60 * 1000,
   ); // 24 hours in milliseconds
 
-  // Start event sync service after server is fully initialized
-  setTimeout(() => {
-    startEventSyncService(false);
-  }, 10000); // 10 second delay to ensure server is ready
+  startEventSyncService(false); // pass true if you want to sync future events immediately
 
   // Start server with improved logging
   const port = parseInt(process.env.PORT || "5000");
