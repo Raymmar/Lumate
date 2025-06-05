@@ -149,7 +149,8 @@ app.use(
     24 * 60 * 60 * 1000,
   ); // 24 hours in milliseconds
 
-  startEventSyncService(false); // pass true if you want to sync future events immediately
+  // Temporarily disable automatic event sync to prevent startup issues
+  // startEventSyncService(false); // pass true if you want to sync future events immediately
 
   // Start server with improved logging
   const port = parseInt(process.env.PORT || "5000");

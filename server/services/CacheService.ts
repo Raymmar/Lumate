@@ -17,8 +17,8 @@ export class CacheService extends EventEmitter {
 
   private constructor() {
     super();
-    this.logSync('Starting CacheService...');
-    this.startSync();
+    this.logSync('CacheService initialized but not started automatically');
+    // Don't start sync automatically to prevent server startup issues
   }
 
   static getInstance() {
