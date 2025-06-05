@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -20,6 +21,7 @@ export default function LoginPage() {
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [isResetting, setIsResetting] = useState(false);
+  const [showClaimDialog, setShowClaimDialog] = useState(false);
   const { toast } = useToast();
 
   // Handle redirect if already logged in using useEffect
@@ -88,7 +90,7 @@ export default function LoginPage() {
 
   return (
     <DashboardLayout>
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)]">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] gap-4">
         <Card className="w-[400px]">
           <CardHeader>
             <CardTitle>Welcome Back</CardTitle>
@@ -146,6 +148,35 @@ export default function LoginPage() {
                 Forgot your password?
               </Button>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* First-time user warning */}
+        <Card className="w-[400px] border-orange-200 bg-orange-50/50">
+          <CardContent className="pt-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-orange-800">
+                  First time logging in?
+                </p>
+                <p className="text-sm text-orange-700">
+                  You'll need to claim your profile and verify your email before you can log in.
+                </p>
+                <ClaimProfileDialog 
+                  trigger={
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="text-orange-700 border-orange-300 hover:bg-orange-100"
+                    >
+                      Claim your profile
+                    </Button>
+                  }
+                  onOpenChange={setShowClaimDialog}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
