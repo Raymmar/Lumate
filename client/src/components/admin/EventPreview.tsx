@@ -1,6 +1,6 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, RefreshCw, ChevronLeft, ChevronRight, Lock, Unlock } from "lucide-react";
+import { Calendar, MapPin, Users, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -10,10 +10,7 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Person } from "@/components/people/PeopleDirectory";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { formatUsernameForUrl } from "@/lib/utils";
-import { apiRequest } from "@/lib/api";
 
 interface EventPreviewProps {
   event: Event & { 
@@ -42,7 +39,6 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
     isSynced: !!event.lastAttendanceSync,
     lastSyncedAt: event.lastAttendanceSync
   });
-  const [isUpdatingPrivacy, setIsUpdatingPrivacy] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: attendanceData = { attendees: [], total: 0 }, isLoading: isLoadingAttendees } = useQuery({
@@ -199,29 +195,6 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
     }
   };
 
-  const handlePrivacyToggle = async (isPrivate: boolean) => {
-    setIsUpdatingPrivacy(true);
-    try {
-      await apiRequest(`/api/admin/events/${event.api_id}/privacy`, 'PATCH', { isPrivate });
-      
-      // Update the cache to reflect the change
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/events"] });
-      
-      toast({
-        title: "Success",
-        description: `Event marked as ${isPrivate ? 'private' : 'public'}`,
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update event privacy",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdatingPrivacy(false);
-    }
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto space-y-6 pb-16">
@@ -297,38 +270,6 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
               </div>
             </div>
           </div>
-
-          {/* Privacy Toggle */}
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {event.isPrivate ? (
-                    <Lock className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <Unlock className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <div>
-                    <Label htmlFor="privacy-toggle" className="font-medium">
-                      Private Event
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      {event.isPrivate 
-                        ? "This event is hidden from public view" 
-                        : "This event is visible to all users"
-                      }
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  id="privacy-toggle"
-                  checked={event.isPrivate || false}
-                  onCheckedChange={handlePrivacyToggle}
-                  disabled={isUpdatingPrivacy}
-                />
-              </div>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardContent className="p-6 space-y-4">

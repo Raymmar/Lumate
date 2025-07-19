@@ -43,7 +43,6 @@ export const events = pgTable("events", {
   meetingUrl: varchar("meeting_url", { length: 255 }),
   calendarApiId: varchar("calendar_api_id", { length: 255 }),
   lastAttendanceSync: timestamp("last_attendance_sync", { mode: 'string', withTimezone: true }),
-  isPrivate: boolean("is_private").notNull().default(false),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
 });
 
