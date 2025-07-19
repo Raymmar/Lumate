@@ -441,9 +441,9 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/events", async (_req, res) => {
     try {
-      console.log("Fetching events from storage...");
-      const events = await storage.getEvents();
-      console.log(`Retrieved ${events.length} events from storage`);
+      console.log("Fetching public events from storage...");
+      const events = await storage.getPublicEvents();
+      console.log(`Retrieved ${events.length} public events from storage`);
 
       res.json({
         events,
@@ -3034,6 +3034,37 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to fetch admin events:", error);
       res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  app.patch("/api/admin/events/:eventId/privacy", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const eventId = req.params.eventId;
+      const { isPrivate } = req.body;
+
+      if (typeof isPrivate !== "boolean") {
+        return res.status(400).json({ error: "isPrivate must be a boolean" });
+      }
+
+      const updatedEvent = await storage.updateEventPrivacy(eventId, isPrivate);
+
+      if (!updatedEvent) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      res.json(updatedEvent);
+    } catch (error) {
+      console.error("Failed to update event privacy:", error);
+      res.status(500).json({ error: "Failed to update event privacy" });
     }
   });
 

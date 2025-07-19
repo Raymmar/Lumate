@@ -42,15 +42,16 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 ### Community Features
 - Member profiles with customizable information and social links
 - Company directory with detailed company profiles
-- Event management with attendance tracking
+- Event management with attendance tracking and privacy controls
 - News/bulletin board system with tagging
 - Badge system for member achievements
 
 ### Admin Dashboard
 - Comprehensive statistics and analytics
-- User, company, and event management
+- User, company, and event management with privacy controls
 - Content moderation capabilities
 - Data migration tools for system updates
+- Private event management to control public visibility
 
 ### Third-Party Integrations
 - **Stripe**: Payment processing for memberships and subscriptions
@@ -117,7 +118,16 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Changelog
 
-- June 20, 2025. Initial setup
+- July 19, 2025: Added private events feature allowing admins to hide events from public view while maintaining admin access
+- June 20, 2025: Initial setup
+
+## Recent Changes
+
+✓ Implemented private events system with database schema changes
+✓ Added privacy toggle in admin event preview interface  
+✓ Updated public events endpoint to filter out private events
+✓ Enhanced events table with privacy status indicators
+✓ Created admin API endpoint for updating event privacy settings
 
 ## User Preferences
 

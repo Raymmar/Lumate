@@ -28,13 +28,15 @@ import crypto from "crypto";
 export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
+  getPublicEvents(): Promise<Event[]>;
   getEventCount(): Promise<number>;
   getEventsByEndTimeRange(startDate: Date, endDate: Date): Promise<Event[]>; 
   insertEvent(event: InsertEvent): Promise<Event>;
   getRecentlyEndedEvents(): Promise<Event[]>; 
   clearEvents(): Promise<void>;
   getEventByApiId(apiId: string): Promise<Event | null>; 
-  getFutureEvents(): Promise<Event[]>; 
+  getFutureEvents(): Promise<Event[]>;
+  updateEventPrivacy(apiId: string, isPrivate: boolean): Promise<Event | null>; 
 
   // People
   getPeople(): Promise<Person[]>;
@@ -164,6 +166,13 @@ export class PostgresStorage implements IStorage {
     console.log('Fetching all events from database...');
     const result = await db.select().from(events);
     console.log(`Found ${result.length} events in database`);
+    return result;
+  }
+
+  async getPublicEvents(): Promise<Event[]> {
+    console.log('Fetching public events from database...');
+    const result = await db.select().from(events).where(eq(events.isPrivate, false));
+    console.log(`Found ${result.length} public events in database`);
     return result;
   }
   
@@ -1664,6 +1673,28 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get future events:', error);
+      throw error;
+    }
+  }
+
+  async updateEventPrivacy(apiId: string, isPrivate: boolean): Promise<Event | null> {
+    try {
+      console.log(`Updating event privacy for ${apiId} to ${isPrivate}`);
+      const [updatedEvent] = await db
+        .update(events)
+        .set({ isPrivate })
+        .where(eq(events.api_id, apiId))
+        .returning();
+
+      if (!updatedEvent) {
+        console.error(`Event with API ID ${apiId} not found`);
+        return null;
+      }
+
+      console.log(`Successfully updated event privacy for ${apiId}`);
+      return updatedEvent;
+    } catch (error) {
+      console.error('Failed to update event privacy:', error);
       throw error;
     }
   }

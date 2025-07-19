@@ -5,7 +5,7 @@ import type { Event } from "@shared/schema";
 import { useState } from "react";
 import { EventPreview } from "./EventPreview";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, Lock, Unlock } from "lucide-react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -205,12 +205,38 @@ export function EventsTable() {
     {
       key: "title",
       header: "Event Name",
-      cell: (row: EventWithSync) => row.title,
+      cell: (row: EventWithSync) => (
+        <div className="flex items-center gap-2">
+          <span>{row.title}</span>
+          {row.isPrivate && (
+            <Lock className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+      ),
     },
     {
       key: "startTime",
       header: "Start Date",
       cell: (row: EventWithSync) => formatLastSyncTime(row.startTime, row.timezone),
+    },
+    {
+      key: "privacy",
+      header: "Privacy",
+      cell: (row: EventWithSync) => (
+        <Badge variant={row.isPrivate ? "outline" : "secondary"}>
+          {row.isPrivate ? (
+            <>
+              <Lock className="h-3 w-3 mr-1" />
+              Private
+            </>
+          ) : (
+            <>
+              <Unlock className="h-3 w-3 mr-1" />
+              Public
+            </>
+          )}
+        </Badge>
+      ),
     },
     {
       key: "sync",
