@@ -194,9 +194,9 @@ export async function registerRoutes(app: Express) {
   // Initialize route handlers and middleware
   console.log("Registering routes...");
 
-  console.log("Initializing CacheService...");
-  const cacheService = CacheService.getInstance();
-  console.log("CacheService initialized.");
+  // CacheService temporarily disabled for server startup stability
+  console.log("CacheService initialization temporarily disabled for startup stability");
+  // const cacheService = CacheService.getInstance();
 
   const PostgresStore = connectPg(session);
   const isProduction = process.env.NODE_ENV === "production";
