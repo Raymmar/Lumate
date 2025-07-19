@@ -126,14 +126,17 @@ app.use(
       .json({ message: err.message || "Internal Server Error" });
   });
 
-  // Schedule daily badge assignment
-  try {
-    console.log("Running initial badge assignment...");
-    await badgeService.runDailyBadgeAssignment();
-    console.log("Initial badge assignment completed");
-  } catch (error) {
-    console.error("Failed to run initial badge assignment:", error);
-  }
+  // Schedule daily badge assignment (disabled during startup to prevent hanging)
+  // Run after server is fully started
+  setTimeout(async () => {
+    try {
+      console.log("Running initial badge assignment...");
+      await badgeService.runDailyBadgeAssignment();
+      console.log("Initial badge assignment completed");
+    } catch (error) {
+      console.error("Failed to run initial badge assignment:", error);
+    }
+  }, 30000); // Wait 30 seconds after server start
 
   // Then schedule it to run every 24 hours
   setInterval(
