@@ -126,31 +126,16 @@ app.use(
       .json({ message: err.message || "Internal Server Error" });
   });
 
-  // Background services temporarily disabled for server startup stability
-  // TODO: Re-enable after fixing performance issues
-  console.log("Background services temporarily disabled for startup stability");
-  
-  /*
-  // Start all background services after server is fully started to prevent hanging
-  setTimeout(async () => {
-    try {
-      console.log("Starting background services...");
-      
-      // Start event sync service
-      startEventSyncService(false);
-      
-      // Run initial badge assignment
-      console.log("Running initial badge assignment...");
-      await badgeService.runDailyBadgeAssignment();
-      console.log("Initial badge assignment completed");
-      
-      console.log("All background services started successfully");
-    } catch (error) {
-      console.error("Failed to start background services:", error);
-    }
-  }, 5000); // Wait 5 seconds after server start
+  // Schedule daily badge assignment
+  try {
+    console.log("Running initial badge assignment...");
+    await badgeService.runDailyBadgeAssignment();
+    console.log("Initial badge assignment completed");
+  } catch (error) {
+    console.error("Failed to run initial badge assignment:", error);
+  }
 
-  // Schedule badge assignment to run every 24 hours
+  // Then schedule it to run every 24 hours
   setInterval(
     async () => {
       try {
@@ -163,7 +148,8 @@ app.use(
     },
     24 * 60 * 60 * 1000,
   ); // 24 hours in milliseconds
-  */
+
+  startEventSyncService(false); // pass true if you want to sync future events immediately
 
   // Start server with improved logging
   const port = parseInt(process.env.PORT || "5000");
