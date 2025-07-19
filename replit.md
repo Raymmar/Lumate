@@ -4,6 +4,19 @@
 
 This is a full-stack web application built for the Sarasota Tech community, designed to connect tech professionals, showcase companies, manage events, and facilitate community engagement. The platform combines a React-based frontend with an Express.js backend, using PostgreSQL for data persistence and various third-party integrations for enhanced functionality.
 
+## Recent Changes
+
+### July 19, 2025 - Application Startup Issues Fixed
+- **Issue**: App failing to restart after being stopped, with port conflicts and hanging processes
+- **Resolution**: Implemented comprehensive graceful shutdown handling
+  - Added proper cleanup for all intervals (badge assignment, event sync)
+  - Improved database connection pool closure
+  - Added signal handlers for SIGTERM, SIGINT, SIGQUIT
+  - Implemented process cleanup for uncaught exceptions and unhandled rejections
+  - Added timeout mechanisms to prevent hanging shutdowns
+  - Made heavy startup processes non-blocking to prevent timeout failures
+- **Result**: App now starts and restarts reliably without port conflicts or hanging processes
+
 ## System Architecture
 
 ### Frontend Architecture

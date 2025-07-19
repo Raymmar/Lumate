@@ -193,7 +193,14 @@ app.use(
   const gracefulShutdown = (signal: string) => {
     console.log(`[Server] Received ${signal}, starting graceful shutdown...`);
     
-    // Clear intervals
+    // Prevent multiple shutdown attempts
+    if (gracefulShutdown.called) {
+      console.log('[Server] Shutdown already in progress, force exiting...');
+      process.exit(1);
+    }
+    gracefulShutdown.called = true;
+    
+    // Clear intervals immediately
     if (badgeAssignmentInterval) {
       clearInterval(badgeAssignmentInterval);
       console.log('[Server] Cleared badge assignment interval');
@@ -208,38 +215,52 @@ app.use(
     // Close SSE connections
     const activeConnections = app.get('activeSSEConnections') || [];
     activeConnections.forEach((res: any) => {
-      if (!res.headersSent) {
-        res.end();
+      try {
+        if (!res.headersSent) {
+          res.end();
+        }
+      } catch (err) {
+        // Ignore errors when closing connections
       }
     });
     console.log(`[Server] Closed ${activeConnections.length} SSE connections`);
 
-    // Close database connection pool
-    pool.end().then(() => {
-      console.log('[Server] Database connection pool closed');
-    }).catch((err) => {
-      console.error('[Server] Error closing database pool:', err);
-    });
-
-    // Close the server
-    server.close((err) => {
-      if (err) {
-        console.error('[Server] Error during shutdown:', err);
+    // Close the server first
+    server.close(() => {
+      console.log('[Server] HTTP server closed');
+      
+      // Then close database pool
+      pool.end().then(() => {
+        console.log('[Server] Database connection pool closed');
+        console.log('[Server] Graceful shutdown complete');
+        process.exit(0);
+      }).catch((err) => {
+        console.error('[Server] Error closing database pool:', err);
         process.exit(1);
-      }
-      console.log('[Server] Server closed successfully');
-      process.exit(0);
+      });
     });
 
-    // Force exit after 10 seconds
+    // Force exit after 5 seconds (reduced timeout)
     setTimeout(() => {
       console.error('[Server] Forced shutdown after timeout');
       process.exit(1);
-    }, 10000);
+    }, 5000);
   };
 
-  // Register signal handlers
+  // Register signal handlers with immediate cleanup
   process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   process.on('SIGQUIT', () => gracefulShutdown('SIGQUIT'));
+  
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (error) => {
+    console.error('[Server] Uncaught exception:', error);
+    gracefulShutdown('UNCAUGHT_EXCEPTION');
+  });
+  
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Server] Unhandled rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('UNHANDLED_REJECTION');
+  });
 })();
