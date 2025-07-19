@@ -95,7 +95,7 @@ async function syncFutureEvents() {
   }
 }
 
-export async function startEventSyncService(immediate: boolean = false) {
+export async function startEventSyncService(immediate: boolean = false): Promise<{ recentSyncInterval: NodeJS.Timeout, futureSyncInterval: NodeJS.Timeout }> {
   // Run every 5 minutes for recently ended events
   const RECENT_SYNC_INTERVAL = 5 * 60 * 1000;
 
@@ -103,7 +103,7 @@ export async function startEventSyncService(immediate: boolean = false) {
   const FUTURE_SYNC_INTERVAL = 6 * 60 * 60 * 1000;
 
   // Sync recently ended events
-  setInterval(async () => {
+  const recentSyncInterval = setInterval(async () => {
     try {
       const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
       console.log(
@@ -124,7 +124,7 @@ export async function startEventSyncService(immediate: boolean = false) {
   }, RECENT_SYNC_INTERVAL);
 
   // Sync future events every 6 hours
-  setInterval(async () => {
+  const futureSyncInterval = setInterval(async () => {
     console.log("Starting scheduled sync of future events...");
     await syncFutureEvents();
   }, FUTURE_SYNC_INTERVAL);
@@ -142,4 +142,6 @@ export async function startEventSyncService(immediate: boolean = false) {
   console.log(
     "Event sync service started with both recent and future event syncing",
   );
+
+  return { recentSyncInterval, futureSyncInterval };
 }

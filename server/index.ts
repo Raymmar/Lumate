@@ -8,6 +8,7 @@ import unsplashRoutes from "./routes/unsplash";
 import stripeRoutes from "./routes/stripe";
 import { badgeService } from "./services/BadgeService";
 import { startEventSyncService } from "./services/eventSyncService";
+import { pool } from "./db";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -126,17 +127,23 @@ app.use(
       .json({ message: err.message || "Internal Server Error" });
   });
 
-  // Schedule daily badge assignment
-  try {
-    console.log("Running initial badge assignment...");
-    await badgeService.runDailyBadgeAssignment();
-    console.log("Initial badge assignment completed");
-  } catch (error) {
-    console.error("Failed to run initial badge assignment:", error);
-  }
+  // Store interval IDs for cleanup
+  let badgeAssignmentInterval: NodeJS.Timeout | null = null;
+  let eventSyncIntervals: { recentSyncInterval: NodeJS.Timeout, futureSyncInterval: NodeJS.Timeout } | null = null;
+
+  // Schedule daily badge assignment (run async after server starts)
+  setTimeout(async () => {
+    try {
+      console.log("Running initial badge assignment...");
+      await badgeService.runDailyBadgeAssignment();
+      console.log("Initial badge assignment completed");
+    } catch (error) {
+      console.error("Failed to run initial badge assignment:", error);
+    }
+  }, 2000); // Delay 2 seconds to let server start first
 
   // Then schedule it to run every 24 hours
-  setInterval(
+  badgeAssignmentInterval = setInterval(
     async () => {
       try {
         console.log("Running scheduled badge assignment...");
@@ -149,17 +156,26 @@ app.use(
     24 * 60 * 60 * 1000,
   ); // 24 hours in milliseconds
 
-  startEventSyncService(false); // pass true if you want to sync future events immediately
-
-  // Start server with improved logging
+  // Start server with improved logging and port checking
   const port = parseInt(process.env.PORT || "5000");
-  server.listen(port, "0.0.0.0", () => {
+  
+  // Note: Port availability check removed for faster startup in Replit environment
+
+  server.listen(port, "0.0.0.0", async () => {
     console.log(`[Server] Starting in ${process.env.NODE_ENV || 'development'} mode`);
     console.log(`[Server] Listening on port ${port} bound to 0.0.0.0`);
     if (isProduction) {
       console.log(`[Server] Production webhook endpoint: ${process.env.APP_URL}/api/stripe/webhook`);
     } else {
       console.log(`[Server] Development webhook endpoint: http://localhost:${port}/api/stripe/webhook`);
+    }
+
+    // Start background services after server is listening
+    try {
+      eventSyncIntervals = await startEventSyncService(false);
+      console.log('[Server] Background services initialized');
+    } catch (error) {
+      console.error('[Server] Error starting background services:', error);
     }
   });
 
@@ -168,6 +184,62 @@ app.use(
     console.error('[Server] Error:', error);
     if (error.code === 'EADDRINUSE') {
       console.error(`[Server] Port ${port} is already in use`);
+      console.error('[Server] Try stopping the existing process or waiting a few seconds before restarting');
+      process.exit(1);
     }
   });
+
+  // Graceful shutdown handling
+  const gracefulShutdown = (signal: string) => {
+    console.log(`[Server] Received ${signal}, starting graceful shutdown...`);
+    
+    // Clear intervals
+    if (badgeAssignmentInterval) {
+      clearInterval(badgeAssignmentInterval);
+      console.log('[Server] Cleared badge assignment interval');
+    }
+
+    if (eventSyncIntervals) {
+      clearInterval(eventSyncIntervals.recentSyncInterval);
+      clearInterval(eventSyncIntervals.futureSyncInterval);
+      console.log('[Server] Cleared event sync intervals');
+    }
+
+    // Close SSE connections
+    const activeConnections = app.get('activeSSEConnections') || [];
+    activeConnections.forEach((res: any) => {
+      if (!res.headersSent) {
+        res.end();
+      }
+    });
+    console.log(`[Server] Closed ${activeConnections.length} SSE connections`);
+
+    // Close database connection pool
+    pool.end().then(() => {
+      console.log('[Server] Database connection pool closed');
+    }).catch((err) => {
+      console.error('[Server] Error closing database pool:', err);
+    });
+
+    // Close the server
+    server.close((err) => {
+      if (err) {
+        console.error('[Server] Error during shutdown:', err);
+        process.exit(1);
+      }
+      console.log('[Server] Server closed successfully');
+      process.exit(0);
+    });
+
+    // Force exit after 10 seconds
+    setTimeout(() => {
+      console.error('[Server] Forced shutdown after timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  // Register signal handlers
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGQUIT', () => gracefulShutdown('SIGQUIT'));
 })();
