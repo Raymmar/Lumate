@@ -466,6 +466,16 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
+      // Check if the event is private before allowing RSVP
+      const event = await storage.getEventByApiId(event_api_id);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      if (event.visibility === 'private') {
+        return res.status(403).json({ error: "Cannot RSVP to private events" });
+      }
+
       const user = await storage.getUser(req.session.userId);
       if (!user || !user.personId) {
         return res.status(401).json({ error: "User not found" });

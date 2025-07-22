@@ -174,15 +174,17 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <AuthGuard>
-                  <Button
-                    size="sm"
-                    variant={rsvpStatus?.isGoing ? "default" : "outline"}
-                    onClick={handleRSVP}
-                    disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-                    className={`text-xs px-2 h-6 ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
-                  >
-                    {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
-                  </Button>
+                  {event.visibility !== 'private' && (
+                    <Button
+                      size="sm"
+                      variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                      onClick={handleRSVP}
+                      disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                      className={`text-xs px-2 h-6 ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                    >
+                      {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+                    </Button>
+                  )}
                 </AuthGuard>
                 {!isAttendeesLoading && (
                   <span className="text-xs text-muted-foreground">
@@ -220,15 +222,17 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
 
           <div className="absolute bottom-2 left-2">
             <AuthGuard>
-              <Button
-                size="sm"
-                className={`text-xs ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
-                variant={rsvpStatus?.isGoing ? "default" : "outline"}
-                onClick={handleRSVP}
-                disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
-              >
-                {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
-              </Button>
+              {event.visibility !== 'private' && (
+                <Button
+                  size="sm"
+                  className={`text-xs ${rsvpStatus?.isGoing ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : ''}`}
+                  variant={rsvpStatus?.isGoing ? "default" : "outline"}
+                  onClick={handleRSVP}
+                  disabled={rsvpMutation.isPending || rsvpStatus?.isGoing}
+                >
+                  {rsvpMutation.isPending ? "..." : (rsvpStatus?.isGoing ? "Going" : "RSVP")}
+                </Button>
+              )}
             </AuthGuard>
           </div>
         </div>

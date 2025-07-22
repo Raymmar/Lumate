@@ -161,9 +161,9 @@ export interface IStorage {
 
 export class PostgresStorage implements IStorage {
   async getEvents(): Promise<Event[]> {
-    console.log('Fetching all events from database...');
-    const result = await db.select().from(events);
-    console.log(`Found ${result.length} events in database`);
+    console.log('Fetching public events from database...');
+    const result = await db.select().from(events).where(sql`visibility != 'private' OR visibility IS NULL`);
+    console.log(`Found ${result.length} public events in database`);
     return result;
   }
   
@@ -848,7 +848,7 @@ export class PostgresStorage implements IStorage {
   }
   async getRecentlyEndedEvents(): Promise<Event[]> {
     try {
-      // Find events that ended in the last hour and haven't been synced
+      // Find events that ended in the last hour and haven't been synced (but include private events for sync purposes)
       const oneHourAgo = new Date();
       oneHourAgo.setHours(oneHourAgo.getHours() - 1);
 
@@ -994,11 +994,11 @@ export class PostgresStorage implements IStorage {
 
   async getFeaturedEvent(): Promise<Event | null> {
     try {
-      // Get the most recent upcoming event
+      // Get the most recent upcoming public event
       const result = await db
         .select()
         .from(events)
-        .where(sql`end_time > NOW()`)
+        .where(sql`end_time > NOW() AND (visibility != 'private' OR visibility IS NULL)`)
         .orderBy(events.startTime)
         .limit(1);
 
@@ -1654,11 +1654,11 @@ export class PostgresStorage implements IStorage {
 
   async getFutureEvents(): Promise<Event[]> {
     try {
-      // Get events that haven't ended yet
+      // Get events that haven't ended yet and are not private
       const result = await db
         .select()
         .from(events)
-        .where(sql`end_time > NOW()`)
+        .where(sql`end_time > NOW() AND (visibility != 'private' OR visibility IS NULL)`)
         .orderBy(events.startTime);
 
       return result;
