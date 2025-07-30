@@ -6,6 +6,20 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### July 30, 2025 - Email Verification System Investigation & Fix
+- **Investigation**: Comprehensive testing of email verification flow after user reports of failures
+- **Findings**: Email verification system is working correctly
+  - SendGrid API calls successful
+  - Token generation and validation working
+  - User creation process functioning
+  - Emails being delivered successfully
+- **Root Cause**: User confusion rather than technical failure
+  - Users with existing accounts get "Profile already claimed" message
+  - New users without event history get invited to events instead of verification emails
+  - Some verification emails may go to spam folders
+- **Fix Applied**: Corrected double-slash URL formatting issue in verification emails
+- **Result**: System functioning properly, improved URL formatting for better reliability
+
 ### July 19, 2025 - Application Startup Issues Fixed
 - **Issue**: App failing to restart after being stopped, with port conflicts and hanging processes
 - **Resolution**: Implemented comprehensive graceful shutdown handling

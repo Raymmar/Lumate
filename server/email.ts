@@ -26,7 +26,7 @@ export async function sendVerificationEmail(
 ): Promise<boolean> {
   try {
     console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '');
-    const verificationUrl = `${process.env.APP_URL || 'http://localhost:3000'}/verify?token=${token}`;
+    const verificationUrl = `${(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/verify?token=${token}`;
 
     // In development, just log the verification URL
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
@@ -127,7 +127,7 @@ export async function sendPasswordResetEmail(
 ): Promise<boolean> {
   try {
     console.log('Starting password reset email process for:', email);
-    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+    const resetUrl = `${(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/reset-password?token=${token}`;
 
     // Log configuration details
     console.log('Email configuration:', {
