@@ -16,6 +16,20 @@ export function ArticlePage() {
   // Fetch the specific post by slug
   const { data: postData, isLoading: isPostLoading, error: postError } = useQuery<Post>({
     queryKey: ["/api/posts/by-title", title],
+    queryFn: async () => {
+      const response = await fetch(`/api/posts/by-title/${title}`, {
+        credentials: "include",
+        headers: {
+          'Accept': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch post: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.json();
+    }
   });
 
   // Fetch all posts for navigation
