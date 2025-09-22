@@ -340,6 +340,83 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Helper function to format post title for URL
+  function formatPostTitleForUrl(title: string | null, fallbackId: string): string {
+    if (!title) return `p-${fallbackId}`;
+    
+    let processed = title
+      .replace(/\./g, '')
+      .replace(/&/g, 'and')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\s-]/g, ' ')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-');
+    
+    if (!processed) {
+      return `p-${fallbackId}`;
+    }
+    
+    processed = processed
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    return processed;
+  }
+
+  app.get("/api/posts/by-title/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      
+      // First get all posts to find the one with matching slug
+      const allPosts = await db
+        .select()
+        .from(posts);
+      
+      // Find post by matching slug
+      const post = allPosts.find(p => formatPostTitleForUrl(p.title, p.id.toString()) === slug);
+      
+      if (!post) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      // Check if the post is members-only and user is not authenticated
+      if (post.membersOnly && !req.session.userId) {
+        return res.status(403).json({
+          error: "Members only content",
+          membersOnly: true,
+        });
+      }
+
+      // Get creator info
+      const creator = await storage.getUser(post.creatorId);
+
+      // Get tags for the post
+      const postTagsResult = await db
+        .select({
+          text: tags.text,
+        })
+        .from(postTags)
+        .innerJoin(tags, eq(tags.id, postTags.tagId))
+        .where(eq(postTags.postId, post.id));
+
+      return res.json({
+        ...post,
+        creator: creator
+          ? {
+              id: creator.id,
+              displayName: creator.displayName,
+            }
+          : null,
+        tags: postTagsResult.map((tag) => tag.text),
+      });
+    } catch (error) {
+      console.error("Failed to fetch post by slug:", error);
+      res.status(500).json({ error: "Failed to fetch post" });
+    }
+  });
+
   app.get("/api/public/posts", async (req, res) => {
     try {
       console.log("Fetching public posts...");
