@@ -4,6 +4,8 @@ import { PostPreview } from "@/components/admin/PostPreview";
 import { PinnedPostsCarousel } from "./PinnedPostsCarousel";
 import { NewsList } from "./NewsList";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { formatPostTitleForUrl } from "@/lib/utils";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -41,9 +43,18 @@ export function NewsContent() {
     }
   };
 
+  const [, setLocation] = useLocation();
+  
   const handleSelectPost = (post: Post, isEditing = false) => {
-    setSelectedPost(post);
-    setIsEditing(isEditing);
+    // For admin editing, keep the old sidebar behavior
+    if (isEditing && user?.isAdmin) {
+      setSelectedPost(post);
+      setIsEditing(isEditing);
+    } else {
+      // For regular viewing, navigate to the article page
+      const slug = formatPostTitleForUrl(post.title, post.id.toString());
+      setLocation(`/post/${slug}`);
+    }
   };
 
   const canCreatePosts = user?.isAdmin;

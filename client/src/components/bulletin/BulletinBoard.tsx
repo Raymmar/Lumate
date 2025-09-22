@@ -12,7 +12,8 @@ import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { formatPostTitleForUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
 import { MembersOnlyCard } from "./MembersOnlyCard";
@@ -249,9 +250,18 @@ export function BulletinBoard() {
     }
   };
 
+  const [, setLocation] = useLocation();
+  
   const handleSelectPost = (post: Post, isEditing = false) => {
-    setSelectedPost(post);
-    setIsEditing(isEditing);
+    // For admin editing, keep the old sidebar behavior
+    if (isEditing && user?.isAdmin) {
+      setSelectedPost(post);
+      setIsEditing(isEditing);
+    } else {
+      // For regular viewing, navigate to the article page
+      const slug = formatPostTitleForUrl(post.title, post.id.toString());
+      setLocation(`/post/${slug}`);
+    }
   };
 
   return (
