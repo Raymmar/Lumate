@@ -69,6 +69,33 @@ export function isPostPage(url: string): boolean {
 }
 
 /**
+ * Checks if the URL is a company profile page that needs Open Graph injection
+ * @param url - The request URL
+ * @returns True if this is a company profile page
+ */
+export function isCompanyPage(url: string): boolean {
+  return url.startsWith('/companies/') && url.length > 11; // More than just '/companies/'
+}
+
+/**
+ * Checks if the URL is a user profile page that needs Open Graph injection
+ * @param url - The request URL
+ * @returns True if this is a user profile page
+ */
+export function isUserPage(url: string): boolean {
+  return url.startsWith('/people/') && url.length > 8; // More than just '/people/'
+}
+
+/**
+ * Check if a URL matches any supported page pattern for Open Graph
+ * @param url - The request URL
+ * @returns True if this is a supported page type
+ */
+export function isSupportedPage(url: string): boolean {
+  return isPostPage(url) || isCompanyPage(url) || isUserPage(url);
+}
+
+/**
  * Extracts the post slug from a post URL
  * @param url - The request URL (e.g., '/post/season-3-preview-sarasota-tech')
  * @returns The post slug or null if not a valid post URL
@@ -81,4 +108,34 @@ export function extractPostSlug(url: string): string | null {
   // Remove '/post/' prefix and any query parameters
   const slug = url.replace('/post/', '').split('?')[0].split('#')[0];
   return slug || null;
+}
+
+/**
+ * Extracts the company slug from a company profile URL
+ * @param url - The request URL (e.g., '/companies/example-company')
+ * @returns The company slug or null if not a valid company URL
+ */
+export function extractCompanySlug(url: string): string | null {
+  if (!isCompanyPage(url)) {
+    return null;
+  }
+  
+  // Remove '/companies/' prefix and any query parameters
+  const slug = url.replace('/companies/', '').split('?')[0].split('#')[0];
+  return slug || null;
+}
+
+/**
+ * Extracts the username from a user profile URL
+ * @param url - The request URL (e.g., '/people/john-smith')
+ * @returns The username or null if not a valid user URL
+ */
+export function extractUsername(url: string): string | null {
+  if (!isUserPage(url)) {
+    return null;
+  }
+  
+  // Remove '/people/' prefix and any query parameters
+  const username = url.replace('/people/', '').split('?')[0].split('#')[0];
+  return username || null;
 }
