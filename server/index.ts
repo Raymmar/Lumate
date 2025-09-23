@@ -12,8 +12,8 @@ import { pool } from "./db";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { isCrawler, isPostPage, extractPostSlug } from "./utils/crawlerDetection";
-import { fetchPostForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
+import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, extractPostSlug, extractCompanySlug, extractUsername } from "./utils/crawlerDetection";
+import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -91,25 +91,40 @@ app.use(
     const userAgent = req.headers['user-agent'];
     const url = req.originalUrl;
     
-    // Only handle crawler requests to post pages
-    if (isCrawler(userAgent) && isPostPage(url)) {
+    // Only handle crawler requests to supported pages (posts, companies, users)
+    if (isCrawler(userAgent) && isSupportedPage(url)) {
       try {
-        const slug = extractPostSlug(url);
-        if (slug) {
-          const postData = await fetchPostForOpenGraph(slug);
-          if (postData) {
-            // Determine the correct HTML template path
-            const templatePath = isProduction
-              ? path.resolve(__dirname, "../dist/public/index.html")
-              : path.resolve(__dirname, "..", "client", "index.html");
-            
-            // Read and modify the HTML template
-            let template = await fs.promises.readFile(templatePath, "utf-8");
-            const modifiedHtml = injectOpenGraphTags(template, postData);
-            
-            console.log(`[OpenGraph] Serving enhanced HTML for crawler: ${userAgent?.substring(0, 50)} to ${url}`);
-            return res.status(200).set({ "Content-Type": "text/html" }).end(modifiedHtml);
+        let ogData = null;
+        
+        if (isPostPage(url)) {
+          const slug = extractPostSlug(url);
+          if (slug) {
+            ogData = await fetchPostForOpenGraph(slug);
           }
+        } else if (isCompanyPage(url)) {
+          const slug = extractCompanySlug(url);
+          if (slug) {
+            ogData = await fetchCompanyForOpenGraph(slug);
+          }
+        } else if (isUserPage(url)) {
+          const username = extractUsername(url);
+          if (username) {
+            ogData = await fetchUserForOpenGraph(username);
+          }
+        }
+        
+        if (ogData) {
+          // Determine the correct HTML template path
+          const templatePath = isProduction
+            ? path.resolve(__dirname, "../dist/public/index.html")
+            : path.resolve(__dirname, "..", "client", "index.html");
+          
+          // Read and modify the HTML template
+          let template = await fs.promises.readFile(templatePath, "utf-8");
+          const modifiedHtml = injectOpenGraphTags(template, ogData);
+          
+          console.log(`[OpenGraph] Serving enhanced HTML for crawler: ${userAgent?.substring(0, 50)} to ${url}`);
+          return res.status(200).set({ "Content-Type": "text/html" }).end(modifiedHtml);
         }
       } catch (error) {
         console.error('[OpenGraph] Error processing crawler request:', error);
