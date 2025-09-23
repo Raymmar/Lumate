@@ -12,6 +12,8 @@ import { pool } from "./db";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import { isCrawler, isPostPage, extractPostSlug } from "./utils/crawlerDetection";
+import { fetchPostForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -83,6 +85,40 @@ app.use(
   // First ensure database tables exist
   const { ensureTablesExist } = await import("./db");
   await ensureTablesExist();
+
+  // Open Graph middleware for crawlers - must come before Vite/static setup
+  app.use(async (req: Request, res: Response, next: NextFunction) => {
+    const userAgent = req.headers['user-agent'];
+    const url = req.originalUrl;
+    
+    // Only handle crawler requests to post pages
+    if (isCrawler(userAgent) && isPostPage(url)) {
+      try {
+        const slug = extractPostSlug(url);
+        if (slug) {
+          const postData = await fetchPostForOpenGraph(slug);
+          if (postData) {
+            // Determine the correct HTML template path
+            const templatePath = isProduction
+              ? path.resolve(__dirname, "../dist/public/index.html")
+              : path.resolve(__dirname, "..", "client", "index.html");
+            
+            // Read and modify the HTML template
+            let template = await fs.promises.readFile(templatePath, "utf-8");
+            const modifiedHtml = injectOpenGraphTags(template, postData);
+            
+            console.log(`[OpenGraph] Serving enhanced HTML for crawler: ${userAgent?.substring(0, 50)} to ${url}`);
+            return res.status(200).set({ "Content-Type": "text/html" }).end(modifiedHtml);
+          }
+        }
+      } catch (error) {
+        console.error('[OpenGraph] Error processing crawler request:', error);
+        // Fall through to normal handling
+      }
+    }
+    
+    next();
+  });
 
   // Mount API routes
   app.use("/api/stripe", stripeRoutes);
