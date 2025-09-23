@@ -2,7 +2,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Post } from "@shared/schema";
 import { ArticleContent } from "@/components/news/ArticleContent";
-import { PageContainer } from "@/components/layout/PageContainer";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
@@ -51,7 +51,7 @@ export function ArticlePage() {
 
   if (isPostLoading || isPostsLoading) {
     return (
-      <PageContainer>
+      <DashboardLayout>
         <div className="max-w-4xl mx-auto">
           {/* Back button skeleton */}
           <div className="mb-6">
@@ -78,7 +78,7 @@ export function ArticlePage() {
             ))}
           </div>
         </div>
-      </PageContainer>
+      </DashboardLayout>
     );
   }
 
@@ -87,7 +87,7 @@ export function ArticlePage() {
   }
 
   return (
-    <PageContainer>
+    <DashboardLayout>
       <div className="max-w-4xl mx-auto">
         {/* Back to News Button */}
         <div className="mb-6">
@@ -111,6 +111,6 @@ export function ArticlePage() {
           showMembersOnlyOverlay={true}
         />
       </div>
-    </PageContainer>
+    </DashboardLayout>
   );
 }
