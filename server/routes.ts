@@ -381,14 +381,6 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Post not found" });
       }
 
-      // Check if the post is members-only and user is not authenticated
-      if (post.membersOnly && !req.session.userId) {
-        return res.status(403).json({
-          error: "Members only content",
-          membersOnly: true,
-        });
-      }
-
       // Get creator info
       const creator = await storage.getUser(post.creatorId);
 
@@ -401,8 +393,13 @@ export async function registerRoutes(app: Express) {
         .innerJoin(tags, eq(tags.id, postTags.tagId))
         .where(eq(postTags.postId, post.id));
 
+      // If the post is members-only and user is not authenticated, hide the content but show metadata
+      const isProtected = post.membersOnly && !req.session.userId;
+      
       return res.json({
         ...post,
+        body: isProtected ? "" : post.body,  // Hide content for protected posts
+        isProtected,  // Flag to indicate content is protected
         creator: creator
           ? {
               id: creator.id,

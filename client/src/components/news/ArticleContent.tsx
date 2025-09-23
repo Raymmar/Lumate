@@ -92,7 +92,8 @@ export function ArticleContent({
   const videoEmbedUrl = post?.videoUrl ? getVideoEmbedUrl(post.videoUrl) : null;
 
   // Show members-only overlay for unauthorized users
-  if (showMembersOnlyOverlay && post?.membersOnly && !user) {
+  const isProtectedContent = (post as any)?.isProtected || (showMembersOnlyOverlay && post?.membersOnly && !user);
+  if (isProtectedContent) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
         <div className="flex items-center gap-2">
