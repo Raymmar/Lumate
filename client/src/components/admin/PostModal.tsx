@@ -29,21 +29,26 @@ export function PostModal({
       >
         {/* Header */}
         <DialogHeader className="px-6 py-4 border-b bg-muted/50">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">
+          <div className="flex items-center justify-between relative">
+            {/* Close button on the left */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="h-8 w-8 p-0"
+              data-testid="button-close-modal"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            
+            {/* Centered title */}
+            <DialogTitle className="text-lg font-semibold absolute left-1/2 transform -translate-x-1/2">
               {title || "Post Editor"}
             </DialogTitle>
+            
+            {/* Actions on the right */}
             <div className="flex items-center gap-2">
               {actions}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="h-8 w-8 p-0"
-                data-testid="button-close-modal"
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
           </div>
         </DialogHeader>
