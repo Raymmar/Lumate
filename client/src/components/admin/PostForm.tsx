@@ -207,7 +207,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
             ))}
           </div>
           <div className="relative">
-            <Command className="rounded-lg !overflow-visible border border-input">
+            <Command className="rounded-lg border border-input">
               <CommandInput
                 placeholder="Search tags or create new ones..."
                 value={currentTag}
