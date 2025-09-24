@@ -173,7 +173,7 @@ export function NavBar() {
             {!isMembershipsPage && (
               <Link href="/memberships">
                 <Button variant="default" size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  Become a Member
+                  Join Us
                 </Button>
               </Link>
             )}
