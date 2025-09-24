@@ -89,19 +89,7 @@ export function NewsContent() {
   const canCreatePosts = user?.isAdmin;
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Community News</h1>
-        {canCreatePosts && (
-          <Button
-            onClick={() => setIsCreating(true)}
-            className="bg-primary hover:bg-primary/90"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            New Post
-          </Button>
-        )}
-      </div>
+    <div className="space-y-4">
 
       {/* Featured Posts Carousel */}
       <PinnedPostsCarousel onSelect={handleSelectPost} />
