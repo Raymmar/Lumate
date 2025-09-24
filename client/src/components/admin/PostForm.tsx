@@ -182,7 +182,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                 <RichTextEditor
                   value={field.value}
                   onChange={field.onChange}
-                  className="min-h-[320px]"
+                  className="min-h-[320px] [&_.ProseMirror]:px-3 [&_.ProseMirror]:py-2"
                 />
               </FormControl>
               <FormMessage />
@@ -207,7 +207,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
             ))}
           </div>
           <div className="relative">
-            <Command className="rounded-lg overflow-visible">
+            <Command className="rounded-lg overflow-visible border border-input">
               <CommandInput
                 placeholder="Search tags or create new ones..."
                 value={currentTag}
