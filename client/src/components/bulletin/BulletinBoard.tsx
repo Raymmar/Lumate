@@ -201,9 +201,6 @@ export function BulletinBoard() {
         </div>
       </div>
       
-      {/* Featured Companies Grid */}
-      <FeaturedCompaniesGrid />
-
       <PinnedPostsCarousel onSelect={handleSelectPost} />
 
       {/* Posts Section */}
@@ -211,6 +208,9 @@ export function BulletinBoard() {
         onSelect={handleSelectPost}
         onCreatePost={() => setIsCreating(true)}
       />
+
+      {/* Featured Companies Grid */}
+      <FeaturedCompaniesGrid />
 
       {/* Create Post Modal */}
       <PostModal 
