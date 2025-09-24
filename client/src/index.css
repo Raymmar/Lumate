@@ -39,6 +39,15 @@
     background-color: hsl(var(--background));
   }
 
+  /* Fix command component overflow clipping */
+  [cmdk-root] {
+    overflow: visible !important;
+  }
+  
+  [cmdk-input-wrapper] {
+    overflow: visible !important;
+  }
+
   * {
     @apply border-border;
   }
