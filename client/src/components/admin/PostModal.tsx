@@ -19,7 +19,7 @@ export function PostModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-4xl w-[90vw] h-[85vh] max-h-[85vh] p-0 overflow-hidden"
+        className="max-w-4xl w-[90vw] h-[85vh] max-h-[85vh] p-0 overflow-hidden [&>button]:hidden"
         onOpenAutoFocus={(e) => {
           // Prevent automatic focus to avoid form field focus issues
           e.preventDefault();
