@@ -4,7 +4,7 @@ import { Post, type InsertPost } from "@shared/schema";
 import { ArticleContent } from "@/components/news/ArticleContent";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Plus } from "lucide-react";
+import { ArrowLeft, Edit, Plus, Loader2 } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import NotFound from "./not-found";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,6 +23,7 @@ export function ArticlePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | undefined>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch the specific post by slug
   const { data: postData, isLoading: isPostLoading, error: postError } = useQuery<Post>({
@@ -89,9 +90,12 @@ export function ArticlePage() {
     setIsModalOpen(false);
     setIsEditing(false);
     setEditingPost(undefined);
+    setIsSubmitting(false);
   };
 
   const handleSubmitPost = async (data: InsertPost & { tags?: string[] }) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       if (isEditing && editingPost) {
         // Update existing post
@@ -126,6 +130,8 @@ export function ArticlePage() {
         description: isEditing ? "Failed to update post" : "Failed to create post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -219,8 +225,20 @@ export function ArticlePage() {
         {/* Post Modal */}
         <PostModal
           open={isModalOpen}
-          onOpenChange={setIsModalOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              handleCloseModal();
+            }
+          }}
           title={isEditing ? "Edit Post" : "Create New Post"}
+          mode={isEditing ? "edit" : "create"}
+          onSubmit={() => {
+            const form = document.querySelector('form');
+            if (form) {
+              form.requestSubmit();
+            }
+          }}
+          isSubmitting={isSubmitting}
         >
           <PostForm
             onSubmit={handleSubmitPost}

@@ -137,27 +137,14 @@ export function NewsContent() {
           }
         }}
         title="Create New Post"
-        actions={
-          <Button
-            onClick={() => {
-              const form = document.querySelector('form');
-              if (form) {
-                form.requestSubmit();
-              }
-            }}
-            disabled={isSubmitting}
-            size="sm"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publishing...
-              </>
-            ) : (
-              "Publish Post"
-            )}
-          </Button>
-        }
+        mode="create"
+        onSubmit={() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        isSubmitting={isSubmitting}
       >
         <PostForm 
           onSubmit={handleCreatePost}
@@ -175,27 +162,14 @@ export function NewsContent() {
           }
         }}
         title="Edit Post"
-        actions={
-          <Button
-            onClick={() => {
-              const form = document.querySelector('form');
-              if (form) {
-                form.requestSubmit();
-              }
-            }}
-            disabled={isSubmitting}
-            size="sm"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save Changes"
-            )}
-          </Button>
-        }
+        mode="edit"
+        onSubmit={() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        isSubmitting={isSubmitting}
       >
         {editingPost && (
           <PostForm 

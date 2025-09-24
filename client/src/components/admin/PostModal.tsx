@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PostModalProps {
@@ -8,7 +8,9 @@ interface PostModalProps {
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   title?: string;
-  actions?: React.ReactNode;
+  mode: 'create' | 'edit';
+  onSubmit: () => void;
+  isSubmitting?: boolean;
 }
 
 export function PostModal({ 
@@ -16,7 +18,9 @@ export function PostModal({
   onOpenChange, 
   children, 
   title,
-  actions
+  mode,
+  onSubmit,
+  isSubmitting = false
 }: PostModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,7 +52,21 @@ export function PostModal({
             
             {/* Actions on the right */}
             <div className="flex items-center gap-2">
-              {actions}
+              <Button
+                onClick={onSubmit}
+                disabled={isSubmitting}
+                size="sm"
+                data-testid={mode === 'create' ? 'button-publish-post' : 'button-save-changes'}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {mode === 'create' ? 'Publishing...' : 'Saving...'}
+                  </>
+                ) : (
+                  mode === 'create' ? 'Publish Post' : 'Save Changes'
+                )}
+              </Button>
             </div>
           </div>
         </DialogHeader>
