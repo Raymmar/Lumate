@@ -8,7 +8,7 @@ import { PublicPostsTable } from "@/components/bulletin/PublicPostsTable";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { formatPostTitleForUrl } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
@@ -23,12 +23,15 @@ export function NewsContent() {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { data: postsData, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
 
   const handleCreatePost = async (data: InsertPost) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
@@ -43,11 +46,14 @@ export function NewsContent() {
         description: "Failed to create post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdatePost = async (data: InsertPost) => {
-    if (!editingPost) return;
+    if (!editingPost || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
       setEditingPost(null);
@@ -62,6 +68,8 @@ export function NewsContent() {
         description: "Failed to update post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -122,8 +130,34 @@ export function NewsContent() {
       {/* Create Post Modal */}
       <PostModal 
         open={isCreating} 
-        onOpenChange={setIsCreating}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreating(false);
+            setIsSubmitting(false);
+          }
+        }}
         title="Create New Post"
+        actions={
+          <Button
+            onClick={() => {
+              const form = document.querySelector('form');
+              if (form) {
+                form.requestSubmit();
+              }
+            }}
+            disabled={isSubmitting}
+            size="sm"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              "Publish Post"
+            )}
+          </Button>
+        }
       >
         <PostForm 
           onSubmit={handleCreatePost}
@@ -134,8 +168,34 @@ export function NewsContent() {
       {/* Edit Post Modal */}
       <PostModal 
         open={!!editingPost} 
-        onOpenChange={(open) => !open && setEditingPost(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingPost(null);
+            setIsSubmitting(false);
+          }
+        }}
         title="Edit Post"
+        actions={
+          <Button
+            onClick={() => {
+              const form = document.querySelector('form');
+              if (form) {
+                form.requestSubmit();
+              }
+            }}
+            disabled={isSubmitting}
+            size="sm"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        }
       >
         {editingPost && (
           <PostForm 

@@ -3,11 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Users, Calendar, Ticket, UserPlus, ExternalLink as ExternalLinkIcon } from "lucide-react";
+import { Users, Calendar, Ticket, UserPlus, ExternalLink as ExternalLinkIcon, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
 import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
 import { PostModal } from "@/components/admin/PostModal";
@@ -89,6 +88,7 @@ export function BulletinBoard() {
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: postsData } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
@@ -100,6 +100,8 @@ export function BulletinBoard() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
 
   const handleCreatePost = async (data: InsertPost) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
@@ -114,11 +116,14 @@ export function BulletinBoard() {
         description: "Failed to create post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleUpdatePost = async (data: InsertPost) => {
-    if (!editingPost) return;
+    if (!editingPost || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
       setEditingPost(null);
@@ -133,6 +138,8 @@ export function BulletinBoard() {
         description: "Failed to update post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -208,8 +215,34 @@ export function BulletinBoard() {
       {/* Create Post Modal */}
       <PostModal 
         open={isCreating} 
-        onOpenChange={setIsCreating}
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreating(false);
+            setIsSubmitting(false);
+          }
+        }}
         title="Create New Post"
+        actions={
+          <Button
+            onClick={() => {
+              const form = document.querySelector('form');
+              if (form) {
+                form.requestSubmit();
+              }
+            }}
+            disabled={isSubmitting}
+            size="sm"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              "Publish Post"
+            )}
+          </Button>
+        }
       >
         <PostForm 
           onSubmit={handleCreatePost}
@@ -220,8 +253,34 @@ export function BulletinBoard() {
       {/* Edit Post Modal */}
       <PostModal 
         open={!!editingPost} 
-        onOpenChange={(open) => !open && setEditingPost(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingPost(null);
+            setIsSubmitting(false);
+          }
+        }}
         title="Edit Post"
+        actions={
+          <Button
+            onClick={() => {
+              const form = document.querySelector('form');
+              if (form) {
+                form.requestSubmit();
+              }
+            }}
+            disabled={isSubmitting}
+            size="sm"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        }
       >
         {editingPost && (
           <PostForm 

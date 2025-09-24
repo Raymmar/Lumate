@@ -385,20 +385,6 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
           </div>
         </div>
 
-        <Button
-          type="submit"
-          className="w-full mt-6"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {isEditing ? "Saving..." : "Publishing..."}
-            </>
-          ) : (
-            isEditing ? "Save Changes" : "Publish Post"
-          )}
-        </Button>
       </form>
     </Form>
   );

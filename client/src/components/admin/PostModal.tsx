@@ -8,13 +8,15 @@ interface PostModalProps {
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
   title?: string;
+  actions?: React.ReactNode;
 }
 
 export function PostModal({ 
   open, 
   onOpenChange, 
   children, 
-  title 
+  title,
+  actions
 }: PostModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -31,15 +33,18 @@ export function PostModal({
             <DialogTitle className="text-lg font-semibold">
               {title || "Post Editor"}
             </DialogTitle>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="h-8 w-8 p-0"
-              data-testid="button-close-modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {actions}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8 p-0"
+                data-testid="button-close-modal"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </DialogHeader>
         
