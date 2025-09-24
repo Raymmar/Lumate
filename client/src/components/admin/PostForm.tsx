@@ -221,7 +221,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                 className="focus:ring-0 focus-visible:ring-0"
               />
               {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
-                <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50">
+                <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50 max-h-48 overflow-y-auto">
                   <CommandEmpty>
                     {currentTag.trim() && (
                       <button
