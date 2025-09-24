@@ -10,6 +10,8 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { PublicPostsTable } from "./PublicPostsTable";
 import { PostPreview } from "@/components/admin/PostPreview";
+import { PostModal } from "@/components/admin/PostModal";
+import { PostForm } from "@/components/admin/PostForm";
 import type { Post, InsertPost } from "@shared/schema";
 import { apiRequest } from "@/lib/api";
 import { Link, useLocation } from "wouter";
@@ -86,6 +88,7 @@ export function BulletinBoard() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const { data: postsData } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
@@ -114,13 +117,31 @@ export function BulletinBoard() {
     }
   };
 
+  const handleUpdatePost = async (data: InsertPost) => {
+    if (!editingPost) return;
+    try {
+      await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
+      setEditingPost(null);
+      toast({
+        title: "Success",
+        description: "Post updated successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive"
+      });
+    }
+  };
+
   const [, setLocation] = useLocation();
   
   const handleSelectPost = (post: Post, isEditing = false) => {
-    // For admin editing, keep the old sidebar behavior
-    if (isEditing && user?.isAdmin) {
-      setSelectedPost(post);
-      setIsEditing(isEditing);
+    if (isEditing && (user?.isAdmin || post.creatorId === user?.id)) {
+      // Open modal for editing
+      setEditingPost(post);
     } else {
       // For regular viewing, navigate to the article page
       const slug = formatPostTitleForUrl(post.title, post.id.toString());
@@ -184,21 +205,43 @@ export function BulletinBoard() {
         onCreatePost={() => setIsCreating(true)}
       />
 
-      {(selectedPost || isCreating) && (
-        <PostPreview
-          post={selectedPost || undefined}
-          isNew={isCreating}
-          isEditing={isEditing}
-          onClose={() => {
-            setSelectedPost(null);
-            setIsCreating(false);
-            setIsEditing(false);
-          }}
-          onSave={handleCreatePost}
-          posts={postsData?.posts || []}
-          onNavigate={post => handleSelectPost(post)}
+      {/* Create Post Modal */}
+      <PostModal 
+        open={isCreating} 
+        onOpenChange={setIsCreating}
+        title="Create New Post"
+      >
+        <PostForm 
+          onSubmit={handleCreatePost}
+          isEditing={false}
         />
-      )}
+      </PostModal>
+
+      {/* Edit Post Modal */}
+      <PostModal 
+        open={!!editingPost} 
+        onOpenChange={(open) => !open && setEditingPost(null)}
+        title="Edit Post"
+      >
+        {editingPost && (
+          <PostForm 
+            onSubmit={handleUpdatePost}
+            defaultValues={{
+              title: editingPost.title,
+              summary: editingPost.summary || "",
+              body: editingPost.body || "",
+              featuredImage: editingPost.featuredImage || "",
+              videoUrl: editingPost.videoUrl || "",
+              ctaLink: editingPost.ctaLink || "",
+              ctaLabel: editingPost.ctaLabel || "",
+              isPinned: editingPost.isPinned,
+              membersOnly: editingPost.membersOnly,
+              tags: editingPost.tags || []
+            }}
+            isEditing={true}
+          />
+        )}
+      </PostModal>
 
     </div>
   );
