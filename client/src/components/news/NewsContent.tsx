@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PostPreview } from "@/components/admin/PostPreview";
 import { PinnedPostsCarousel } from "./PinnedPostsCarousel";
-import { NewsList } from "./NewsList";
+import { PublicPostsTable } from "@/components/bulletin/PublicPostsTable";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { formatPostTitleForUrl } from "@/lib/utils";
@@ -78,11 +78,9 @@ export function NewsContent() {
       <PinnedPostsCarousel onSelect={handleSelectPost} />
 
       {/* News List */}
-      <NewsList 
-        posts={postsData?.posts || []} 
-        isLoading={isLoading} 
+      <PublicPostsTable 
         onSelect={handleSelectPost}
-        canCreatePosts={canCreatePosts}
+        onCreatePost={() => setIsCreating(true)}
       />
 
       {/* Post Preview */}
