@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import type { Post } from "@shared/schema";
 
@@ -20,22 +22,7 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [imagesLoaded, setImagesLoaded] = useState<Record<number, boolean>>({});
-
-  // Preload all images to ensure they're available when switching slides
-  useEffect(() => {
-    if (!pinnedPosts.length) return;
-    
-    pinnedPosts.forEach((post, index) => {
-      if (!post.featuredImage) return;
-      
-      const img = new Image();
-      img.onload = () => {
-        setImagesLoaded(prev => ({ ...prev, [index]: true }));
-      };
-      img.src = post.featuredImage;
-    });
-  }, [pinnedPosts]);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     if (pinnedPosts.length <= 1) return;
@@ -64,26 +51,61 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
   const backgroundImage = currentPost.featuredImage || fallbackImage;
 
   return (
-    <Card 
-      className="border relative overflow-hidden h-[360px] group cursor-pointer"
-      onClick={() => onSelect(currentPost)}
-    >
-      {/* Background image with overlay */}
-      <div className="absolute inset-0 bg-muted">
-        <img 
-          src={backgroundImage}
-          alt={currentPost.title}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-          onError={(e) => {
-            // If image fails to load, fall back to a default image
-            const target = e.target as HTMLImageElement;
-            target.src = fallbackImage;
-          }}
-        />
+    <Card className="relative overflow-hidden h-[360px] group cursor-pointer" onClick={() => onSelect(currentPost)}>
+      <img
+        src={backgroundImage}
+        alt=""
+        className="absolute inset-0 w-full h-full object-cover"
+        onLoad={() => setImageLoaded(true)}
+      />
+
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
+
+      <div className="absolute inset-0 bg-black/60" />
+
+      <div className="absolute top-6 right-6 flex flex-wrap gap-2 z-20">
+        {currentPost.membersOnly && (
+          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+            <Lock className="w-3 h-3" />
+            Members Only
+          </Badge>
+        )}
+        {currentPost.tags && currentPost.tags.map((tag: string) => (
+          <Badge key={tag} variant="outline" className="text-xs text-white border-white/40 hover:bg-white/10">
+            {tag}
+          </Badge>
+        ))}
       </div>
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-      
-      {/* Post content */}
+
+      {pinnedPosts.length > 1 && (
+        <>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex((current) =>
+                current === 0 ? pinnedPosts.length - 1 : current - 1
+              );
+            }}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/20 hover:bg-background/40 text-foreground p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex((current) =>
+                (current + 1) % pinnedPosts.length
+              );
+            }}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/20 hover:bg-background/40 text-foreground p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100 z-30"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+        </>
+      )}
+
       <CardContent className="relative h-full flex flex-col justify-end p-6 text-white z-10">
         <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
         {currentPost.summary && (
