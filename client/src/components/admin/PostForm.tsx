@@ -140,7 +140,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
               <FormControl>
                 <Textarea
                   {...field}
-                  className="text-2xl font-semibold border-0 px-0 focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-0 h-auto overflow-hidden"
+                  className="text-2xl font-semibold focus-visible:ring-0 focus-visible:ring-offset-0 resize-none min-h-0 h-auto overflow-hidden"
                   placeholder="Post title"
                   rows={1}
                   onInput={(e) => {
@@ -165,7 +165,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                   {...field}
                   value={value || ""}
                   placeholder="Add your summary here..."
-                  className="resize-none h-20 min-h-[80px] border-0 text-base px-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
+                  className="resize-none h-20 min-h-[80px] text-base focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
               </FormControl>
               <FormMessage />
@@ -182,7 +182,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                 <RichTextEditor
                   value={field.value}
                   onChange={field.onChange}
-                  className="min-h-[320px] border-none [&_.ProseMirror]:min-h-[320px] [&_.ProseMirror]:text-base [&_.ProseMirror]:px-0 [&_.ProseMirror]:py-0 [&_.ProseMirror]:text-inherit"
+                  className="min-h-[320px]"
                 />
               </FormControl>
               <FormMessage />
@@ -207,7 +207,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
             ))}
           </div>
           <div className="relative">
-            <Command className="rounded-lg overflow-visible border-0">
+            <Command className="rounded-lg overflow-visible">
               <CommandInput
                 placeholder="Search tags or create new ones..."
                 value={currentTag}
@@ -218,7 +218,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                   // Small delay to allow clicking on suggestions
                   setTimeout(() => setIsTagSearchFocused(false), 200);
                 }}
-                className="border-0 focus:ring-0 focus-visible:ring-0"
+                className="focus:ring-0 focus-visible:ring-0"
               />
               {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
                 <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50">
