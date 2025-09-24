@@ -207,7 +207,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
             ))}
           </div>
           <div className="relative">
-            <Command className="rounded-lg overflow-visible border border-input">
+            <Command className="rounded-lg overflow-visible">
               <CommandInput
                 placeholder="Search tags or create new ones..."
                 value={currentTag}
@@ -218,7 +218,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                   // Small delay to allow clicking on suggestions
                   setTimeout(() => setIsTagSearchFocused(false), 200);
                 }}
-                className="focus:ring-0 focus-visible:ring-0"
+                className="border border-input focus:ring-0 focus-visible:ring-0"
               />
               {isTagSearchFocused && (currentTag || filteredTags.length > 0) && (
                 <div className="absolute top-full left-0 right-0 bg-popover rounded-lg shadow-md mt-1 z-50">
