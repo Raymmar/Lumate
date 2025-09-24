@@ -39,13 +39,18 @@
     background-color: hsl(var(--background));
   }
 
-  /* Fix command component overflow clipping */
+  /* Fix command component overflow clipping and border radius inheritance */
   [cmdk-root] {
     overflow: visible !important;
   }
   
   [cmdk-input-wrapper] {
     overflow: visible !important;
+    border-radius: inherit !important;
+  }
+  
+  .rounded-inherit {
+    border-radius: inherit;
   }
 
   * {
