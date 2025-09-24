@@ -158,6 +158,8 @@ export function BulletinBoard() {
 
   return (
     <div className="space-y-4 !border-none">
+      <PinnedPostsCarousel onSelect={handleSelectPost} />
+      
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
         <LinksSection />
         {user && mostRecentMembersOnlyPost ? (
@@ -200,8 +202,6 @@ export function BulletinBoard() {
           <FeaturedMemberCard />
         </div>
       </div>
-      
-      <PinnedPostsCarousel onSelect={handleSelectPost} />
 
       {/* Posts Section */}
       <PublicPostsTable
