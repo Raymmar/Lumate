@@ -137,6 +137,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
           name="title"
           render={({ field }) => (
             <FormItem className="space-y-1">
+              <FormLabel className="text-sm text-muted-foreground">Title</FormLabel>
               <FormControl>
                 <Textarea
                   {...field}
@@ -159,7 +160,8 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
           control={form.control}
           name="summary"
           render={({ field: { value, ...field } }) => (
-            <FormItem className="space-y-0">
+            <FormItem className="space-y-1">
+              <FormLabel className="text-sm text-muted-foreground">Summary</FormLabel>
               <FormControl>
                 <Textarea
                   {...field}
@@ -177,7 +179,8 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
           control={form.control}
           name="body"
           render={({ field }) => (
-            <FormItem className="space-y-0">
+            <FormItem className="space-y-1">
+              <FormLabel className="text-sm text-muted-foreground">Content</FormLabel>
               <FormControl>
                 <RichTextEditor
                   value={field.value}
@@ -192,6 +195,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
 
         {/* Tags Section */}
         <div className="space-y-2">
+          <label className="text-sm text-muted-foreground">Tags</label>
           <div className="flex flex-wrap gap-2 mb-2">
             {tags.map(tag => (
               <Badge key={tag} variant="secondary" className="gap-1">
