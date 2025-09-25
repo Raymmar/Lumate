@@ -53,7 +53,8 @@ export function PostModal({
             {/* Actions on the right */}
             <div className="flex items-center gap-2">
               <Button
-                onClick={onSubmit}
+                type="submit"
+                form="post-form"
                 disabled={isSubmitting}
                 size="sm"
                 data-testid={mode === 'create' ? 'button-publish-post' : 'button-save-changes'}

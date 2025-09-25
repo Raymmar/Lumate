@@ -73,13 +73,10 @@ export default function AdminDashboard() {
   });
 
   const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
-    console.log('handleCreatePost called with data:', data);
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      console.log('Making API request to /api/admin/posts');
-      const result = await apiRequest('/api/admin/posts', 'POST', data);
-      console.log('API request successful:', result);
+      await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
       toast({
         title: "Success",
@@ -87,7 +84,6 @@ export default function AdminDashboard() {
       });
       await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
     } catch (error) {
-      console.error('Error in handleCreatePost:', error);
       toast({
         title: "Error",
         description: "Failed to create post",
@@ -314,31 +310,7 @@ export default function AdminDashboard() {
         }}
         title="Create New Post"
         mode="create"
-        onSubmit={() => {
-          // Get the form data directly and call the appropriate handler
-          const form = document.getElementById('post-form') as HTMLFormElement;
-          if (form) {
-            const formData = new FormData(form);
-            const data = {
-              title: formData.get('title') as string || '',
-              summary: formData.get('summary') as string || '',
-              body: formData.get('body') as string || '',
-              featuredImage: formData.get('featuredImage') as string || '',
-              videoUrl: formData.get('videoUrl') as string || '',
-              ctaLink: formData.get('ctaLink') as string || '',
-              ctaLabel: formData.get('ctaLabel') as string || '',
-              isPinned: formData.get('isPinned') === 'on' || formData.get('isPinned') === 'true',
-              membersOnly: formData.get('membersOnly') === 'on' || formData.get('membersOnly') === 'true',
-              tags: [] // TODO: get tags from form state
-            };
-            console.log('Direct form data collection:', data);
-            if (editingPost) {
-              handleUpdatePost(data);
-            } else {
-              handleCreatePost(data);
-            }
-          }
-        }}
+        onSubmit={() => {}} // Not used anymore - button submits form directly
         isSubmitting={isSubmitting}
       >
         <PostForm 
@@ -358,31 +330,7 @@ export default function AdminDashboard() {
         }}
         title="Edit Post"
         mode="edit"
-        onSubmit={() => {
-          // Get the form data directly and call the appropriate handler
-          const form = document.getElementById('post-form') as HTMLFormElement;
-          if (form) {
-            const formData = new FormData(form);
-            const data = {
-              title: formData.get('title') as string || '',
-              summary: formData.get('summary') as string || '',
-              body: formData.get('body') as string || '',
-              featuredImage: formData.get('featuredImage') as string || '',
-              videoUrl: formData.get('videoUrl') as string || '',
-              ctaLink: formData.get('ctaLink') as string || '',
-              ctaLabel: formData.get('ctaLabel') as string || '',
-              isPinned: formData.get('isPinned') === 'on' || formData.get('isPinned') === 'true',
-              membersOnly: formData.get('membersOnly') === 'on' || formData.get('membersOnly') === 'true',
-              tags: [] // TODO: get tags from form state
-            };
-            console.log('Direct form data collection:', data);
-            if (editingPost) {
-              handleUpdatePost(data);
-            } else {
-              handleCreatePost(data);
-            }
-          }
-        }}
+        onSubmit={() => {}} // Not used anymore - button submits form directly
         isSubmitting={isSubmitting}
       >
         {editingPost && (
