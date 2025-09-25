@@ -3909,6 +3909,45 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.patch("/api/admin/posts/:id", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) {
+        return res.status(400).json({ error: "Invalid post ID" });
+      }
+
+      console.log("Admin updating post:", {
+        postId,
+        userId: req.session.userId,
+        updateData: req.body,
+      });
+
+      const updatedPost = await storage.updatePost(postId, req.body);
+      if (!updatedPost) {
+        return res.status(404).json({ error: "Post not found" });
+      }
+
+      console.log("Post updated successfully:", {
+        id: updatedPost.id,
+        title: updatedPost.title,
+      });
+
+      res.json(updatedPost);
+    } catch (error) {
+      console.error("Failed to update post:", error);
+      res.status(500).json({ error: "Failed to update post" });
+    }
+  });
+
   app.get("/api/admin/posts", async (req, res) => {
     try {
       if (!req.session.userId) {
