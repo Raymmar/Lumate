@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
 import { useState, useEffect } from "react";
 import { PostsTable } from "@/components/admin/PostsTable";
-import { PostPreview } from "@/components/admin/PostPreview";
+import { PostModal } from "@/components/admin/PostModal";
+import { PostForm } from "@/components/admin/PostForm";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -51,8 +52,9 @@ export default function AdminDashboard() {
   });
 
   // Posts management state
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
   // Navigation functions
@@ -70,6 +72,8 @@ export default function AdminDashboard() {
   });
 
   const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
@@ -84,6 +88,30 @@ export default function AdminDashboard() {
         description: "Failed to create post",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdatePost = async (data: InsertPost & { tags?: string[] }) => {
+    if (!editingPost || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
+      setEditingPost(null);
+      toast({
+        title: "Success",
+        description: "Post updated successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -265,23 +293,74 @@ export default function AdminDashboard() {
         <h2 className="text-xl font-semibold mb-4">Posts</h2>
         <div className="overflow-x-auto -mx-4 sm:mx-0">
           <div className="min-w-full inline-block align-middle">
-            <PostsTable onSelect={setSelectedPost} />
+            <PostsTable onSelect={setEditingPost} />
           </div>
         </div>
-        {(selectedPost || isCreating) && (
-          <PostPreview
-            post={selectedPost || undefined}
-            isNew={isCreating}
-            onClose={() => {
-              setSelectedPost(null);
-              setIsCreating(false);
+      </div>
+
+      {/* Create Post Modal */}
+      <PostModal 
+        open={isCreating} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreating(false);
+            setIsSubmitting(false);
+          }
+        }}
+        title="Create New Post"
+        mode="create"
+        onSubmit={() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        isSubmitting={isSubmitting}
+      >
+        <PostForm 
+          onSubmit={handleCreatePost}
+          isEditing={false}
+        />
+      </PostModal>
+
+      {/* Edit Post Modal */}
+      <PostModal 
+        open={!!editingPost} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingPost(null);
+            setIsSubmitting(false);
+          }
+        }}
+        title="Edit Post"
+        mode="edit"
+        onSubmit={() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        isSubmitting={isSubmitting}
+      >
+        {editingPost && (
+          <PostForm 
+            onSubmit={handleUpdatePost}
+            defaultValues={{
+              title: editingPost.title,
+              summary: editingPost.summary || "",
+              body: editingPost.body || "",
+              featuredImage: editingPost.featuredImage || "",
+              videoUrl: editingPost.videoUrl || "",
+              ctaLink: editingPost.ctaLink || "",
+              ctaLabel: editingPost.ctaLabel || "",
+              isPinned: editingPost.isPinned,
+              membersOnly: editingPost.membersOnly,
+              tags: editingPost.tags || []
             }}
-            onSave={handleCreatePost}
-            posts={postsData?.posts || []}
-            onNavigate={setSelectedPost}
+            isEditing={true}
           />
         )}
-      </div>
+      </PostModal>
     </AdminLayout>
   );
 }
