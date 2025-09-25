@@ -1475,6 +1475,85 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to fetch unclaimed people" });
     }
   });
+
+  // Batch invite unclaimed people (admin only)
+  app.post("/api/admin/batch-invite-people", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      console.log('Starting batch invite process for unclaimed people...');
+      
+      // Get all unclaimed people
+      const unclaimedPeople = await storage.getUnclaimedPeople();
+      
+      if (unclaimedPeople.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: "No unclaimed people found", 
+          invitesSent: 0 
+        });
+      }
+
+      console.log(`Found ${unclaimedPeople.length} unclaimed people to invite`);
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      // Send invitation emails to all unclaimed people
+      for (const person of unclaimedPeople) {
+        try {
+          // Create verification token for this person's email
+          const verificationToken = await storage.createVerificationToken(person.email);
+          
+          // Send verification email with adminCreated flag set to true
+          const emailSent = await sendVerificationEmail(
+            person.email, 
+            verificationToken.token, 
+            true // adminCreated flag
+          );
+          
+          if (emailSent) {
+            successCount++;
+            console.log(`Successfully sent invite to ${person.email}`);
+          } else {
+            errorCount++;
+            errors.push(`Failed to send email to ${person.email}`);
+            console.error(`Failed to send invite to ${person.email}`);
+          }
+        } catch (error) {
+          errorCount++;
+          const errorMessage = `Error sending invite to ${person.email}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+          errors.push(errorMessage);
+          console.error(errorMessage);
+        }
+      }
+
+      console.log(`Batch invite completed: ${successCount} successful, ${errorCount} failed`);
+
+      return res.json({
+        success: true,
+        message: `Batch invite completed. ${successCount} invites sent successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}.`,
+        invitesSent: successCount,
+        totalPeople: unclaimedPeople.length,
+        errors: errorCount > 0 ? errors : undefined
+      });
+
+    } catch (error) {
+      console.error("Failed to send batch invites:", error);
+      return res.status(500).json({ 
+        error: "Failed to send batch invites", 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
   
   // Create a new member account (admin only)
   app.post("/api/admin/members", async (req, res) => {
