@@ -4,6 +4,9 @@ import { DataTable } from "./DataTable";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
+import { formatPostTitleForUrl } from "@/lib/utils";
 
 interface PostsTableProps {
   onSelect: (post: Post) => void;
@@ -47,6 +50,28 @@ export function PostsTable({ onSelect }: PostsTableProps) {
       key: "updatedAt",
       header: "Last Updated",
       cell: (row: Post) => format(new Date(row.updatedAt), 'MMM d, yyyy')
+    },
+    {
+      key: "actions",
+      header: "",
+      cell: (row: Post) => {
+        const slug = formatPostTitleForUrl(row.title, row.id.toString());
+        const postUrl = `/post/${slug}`;
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent row click
+              window.open(postUrl, '_blank');
+            }}
+            className="h-8 w-8 p-0"
+            data-testid={`button-view-post-${row.id}`}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        );
+      }
     },
   ];
 
