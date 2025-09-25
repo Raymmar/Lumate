@@ -1,4 +1,4 @@
-import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import type { Person } from "@shared/schema";
 import { useState } from "react";
@@ -10,7 +10,7 @@ import { formatUsernameForUrl } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Mail, Users } from "lucide-react";
 import {
   AlertDialog,
