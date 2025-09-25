@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, queryClient } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
 import type { Person } from "@shared/schema";
 import { useState } from "react";
@@ -8,6 +8,21 @@ import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
 import { formatUsernameForUrl } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Mail, Users } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import {
   Pagination,
   PaginationContent,
@@ -28,6 +43,7 @@ export function PeopleTable() {
   const [, setLocation] = useLocation();
   const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
+  const { toast } = useToast();
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch],
@@ -45,6 +61,41 @@ export function PeopleTable() {
   const people = data?.people || [];
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Query to get unclaimed people count for the batch invite button
+  const { data: unclaimedData } = useQuery({
+    queryKey: ["/api/admin/people/unclaimed"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/people/unclaimed");
+      if (!response.ok) throw new Error("Failed to fetch unclaimed people");
+      return response.json() as Person[];
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  const unclaimedCount = unclaimedData?.length || 0;
+
+  // Batch invite mutation
+  const batchInviteMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/admin/batch-invite-people', 'POST');
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Batch Invite Complete",
+        description: data.message,
+      });
+      // Refresh the unclaimed people query
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/people/unclaimed"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send batch invites",
+        variant: "destructive",
+      });
+    },
+  });
 
   const columns = [
     {
@@ -93,12 +144,51 @@ export function PeopleTable() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">People</h1>
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Search people..."
-          isLoading={isFetching}
-        />
+        <div className="flex items-center gap-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="outline" 
+                disabled={unclaimedCount === 0 || batchInviteMutation.isPending}
+                data-testid="button-batch-invite"
+              >
+                {batchInviteMutation.isPending ? (
+                  "Sending..."
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Batch Invite ({unclaimedCount})
+                  </>
+                )}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Send Batch Invitations</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will send invitation emails to all {unclaimedCount} people who have profiles but haven't claimed their accounts yet. They'll receive an email with a link to set their password and claim their profile.
+                  <br /><br />
+                  Are you sure you want to proceed?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => batchInviteMutation.mutate()}
+                  data-testid="button-confirm-batch-invite"
+                >
+                  Send {unclaimedCount} Invitations
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search people..."
+            isLoading={isFetching}
+          />
+        </div>
       </div>
 
       <div className="min-h-[400px] relative mt-4">
