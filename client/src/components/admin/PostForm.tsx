@@ -83,23 +83,11 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
 
     setIsSubmitting(true);
     try {
-      // Include tags in the submission
+      // Include tags in the submission - let parent handle success/error
       await onSubmit({ ...data, tags });
-
-      // Invalidate both public and admin posts queries to trigger a refetch
-      queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
-
-      toast({
-        title: "Success",
-        description: isEditing ? "Post updated successfully" : "Post published successfully"
-      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: isEditing ? "Failed to update post" : "Failed to publish post",
-        variant: "destructive"
-      });
+      // Let parent handle error display
+      console.error('Form submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
