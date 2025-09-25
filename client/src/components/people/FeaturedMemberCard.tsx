@@ -212,13 +212,6 @@ export function FeaturedMemberCard({
             </Avatar>
             <div>
               <h3 className="font-semibold group-hover:underline">{person.userName || person.email}</h3>
-              {(person.organizationName || person.jobTitle) && (
-                <p className="text-sm text-muted-foreground">
-                  {[person.jobTitle, person.organizationName]
-                    .filter(Boolean)
-                    .join(" @ ")}
-                </p>
-              )}
             </div>
           </div>
 

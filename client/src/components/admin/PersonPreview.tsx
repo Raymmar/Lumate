@@ -64,18 +64,6 @@ export function PersonPreview({ person, people = [], onNavigate }: PersonPreview
                   <span>{person.phoneNumber}</span>
                 </div>
               )}
-              {person.organizationName && (
-                <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Organization</span>
-                  <span>{person.organizationName}</span>
-                </div>
-              )}
-              {person.jobTitle && (
-                <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">Job Title</span>
-                  <span>{person.jobTitle}</span>
-                </div>
-              )}
             </CardContent>
           </Card>
 

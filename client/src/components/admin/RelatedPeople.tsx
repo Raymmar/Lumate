@@ -32,11 +32,6 @@ export function RelatedPeople({ person }: RelatedPeopleProps) {
         <h4 className="text-sm font-medium leading-none">
           {person.userName || person.email}
         </h4>
-        {person.organizationName && (
-          <p className="text-sm text-muted-foreground">
-            {person.organizationName}
-          </p>
-        )}
       </div>
     </Link>
   );
