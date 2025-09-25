@@ -10,7 +10,8 @@ import { PostForm } from "@/components/admin/PostForm";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
+import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
 interface RevenueData {
