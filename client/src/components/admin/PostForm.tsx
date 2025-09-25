@@ -30,7 +30,6 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [isTagSearchFocused, setIsTagSearchFocused] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize tags from defaultValues when component mounts or defaultValues changes
   useEffect(() => {
@@ -79,18 +78,8 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
   });
 
   const handleSubmit = async (data: InsertPost) => {
-    if (isSubmitting) return; // Prevent double submission
-
-    setIsSubmitting(true);
-    try {
-      // Include tags in the submission - let parent handle success/error
-      await onSubmit({ ...data, tags });
-    } catch (error) {
-      // Let parent handle error display
-      console.error('Form submission error:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Simply call the parent's onSubmit handler with the data and tags
+    await onSubmit({ ...data, tags });
   };
 
   const handleSelectTag = (tag: string) => {
