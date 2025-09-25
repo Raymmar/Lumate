@@ -252,13 +252,7 @@ export async function fetchUserForOpenGraph(username: string): Promise<UserOpenG
     let description = person.bio || user?.bio || '';
     
     if (!description) {
-      let parts = [];
-      if (person.jobTitle) parts.push(person.jobTitle);
-      if (person.organizationName) parts.push(`at ${person.organizationName}`);
-      
-      description = parts.length > 0 
-        ? `${person.userName} - ${parts.join(' ')}.`
-        : `${person.userName} - Member profile on Sarasota Tech community platform.`;
+      description = `${person.userName} - Member profile on Sarasota Tech community platform.`;
     }
     
     // Ensure description isn't too long

@@ -509,7 +509,7 @@ export class CacheService extends EventEmitter {
             const query = sql`
               INSERT INTO people (
                 api_id, email, user_name, full_name, avatar_url,
-                role, phone_number, bio, organization_name, job_title, created_at
+                role, phone_number, bio, created_at
               )
               VALUES (
                 ${person.api_id},
@@ -520,8 +520,6 @@ export class CacheService extends EventEmitter {
                 ${person.role || null},
                 ${person.phoneNumber || person.user?.phone_number || null},
                 ${person.bio || person.user?.bio || null},
-                ${person.organizationName || person.user?.organization_name || null},
-                ${person.jobTitle || person.user?.job_title || null},
                 ${person.created_at || null}
               )
               ON CONFLICT (api_id) DO UPDATE SET
@@ -532,8 +530,6 @@ export class CacheService extends EventEmitter {
                 role = EXCLUDED.role,
                 phone_number = EXCLUDED.phone_number,
                 bio = EXCLUDED.bio,
-                organization_name = EXCLUDED.organization_name,
-                job_title = EXCLUDED.job_title,
                 created_at = EXCLUDED.created_at
               RETURNING *
             `;

@@ -713,8 +713,6 @@ export async function registerRoutes(app: Express) {
           role: people.role,
           phoneNumber: people.phoneNumber,
           bio: people.bio,
-          organizationName: people.organizationName,
-          jobTitle: people.jobTitle,
         })
         .from(people);
       
@@ -1450,8 +1448,6 @@ export async function registerRoutes(app: Express) {
           userName: people.userName,
           avatarUrl: people.avatarUrl,
           role: people.role,
-          organizationName: people.organizationName,
-          jobTitle: people.jobTitle,
         })
         .from(people)
         .leftJoin(users, eq(people.email, users.email))
@@ -1460,9 +1456,7 @@ export async function registerRoutes(app: Express) {
             sql`${users.id} IS NULL`,
             searchQuery
               ? sql`(LOWER(${people.email}) LIKE ${`%${searchQuery}%`} OR 
-                     LOWER(${people.userName}) LIKE ${`%${searchQuery}%`} OR 
-                     LOWER(${people.organizationName}) LIKE ${`%${searchQuery}%`} OR 
-                     LOWER(${people.jobTitle}) LIKE ${`%${searchQuery}%`})`
+                     LOWER(${people.userName}) LIKE ${`%${searchQuery}%`})`
               : undefined
           )
         )

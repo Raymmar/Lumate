@@ -275,8 +275,6 @@ export class PostgresStorage implements IStorage {
             role: person.role,
             phoneNumber: person.phoneNumber,
             bio: person.bio,
-            organizationName: person.organizationName,
-            jobTitle: person.jobTitle,
             createdAt: person.createdAt,
           },
         })
@@ -2397,8 +2395,6 @@ export class PostgresStorage implements IStorage {
           role: people.role,
           phoneNumber: people.phoneNumber,
           bio: people.bio,
-          organizationName: people.organizationName,
-          jobTitle: people.jobTitle,
           stats: people.stats
         })
         .from(people)
