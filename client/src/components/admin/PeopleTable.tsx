@@ -107,16 +107,6 @@ export function PeopleTable() {
       key: "email",
       header: "Email",
       cell: (row: Person) => row.email,
-    },
-    {
-      key: "organizationName",
-      header: "Organization",
-      cell: (row: Person) => row.organizationName || "—",
-    },
-    {
-      key: "jobTitle",
-      header: "Job Title",
-      cell: (row: Person) => row.jobTitle || "—",
     }
   ];
 
