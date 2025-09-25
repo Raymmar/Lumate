@@ -311,7 +311,7 @@ export default function AdminDashboard() {
         title="Create New Post"
         mode="create"
         onSubmit={() => {
-          const form = document.querySelector('form');
+          const form = document.getElementById('post-form') as HTMLFormElement;
           if (form) {
             form.requestSubmit();
           }
@@ -336,7 +336,7 @@ export default function AdminDashboard() {
         title="Edit Post"
         mode="edit"
         onSubmit={() => {
-          const form = document.querySelector('form');
+          const form = document.getElementById('post-form') as HTMLFormElement;
           if (form) {
             form.requestSubmit();
           }

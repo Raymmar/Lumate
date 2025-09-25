@@ -109,7 +109,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2">
+      <form id="post-form" onSubmit={form.handleSubmit(handleSubmit)} className="space-y-2">
         <FormField
           control={form.control}
           name="title"
