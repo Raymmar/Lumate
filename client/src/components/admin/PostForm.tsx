@@ -86,8 +86,9 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
       // Include tags in the submission
       await onSubmit({ ...data, tags });
 
-      // Invalidate the public posts query to trigger a refetch
+      // Invalidate both public and admin posts queries to trigger a refetch
       queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
 
       toast({
         title: "Success",
