@@ -55,7 +55,7 @@ export function NewsContent() {
     if (!editingPost || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
+      await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', data);
       setEditingPost(null);
       toast({
         title: "Success",
