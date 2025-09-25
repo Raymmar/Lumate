@@ -56,8 +56,6 @@ export const people = pgTable("people", {
   role: varchar("role", { length: 50 }),
   phoneNumber: varchar("phone_number", { length: 50 }),
   bio: text("bio"),
-  organizationName: varchar("organization_name", { length: 255 }),
-  jobTitle: varchar("job_title", { length: 255 }),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
   stats: json("stats").$type<{
     totalEventsAttended: number;
