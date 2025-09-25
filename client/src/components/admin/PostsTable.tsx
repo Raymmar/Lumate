@@ -5,7 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
+import { Eye, Edit } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 
 interface PostsTableProps {
@@ -58,18 +58,32 @@ export function PostsTable({ onSelect }: PostsTableProps) {
         const slug = formatPostTitleForUrl(row.title, row.id.toString());
         const postUrl = `/post/${slug}`;
         return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation(); // Prevent row click
-              window.open(postUrl, '_blank');
-            }}
-            className="h-8 w-8 p-0"
-            data-testid={`button-view-post-${row.id}`}
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                onSelect(row);
+              }}
+              className="h-8 w-8 p-0"
+              data-testid={`button-edit-post-${row.id}`}
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                window.open(postUrl, '_blank');
+              }}
+              className="h-8 w-8 p-0"
+              data-testid={`button-view-post-${row.id}`}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
         );
       }
     },
