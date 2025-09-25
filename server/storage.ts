@@ -157,6 +157,9 @@ export interface IStorage {
   // Company tags management
   getCompanyTags(companyId: number): Promise<Tag[]>;
   addTagToCompany(companyTag: InsertCompanyTag): Promise<CompanyTag>;
+
+  // Batch invite functionality
+  getUnclaimedPeople(): Promise<Person[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -2372,6 +2375,44 @@ export class PostgresStorage implements IStorage {
       return this.getCompanyTags(companyId);
     } catch (error) {
       console.error(`Failed to sync tags for company ${companyId}:`, error);
+      throw error;
+    }
+  }
+
+  // Batch invite functionality
+  async getUnclaimedPeople(): Promise<Person[]> {
+    try {
+      console.log('Fetching unclaimed people (people without user accounts)...');
+      
+      // Find people who have an email but no associated user account
+      const result = await db
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          createdAt: people.createdAt,
+          email: people.email,
+          userName: people.userName,
+          fullName: people.fullName,
+          avatarUrl: people.avatarUrl,
+          role: people.role,
+          phoneNumber: people.phoneNumber,
+          bio: people.bio,
+          organizationName: people.organizationName,
+          jobTitle: people.jobTitle,
+          stats: people.stats
+        })
+        .from(people)
+        .leftJoin(users, eq(users.email, people.email))
+        .where(and(
+          sql`${people.email} IS NOT NULL`,
+          sql`${people.email} != ''`,
+          sql`${users.id} IS NULL`
+        ));
+      
+      console.log(`Found ${result.length} unclaimed people`);
+      return result;
+    } catch (error) {
+      console.error('Failed to get unclaimed people:', error);
       throw error;
     }
   }
