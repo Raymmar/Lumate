@@ -656,17 +656,6 @@ export function CompanyPreview({
                       No members associated with this company
                     </div>
                   )}
-                  
-                  {/* Add Member Button (Only for admins) */}
-                  {canEditCompany && (
-                    <div className="mt-4">
-                      <RouterLink to={`/admin/companies/${company?.id || 0}/members`}>
-                        <Button variant="outline" size="sm" className="w-full">
-                          Manage Company Members
-                        </Button>
-                      </RouterLink>
-                    </div>
-                  )}
                 </div>
 
                 {/* Admin Action Buttons */}
