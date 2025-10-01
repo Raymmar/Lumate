@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatUsernameForUrl(username: string | null, fallbackId: string): string {
-  // If no username provided, use a prefix with fallbackId to indicate it's an ID
-  if (!username) return `u-${fallbackId}`;
+  // If no username provided, use the API ID directly without prefix
+  if (!username) return fallbackId;
 
   // Special handling for titles and accented characters
   let processed = username
@@ -23,9 +23,9 @@ export function formatUsernameForUrl(username: string | null, fallbackId: string
     .trim()
     .replace(/\s+/g, '-'); // Replace spaces with hyphens
 
-  // If normalized string is empty after processing, use fallback format
+  // If normalized string is empty after processing, use the API ID directly
   if (!processed) {
-    return `u-${fallbackId}`;
+    return fallbackId;
   }
 
   // Clean up any multiple hyphens and trim from ends

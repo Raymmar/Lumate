@@ -72,7 +72,7 @@ function formatCompanyNameForUrl(companyName: string | null, fallbackId: string)
  * Helper function to format username for URL (matches client-side logic)
  */
 function formatUsernameForUrl(username: string | null, fallbackId: string): string {
-  if (!username) return `u-${fallbackId}`;
+  if (!username) return fallbackId;
 
   let processed = username
     .replace(/Dr\./i, 'dr')
@@ -88,7 +88,7 @@ function formatUsernameForUrl(username: string | null, fallbackId: string): stri
     .replace(/\s+/g, '-');
 
   if (!processed) {
-    return `u-${fallbackId}`;
+    return fallbackId;
   }
 
   processed = processed
