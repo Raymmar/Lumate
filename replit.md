@@ -6,6 +6,19 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### October 1, 2025 - Profile URL Generation Fixed
+- **Issue**: Users without Luma profile names were getting broken profile pages
+- **Root Causes Identified**:
+  - Duplicate `/api/people/by-username` endpoint causing incorrect routing
+  - Fallback URL format mismatch: frontend generated `u-{api_id}` but Luma IDs are `usr-{id}`
+  - Some users had empty `userName` fields from Luma sync
+- **Changes Made**:
+  - Removed duplicate endpoint, kept the working one with proper username-to-spaces conversion
+  - Updated `formatUsernameForUrl()` to use API ID directly without prefix when username is empty
+  - Now generates URLs like `/people/usr-abc123` instead of `/people/u-usr-abc123`
+- **Testing Verified**: Both named users (dan-veitkus) and users with empty names (usr-xxx) now resolve correctly
+- **Impact**: All user profile pages now work regardless of whether they set a name in Luma
+
 ### August 6, 2025 - Password Reset Production Environment Issue Resolved
 - **Issue**: Password reset working in development but failing in production deployment
 - **Root Cause Analysis**: Production environment missing critical configuration
