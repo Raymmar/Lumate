@@ -12,10 +12,17 @@ export default function PersonProfilePage() {
   }
 
   // Decode the URL-encoded username and handle special characters
-  const decodedUsername = decodeURIComponent(params.username)
-    // First try to preserve the original format
-    .replace(/^dr-/, "Dr. ") // Convert "dr-" prefix back to "Dr. "
-    .replace(/-/g, " "); // Convert remaining hyphens to spaces for lookup
+  const rawUsername = decodeURIComponent(params.username);
+  
+  // Check if this looks like an API ID (starts with usr-, gst-, evt-, etc.)
+  // If so, keep it as-is. Otherwise, convert hyphens to spaces for username lookup
+  const isApiId = /^(usr|gst|evt|api)-/.test(rawUsername);
+  
+  const decodedUsername = isApiId 
+    ? rawUsername // Keep API IDs with hyphens intact
+    : rawUsername
+        .replace(/^dr-/i, "Dr. ") // Convert "dr-" prefix back to "Dr. "
+        .replace(/-/g, " "); // Convert remaining hyphens to spaces for lookup
 
   // Fetch person data for SEO at the page level
   const { data: personData } = useQuery({
