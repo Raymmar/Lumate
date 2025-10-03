@@ -91,3 +91,31 @@ export function formatPostTitleForUrl(title: string | null, fallbackId: string):
 
   return processed;
 }
+
+export function formatEventTitleForUrl(title: string | null, fallbackId: string): string {
+  // If no title provided, use a prefix with fallbackId to indicate it's an ID
+  if (!title) return `e-${fallbackId}`;
+
+  // Process the title to make it URL-friendly
+  let processed = title
+    .replace(/\./g, '') // Remove periods
+    .replace(/&/g, 'and') // Replace & with 'and'
+    .normalize('NFKD') // Normalize Unicode characters (decompose)
+    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics/accents
+    .replace(/[^\w\s-]/g, ' ') // Replace special chars with spaces, keep hyphens
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-'); // Replace spaces with hyphens
+
+  // If normalized string is empty after processing, use fallback format
+  if (!processed) {
+    return `e-${fallbackId}`;
+  }
+
+  // Clean up any multiple hyphens and trim from ends
+  processed = processed
+    .replace(/-{2,}/g, '-') // Collapse multiple hyphens
+    .replace(/^-+|-+$/g, ''); // Trim hyphens from start/end
+
+  return processed;
+}
