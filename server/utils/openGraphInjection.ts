@@ -13,6 +13,7 @@ interface OpenGraphData {
 interface PostOpenGraphData extends OpenGraphData {}
 interface CompanyOpenGraphData extends OpenGraphData {}
 interface UserOpenGraphData extends OpenGraphData {}
+interface EventOpenGraphData extends OpenGraphData {}
 
 /**
  * Helper function to format post title for URL (matches client-side logic)
@@ -95,6 +96,33 @@ function formatUsernameForUrl(username: string | null, fallbackId: string): stri
     .replace(/-{2,}/g, '-')
     .replace(/^-+|-+$/g, '');
 
+  return processed;
+}
+
+/**
+ * Helper function to format event title for URL (matches client-side logic)
+ */
+function formatEventTitleForUrl(title: string | null, fallbackId: string): string {
+  if (!title) return `e-${fallbackId}`;
+  
+  let processed = title
+    .replace(/\./g, '')
+    .replace(/&/g, 'and')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s-]/g, ' ')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-');
+  
+  if (!processed) {
+    return `e-${fallbackId}`;
+  }
+  
+  processed = processed
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
   return processed;
 }
 
@@ -271,6 +299,56 @@ export async function fetchUserForOpenGraph(username: string): Promise<UserOpenG
     };
   } catch (error) {
     console.error('Error fetching user for Open Graph:', error);
+    return null;
+  }
+}
+
+/**
+ * Fetches event data for Open Graph meta tags
+ * @param slug - The event slug from the URL
+ * @returns Event data or null if not found
+ */
+export async function fetchEventForOpenGraph(slug: string): Promise<EventOpenGraphData | null> {
+  try {
+    const allEvents = await storage.getEvents();
+    
+    const event = allEvents.find(e => formatEventTitleForUrl(e.title, e.api_id) === slug);
+    
+    if (!event) {
+      return null;
+    }
+
+    let description = event.description || '';
+    if (!description) {
+      const eventDate = new Date(event.startTime).toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+      });
+      description = `Join us for ${event.title} on ${eventDate}.`;
+    }
+    
+    // Strip HTML tags and entities first
+    description = description
+      .replace(/<[^>]*>/g, '')
+      .replace(/&[^;]+;/g, '')
+      .trim();
+    
+    // Then truncate if needed
+    if (description.length > 155) {
+      description = description.substring(0, 152) + '...';
+    }
+
+    const defaultImage = 'https://file-upload.replit.app/api/storage/images%2F1741407871857-STS_Jan%2725-109%20compressed.jpeg';
+    
+    return {
+      title: event.title || 'Sarasota Tech Event',
+      description,
+      image: event.coverUrl || defaultImage,
+      url: `https://sarasota.tech/event/${slug}`
+    };
+  } catch (error) {
+    console.error('Error fetching event for Open Graph:', error);
     return null;
   }
 }

@@ -12,8 +12,8 @@ import { pool } from "./db";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, extractPostSlug, extractCompanySlug, extractUsername } from "./utils/crawlerDetection";
-import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
+import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, isEventPage, extractPostSlug, extractCompanySlug, extractUsername, extractEventSlug } from "./utils/crawlerDetection";
+import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph, fetchEventForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -110,6 +110,11 @@ app.use(
           const username = extractUsername(url);
           if (username) {
             ogData = await fetchUserForOpenGraph(username);
+          }
+        } else if (isEventPage(url)) {
+          const slug = extractEventSlug(url);
+          if (slug) {
+            ogData = await fetchEventForOpenGraph(slug);
           }
         }
         

@@ -1,4 +1,4 @@
-import { Event } from "@shared/schema";
+import { Event, Person } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Person } from "@/components/people/PeopleDirectory";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -94,18 +93,19 @@ export function EventContent({
     .filter(e => new Date(e.startTime) > now)
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
 
-  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
+  const { data: attendeesData, isLoading: isLoadingAttendees } = useQuery<{ attendees: Person[]; total: number }>({
     queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
       const response = await fetch(`/api/events/${event.api_id}/attendees`);
       if (!response.ok) throw new Error('Failed to fetch attendees');
       const data = await response.json();
-      if (data.attendees) {
-        data.attendees = data.attendees.filter((person: Person) =>
-          person.userName && person.userName.toLowerCase() !== "anonymous"
-        );
-      }
-      return data;
+      const filteredAttendees = data.attendees ? data.attendees.filter((person: Person) =>
+        person.userName && person.userName.toLowerCase() !== "anonymous"
+      ) : [];
+      return {
+        attendees: filteredAttendees,
+        total: filteredAttendees.length
+      };
     },
     enabled: !!event.api_id,
     staleTime: 30000
@@ -403,7 +403,7 @@ export function EventContent({
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Event Attendees</h3>
-                <Badge variant="secondary" data-testid="badge-attendee-count">{attendees?.total || 0} registered</Badge>
+                <Badge variant="secondary" data-testid="badge-attendee-count">{attendeesData?.total || 0} registered</Badge>
               </div>
 
               {isLoadingAttendees ? (
@@ -412,9 +412,9 @@ export function EventContent({
                     <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
                   ))}
                 </div>
-              ) : attendees?.attendees?.length > 0 ? (
+              ) : attendeesData?.attendees?.length > 0 ? (
                 <div className="space-y-2">
-                  {attendees.attendees.map((person) => {
+                  {attendeesData.attendees.map((person) => {
                     const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
                     return (
                       <Link

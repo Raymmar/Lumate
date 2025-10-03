@@ -87,12 +87,21 @@ export function isUserPage(url: string): boolean {
 }
 
 /**
+ * Checks if the URL is an event page that needs Open Graph injection
+ * @param url - The request URL
+ * @returns True if this is an event page
+ */
+export function isEventPage(url: string): boolean {
+  return url.startsWith('/event/') && url.length > 7; // More than just '/event/'
+}
+
+/**
  * Check if a URL matches any supported page pattern for Open Graph
  * @param url - The request URL
  * @returns True if this is a supported page type
  */
 export function isSupportedPage(url: string): boolean {
-  return isPostPage(url) || isCompanyPage(url) || isUserPage(url);
+  return isPostPage(url) || isCompanyPage(url) || isUserPage(url) || isEventPage(url);
 }
 
 /**
@@ -138,4 +147,19 @@ export function extractUsername(url: string): string | null {
   // Remove '/people/' prefix and any query parameters
   const username = url.replace('/people/', '').split('?')[0].split('#')[0];
   return username || null;
+}
+
+/**
+ * Extracts the event slug from an event URL
+ * @param url - The request URL (e.g., '/event/monthly-tech-meetup')
+ * @returns The event slug or null if not a valid event URL
+ */
+export function extractEventSlug(url: string): string | null {
+  if (!isEventPage(url)) {
+    return null;
+  }
+  
+  // Remove '/event/' prefix and any query parameters
+  const slug = url.replace('/event/', '').split('?')[0].split('#')[0];
+  return slug || null;
 }

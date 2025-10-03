@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Event } from "@shared/schema";
+import { Event, Person } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatEventTitleForUrl } from "@/lib/utils";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
 
 interface EventsResponse {
   events: Event[];
@@ -60,7 +60,7 @@ function generateCalendarUrl(event: Event) {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (event: Event) => void; compact?: boolean }) {
+function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -145,9 +145,9 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
 
   if (compact) {
     return (
-      <div
-        onClick={() => onSelect(event)}
-        className="cursor-pointer"
+      <Link
+        href={`/event/${formatEventTitleForUrl(event.title, event.api_id)}`}
+        className="cursor-pointer block"
       >
         <div className="rounded-lg border bg-card text-card-foreground hover:bg-muted/50 transition-colors group">
           <div className="p-4 flex gap-4 items-center">
@@ -194,14 +194,14 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
             </div>
           </div>
         </div>
-      </div>
+      </Link>
     );
   }
 
   return (
-    <div
-      onClick={() => onSelect(event)}
-      className="cursor-pointer"
+    <Link
+      href={`/event/${formatEventTitleForUrl(event.title, event.api_id)}`}
+      className="cursor-pointer block"
     >
       <div className="rounded-lg border bg-card text-card-foreground hover:bg-muted/50 transition-colors group">
         <div className="w-full relative">
@@ -250,13 +250,13 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
               ) : (
                 <div className="flex items-center gap-1">
                   <div className="flex -space-x-2">
-                    {attendeesData?.attendees?.slice(0, 3).map((person) => (
+                    {attendeesData?.attendees?.slice(0, 3).map((person: Person) => (
                       <Avatar key={person.id} className="h-5 w-5 border-2 border-background">
                         {person.avatarUrl ? (
                           <AvatarImage src={person.avatarUrl} alt={person.userName || ''} />
                         ) : (
                           <AvatarFallback className="text-[10px]">
-                            {person.userName?.split(" ").map((n) => n[0]).join("") || "?"}
+                            {person.userName?.split(" ").map((n: string) => n[0]).join("") || "?"}
                           </AvatarFallback>
                         )}
                       </Avatar>
@@ -277,13 +277,12 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
 export default function EventList({ compact }: EventListProps) {
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
   const { data, isLoading, error } = useQuery<EventsResponse>({
     queryKey: ["/api/events"],
     queryFn: async () => {
@@ -315,11 +314,6 @@ export default function EventList({ compact }: EventListProps) {
     },
     enabled: !!user && !!upcomingEvent?.api_id
   });
-
-  const handleEventSelect = (event: Event) => {
-    const slug = formatEventTitleForUrl(event.title, event.api_id);
-    setLocation(`/event/${slug}`);
-  };
 
   if (error) {
     return (
@@ -353,7 +347,6 @@ export default function EventList({ compact }: EventListProps) {
       ) : upcomingEvent ? (
         <EventCard
           event={upcomingEvent}
-          onSelect={handleEventSelect}
           compact={compact}
         />
       ) : (
