@@ -28,6 +28,7 @@ import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
 import SubscriptionCancelPage from "@/pages/subscription/CancelPage";
 import { ArticlePage } from "@/pages/ArticlePage";
+import { EventPage } from "@/pages/EventPage";
 
 function Router() {
   return (
@@ -39,6 +40,7 @@ function Router() {
           <Route path="/summit" component={SummitPage} />
           <Route path="/news" component={NewsPage} />
           <Route path="/post/:title" component={ArticlePage} />
+          <Route path="/event/:title" component={EventPage} />
           <Route path="/login" component={LoginPage} />
           <Route path="/reset-password" component={ResetPasswordPage} />
           <Route path="/settings" component={UserSettingsPage} />
