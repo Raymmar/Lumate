@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { PublicEventPreview } from "./PublicEventPreview";
-import { useState } from "react";
 import { Event } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatUsernameForUrl } from "@/lib/utils";
+import { formatEventTitleForUrl } from "@/lib/utils";
+import { useLocation } from "wouter";
 
 interface EventsResponse {
   events: Event[];
@@ -284,6 +283,7 @@ function EventCard({ event, onSelect, compact }: { event: Event; onSelect: (even
 
 export default function EventList({ compact }: EventListProps) {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const { data, isLoading, error } = useQuery<EventsResponse>({
     queryKey: ["/api/events"],
     queryFn: async () => {
@@ -297,7 +297,6 @@ export default function EventList({ compact }: EventListProps) {
     refetchOnWindowFocus: true
   });
 
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const now = new Date();
   const eventsArray = data?.events || [];
   const upcomingEvent = eventsArray
@@ -305,7 +304,6 @@ export default function EventList({ compact }: EventListProps) {
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
   const isEventEnded = upcomingEvent && new Date(upcomingEvent.endTime) < now;
 
-  // Add RSVP status query for the upcoming event
   const { data: rsvpStatus } = useQuery({
     queryKey: ['/api/events/check-rsvp', upcomingEvent?.api_id],
     queryFn: async () => {
@@ -317,6 +315,11 @@ export default function EventList({ compact }: EventListProps) {
     },
     enabled: !!user && !!upcomingEvent?.api_id
   });
+
+  const handleEventSelect = (event: Event) => {
+    const slug = formatEventTitleForUrl(event.title, event.api_id);
+    setLocation(`/event/${slug}`);
+  };
 
   if (error) {
     return (
@@ -350,20 +353,11 @@ export default function EventList({ compact }: EventListProps) {
       ) : upcomingEvent ? (
         <EventCard
           event={upcomingEvent}
-          onSelect={(event) => setSelectedEvent(event)}
+          onSelect={handleEventSelect}
           compact={compact}
         />
       ) : (
         <p className="text-xs text-muted-foreground">No upcoming events</p>
-      )}
-
-      {selectedEvent && (
-        <PublicEventPreview
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          events={eventsArray}
-          onNavigate={setSelectedEvent}
-        />
       )}
     </div>
   );
