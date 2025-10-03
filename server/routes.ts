@@ -529,6 +529,49 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  function formatEventTitleForUrl(title: string | null, fallbackId: string): string {
+    if (!title) return `e-${fallbackId}`;
+    
+    let processed = title
+      .replace(/\./g, '')
+      .replace(/&/g, 'and')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\s-]/g, ' ')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-');
+    
+    if (!processed) {
+      return `e-${fallbackId}`;
+    }
+    
+    processed = processed
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
+    return processed;
+  }
+
+  app.get("/api/events/by-title/:slug", async (req, res) => {
+    try {
+      const slug = req.params.slug;
+      
+      const allEvents = await storage.getEvents();
+      
+      const event = allEvents.find(e => formatEventTitleForUrl(e.title, e.api_id) === slug);
+      
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      return res.json(event);
+    } catch (error) {
+      console.error("Failed to fetch event by slug:", error);
+      res.status(500).json({ error: "Failed to fetch event" });
+    }
+  });
+
   app.post("/api/events/rsvp", async (req, res) => {
     try {
       if (!req.session.userId) {
