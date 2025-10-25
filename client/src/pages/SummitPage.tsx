@@ -355,6 +355,12 @@ export default function SummitPage() {
               alt="Startup Sarasota" 
               className="absolute inset-0 w-full h-full object-cover"
             />
+            {/* STS Logo Overlay */}
+            <img 
+              src="https://file-upload.replit.app/api/storage/images%2F1761418171481-STS-Logo-block.png" 
+              alt="STS Logo" 
+              className="absolute top-0 left-0 w-64 md:w-80 lg:w-96 h-auto"
+            />
           </div>
           
           {/* Right Side - Event Information */}
