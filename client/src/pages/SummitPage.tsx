@@ -6,14 +6,11 @@ import {
   Calendar,
   MapPin,
   ExternalLink,
-  Ticket,
   Building2,
   Users,
 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { FeaturedCompaniesGrid } from "@/components/companies/FeaturedCompaniesGrid";
-import imageUrl from "@assets/image_1761417110623.png";
 
 function EventLinksCard() {
   return (
@@ -113,48 +110,6 @@ function EventLinksCard() {
   );
 }
 
-function EventDetailsCard() {
-  return (
-    <Card className="border">
-      <CardHeader className="pb-3">
-        <CardTitle>Event Details</CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4 space-y-4">
-        <div className="flex items-start gap-3">
-          <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
-          <div>
-            <div className="font-medium">January 15th, 2026</div>
-            <div className="text-sm text-muted-foreground">
-              5:00 PM - 10:00 PM
-            </div>
-          </div>
-        </div>
-        <div className="flex items-start gap-3">
-          <MapPin className="h-5 w-5 mt-0.5 text-muted-foreground" />
-          <div>
-            <div className="font-medium">MOTE SEA Event Space</div>
-            <div className="text-sm text-muted-foreground">
-              UTC
-            </div>
-          </div>
-        </div>
-        <div className="pt-2">
-          <a
-            href="https://luma.com/sts26"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block"
-          >
-            <Button className="w-full" size="lg">
-              Register Now
-              <ExternalLink className="ml-2 h-4 w-4" />
-            </Button>
-          </a>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 function AgendaCard() {
   return (
@@ -549,17 +504,18 @@ export default function SummitPage() {
       <div className="flex-1">
         <PageContainer className="max-w-7xl py-8">
           <div className="space-y-6">
-            {/* Top Row: Links and Event Details */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <EventLinksCard />
-              <EventDetailsCard />
+            {/* Links and Gallery Row */}
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-1">
+                <EventLinksCard />
+              </div>
+              <div className="lg:col-span-2">
+                <ImageGalleryCard />
+              </div>
             </div>
 
-            {/* Agenda and Gallery Row */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              <AgendaCard />
-              <ImageGalleryCard />
-            </div>
+            {/* Agenda */}
+            <AgendaCard />
 
             {/* Marquee Sponsors */}
             <Card className="border">
@@ -608,14 +564,6 @@ export default function SummitPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Featured Companies */}
-            <div>
-              <h2 className="text-2xl font-bold mb-4">
-                Participating Companies
-              </h2>
-              <FeaturedCompaniesGrid />
-            </div>
           </div>
         </PageContainer>
       </div>
