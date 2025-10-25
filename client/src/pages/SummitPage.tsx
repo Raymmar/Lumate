@@ -122,66 +122,66 @@ function AgendaCard() {
   return (
     <Card className="border">
       <CardHeader>
-        <CardTitle className="text-2xl">Tentative Event Agenda</CardTitle>
+        <CardTitle className="text-xl md:text-2xl">Tentative Event Agenda</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-8">
-          <div className="flex gap-6">
-            <div className="font-bold min-w-[140px] text-lg">10:00 - 11:00</div>
+        <div className="space-y-6 md:space-y-8">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+            <div className="font-bold min-w-[140px] text-base md:text-lg">10:00 - 11:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-lg">
+              <div className="font-semibold text-base md:text-lg">
                 Morning Check-in & Registration
               </div>
-              <div className="text-base text-muted-foreground mt-2">
+              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Arrival, Networking + Startup Fair Opens
               </div>
             </div>
           </div>
-          <div className="flex gap-6">
-            <div className="font-bold min-w-[140px] text-lg">11:00 - 03:00</div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+            <div className="font-bold min-w-[140px] text-base md:text-lg">11:00 - 03:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-lg">
+              <div className="font-semibold text-base md:text-lg">
                 Startup Fair & Main Stage
               </div>
-              <div className="text-base text-muted-foreground mt-2">
+              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Share your idea, join a workshop or breakout, meet a mentor.
               </div>
             </div>
           </div>
-          <div className="flex gap-6">
-            <div className="font-bold min-w-[140px] text-lg">03:30 - 04:30</div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+            <div className="font-bold min-w-[140px] text-base md:text-lg">03:30 - 04:30</div>
             <div className="flex-1">
-              <div className="font-semibold text-lg">Investor Quick Pitch</div>
-              <div className="text-base text-muted-foreground mt-2">
+              <div className="font-semibold text-base md:text-lg">Investor Quick Pitch</div>
+              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Select attendees will get to pitch investors and the crowd.
               </div>
             </div>
           </div>
-          <div className="flex gap-6">
-            <div className="font-bold min-w-[140px] text-lg">04:30 - 06:00</div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+            <div className="font-bold min-w-[140px] text-base md:text-lg">04:30 - 06:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-lg">
+              <div className="font-semibold text-base md:text-lg">
                 Afternoon Check-in + Networking
               </div>
-              <div className="text-base text-muted-foreground mt-2">
+              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Late Arrival + Food + Networking + Demo tables
               </div>
             </div>
           </div>
-          <div className="flex gap-6">
-            <div className="font-bold min-w-[140px] text-lg">06:00 - 08:30</div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+            <div className="font-bold min-w-[140px] text-base md:text-lg">06:00 - 08:30</div>
             <div className="flex-1">
-              <div className="font-semibold text-lg">Main Program</div>
-              <div className="text-base text-muted-foreground mt-2">
+              <div className="font-semibold text-base md:text-lg">Main Program</div>
+              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Keynote presentation + Panel discussions + Q&A
               </div>
             </div>
           </div>
-          <div className="flex gap-6">
-            <div className="font-bold min-w-[140px] text-lg">08:30 - 10:00</div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
+            <div className="font-bold min-w-[140px] text-base md:text-lg">08:30 - 10:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-lg">VIP Afterparty</div>
-              <div className="text-base text-muted-foreground mt-2">
+              <div className="font-semibold text-base md:text-lg">VIP Afterparty</div>
+              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Join us for a special reception with live music, light bites and
                 a cash bar
               </div>
