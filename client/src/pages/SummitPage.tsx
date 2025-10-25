@@ -95,7 +95,7 @@ function EventDetailsCard() {
           <div>
             <div className="font-medium">MOTE SEA Event Space</div>
             <div className="text-sm text-muted-foreground">
-              Downtown Sarasota
+              UTC
             </div>
           </div>
         </div>
@@ -121,54 +121,63 @@ function AgendaCard() {
   return (
     <Card className="border">
       <CardHeader>
-        <CardTitle>Event Agenda</CardTitle>
+        <CardTitle>Tentative Event Agenda</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">5:00 - 6:00</div>
+            <div className="font-bold min-w-[80px] text-sm">10:00 - 11:00</div>
             <div className="flex-1">
               <div className="font-semibold text-sm">
-                Registration & Networking
+                Morning Check-in & Registration
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Arrival + Food + Startup Fair Opens
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">6:00 - 6:30</div>
-            <div className="flex-1">
-              <div className="font-semibold text-sm">Opening Keynote</div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Welcome & State of Sarasota Tech
+                Arrival, Networking + Startup Fair Opens
               </div>
             </div>
           </div>
           <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">6:30 - 7:30</div>
+            <div className="font-bold min-w-[80px] text-sm">11:00 - 03:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Panel Discussion</div>
+              <div className="font-semibold text-sm">Startup Fair & Main Stage</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Building Successful Startups in Sarasota
+                Share your idea, join a workshop or breakout, meet a mentor.
               </div>
             </div>
           </div>
           <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">7:30 - 8:30</div>
+            <div className="font-bold min-w-[80px] text-sm">03:30 - 04:30</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Startup Showcase</div>
+              <div className="font-semibold text-sm">Investor Quick Pitch</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Local startups present to the community
+                Select attendees will get to pitch investors and the crowd.
               </div>
             </div>
           </div>
           <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">8:30 - 10:00</div>
+            <div className="font-bold min-w-[80px] text-sm">04:30 - 06:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Networking Reception</div>
+              <div className="font-semibold text-sm">Afternoon Check-in + Networking</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Connect with founders & investors
+                Late Arrival + Food + Networking + Demo tables 
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="font-bold min-w-[80px] text-sm">06:00 - 08:30</div>
+            <div className="flex-1">
+              <div className="font-semibold text-sm">Main Program</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Keynote presentation + Panel discussions + Q&A
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <div className="font-bold min-w-[80px] text-sm">08:30 - 10:00</div>
+            <div className="flex-1">
+              <div className="font-semibold text-sm">VIP Afterparty</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Join us for a special reception with live music, light bites and a cash bar
               </div>
             </div>
           </div>
@@ -433,8 +442,8 @@ export default function SummitPage() {
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
               alt="Event Date"
-              className="absolute w-48 md:w-56 lg:w-64 h-auto"
-              style={{ bottom: '0%', right: '0%' }}
+              className="absolute w-96 md:w-112 lg:w-128 h-auto"
+              style={{ bottom: "-3%", right: "-3%" }}
             />
           </div>
 
@@ -446,7 +455,7 @@ export default function SummitPage() {
               </h1>
 
               <p className="text-xl md:text-2xl font-semibold mb-4 text-foreground">
-                Second Annual Sarasota Tech Summit
+                Startup Fair & Tech Summit
               </p>
 
               <div className="space-y-3 mb-8 text-muted-foreground">
