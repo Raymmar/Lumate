@@ -430,7 +430,7 @@ export default function SummitPage() {
             <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
               <div className="text-center text-white max-w-3xl mx-auto px-4">
                 <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-4 animate-fade-in">
-                  SARASOTA TECH SUMMIT
+                  Startup Saraso
                 </h1>
                 <div className="flex items-center justify-center space-x-2 mb-6">
                   <Calendar className="h-5 w-5" />
