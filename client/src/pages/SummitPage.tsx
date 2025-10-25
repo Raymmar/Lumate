@@ -421,7 +421,7 @@ export default function SummitPage() {
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg"
               alt="Startup Sarasota"
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-cover rounded-r-lg"
             />
             {/* STS Logo Overlay */}
             <img
