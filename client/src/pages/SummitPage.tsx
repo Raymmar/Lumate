@@ -423,7 +423,7 @@ export default function SummitPage() {
             />
             {/* STS Logo Overlay */}
             <img
-              src="https://file-upload.replit.app/api/storage/images%2F1761418772061-Logo-block-white.png"
+              src="https://file-upload.replit.app/api/storage/images%2F1761427717359-Logo-block-no-text.png"
               alt="STS Logo"
               className="absolute top-5 left-5 w-64 md:w-80 lg:w-96 h-auto"
             />
@@ -493,9 +493,13 @@ export default function SummitPage() {
       <div className="flex-1">
         <PageContainer className="max-w-7xl py-8">
           <div className="space-y-6">
-            {/* Links and Gallery Row */}
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-1">
+            {/* Links a Gallery Row */}
+  
+                           <div className="grid gap-
+                 4 lg:grid-cols-3
+                 ">
+              <div clas
+                sName="lg:col-span-1">
                 <EventLinksCard />
               </div>
               <div className="lg:col-span-2">
