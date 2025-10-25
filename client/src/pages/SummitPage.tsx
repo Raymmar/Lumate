@@ -24,7 +24,7 @@ function EventLinksCard() {
       <CardContent className="pt-4">
         <div className="flex flex-col gap-3">
           <a
-            href="https://luma.com/sts26"
+            href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
             target="_blank"
             rel="noopener noreferrer"
             className="block"
@@ -33,10 +33,49 @@ function EventLinksCard() {
               variant="outline"
               className="w-full justify-between font-normal hover:bg-muted"
             >
-              <span className="flex items-center gap-2">
-                <Ticket className="h-4 w-4" />
-                Get Tickets
-              </span>
+              <span className="flex items-center gap-2">Sponsor Overview</span>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </a>
+          <a
+            href="https://airtable.com/applDXoTdj4LPUUVc/shrzIM9RcYBek4C0k"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <Button
+              variant="outline"
+              className="w-full justify-between font-normal hover:bg-muted"
+            >
+              <span className="flex items-center gap-2">Apply to Speak</span>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </a>
+          <a
+            href="https://airtable.com/applDXoTdj4LPUUVc/shrnlKIwiBZbQALP3"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <Button
+              variant="outline"
+              className="w-full justify-between font-normal hover:bg-muted"
+            >
+              <span className="flex items-center gap-2">Host an Event</span>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </a>
+          <a
+            href="https://airtable.com/applDXoTdj4LPUUVc/shr31QX5QxxBUFrQM"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <Button
+              variant="outline"
+              className="w-full justify-between font-normal hover:bg-muted"
+            >
+              <span className="flex items-center gap-2">Volunteer</span>
               <ExternalLink className="h-4 w-4" />
             </Button>
           </a>
