@@ -429,6 +429,13 @@ export default function SummitPage() {
               alt="STS Logo"
               className="absolute top-5 left-5 w-64 md:w-80 lg:w-96 h-auto"
             />
+            {/* Mote Date Block - Bottom Right */}
+            <img
+              src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
+              alt="Event Date"
+              className="absolute w-48 md:w-56 lg:w-64 h-auto"
+              style={{ bottom: '-20%', right: '-10%' }}
+            />
           </div>
 
           {/* Right Side - Event Information */}
