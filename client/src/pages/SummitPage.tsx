@@ -136,8 +136,8 @@ function AgendaCard() {
       </CardHeader>
       <CardContent>
         <div className="space-y-6 md:space-y-8">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <div className="font-bold min-w-[140px] text-base md:text-lg">10:00 - 11:00</div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">10:00 - 11:00</div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">
                 Morning Check-in & Registration
@@ -147,8 +147,8 @@ function AgendaCard() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <div className="font-bold min-w-[140px] text-base md:text-lg">11:00 - 03:00</div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">11:00 - 03:00</div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">
                 Startup Fair & Main Stage
@@ -158,8 +158,8 @@ function AgendaCard() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <div className="font-bold min-w-[140px] text-base md:text-lg">03:30 - 04:30</div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">03:30 - 04:30</div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">Investor Quick Pitch</div>
               <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
@@ -167,8 +167,8 @@ function AgendaCard() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <div className="font-bold min-w-[140px] text-base md:text-lg">04:30 - 06:00</div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">04:30 - 06:00</div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">
                 Afternoon Check-in + Networking
@@ -178,8 +178,8 @@ function AgendaCard() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <div className="font-bold min-w-[140px] text-base md:text-lg">06:00 - 08:30</div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">06:00 - 08:30</div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">Main Program</div>
               <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
@@ -187,8 +187,8 @@ function AgendaCard() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6">
-            <div className="font-bold min-w-[140px] text-base md:text-lg">08:30 - 10:00</div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">08:30 - 10:00</div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">VIP Afterparty</div>
               <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
