@@ -2,13 +2,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Calendar,
-  MapPin,
-  ExternalLink,
-  Building2,
-  Users,
-} from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Building2, Users } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 
@@ -110,7 +104,6 @@ function EventLinksCard() {
   );
 }
 
-
 function AgendaCard() {
   return (
     <Card className="border">
@@ -133,7 +126,9 @@ function AgendaCard() {
           <div className="flex gap-3">
             <div className="font-bold min-w-[80px] text-sm">11:00 - 03:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Startup Fair & Main Stage</div>
+              <div className="font-semibold text-sm">
+                Startup Fair & Main Stage
+              </div>
               <div className="text-xs text-muted-foreground mt-1">
                 Share your idea, join a workshop or breakout, meet a mentor.
               </div>
@@ -151,9 +146,11 @@ function AgendaCard() {
           <div className="flex gap-3">
             <div className="font-bold min-w-[80px] text-sm">04:30 - 06:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Afternoon Check-in + Networking</div>
+              <div className="font-semibold text-sm">
+                Afternoon Check-in + Networking
+              </div>
               <div className="text-xs text-muted-foreground mt-1">
-                Late Arrival + Food + Networking + Demo tables 
+                Late Arrival + Food + Networking + Demo tables
               </div>
             </div>
           </div>
@@ -171,7 +168,8 @@ function AgendaCard() {
             <div className="flex-1">
               <div className="font-semibold text-sm">VIP Afterparty</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Join us for a special reception with live music, light bites and a cash bar
+                Join us for a special reception with live music, light bites and
+                a cash bar
               </div>
             </div>
           </div>
@@ -239,11 +237,11 @@ function ImageGalleryCard() {
       alt: "Sarasota Tech Summit 2025",
     },
     {
-      src: "https://file-upload.replit.app/api/storage/images%2F1744267132207-2-Question.png",
+      src: "https://file-upload.replit.app/api/storage/images%2F1761426785264-Friends---Family-1.png",
       alt: "Event highlights",
     },
     {
-      src: "https://file-upload.replit.app/api/storage/images%2F1744267136780-3-VC-Sponsors.png",
+      src: "https://file-upload.replit.app/api/storage/images%2F1761426777313-Friends---Family.png",
       alt: "Sponsors",
     },
     {
@@ -256,10 +254,7 @@ function ImageGalleryCard() {
 
   return (
     <>
-      <Card className="border">
-        <CardHeader>
-          <CardTitle>2025 Event Gallery</CardTitle>
-        </CardHeader>
+      <Card className="border pt-6">
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
             {galleryImages.map((image, index) => (
@@ -437,7 +432,7 @@ export default function SummitPage() {
               src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
               alt="Event Date"
               className="absolute w-96 md:w-112 lg:w-128 h-auto"
-              style={{ bottom: "-3%", right: "-3%" }}
+              style={{ bottom: "0%", right: "0%" }}
             />
           </div>
 
@@ -469,31 +464,25 @@ export default function SummitPage() {
                 insights into building the future of Sarasota's tech ecosystem.
               </p>
 
-              <div className="flex flex-wrap gap-4">
+              <div>
                 <a
                   href="https://luma.com/sts26"
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="inline-block w-full sm:w-auto"
                 >
-                  <Button size="lg" className="text-base">
+                  <Button size="lg" className="text-base w-full sm:w-auto sm:min-w-[300px] px-12">
                     Get Tickets
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </Button>
-                </a>
-                <a
-                  href="https://www.dropbox.com/scl/fo/tx5vb725ywzytkfog1iv1/AGfyY_yWKWKsnOn64QjCXiA?rlkey=ue2nlaso4lrb3ug59memgqqmh&dl=0"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="lg" variant="outline" className="text-base">
-                    2025 Event Photos
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </Button>
                 </a>
               </div>
 
-              <p className="text-sm text-muted-foreground mt-6">
-                Powered by Sarasota Tech Community
+              <p className="text-md text-muted-foreground mt-6">
+                Powered by -  
+                <a href="https://www.rework.capital/" target="_blank" rel="noopener noreferrer">
+                  Rework Capital
+                </a>
               </p>
             </div>
           </div>
