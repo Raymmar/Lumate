@@ -122,66 +122,66 @@ function AgendaCard() {
   return (
     <Card className="border">
       <CardHeader>
-        <CardTitle>Tentative Event Agenda</CardTitle>
+        <CardTitle className="text-2xl">Tentative Event Agenda</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">10:00 - 11:00</div>
+        <div className="space-y-8">
+          <div className="flex gap-6">
+            <div className="font-bold min-w-[140px] text-lg">10:00 - 11:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">
+              <div className="font-semibold text-lg">
                 Morning Check-in & Registration
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="text-base text-muted-foreground mt-2">
                 Arrival, Networking + Startup Fair Opens
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">11:00 - 03:00</div>
+          <div className="flex gap-6">
+            <div className="font-bold min-w-[140px] text-lg">11:00 - 03:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">
+              <div className="font-semibold text-lg">
                 Startup Fair & Main Stage
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="text-base text-muted-foreground mt-2">
                 Share your idea, join a workshop or breakout, meet a mentor.
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">03:30 - 04:30</div>
+          <div className="flex gap-6">
+            <div className="font-bold min-w-[140px] text-lg">03:30 - 04:30</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Investor Quick Pitch</div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="font-semibold text-lg">Investor Quick Pitch</div>
+              <div className="text-base text-muted-foreground mt-2">
                 Select attendees will get to pitch investors and the crowd.
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">04:30 - 06:00</div>
+          <div className="flex gap-6">
+            <div className="font-bold min-w-[140px] text-lg">04:30 - 06:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">
+              <div className="font-semibold text-lg">
                 Afternoon Check-in + Networking
               </div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="text-base text-muted-foreground mt-2">
                 Late Arrival + Food + Networking + Demo tables
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">06:00 - 08:30</div>
+          <div className="flex gap-6">
+            <div className="font-bold min-w-[140px] text-lg">06:00 - 08:30</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">Main Program</div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="font-semibold text-lg">Main Program</div>
+              <div className="text-base text-muted-foreground mt-2">
                 Keynote presentation + Panel discussions + Q&A
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
-            <div className="font-bold min-w-[80px] text-sm">08:30 - 10:00</div>
+          <div className="flex gap-6">
+            <div className="font-bold min-w-[140px] text-lg">08:30 - 10:00</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm">VIP Afterparty</div>
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="font-semibold text-lg">VIP Afterparty</div>
+              <div className="text-base text-muted-foreground mt-2">
                 Join us for a special reception with live music, light bites and
                 a cash bar
               </div>
