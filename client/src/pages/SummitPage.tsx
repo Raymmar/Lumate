@@ -3,8 +3,18 @@ import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, ExternalLink, Building2, Users } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import type { Post } from "@shared/schema";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatPostTitleForUrl } from "@/lib/utils";
+import TimeAgo from 'javascript-time-ago';
+import en from 'javascript-time-ago/locale/en';
+
+// Initialize TimeAgo
+TimeAgo.addLocale(en);
+const timeAgo = new TimeAgo('en-US');
 
 function EventLinksCard() {
   return (
@@ -237,6 +247,72 @@ function SponsorCard({ sponsor }: SponsorCardProps) {
             >
               Learn more <ExternalLink className="ml-1 h-3 w-3" />
             </a>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SummitNewsCard() {
+  const [, setLocation] = useLocation();
+  
+  const { data, isLoading } = useQuery<{ posts: Post[] }>({
+    queryKey: ["/api/public/posts"],
+  });
+
+  // Filter posts by "2026 summit" tag
+  const filteredPosts = data?.posts
+    ?.filter(post => post.tags?.some(tag => tag.toLowerCase() === "2026 summit"))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5) || [];
+
+  const handlePostClick = (post: Post) => {
+    const slug = formatPostTitleForUrl(post.title, post.id.toString());
+    setLocation(`/post/${slug}`);
+  };
+
+  return (
+    <Card className="border">
+      <CardHeader className="pb-3">
+        <CardTitle>2026 Summit News</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="pb-4 border-b last:border-0">
+                <Skeleton className="h-5 w-2/3 mb-2" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : !filteredPosts.length ? (
+          <div className="text-sm text-muted-foreground">
+            No summit news available yet. Check back soon for updates!
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredPosts.map((post) => (
+              <div
+                key={post.id}
+                className="relative p-3 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
+                onClick={() => handlePostClick(post)}
+                data-testid={`post-summit-${post.id}`}
+              >
+                <h4 className="font-medium mb-1">{post.title}</h4>
+                {post.summary && (
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {post.summary}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <span>{post.creator?.displayName || 'Unknown'}</span>
+                  <span>•</span>
+                  <span>{timeAgo.format(new Date(post.createdAt))}</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
@@ -507,18 +583,20 @@ export default function SummitPage() {
       <div className="flex-1">
         <PageContainer className="max-w-7xl py-8">
           <div className="space-y-6">
-            {/* Links and Gallery Row */}
+            {/* Sidebar and Main Content */}
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-1">
+              {/* Left Sidebar - Event Links and Agenda */}
+              <div className="lg:col-span-1 space-y-4">
                 <EventLinksCard />
+                <AgendaCard />
               </div>
-              <div className="lg:col-span-2">
+              
+              {/* Right Content - News Feed and Gallery */}
+              <div className="lg:col-span-2 space-y-4">
+                <SummitNewsCard />
                 <ImageGalleryCard />
               </div>
             </div>
-
-            {/* Agenda */}
-            <AgendaCard />
 
             {/* TODO: Uncomment sponsor sections when ready */}
             {/* Marquee Sponsors */}
