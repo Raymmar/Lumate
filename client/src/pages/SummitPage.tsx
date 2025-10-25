@@ -493,14 +493,26 @@ export default function SummitPage() {
       <div className="flex-1">
         <PageContainer className="max-w-7xl py-8">
           <div className="space-y-6">
-            {/* Links a Gallery Row */}
-  
-                           <div className="grid gap-
-                 4 lg:grid-cols-3
-                 ">
-              <div clas
-                sName="lg:col-span-1">
+            {/* Links and Gallery Row */}
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="lg:col-span-1 space-y-4">
                 <EventLinksCard />
+                
+                {/* YouTube Video Embed */}
+                <Card className="border">
+                  <CardContent className="p-0">
+                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                      <iframe
+                        className="absolute top-0 left-0 w-full h-full rounded-lg"
+                        src="https://www.youtube.com/embed/z2wyOGwpUHg"
+                        title="YouTube video player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        data-testid="video-youtube-embed"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
               <div className="lg:col-span-2">
                 <ImageGalleryCard />
