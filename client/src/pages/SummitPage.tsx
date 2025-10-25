@@ -427,9 +427,9 @@ export default function SummitPage() {
 
       {/* Split Hero Section */}
       <div className="w-full">
-        <div className="grid lg:grid-cols-2 min-h-[50vh] md:min-h-[60vh]">
+        <div className="grid lg:grid-cols-2 min-h-[70vh]">
           {/* Left Side - Full Background Image */}
-          <div className="relative min-h-[50vh] md:min-h-[60vh]">
+          <div className="relative min-h-[70vh]">
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg"
               alt="Startup Sarasota"
