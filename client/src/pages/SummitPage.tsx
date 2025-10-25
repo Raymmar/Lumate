@@ -359,7 +359,7 @@ export default function SummitPage() {
             <img 
               src="https://file-upload.replit.app/api/storage/images%2F1761418171481-STS-Logo-block.png" 
               alt="STS Logo" 
-              className="absolute top-0 left-0 w-64 md:w-80 lg:w-96 h-auto"
+              className="absolute top-5 left-5 w-64 md:w-80 lg:w-96 h-auto"
             />
           </div>
           
