@@ -427,9 +427,9 @@ export default function SummitPage() {
 
       {/* Split Hero Section */}
       <div className="w-full">
-        <div className="grid lg:grid-cols-2 min-h-[60vh]">
+        <div className="grid lg:grid-cols-2 min-h-[50vh] md:min-h-[60vh]">
           {/* Left Side - Full Background Image */}
-          <div className="relative min-h-[40vh] lg:min-h-[60vh]">
+          <div className="relative min-h-[50vh] md:min-h-[60vh]">
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg"
               alt="Startup Sarasota"
@@ -445,7 +445,7 @@ export default function SummitPage() {
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
               alt="Event Date"
-              className="absolute w-96 md:w-112 lg:w-128 h-auto"
+              className="absolute w-full md:w-96 lg:w-128 h-auto"
               style={{ bottom: "0%", right: "0%" }}
             />
           </div>
