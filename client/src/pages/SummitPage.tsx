@@ -8,7 +8,7 @@ import { useState } from "react";
 
 function EventLinksCard() {
   return (
-    <Card className="border">
+    <Card className="border mr-6">
       <CardHeader className="pb-3">
         <CardTitle>Event Links</CardTitle>
       </CardHeader>
