@@ -517,8 +517,9 @@ export default function SummitPage() {
             {/* Agenda */}
             <AgendaCard />
 
+            {/* TODO: Uncomment sponsor sections when ready */}
             {/* Marquee Sponsors */}
-            <Card className="border">
+            {/* <Card className="border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
@@ -532,10 +533,10 @@ export default function SummitPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Startup Ecosystem Sponsors */}
-            <Card className="border">
+            {/* <Card className="border">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
@@ -549,10 +550,10 @@ export default function SummitPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Advisory Sponsors */}
-            <Card className="border">
+            {/* <Card className="border">
               <CardHeader>
                 <CardTitle>Advisory Sponsors</CardTitle>
               </CardHeader>
@@ -563,7 +564,7 @@ export default function SummitPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </PageContainer>
       </div>
