@@ -434,15 +434,18 @@ export default function SummitPage() {
                 </h1>
                 <div className="flex items-center justify-center space-x-2 mb-6">
                   <Calendar className="h-5 w-5" />
-                  <div className="text-xl font-medium">January 9th, 2025</div>
+                  <div className="text-xl font-medium">January 15th, 2026</div>
                 </div>
-                <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
-                  Can Sarasota become a tech town?
+                <p className="text-xl md:text-2xl mb-4 max-w-2xl mx-auto">
+                  Startup Sarasota - Startup Fair & Community Tech Forum
+                </p>
+                <p className="text-lg md:text-xl mb-8 max-w-2xl mx-auto opacity-90">
+                  At the new MOTE SEA event space
                 </p>
                 <div className="flex flex-wrap gap-4 justify-center">
                   <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground dark:text-primary-foreground text-lg px-6 py-6">
                     <a 
-                      href="https://lu.ma/r21g3q5c?coupon=EARLY25" 
+                      href="https://luma.com/sts26" 
                       target="_blank" 
                       rel="noopener noreferrer"
                       className="flex items-center"
@@ -457,7 +460,7 @@ export default function SummitPage() {
                       rel="noopener noreferrer"
                       className="flex items-center"
                     >
-                      Photos & Video <ExternalLink className="ml-2 h-4 w-4" />
+                      Photos from 2025 Event <ExternalLink className="ml-2 h-4 w-4" />
                     </a>
                   </Button>
                 </div>
