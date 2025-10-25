@@ -437,7 +437,7 @@ export default function SummitPage() {
             />
             {/* STS Logo Overlay */}
             <img
-              src="https://file-upload.replit.app/api/storage/images%2F1761427717359-Logo-block-no-text.png"
+              src="https://file-upload.replit.app/api/storage/images%2F1761418772061-Logo-block-white.png"
               alt="STS Logo"
               className="absolute top-5 left-5 w-64 md:w-80 lg:w-96 h-auto"
             />
