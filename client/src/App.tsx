@@ -23,6 +23,7 @@ import IndustriesPage from "@/pages/admin/IndustriesPage";
 import RolesPage from "@/pages/admin/RolesPage";
 import AboutPage from "@/pages/AboutPage";
 import SummitPage from "@/pages/SummitPage";
+import Summit2025Page from "@/pages/Summit2025Page";
 import MembershipsPage from "@/pages/MembershipsPage";
 import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
@@ -38,6 +39,7 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/about" component={AboutPage} />
           <Route path="/summit" component={SummitPage} />
+          <Route path="/summit2025" component={Summit2025Page} />
           <Route path="/news" component={NewsPage} />
           <Route path="/post/:title" component={ArticlePage} />
           <Route path="/event/:title" component={EventPage} />
