@@ -51,15 +51,18 @@ export function NavBar() {
       </Link>
       <div className="hidden md:flex items-center space-x-4 ml-4">
         <Link href="/companies" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm" className="flex items-center">
-            <Briefcase className="h-4 w-4 mr-2" />
+          <Button variant="ghost" size="sm">
             Directory
           </Button>
         </Link>
         <Link href="/news" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm" className="flex items-center">
-            <Newspaper className="h-4 w-4 mr-2" />
+          <Button variant="ghost" size="sm">
             News
+          </Button>
+        </Link>
+        <Link href="/summit" className="no-underline hover:no-underline">
+          <Button variant="ghost" size="sm">
+            Summit
           </Button>
         </Link>
       </div>
