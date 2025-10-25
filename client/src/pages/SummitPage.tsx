@@ -446,7 +446,7 @@ export default function SummitPage() {
               src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
               alt="Event Date"
               className="absolute w-full md:w-96 lg:w-128 h-auto"
-              style={{ bottom: "0%", right: "0%" }}
+              style={{ bottom: "-4%", right: "0%" }}
             />
           </div>
 
