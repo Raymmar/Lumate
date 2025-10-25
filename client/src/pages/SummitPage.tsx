@@ -98,6 +98,20 @@ function EventLinksCard() {
           >
             <Link href="/about">About Sarasota Tech</Link>
           </Button>
+          
+          {/* YouTube Video Embed */}
+          <div className="mt-4 pt-4 border-t">
+            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full rounded-lg"
+                src="https://www.youtube.com/embed/z2wyOGwpUHg"
+                title="YouTube video player"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                data-testid="video-youtube-embed"
+              />
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -495,24 +509,8 @@ export default function SummitPage() {
           <div className="space-y-6">
             {/* Links and Gallery Row */}
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-1 space-y-4">
+              <div className="lg:col-span-1">
                 <EventLinksCard />
-                
-                {/* YouTube Video Embed */}
-                <Card className="border">
-                  <CardContent className="p-0">
-                    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                      <iframe
-                        className="absolute top-0 left-0 w-full h-full rounded-lg"
-                        src="https://www.youtube.com/embed/z2wyOGwpUHg"
-                        title="YouTube video player"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowFullScreen
-                        data-testid="video-youtube-embed"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
               <div className="lg:col-span-2">
                 <ImageGalleryCard />
