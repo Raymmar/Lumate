@@ -8,7 +8,7 @@ import { useState } from "react";
 
 function EventLinksCard() {
   return (
-    <Card className="border mr-6">
+    <Card className="border">
       <CardHeader className="pb-3">
         <CardTitle>Event Links</CardTitle>
       </CardHeader>
@@ -100,7 +100,7 @@ function EventLinksCard() {
           </Button>
           
           {/* YouTube Video Embed */}
-          <div className="mt-4 pt-4 border-t">
+          <div className="mt-4">
             <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
               <iframe
                 className="absolute top-0 left-0 w-full h-full rounded-lg"
