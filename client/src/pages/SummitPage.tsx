@@ -2,26 +2,53 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, ExternalLink, Building2, Users, Plus, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  Calendar,
+  MapPin,
+  ExternalLink,
+  Building2,
+  Users,
+  Plus,
+  MoreVertical,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Post, Sponsor } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPostTitleForUrl } from "@/lib/utils";
-import TimeAgo from 'javascript-time-ago';
-import en from 'javascript-time-ago/locale/en';
+import TimeAgo from "javascript-time-ago";
+import en from "javascript-time-ago/locale/en";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
-const timeAgo = new TimeAgo('en-US');
+const timeAgo = new TimeAgo("en-US");
 
 function EventLinksCard() {
   return (
@@ -115,10 +142,13 @@ function EventLinksCard() {
           >
             <Link href="/about">About Sarasota Tech</Link>
           </Button>
-          
+
           {/* YouTube Video Embed */}
           <div className="mt-4">
-            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div
+              className="relative w-full"
+              style={{ paddingBottom: "56.25%" }}
+            >
               <iframe
                 className="absolute top-0 left-0 w-full h-full rounded-lg"
                 src="https://www.youtube.com/embed/z2wyOGwpUHg"
@@ -139,12 +169,16 @@ function AgendaCard() {
   return (
     <Card className="border">
       <CardHeader>
-        <CardTitle className="text-xl md:text-2xl">Tentative Event Agenda</CardTitle>
+        <CardTitle className="text-xl md:text-2xl">
+          Tentative Event Agenda
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6 md:space-y-8">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">10:00 - 11:00</div>
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+              10:00 - 11:00
+            </div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">
                 Morning Check-in & Registration
@@ -155,7 +189,9 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">11:00 - 03:00</div>
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+              11:00 - 03:00
+            </div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">
                 Startup Fair & Main Stage
@@ -166,16 +202,22 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">03:30 - 04:30</div>
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+              03:30 - 04:30
+            </div>
             <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">Investor Quick Pitch</div>
+              <div className="font-semibold text-base md:text-lg">
+                Investor Quick Pitch
+              </div>
               <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Select attendees will get to pitch investors and the crowd.
               </div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">04:30 - 06:00</div>
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+              04:30 - 06:00
+            </div>
             <div className="flex-1">
               <div className="font-semibold text-base md:text-lg">
                 Afternoon Check-in + Networking
@@ -186,18 +228,26 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">06:00 - 08:30</div>
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+              06:00 - 08:30
+            </div>
             <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">Main Program</div>
+              <div className="font-semibold text-base md:text-lg">
+                Main Program
+              </div>
               <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Keynote presentation + Panel discussions + Q&A
               </div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">08:30 - 10:00</div>
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+              08:30 - 10:00
+            </div>
             <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">VIP Afterparty</div>
+              <div className="font-semibold text-base md:text-lg">
+                VIP Afterparty
+              </div>
               <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
                 Join us for a special reception with live music, light bites and
                 a cash bar
@@ -263,16 +313,22 @@ function SponsorCard({ sponsor }: SponsorCardProps) {
 
 function SummitNewsCard() {
   const [, setLocation] = useLocation();
-  
+
   const { data, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
 
   // Filter posts by "2026 summit" tag
-  const filteredPosts = data?.posts
-    ?.filter(post => post.tags?.some(tag => tag.toLowerCase() === "2026 summit"))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5) || [];
+  const filteredPosts =
+    data?.posts
+      ?.filter((post) =>
+        post.tags?.some((tag) => tag.toLowerCase() === "2026 summit"),
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+      .slice(0, 5) || [];
 
   const handlePostClick = (post: Post) => {
     const slug = formatPostTitleForUrl(post.title, post.id.toString());
@@ -314,7 +370,7 @@ function SummitNewsCard() {
                   </p>
                 )}
                 <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <span>{post.creator?.displayName || 'Unknown'}</span>
+                  <span>{post.creator?.displayName || "Unknown"}</span>
                   <span>•</span>
                   <span>{timeAgo.format(new Date(post.createdAt))}</span>
                 </div>
@@ -420,15 +476,15 @@ function SponsorsGrid() {
   const [, setLocation] = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
-  
+
   const { data: user } = useQuery({
     queryKey: ["/api/auth/me"],
   });
-  
+
   const { data, isLoading } = useQuery<{ sponsors: Sponsor[] }>({
     queryKey: ["/api/sponsors?year=2026"],
   });
-  
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       return apiRequest(`/api/sponsors/${id}`, "DELETE");
@@ -448,10 +504,10 @@ function SponsorsGrid() {
       });
     },
   });
-  
+
   const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
   const sponsors = data?.sponsors || [];
-  
+
   const tiers = [
     { name: "Series A", key: "Series A", cols: 1 },
     { name: "Seed", key: "Seed", cols: 3 },
@@ -459,28 +515,28 @@ function SponsorsGrid() {
     { name: "Friends & Family", key: "Friends & Family", cols: 5 },
     { name: "501c3/.edu", key: "501c3/.edu", cols: 5 },
   ];
-  
+
   const handleEdit = (sponsor: Sponsor) => {
     setEditingSponsor(sponsor);
     setIsModalOpen(true);
   };
-  
+
   const handleDelete = (id: number) => {
     if (window.confirm("Are you sure you want to delete this sponsor?")) {
       deleteMutation.mutate(id);
     }
   };
-  
+
   const handleAddNew = () => {
     setEditingSponsor(null);
     setIsModalOpen(true);
   };
-  
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingSponsor(null);
   };
-  
+
   if (isLoading) {
     return (
       <Card className="border">
@@ -493,12 +549,12 @@ function SponsorsGrid() {
       </Card>
     );
   }
-  
+
   // Temporarily removed visibility check for debugging
   // if (!isAdmin && sponsors.length === 0) {
   //   return null;
   // }
-  
+
   return (
     <>
       <Card className="border">
@@ -514,13 +570,21 @@ function SponsorsGrid() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Button variant="outline" size="sm" data-testid="button-become-sponsor">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-become-sponsor"
+                >
                   Become a Sponsor
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>
               </a>
               {isAdmin && (
-                <Button size="sm" onClick={handleAddNew} data-testid="button-add-sponsor">
+                <Button
+                  size="sm"
+                  onClick={handleAddNew}
+                  data-testid="button-add-sponsor"
+                >
                   <Plus className="h-4 w-4 mr-1" />
                   Add Sponsor
                 </Button>
@@ -538,21 +602,27 @@ function SponsorsGrid() {
           ) : (
             <>
               {tiers.map((tier) => {
-                const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
-                
+                const tierSponsors = sponsors.filter(
+                  (s) => s.tier === tier.key,
+                );
+
                 // Only show tiers that have sponsors
                 if (tierSponsors.length === 0) {
                   return null;
                 }
-              
+
                 return (
                   <div key={tier.key} className="space-y-4">
                     <h3 className="text-lg font-semibold">{tier.name}</h3>
-                    <div className={`grid gap-4 ${
-                      tier.cols === 1 ? 'grid-cols-1' :
-                      tier.cols === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
-                      'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
-                    }`}>
+                    <div
+                      className={`grid gap-4 ${
+                        tier.cols === 1
+                          ? "grid-cols-1"
+                          : tier.cols === 3
+                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                      }`}
+                    >
                       {tierSponsors.map((sponsor) => (
                         <a
                           key={sponsor.id}
@@ -571,16 +641,21 @@ function SponsorsGrid() {
                                   className="w-full h-auto object-contain rounded-md"
                                 />
                               </div>
-                              <h4 className="font-semibold text-sm">{sponsor.name}</h4>
+                              <h4 className="font-semibold text-sm">
+                                {sponsor.name}
+                              </h4>
                             </CardContent>
                           </Card>
                           {isAdmin && (
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
-                                  <Button 
-                                    variant="secondary" 
-                                    size="sm" 
+                                <DropdownMenuTrigger
+                                  asChild
+                                  onClick={(e) => e.preventDefault()}
+                                >
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
                                     className="h-8 w-8 p-0"
                                     data-testid={`button-sponsor-menu-${sponsor.id}`}
                                   >
@@ -588,7 +663,7 @@ function SponsorsGrid() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onClick={(e) => {
                                       e.preventDefault();
                                       handleEdit(sponsor);
@@ -598,7 +673,7 @@ function SponsorsGrid() {
                                     <Pencil className="h-4 w-4 mr-2" />
                                     Edit
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onClick={(e) => {
                                       e.preventDefault();
                                       handleDelete(sponsor.id);
@@ -623,41 +698,46 @@ function SponsorsGrid() {
           )}
         </CardContent>
       </Card>
-      
+
       {isModalOpen && (
-        <SponsorModal
-          sponsor={editingSponsor}
-          onClose={handleCloseModal}
-        />
+        <SponsorModal sponsor={editingSponsor} onClose={handleCloseModal} />
       )}
     </>
   );
 }
 
-function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: () => void }) {
+function SponsorModal({
+  sponsor,
+  onClose,
+}: {
+  sponsor: Sponsor | null;
+  onClose: () => void;
+}) {
   const { toast } = useToast();
   const [name, setName] = useState(sponsor?.name || "");
   const [tier, setTier] = useState(sponsor?.tier || "Series A");
   const [logo, setLogo] = useState(sponsor?.logo || "");
   const [url, setUrl] = useState(sponsor?.url || "");
   const [year, setYear] = useState(sponsor?.year || 2026);
-  const [companyId, setCompanyId] = useState<number | null>(sponsor?.companyId || null);
+  const [companyId, setCompanyId] = useState<number | null>(
+    sponsor?.companyId || null,
+  );
   const [companySearch, setCompanySearch] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
-  
+
   const { data: companiesData } = useQuery<{ companies: any[] }>({
     queryKey: ["/api/companies"],
   });
-  
+
   const companies = companiesData?.companies || [];
   const filteredCompanies = companies.filter((c) =>
-    c.name.toLowerCase().includes(companySearch.toLowerCase())
+    c.name.toLowerCase().includes(companySearch.toLowerCase()),
   );
-  
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const data = { name, tier, logo, url, year, companyId };
-      
+
       if (sponsor) {
         return apiRequest(`/api/sponsors/${sponsor.id}`, "PATCH", data);
       } else {
@@ -680,31 +760,32 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
       });
     },
   });
-  
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     setUploadingImage(true);
-    
+
     const formData = new FormData();
-    formData.append("file", file);  // Changed from "image" to "file"
-    
+    formData.append("file", file); // Changed from "image" to "file"
+
     try {
-      const response = await fetch("/api/upload/file", {  // Changed endpoint to match post form
+      const response = await fetch("/api/upload/file", {
+        // Changed endpoint to match post form
         method: "POST",
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.text();
         console.error("Upload failed:", errorData);
         throw new Error("Upload failed");
       }
-      
+
       const data = await response.json();
       setLogo(data.url);
-      
+
       toast({
         title: "Success",
         description: "Image uploaded successfully",
@@ -720,10 +801,10 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
       setUploadingImage(false);
     }
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name || !tier || !logo) {
       toast({
         title: "Validation Error",
@@ -732,17 +813,19 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
       });
       return;
     }
-    
+
     saveMutation.mutate();
   };
-  
+
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{sponsor ? "Edit Sponsor" : "Add New Sponsor"}</DialogTitle>
+          <DialogTitle>
+            {sponsor ? "Edit Sponsor" : "Add New Sponsor"}
+          </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="sponsor-name" className="text-sm font-medium">
@@ -758,25 +841,30 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="sponsor-tier" className="text-sm font-medium">
               Tier *
             </Label>
             <Select value={tier} onValueChange={setTier}>
-              <SelectTrigger id="sponsor-tier" data-testid="select-sponsor-tier">
+              <SelectTrigger
+                id="sponsor-tier"
+                data-testid="select-sponsor-tier"
+              >
                 <SelectValue placeholder="Select a tier" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="Series A">Series A</SelectItem>
                 <SelectItem value="Seed">Seed</SelectItem>
                 <SelectItem value="Angel">Angel</SelectItem>
-                <SelectItem value="Friends & Family">Friends & Family</SelectItem>
+                <SelectItem value="Friends & Family">
+                  Friends & Family
+                </SelectItem>
                 <SelectItem value="501c3/.edu">501c3/.edu</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="sponsor-logo" className="text-sm font-medium">
               Logo *
@@ -790,14 +878,20 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
               disabled={uploadingImage}
               className="cursor-pointer file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
-            {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
+            {uploadingImage && (
+              <p className="text-sm text-muted-foreground">Uploading...</p>
+            )}
             {logo && (
               <div className="mt-2">
-                <img src={logo} alt="Preview" className="max-w-xs max-h-32 object-contain border border-border rounded-md bg-muted/30" />
+                <img
+                  src={logo}
+                  alt="Preview"
+                  className="max-w-xs max-h-32 object-contain border border-border rounded-md bg-muted/30"
+                />
               </div>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="sponsor-url" className="text-sm font-medium">
               URL
@@ -811,7 +905,7 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
               data-testid="input-sponsor-url"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="sponsor-year" className="text-sm font-medium">
               Year
@@ -824,7 +918,7 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
               data-testid="input-sponsor-year"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="company-search" className="text-sm font-medium">
               Link to Company (Optional)
@@ -871,13 +965,18 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
               </p>
             )}
           </div>
-          
+
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={onClose} data-testid="button-cancel">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              data-testid="button-cancel"
+            >
               Cancel
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={saveMutation.isPending || uploadingImage}
               data-testid="button-save-sponsor"
             >
@@ -985,9 +1084,15 @@ export default function SummitPage() {
 
       {/* Split Hero Section */}
       <div className="w-full">
-        <div className="grid lg:grid-cols-2 min-h-[50vh] lg:min-h-[600px]" style={{ minHeight: 'max(50vh, 500px)' }}>
+        <div
+          className="grid lg:grid-cols-2 min-h-[50vh] lg:min-h-[600px]"
+          style={{ minHeight: "max(50vh, 500px)" }}
+        >
           {/* Left Side - Full Background Image */}
-          <div className="relative min-h-[50vh] lg:min-h-[70vh]" style={{ minHeight: 'max(50vh, 500px)' }}>
+          <div
+            className="relative min-h-[50vh] lg:min-h-[70vh]"
+            style={{ minHeight: "max(50vh, 500px)" }}
+          >
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg"
               alt="Startup Sarasota"
@@ -1043,7 +1148,10 @@ export default function SummitPage() {
                   rel="noopener noreferrer"
                   className="inline-block w-full sm:w-auto"
                 >
-                  <Button size="lg" className="text-base w-full sm:w-auto sm:min-w-[300px] px-12">
+                  <Button
+                    size="lg"
+                    className="text-base w-full sm:w-auto sm:min-w-[300px] px-12"
+                  >
                     Get Tickets
                     <ExternalLink className="ml-2 h-4 w-4" />
                   </Button>
@@ -1051,8 +1159,12 @@ export default function SummitPage() {
               </div>
 
               <p className="text-md text-muted-foreground mt-6">
-                Powered by -  
-                <a href="https://www.rework.capital/" target="_blank" rel="noopener noreferrer">
+                Powered by -
+                <a
+                  href="https://www.rework.capital/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   Rework Capital
                 </a>
               </p>
@@ -1066,33 +1178,50 @@ export default function SummitPage() {
         <PageContainer className="max-w-7xl py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {/* Startup Fair */}
-            <Card className="h-full hover:shadow-lg transition-shadow" data-testid="card-startup-fair">
+            <Card
+              className="h-full hover:shadow-lg transition-shadow"
+              data-testid="card-startup-fair"
+            >
               <CardContent className="p-6 flex flex-col h-full">
-                <h3 className="text-xl font-bold mb-3 text-foreground">Startup Fair</h3>
+                <h3 className="text-xl font-bold mb-3 text-foreground">
+                  Startup School
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4 flex-grow">
-                  Industry experts across the world of startups, venture funding, business formation, 
-                  intellectual property, accounting and finance, and more. Learn how to find funding, 
-                  meet your co-founder or connect with a mentor / adviser.
+                  Industry experts from the world of startups, venture funding,
+                  business formation, intellectual property, accounting &
+                  finance, + more will be hosting breakouts and workshops to
+                  review your ideas and talk about how to build a startup.
                 </p>
-                <Button variant="outline" className="w-full" disabled data-testid="button-startup-fair-cta">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  disabled
+                  data-testid="button-startup-fair-cta"
+                >
                   Details Coming Soon
                 </Button>
               </CardContent>
             </Card>
 
             {/* Main Stage */}
-            <Card className="h-full hover:shadow-lg transition-shadow" data-testid="card-main-stage">
+            <Card
+              className="h-full hover:shadow-lg transition-shadow"
+              data-testid="card-main-stage"
+            >
               <CardContent className="p-6 flex flex-col h-full">
-                <h3 className="text-xl font-bold mb-3 text-foreground">Main Stage</h3>
+                <h3 className="text-xl font-bold mb-3 text-foreground">
+                  Main Stage
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4 flex-grow">
-                  Pitch us your 15 minute talk and we might just put you on the main stage. We're looking 
-                  for interesting stories about how you are using deep tech, AI, hardware, robotics, 
-                  3D printing, media or vibe code to build something the world has never seen.
+                  Apply to speak and we might just put you on the main stage.
+                  We're looking for founder stories, interesting applications of
+                  deep tech, AI, hardware, robotics, 3D printing, digital media
+                  or vibe code.
                 </p>
                 <Button className="w-full" data-testid="button-apply-speak">
-                  <a 
-                    href="https://airtable.com/applDXoTdj4LPUUVc/shrzIM9RcYBek4C0k" 
-                    target="_blank" 
+                  <a
+                    href="https://airtable.com/applDXoTdj4LPUUVc/shrzIM9RcYBek4C0k"
+                    target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center w-full"
                   >
@@ -1103,14 +1232,26 @@ export default function SummitPage() {
             </Card>
 
             {/* Keynote & Panels */}
-            <Card className="h-full hover:shadow-lg transition-shadow" data-testid="card-keynote-panels">
+            <Card
+              className="h-full hover:shadow-lg transition-shadow"
+              data-testid="card-keynote-panels"
+            >
               <CardContent className="p-6 flex flex-col h-full">
-                <h3 className="text-xl font-bold mb-3 text-foreground">Keynote & Panels</h3>
+                <h3 className="text-xl font-bold mb-3 text-foreground">
+                  Keynote & Panels
+                </h3>
                 <p className="text-sm text-muted-foreground mb-4 flex-grow">
-                  We're lining up experts from across the region and beyond to talk about how tech is 
-                  taking over the business world and whether or not we're in the middle of an AI bubble.
+                  We're lining up experts from across the region and beyond to
+                  share how tech is impacting their businesses as well as how
+                  you can take advantage of the coming transition while
+                  navigating the AI hype cycle.
                 </p>
-                <Button variant="outline" className="w-full" disabled data-testid="button-keynote-panels-cta">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  disabled
+                  data-testid="button-keynote-panels-cta"
+                >
                   Details Coming Soon
                 </Button>
               </CardContent>
@@ -1119,8 +1260,13 @@ export default function SummitPage() {
 
           {/* Speakers & Panelists Section */}
           <div className="mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6">Speakers & Panelists</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" data-testid="speakers-grid">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">
+              Speakers & Panelists
+            </h2>
+            <div
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
+              data-testid="speakers-grid"
+            >
               {/* Placeholder for speakers - will be populated as they are added */}
               <div className="text-center text-muted-foreground col-span-full py-8 border rounded-lg bg-muted/30">
                 <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
@@ -1137,7 +1283,7 @@ export default function SummitPage() {
                 <EventLinksCard />
                 <AgendaCard />
               </div>
-              
+
               {/* Right Content - News Feed and Gallery */}
               <div className="lg:col-span-2 space-y-4">
                 <SummitNewsCard />
