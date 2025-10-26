@@ -491,6 +491,51 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/sponsors", async (req, res) => {
+    try {
+      const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
+      const sponsors = await storage.getSponsors(year);
+      res.json({ sponsors });
+    } catch (error) {
+      console.error("Failed to fetch sponsors:", error);
+      res.status(500).json({ error: "Failed to fetch sponsors" });
+    }
+  });
+
+  app.post("/api/sponsors", requireAdmin, async (req, res) => {
+    try {
+      const sponsorData = req.body;
+      const sponsor = await storage.createSponsor(sponsorData);
+      res.json(sponsor);
+    } catch (error) {
+      console.error("Failed to create sponsor:", error);
+      res.status(500).json({ error: "Failed to create sponsor" });
+    }
+  });
+
+  app.patch("/api/sponsors/:id", requireAdmin, async (req, res) => {
+    try {
+      const sponsorId = parseInt(req.params.id);
+      const sponsor = await storage.updateSponsor(sponsorId, req.body);
+      res.json(sponsor);
+    } catch (error) {
+      console.error("Failed to update sponsor:", error);
+      res.status(500).json({ error: "Failed to update sponsor" });
+    }
+  });
+
+  app.delete("/api/sponsors/:id", requireAdmin, async (req, res) => {
+    try {
+      const sponsorId = parseInt(req.params.id);
+      const userId = req.session.userId!;
+      await storage.deleteSponsor(sponsorId, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete sponsor:", error);
+      res.status(500).json({ error: "Failed to delete sponsor" });
+    }
+  });
+
   app.get("/api/subscription/status", async (req, res) => {
     try {
       if (!req.session.userId) {
