@@ -277,7 +277,7 @@ function SponsorCard({ sponsor }: SponsorCardProps) {
         <img
           src={sponsor.logo}
           alt={sponsor.name}
-          className="w-full h-auto object-contain"
+          className="w-full h-auto object-contain rounded-lg"
         />
       </div>
       <div className="text-center">
@@ -613,7 +613,7 @@ function SponsorsGrid() {
                               <img
                                 src={sponsor.logo}
                                 alt={sponsor.name}
-                                className="w-full h-auto object-contain"
+                                className="w-full h-auto object-contain rounded-lg"
                               />
                             </div>
                             <div className="text-center">

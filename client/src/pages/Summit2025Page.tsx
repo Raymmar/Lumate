@@ -224,20 +224,53 @@ function SponsorSection({ title, sponsors, columns = 3, backgroundImage }: Spons
           }}
         >
           {sponsors.map((sponsor, index) => (
-            <div key={index} className="flex flex-col h-full">
-              <div className="mb-3 sm:mb-4">
-                <img 
-                  src={sponsor.logo} 
-                  alt={sponsor.name} 
-                  className="w-full h-auto object-contain" 
-                />
-              </div>
-              <div className="text-center">
-                <h3 className={`font-bold text-md sm:text-lg ${backgroundImage ? 'text-white' : 'text-foreground'}`}>
-                  {sponsor.name}
-                </h3>
-              </div>
-            </div>
+            <Card 
+              key={index} 
+              className={`h-full ${
+                backgroundImage 
+                  ? 'bg-white/10 dark:bg-white/5 backdrop-blur border-none text-white' 
+                  : 'bg-card dark:bg-card/80 hover:shadow-md transition-shadow'
+              }`}
+            >
+              <CardContent className="p-4 sm:p-6 flex flex-col h-full">
+                <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 bg-white/90 dark:bg-white/80 rounded-md p-1 flex items-center justify-center">
+                    <img 
+                      src={sponsor.logo} 
+                      alt={sponsor.name} 
+                      className="max-w-full max-h-full object-contain" 
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-md sm:text-lg">{sponsor.name}</h3>
+                    {sponsor.category && <p className="text-xs sm:text-sm text-muted-foreground dark:text-muted-foreground/90">{sponsor.category}</p>}
+                  </div>
+                </div>
+                <p className={`text-xs sm:text-sm flex-grow ${
+                  backgroundImage 
+                    ? 'text-white/80 dark:text-white/70' 
+                    : 'text-muted-foreground dark:text-muted-foreground/90'
+                }`}>
+                  {sponsor.description}
+                </p>
+                {sponsor.url && (
+                  <div className="mt-3 sm:mt-4">
+                    <a 
+                      href={sponsor.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={`text-xs sm:text-sm font-medium ${
+                        backgroundImage 
+                          ? 'text-white hover:text-white/80' 
+                          : 'text-primary hover:text-primary/80'
+                      } flex items-center`}
+                    >
+                      Learn more <ExternalLink className="ml-1 h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ))}
         </div>
       </PageContainer>
