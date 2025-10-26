@@ -2,15 +2,19 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, ExternalLink, Building2, Users } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Building2, Users, Plus, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import type { Post } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import type { Post, Sponsor } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -408,6 +412,452 @@ function ImageGalleryCard() {
   );
 }
 
+function SponsorsGrid() {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
+  
+  const { data: user } = useQuery({
+    queryKey: ["/api/user"],
+  });
+  
+  const { data, isLoading } = useQuery<{ sponsors: Sponsor[] }>({
+    queryKey: ["/api/sponsors?year=2026"],
+  });
+  
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/sponsors/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sponsors?year=2026"] });
+      toast({
+        title: "Success",
+        description: "Sponsor deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete sponsor",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const isAdmin = (user as any)?.isAdmin;
+  const sponsors = data?.sponsors || [];
+  
+  const tiers = [
+    { name: "Series A", key: "Series A", cols: 1 },
+    { name: "Seed", key: "Seed", cols: 3 },
+    { name: "Angel", key: "Angel", cols: 5 },
+    { name: "Friends & Family", key: "Friends & Family", cols: 5 },
+    { name: "501c3/.edu", key: "501c3/.edu", cols: 5 },
+  ];
+  
+  const handleEdit = (sponsor: Sponsor) => {
+    setEditingSponsor(sponsor);
+    setIsModalOpen(true);
+  };
+  
+  const handleDelete = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this sponsor?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+  
+  const handleAddNew = () => {
+    setEditingSponsor(null);
+    setIsModalOpen(true);
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingSponsor(null);
+  };
+  
+  if (isLoading) {
+    return (
+      <Card className="border">
+        <CardHeader>
+          <CardTitle>Summit Sponsors</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-32 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (sponsors.length === 0 && !isAdmin) {
+    return null;
+  }
+  
+  return (
+    <>
+      <Card className="border">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              Summit Sponsors
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="outline" size="sm" data-testid="button-become-sponsor">
+                  Become a Sponsor
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+              {isAdmin && (
+                <Button size="sm" onClick={handleAddNew} data-testid="button-add-sponsor">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Sponsor
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-8">
+          {tiers.map((tier) => {
+            const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
+            
+            if (tierSponsors.length === 0 && !isAdmin) {
+              return null;
+            }
+            
+            return (
+              <div key={tier.key} className="space-y-4">
+                <h3 className="text-lg font-semibold">{tier.name}</h3>
+                <div className={`grid gap-4 ${
+                  tier.cols === 1 ? 'grid-cols-1' :
+                  tier.cols === 3 ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' :
+                  'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
+                }`}>
+                  {tierSponsors.map((sponsor) => (
+                    <a
+                      key={sponsor.id}
+                      href={sponsor.url || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block group relative"
+                      data-testid={`sponsor-card-${sponsor.id}`}
+                    >
+                      <Card className="border h-full hover:shadow-md transition-shadow">
+                        <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
+                          <div className="w-full aspect-video flex items-center justify-center mb-3">
+                            <img
+                              src={sponsor.logo}
+                              alt={sponsor.name}
+                              className="max-w-full max-h-full object-contain"
+                            />
+                          </div>
+                          <h4 className="font-semibold text-sm">{sponsor.name}</h4>
+                        </CardContent>
+                      </Card>
+                      {isAdmin && (
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                className="h-8 w-8 p-0"
+                                data-testid={`button-sponsor-menu-${sponsor.id}`}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleEdit(sponsor);
+                                }}
+                                data-testid={`button-edit-sponsor-${sponsor.id}`}
+                              >
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  handleDelete(sponsor.id);
+                                }}
+                                className="text-destructive"
+                                data-testid={`button-delete-sponsor-${sponsor.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+      
+      {isModalOpen && (
+        <SponsorModal
+          sponsor={editingSponsor}
+          onClose={handleCloseModal}
+        />
+      )}
+    </>
+  );
+}
+
+function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: () => void }) {
+  const { toast } = useToast();
+  const [name, setName] = useState(sponsor?.name || "");
+  const [tier, setTier] = useState(sponsor?.tier || "Series A");
+  const [logo, setLogo] = useState(sponsor?.logo || "");
+  const [url, setUrl] = useState(sponsor?.url || "");
+  const [year, setYear] = useState(sponsor?.year || 2026);
+  const [companyId, setCompanyId] = useState<number | null>(sponsor?.companyId || null);
+  const [companySearch, setCompanySearch] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  
+  const { data: companiesData } = useQuery<{ companies: any[] }>({
+    queryKey: ["/api/companies"],
+  });
+  
+  const companies = companiesData?.companies || [];
+  const filteredCompanies = companies.filter((c) =>
+    c.name.toLowerCase().includes(companySearch.toLowerCase())
+  );
+  
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const data = { name, tier, logo, url, year, companyId };
+      
+      if (sponsor) {
+        return apiRequest(`/api/sponsors/${sponsor.id}`, "PATCH", data);
+      } else {
+        return apiRequest("/api/sponsors", "POST", data);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sponsors?year=2026"] });
+      toast({
+        title: "Success",
+        description: `Sponsor ${sponsor ? "updated" : "created"} successfully`,
+      });
+      onClose();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: `Failed to ${sponsor ? "update" : "create"} sponsor`,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadingImage(true);
+    
+    const formData = new FormData();
+    formData.append("image", file);
+    
+    try {
+      const response = await fetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error("Upload failed");
+      
+      const data = await response.json();
+      setLogo(data.url);
+      
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !tier || !logo) {
+      toast({
+        title: "Validation Error",
+        description: "Name, tier, and logo are required",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    saveMutation.mutate();
+  };
+  
+  return (
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{sponsor ? "Edit Sponsor" : "Add New Sponsor"}</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Name *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder="Sponsor name"
+              data-testid="input-sponsor-name"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Tier *</label>
+            <select
+              value={tier}
+              onChange={(e) => setTier(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="select-sponsor-tier"
+              required
+            >
+              <option value="Series A">Series A</option>
+              <option value="Seed">Seed</option>
+              <option value="Angel">Angel</option>
+              <option value="Friends & Family">Friends & Family</option>
+              <option value="501c3/.edu">501c3/.edu</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Logo *</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="input-sponsor-logo"
+              disabled={uploadingImage}
+            />
+            {uploadingImage && <p className="text-sm text-muted-foreground mt-1">Uploading...</p>}
+            {logo && (
+              <div className="mt-2">
+                <img src={logo} alt="Preview" className="max-w-xs max-h-32 object-contain border rounded" />
+              </div>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">URL</label>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              placeholder="https://example.com"
+              data-testid="input-sponsor-url"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Year</label>
+            <input
+              type="number"
+              value={year}
+              onChange={(e) => setYear(parseInt(e.target.value))}
+              className="w-full px-3 py-2 border rounded-md"
+              data-testid="input-sponsor-year"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Link to Company (Optional)</label>
+            <input
+              type="text"
+              value={companySearch}
+              onChange={(e) => setCompanySearch(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md mb-2"
+              placeholder="Search companies..."
+              data-testid="input-company-search"
+            />
+            {companySearch && filteredCompanies.length > 0 && (
+              <div className="border rounded-md max-h-40 overflow-y-auto">
+                {filteredCompanies.map((company) => (
+                  <div
+                    key={company.id}
+                    onClick={() => {
+                      setCompanyId(company.id);
+                      setCompanySearch(company.name);
+                    }}
+                    className="px-3 py-2 hover:bg-muted cursor-pointer"
+                    data-testid={`company-option-${company.id}`}
+                  >
+                    {company.name}
+                  </div>
+                ))}
+              </div>
+            )}
+            {companyId && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Linked to: {companies.find((c) => c.id === companyId)?.name}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCompanyId(null);
+                    setCompanySearch("");
+                  }}
+                  className="ml-2 text-destructive hover:underline"
+                  data-testid="button-clear-company"
+                >
+                  Clear
+                </button>
+              </p>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={onClose} data-testid="button-cancel">
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={saveMutation.isPending || uploadingImage}
+              data-testid="button-save-sponsor"
+            >
+              {saveMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function SummitPage() {
   const vcSponsors = [
     {
@@ -598,54 +1048,7 @@ export default function SummitPage() {
               </div>
             </div>
 
-            {/* TODO: Uncomment sponsor sections when ready */}
-            {/* Marquee Sponsors */}
-            {/* <Card className="border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5" />
-                  Marquee Sponsors
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {vcSponsors.map((sponsor, index) => (
-                    <SponsorCard key={index} sponsor={sponsor} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card> */}
-
-            {/* Startup Ecosystem Sponsors */}
-            {/* <Card className="border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Startup Ecosystem Sponsors
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {startupSponsors.map((sponsor, index) => (
-                    <SponsorCard key={index} sponsor={sponsor} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card> */}
-
-            {/* Advisory Sponsors */}
-            {/* <Card className="border">
-              <CardHeader>
-                <CardTitle>Advisory Sponsors</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {advisorySponsors.map((sponsor, index) => (
-                    <SponsorCard key={index} sponsor={sponsor} />
-                  ))}
-                </div>
-              </CardContent>
-            </Card> */}
+            <SponsorsGrid />
           </div>
         </PageContainer>
       </div>
