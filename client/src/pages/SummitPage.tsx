@@ -687,15 +687,19 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
     setUploadingImage(true);
     
     const formData = new FormData();
-    formData.append("image", file);
+    formData.append("file", file);  // Changed from "image" to "file"
     
     try {
-      const response = await fetch("/api/upload/image", {
+      const response = await fetch("/api/upload/file", {  // Changed endpoint to match post form
         method: "POST",
         body: formData,
       });
       
-      if (!response.ok) throw new Error("Upload failed");
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Upload failed:", errorData);
+        throw new Error("Upload failed");
+      }
       
       const data = await response.json();
       setLogo(data.url);
@@ -705,6 +709,7 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
         description: "Image uploaded successfully",
       });
     } catch (error) {
+      console.error("Upload error:", error);
       toast({
         title: "Error",
         description: "Failed to upload image",
