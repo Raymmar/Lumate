@@ -564,11 +564,11 @@ function SponsorsGrid() {
                         >
                           <Card className="border h-full hover:shadow-md transition-shadow">
                             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-                              <div className="w-full aspect-video flex items-center justify-center mb-3">
+                              <div className="w-full flex items-center justify-center mb-3">
                                 <img
                                   src={sponsor.logo}
                                   alt={sponsor.name}
-                                  className="max-w-full max-h-full object-contain"
+                                  className="w-full h-auto object-contain"
                                 />
                               </div>
                               <h4 className="font-semibold text-sm">{sponsor.name}</h4>
