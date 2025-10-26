@@ -485,11 +485,11 @@ function SponsorsGrid() {
   const sponsors = data?.sponsors || [];
 
   const tiers = [
-    { name: "Series A", key: "Series A", cols: 1 },
-    { name: "Seed", key: "Seed", cols: 3 },
-    { name: "Angel", key: "Angel", cols: 5 },
-    { name: "Friends & Family", key: "Friends & Family", cols: 5 },
-    { name: "501c3/.edu", key: "501c3/.edu", cols: 5 },
+    { name: "Series A", key: "Series A", cols: 1, description: "Premier sponsors" },
+    { name: "Seed", key: "Seed", cols: 3, description: "Core sponsors" },
+    { name: "Angel", key: "Angel", cols: 5, description: "Growth sponsors" },
+    { name: "Friends & Family", key: "Friends & Family", cols: 5, description: "Community sponsors" },
+    { name: "501c3/.edu", key: "501c3/.edu", cols: 5, description: "Nonprofit & education sponsors" },
   ];
 
   const handleEdit = (sponsor: Sponsor) => {
@@ -569,109 +569,113 @@ function SponsorsGrid() {
           </div>
         </CardHeader>
         <CardContent className="space-y-8">
-          {sponsors.length === 0 && isAdmin ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium mb-2">No sponsors yet</p>
-              <p className="text-sm">Click "Add Sponsor" to get started</p>
-            </div>
-          ) : (
-            <>
-              {tiers.map((tier) => {
-                const tierSponsors = sponsors.filter(
-                  (s) => s.tier === tier.key,
-                );
+          {tiers.map((tier) => {
+            const tierSponsors = sponsors.filter(
+              (s) => s.tier === tier.key,
+            );
 
-                // Only show tiers that have sponsors
-                if (tierSponsors.length === 0) {
-                  return null;
-                }
-
-                return (
-                  <div key={tier.key} className="space-y-4">
-                    <h3 className="text-lg font-semibold">{tier.name}</h3>
-                    <div
-                      className={`grid gap-4 ${
-                        tier.cols === 1
-                          ? "grid-cols-1"
-                          : tier.cols === 3
-                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                      }`}
+            return (
+              <div key={tier.key} className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold">{tier.name}</h3>
+                  <p className="text-sm text-muted-foreground">{tier.description}</p>
+                </div>
+                
+                {tierSponsors.length === 0 ? (
+                  <div className="flex items-center justify-center py-8 border-2 border-dashed rounded-lg">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleAddNew}
+                      className="flex items-center gap-2"
+                      data-testid={`button-add-sponsor-${tier.key}`}
                     >
-                      {tierSponsors.map((sponsor) => (
-                        <a
-                          key={sponsor.id}
-                          href={sponsor.url || undefined}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block group relative"
-                          data-testid={`sponsor-card-${sponsor.id}`}
-                        >
-                          <div className="flex flex-col h-full">
-                            <div className="mb-3">
-                              <img
-                                src={sponsor.logo}
-                                alt={sponsor.name}
-                                className="w-full h-auto object-contain rounded-lg"
-                              />
-                            </div>
-                            <div className="text-center">
-                              <h4 className="font-semibold text-sm">
-                                {sponsor.name}
-                              </h4>
-                            </div>
-                          </div>
-                          {isAdmin && (
-                            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger
-                                  asChild
-                                  onClick={(e) => e.preventDefault()}
-                                >
-                                  <Button
-                                    variant="secondary"
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                    data-testid={`button-sponsor-menu-${sponsor.id}`}
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      handleEdit(sponsor);
-                                    }}
-                                    data-testid={`button-edit-sponsor-${sponsor.id}`}
-                                  >
-                                    <Pencil className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      handleDelete(sponsor.id);
-                                    }}
-                                    className="text-destructive"
-                                    data-testid={`button-delete-sponsor-${sponsor.id}`}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          )}
-                        </a>
-                      ))}
-                    </div>
+                      <Plus className="h-5 w-5" />
+                      <span>Add sponsor to {tier.name}</span>
+                    </Button>
                   </div>
-                );
-              })}
-            </>
-          )}
+                ) : (
+                  <div
+                    className={`grid gap-4 ${
+                      tier.cols === 1
+                        ? "grid-cols-1"
+                        : tier.cols === 3
+                          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                          : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                    }`}
+                  >
+                    {tierSponsors.map((sponsor) => (
+                      <a
+                        key={sponsor.id}
+                        href={sponsor.url || undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block group relative"
+                        data-testid={`sponsor-card-${sponsor.id}`}
+                      >
+                        <div className="flex flex-col h-full">
+                          <div className="mb-3">
+                            <img
+                              src={sponsor.logo}
+                              alt={sponsor.name}
+                              className="w-full h-auto object-contain rounded-lg"
+                            />
+                          </div>
+                          <div className="text-center">
+                            <h4 className="font-semibold text-sm">
+                              {sponsor.name}
+                            </h4>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                asChild
+                                onClick={(e) => e.preventDefault()}
+                              >
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-8 w-8 p-0"
+                                  data-testid={`button-sponsor-menu-${sponsor.id}`}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleEdit(sponsor);
+                                  }}
+                                  data-testid={`button-edit-sponsor-${sponsor.id}`}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleDelete(sponsor.id);
+                                  }}
+                                  className="text-destructive"
+                                  data-testid={`button-delete-sponsor-${sponsor.id}`}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </CardContent>
       </Card>
 
