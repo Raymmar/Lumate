@@ -1061,9 +1061,74 @@ export default function SummitPage() {
         </div>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Agenda Content Blocks */}
       <div className="flex-1">
-        <PageContainer className="max-w-7xl py-8">
+        <PageContainer className="max-w-7xl py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+            {/* Startup Fair */}
+            <Card className="h-full hover:shadow-lg transition-shadow" data-testid="card-startup-fair">
+              <CardContent className="p-6 flex flex-col h-full">
+                <h3 className="text-xl font-bold mb-3 text-foreground">Startup Fair</h3>
+                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                  Industry experts across the world of startups, venture funding, business formation, 
+                  intellectual property, accounting and finance, and more. Learn how to find funding, 
+                  meet your co-founder or connect with a mentor / adviser.
+                </p>
+                <Button variant="outline" className="w-full" disabled data-testid="button-startup-fair-cta">
+                  Details Coming Soon
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Main Stage */}
+            <Card className="h-full hover:shadow-lg transition-shadow" data-testid="card-main-stage">
+              <CardContent className="p-6 flex flex-col h-full">
+                <h3 className="text-xl font-bold mb-3 text-foreground">Main Stage</h3>
+                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                  Pitch us your 15 minute talk and we might just put you on the main stage. We're looking 
+                  for interesting stories about how you are using deep tech, AI, hardware, robotics, 
+                  3D printing, media or vibe code to build something the world has never seen.
+                </p>
+                <Button className="w-full" data-testid="button-apply-speak">
+                  <a 
+                    href="https://airtable.com/applDXoTdj4LPUUVc/shrzIM9RcYBek4C0k" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full"
+                  >
+                    Apply to Speak <ExternalLink className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Keynote & Panels */}
+            <Card className="h-full hover:shadow-lg transition-shadow" data-testid="card-keynote-panels">
+              <CardContent className="p-6 flex flex-col h-full">
+                <h3 className="text-xl font-bold mb-3 text-foreground">Keynote & Panels</h3>
+                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                  We're lining up experts from across the region and beyond to talk about how tech is 
+                  taking over the business world and whether or not we're in the middle of an AI bubble.
+                </p>
+                <Button variant="outline" className="w-full" disabled data-testid="button-keynote-panels-cta">
+                  Details Coming Soon
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Speakers & Panelists Section */}
+          <div className="mb-12">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6">Speakers & Panelists</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4" data-testid="speakers-grid">
+              {/* Placeholder for speakers - will be populated as they are added */}
+              <div className="text-center text-muted-foreground col-span-full py-8 border rounded-lg bg-muted/30">
+                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-sm">Speaker lineup coming soon!</p>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-6">
             {/* Sidebar and Main Content */}
             <div className="grid gap-4 lg:grid-cols-3">
