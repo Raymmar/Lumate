@@ -17,9 +17,10 @@ import {
   Company, InsertCompany,
   CompanyMember, InsertCompanyMember,
   CompanyTag, InsertCompanyTag,
+  Sponsor, InsertSponsor,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -160,6 +161,13 @@ export interface IStorage {
 
   // Batch invite functionality
   getUnclaimedPeople(): Promise<Person[]>;
+
+  // Sponsor management
+  getSponsors(year: number): Promise<Sponsor[]>;
+  getSponsorById(id: number): Promise<Sponsor | null>;
+  createSponsor(sponsorData: InsertSponsor): Promise<Sponsor>;
+  updateSponsor(sponsorId: number, data: Partial<Sponsor>): Promise<Sponsor>;
+  deleteSponsor(sponsorId: number, deletedBy: number): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -2409,6 +2417,83 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get unclaimed people:', error);
+      throw error;
+    }
+  }
+
+  async getSponsors(year: number): Promise<Sponsor[]> {
+    try {
+      const result = await db
+        .select()
+        .from(sponsors)
+        .where(and(
+          eq(sponsors.year, year),
+          sql`${sponsors.deletedAt} IS NULL`
+        ));
+      return result;
+    } catch (error) {
+      console.error('Failed to get sponsors:', error);
+      throw error;
+    }
+  }
+
+  async getSponsorById(id: number): Promise<Sponsor | null> {
+    try {
+      const result = await db
+        .select()
+        .from(sponsors)
+        .where(eq(sponsors.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get sponsor by id:', error);
+      throw error;
+    }
+  }
+
+  async createSponsor(sponsorData: InsertSponsor): Promise<Sponsor> {
+    try {
+      const result = await db
+        .insert(sponsors)
+        .values(sponsorData)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create sponsor:', error);
+      throw error;
+    }
+  }
+
+  async updateSponsor(sponsorId: number, data: Partial<Sponsor>): Promise<Sponsor> {
+    try {
+      const result = await db
+        .update(sponsors)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(sponsors.id, sponsorId))
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error('Sponsor not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update sponsor:', error);
+      throw error;
+    }
+  }
+
+  async deleteSponsor(sponsorId: number, deletedBy: number): Promise<void> {
+    try {
+      await db
+        .update(sponsors)
+        .set({ 
+          deletedAt: new Date().toISOString(),
+          deletedBy: deletedBy
+        })
+        .where(eq(sponsors.id, sponsorId));
+    } catch (error) {
+      console.error('Failed to delete sponsor:', error);
       throw error;
     }
   }
