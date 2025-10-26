@@ -272,42 +272,18 @@ interface SponsorCardProps {
 
 function SponsorCard({ sponsor }: SponsorCardProps) {
   return (
-    <Card className="border h-full">
-      <CardContent className="p-4 flex flex-col h-full">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 flex-shrink-0 bg-muted rounded-md p-2 flex items-center justify-center">
-            <img
-              src={sponsor.logo}
-              alt={sponsor.name}
-              className="max-w-full max-h-full object-contain"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-sm truncate">{sponsor.name}</h3>
-            {sponsor.category && (
-              <p className="text-xs text-muted-foreground">
-                {sponsor.category}
-              </p>
-            )}
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground flex-grow line-clamp-3">
-          {sponsor.description}
-        </p>
-        {sponsor.url && (
-          <div className="mt-3 pt-3 border-t">
-            <a
-              href={sponsor.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs font-medium text-primary hover:text-primary/80 flex items-center"
-            >
-              Learn more <ExternalLink className="ml-1 h-3 w-3" />
-            </a>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="flex flex-col h-full">
+      <div className="mb-3">
+        <img
+          src={sponsor.logo}
+          alt={sponsor.name}
+          className="w-full h-auto object-contain"
+        />
+      </div>
+      <div className="text-center">
+        <h3 className="font-bold text-sm">{sponsor.name}</h3>
+      </div>
+    </div>
   );
 }
 
@@ -632,20 +608,20 @@ function SponsorsGrid() {
                           className="block group relative"
                           data-testid={`sponsor-card-${sponsor.id}`}
                         >
-                          <Card className="border h-full hover:shadow-md transition-shadow">
-                            <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
-                              <div className="w-full flex items-center justify-center mb-3">
-                                <img
-                                  src={sponsor.logo}
-                                  alt={sponsor.name}
-                                  className="w-full h-auto object-contain rounded-md"
-                                />
-                              </div>
+                          <div className="flex flex-col h-full">
+                            <div className="mb-3">
+                              <img
+                                src={sponsor.logo}
+                                alt={sponsor.name}
+                                className="w-full h-auto object-contain"
+                              />
+                            </div>
+                            <div className="text-center">
                               <h4 className="font-semibold text-sm">
                                 {sponsor.name}
                               </h4>
-                            </CardContent>
-                          </Card>
+                            </div>
+                          </div>
                           {isAdmin && (
                             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               <DropdownMenu>
