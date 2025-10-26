@@ -540,7 +540,8 @@ function SponsorsGrid() {
               {tiers.map((tier) => {
                 const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
                 
-                if (tierSponsors.length === 0 && !isAdmin) {
+                // Only show tiers that have sponsors
+                if (tierSponsors.length === 0) {
                   return null;
                 }
               
