@@ -1135,7 +1135,7 @@ export default function SummitPage() {
                 </div>
               </div>
 
-              <p className="text-base text-muted-foreground mb-8">
+              <p className="text-lg text-muted-foreground mb-8">
                 Join us for the second annual Sarasota Tech Summit featuring a
                 startup fair, investor panels, networking opportunities, and
                 insights into building the future of Sarasota's tech ecosystem.
@@ -1186,7 +1186,7 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Startup School
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                <p className="text-m text-muted-foreground mb-4 flex-grow">
                   Industry experts from the world of startups, venture funding,
                   business formation, intellectual property, accounting &
                   finance, + more will be hosting breakouts and workshops to
@@ -1212,7 +1212,7 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Main Stage
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                <p className="text-m text-muted-foreground mb-4 flex-grow">
                   Apply to speak and we might just put you on the main stage.
                   We're looking for founder stories, interesting applications of
                   deep tech, AI, hardware, robotics, 3D printing, digital media
@@ -1240,7 +1240,7 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Keynote & Panels
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4 flex-grow">
+                <p className="text-m text-muted-foreground mb-4 flex-grow">
                   We're lining up experts from across the region and beyond to
                   share how tech is impacting their businesses as well as how
                   you can take advantage of the coming transition while
