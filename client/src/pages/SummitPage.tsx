@@ -491,9 +491,10 @@ function SponsorsGrid() {
     );
   }
   
-  if (!isAdmin && sponsors.length === 0) {
-    return null;
-  }
+  // Temporarily removed visibility check for debugging
+  // if (!isAdmin && sponsors.length === 0) {
+  //   return null;
+  // }
   
   return (
     <>
