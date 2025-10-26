@@ -15,6 +15,9 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -735,89 +738,101 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Name *</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-name" className="text-sm font-medium">
+              Name *
+            </Label>
+            <Input
+              id="sponsor-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
               placeholder="Sponsor name"
               data-testid="input-sponsor-name"
               required
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Tier *</label>
-            <select
-              value={tier}
-              onChange={(e) => setTier(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-              data-testid="select-sponsor-tier"
-              required
-            >
-              <option value="Series A">Series A</option>
-              <option value="Seed">Seed</option>
-              <option value="Angel">Angel</option>
-              <option value="Friends & Family">Friends & Family</option>
-              <option value="501c3/.edu">501c3/.edu</option>
-            </select>
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-tier" className="text-sm font-medium">
+              Tier *
+            </Label>
+            <Select value={tier} onValueChange={setTier}>
+              <SelectTrigger id="sponsor-tier" data-testid="select-sponsor-tier">
+                <SelectValue placeholder="Select a tier" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Series A">Series A</SelectItem>
+                <SelectItem value="Seed">Seed</SelectItem>
+                <SelectItem value="Angel">Angel</SelectItem>
+                <SelectItem value="Friends & Family">Friends & Family</SelectItem>
+                <SelectItem value="501c3/.edu">501c3/.edu</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Logo *</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-logo" className="text-sm font-medium">
+              Logo *
+            </Label>
+            <Input
+              id="sponsor-logo"
               type="file"
               accept="image/*"
               onChange={handleImageUpload}
-              className="w-full px-3 py-2 border rounded-md"
               data-testid="input-sponsor-logo"
               disabled={uploadingImage}
+              className="cursor-pointer file:mr-4 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
-            {uploadingImage && <p className="text-sm text-muted-foreground mt-1">Uploading...</p>}
+            {uploadingImage && <p className="text-sm text-muted-foreground">Uploading...</p>}
             {logo && (
               <div className="mt-2">
-                <img src={logo} alt="Preview" className="max-w-xs max-h-32 object-contain border rounded" />
+                <img src={logo} alt="Preview" className="max-w-xs max-h-32 object-contain border border-border rounded-md bg-muted/30" />
               </div>
             )}
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">URL</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-url" className="text-sm font-medium">
+              URL
+            </Label>
+            <Input
+              id="sponsor-url"
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
               placeholder="https://example.com"
               data-testid="input-sponsor-url"
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Year</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="sponsor-year" className="text-sm font-medium">
+              Year
+            </Label>
+            <Input
+              id="sponsor-year"
               type="number"
               value={year}
               onChange={(e) => setYear(parseInt(e.target.value))}
-              className="w-full px-3 py-2 border rounded-md"
               data-testid="input-sponsor-year"
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium mb-1">Link to Company (Optional)</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="company-search" className="text-sm font-medium">
+              Link to Company (Optional)
+            </Label>
+            <Input
+              id="company-search"
               type="text"
               value={companySearch}
               onChange={(e) => setCompanySearch(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md mb-2"
               placeholder="Search companies..."
               data-testid="input-company-search"
             />
             {companySearch && filteredCompanies.length > 0 && (
-              <div className="border rounded-md max-h-40 overflow-y-auto">
+              <div className="border border-border rounded-md max-h-40 overflow-y-auto bg-background">
                 {filteredCompanies.map((company) => (
                   <div
                     key={company.id}
@@ -825,7 +840,7 @@ function SponsorModal({ sponsor, onClose }: { sponsor: Sponsor | null; onClose: 
                       setCompanyId(company.id);
                       setCompanySearch(company.name);
                     }}
-                    className="px-3 py-2 hover:bg-muted cursor-pointer"
+                    className="px-3 py-2 hover:bg-muted cursor-pointer transition-colors text-foreground"
                     data-testid={`company-option-${company.id}`}
                   >
                     {company.name}
