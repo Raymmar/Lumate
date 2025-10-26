@@ -568,7 +568,7 @@ function SponsorsGrid() {
                                 <img
                                   src={sponsor.logo}
                                   alt={sponsor.name}
-                                  className="w-full h-auto object-contain"
+                                  className="w-full h-auto object-contain rounded-md"
                                 />
                               </div>
                               <h4 className="font-semibold text-sm">{sponsor.name}</h4>
