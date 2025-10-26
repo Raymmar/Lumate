@@ -598,3 +598,28 @@ export type CompanyTag = typeof companyTags.$inferSelect;
 export type InsertCompanyTag = z.infer<typeof insertCompanyTagSchema>;
 export type CompanyIndustry = typeof companyIndustries.$inferSelect;
 export type InsertCompanyIndustry = z.infer<typeof insertCompanyIndustrySchema>;
+
+export const sponsors = pgTable("sponsors", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  tier: varchar("tier", { length: 50 }).notNull(),
+  logo: varchar("logo", { length: 255 }).notNull(),
+  url: varchar("url", { length: 255 }),
+  year: integer("year").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
+  deletedAt: timestamp("deleted_at", { mode: 'string', withTimezone: true }),
+  deletedBy: integer("deleted_by").references(() => users.id),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertSponsorSchema = createInsertSchema(sponsors).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  deletedAt: true,
+  deletedBy: true,
+});
+
+export type Sponsor = typeof sponsors.$inferSelect;
+export type InsertSponsor = z.infer<typeof insertSponsorSchema>;
