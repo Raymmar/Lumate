@@ -419,7 +419,7 @@ function SponsorsGrid() {
   const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
   
   const { data: user } = useQuery({
-    queryKey: ["/api/user"],
+    queryKey: ["/api/auth/me"],
   });
   
   const { data, isLoading } = useQuery<{ sponsors: Sponsor[] }>({
@@ -446,7 +446,7 @@ function SponsorsGrid() {
     },
   });
   
-  const isAdmin = (user as any)?.isAdmin;
+  const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
   const sponsors = data?.sponsors || [];
   
   const tiers = [
