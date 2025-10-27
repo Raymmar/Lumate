@@ -33,8 +33,12 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
 
   // Initialize tags from defaultValues when component mounts or defaultValues changes
   useEffect(() => {
-    setTags(defaultValues?.tags || []);
-  }, [defaultValues?.tags, defaultValues?.title]);
+    if (defaultValues?.tags) {
+      setTags(defaultValues.tags);
+    } else {
+      setTags([]);
+    }
+  }, [defaultValues?.tags]);
 
   // Fetch existing tags
   const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
