@@ -382,6 +382,7 @@ function SummitNewsSection() {
       >
         <PostForm 
           onSubmit={handleCreatePost}
+          defaultValues={{ tags: ["summit 2026"] }}
           isEditing={false}
         />
       </PostModal>
