@@ -180,7 +180,7 @@ function AgendaCard() {
       <CardContent>
         <div className="space-y-6 md:space-y-8">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
               10:00 - 11:00
             </div>
             <div className="flex-1">
@@ -193,7 +193,7 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
               11:00 - 03:00
             </div>
             <div className="flex-1">
@@ -206,7 +206,7 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
               03:30 - 04:30
             </div>
             <div className="flex-1">
@@ -219,7 +219,7 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
               04:30 - 06:00
             </div>
             <div className="flex-1">
@@ -232,7 +232,7 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
               06:00 - 08:30
             </div>
             <div className="flex-1">
@@ -245,7 +245,7 @@ function AgendaCard() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground min-w-[80px] sm:min-w-[90px] flex-shrink-0">
+            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
               08:30 - 10:00
             </div>
             <div className="flex-1">
@@ -607,23 +607,26 @@ function SponsorsGrid() {
     <>
       <Card className="border">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
               Summit Sponsors
             </CardTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <a
                 href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex-1 sm:flex-none"
               >
                 <Button
                   variant="outline"
                   size="sm"
                   data-testid="button-become-sponsor"
+                  className="w-full sm:w-auto whitespace-nowrap"
                 >
-                  Become a Sponsor
+                  <span className="hidden sm:inline">Become a Sponsor</span>
+                  <span className="sm:hidden">Sponsor</span>
                   <ExternalLink className="ml-2 h-4 w-4" />
                 </Button>
               </a>
@@ -632,6 +635,7 @@ function SponsorsGrid() {
                   size="sm"
                   onClick={handleAddNew}
                   data-testid="button-add-sponsor"
+                  className="whitespace-nowrap"
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   Add Sponsor
@@ -890,7 +894,7 @@ function SponsorModal({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
         <DialogHeader>
           <DialogTitle>
             {sponsor ? "Edit Sponsor" : "Add New Sponsor"}
@@ -1133,16 +1137,16 @@ export default function SummitPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative">
+    <div className="min-h-screen bg-background flex flex-col relative overflow-x-hidden">
       {/* Gradient Sunburst Background - centered on top right corner */}
       <div
-        className="fixed top-0 right-0 pointer-events-none z-0"
+        className="fixed top-0 right-0 pointer-events-none z-0 overflow-hidden"
         style={{ transform: "translate(50%, -50%)" }}
       >
         <img
           src="https://file-upload.replit.app/api/storage/images%2F1761418188502-gradient-sunburst.png"
           alt=""
-          className="w-auto h-auto opacity-80"
+          className="w-auto h-auto opacity-80 max-w-none"
         />
       </div>
 
@@ -1173,13 +1177,13 @@ export default function SummitPage() {
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1761418772061-Logo-block-white.png"
               alt="STS Logo"
-              className="absolute top-5 left-5 w-64 md:w-80 lg:w-96 h-auto"
+              className="absolute top-5 left-5 w-48 sm:w-64 md:w-80 lg:w-96 h-auto max-w-[calc(100%-2.5rem)]"
             />
             {/* Mote Date Block - Bottom Right */}
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
               alt="Event Date"
-              className="absolute w-full md:w-96 lg:w-128 h-auto"
+              className="absolute w-full max-w-full md:w-96 lg:w-128 h-auto"
               style={{ bottom: "-4%", right: "0%" }}
             />
           </div>
