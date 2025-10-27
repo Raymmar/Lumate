@@ -549,7 +549,7 @@ function SponsorsGrid() {
       description: "Premier sponsors",
     },
     { name: "Seed", key: "Seed", cols: 2, description: "Core sponsors" },
-    { name: "Angel", key: "Angel", cols: 5, description: "Growth sponsors" },
+    { name: "Angel", key: "Angel", cols: 3, description: "Growth sponsors" },
     {
       name: "Friends & Family",
       key: "Friends & Family",
