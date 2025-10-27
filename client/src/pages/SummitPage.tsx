@@ -311,18 +311,18 @@ function SummitNewsSection() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiRequest("/api/admin/posts", "POST", data);
+      await apiRequest('/api/admin/posts', 'POST', data);
       setIsCreating(false);
       toast({
         title: "Success",
-        description: "Post created successfully",
+        description: "Post created successfully"
       });
-      await queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to create post",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -333,18 +333,18 @@ function SummitNewsSection() {
     if (!editingPost || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiRequest(`/api/admin/posts/${editingPost.id}`, "PATCH", data);
+      await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
       setEditingPost(null);
       toast({
         title: "Success",
-        description: "Post updated successfully",
+        description: "Post updated successfully"
       });
-      await queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update post",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -362,8 +362,8 @@ function SummitNewsSection() {
       />
 
       {/* Create Post Modal */}
-      <PostModal
-        open={isCreating}
+      <PostModal 
+        open={isCreating} 
         onOpenChange={(open) => {
           if (!open) {
             setIsCreating(false);
@@ -373,14 +373,14 @@ function SummitNewsSection() {
         title="Create New Summit Post"
         mode="create"
         onSubmit={() => {
-          const form = document.querySelector("form");
+          const form = document.querySelector('form');
           if (form) {
             form.requestSubmit();
           }
         }}
         isSubmitting={isSubmitting}
       >
-        <PostForm
+        <PostForm 
           onSubmit={handleCreatePost}
           defaultValues={{ tags: ["summit 2026"] }}
           isEditing={false}
@@ -388,8 +388,8 @@ function SummitNewsSection() {
       </PostModal>
 
       {/* Edit Post Modal */}
-      <PostModal
-        open={!!editingPost}
+      <PostModal 
+        open={!!editingPost} 
         onOpenChange={(open) => {
           if (!open) {
             setEditingPost(null);
@@ -399,14 +399,14 @@ function SummitNewsSection() {
         title="Edit Summit Post"
         mode="edit"
         onSubmit={() => {
-          const form = document.querySelector("form");
+          const form = document.querySelector('form');
           if (form) {
             form.requestSubmit();
           }
         }}
         isSubmitting={isSubmitting}
       >
-        <PostForm
+        <PostForm 
           onSubmit={handleUpdatePost}
           defaultValues={editingPost || undefined}
           isEditing={true}
@@ -440,7 +440,7 @@ function ImageGalleryCard() {
 
   return (
     <>
-      <Card className="border pt-6 w-full max-w-full overflow-hidden">
+      <Card className="border pt-3 w-full max-w-full overflow-hidden">
         <CardContent className="p-3">
           <div className="grid grid-cols-2 gap-3">
             {galleryImages.map((image, index) => (
@@ -749,7 +749,7 @@ function SponsorsGrid() {
                         )}
                       </a>
                     ))}
-
+                    
                     {tier.key === "Seed" && tierSponsors.length % 2 === 1 && (
                       <a
                         href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
