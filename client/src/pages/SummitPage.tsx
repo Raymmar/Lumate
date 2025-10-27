@@ -1130,7 +1130,7 @@ export default function SummitPage() {
                     href="https://maps.app.goo.gl/mu5JzP3rRPvrDzAV9"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-lg hover:underline"
+                    className="text-lg underline"
                   >
                     MOTE SEA
                   </a>
