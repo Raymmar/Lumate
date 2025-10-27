@@ -1,4 +1,5 @@
 export function generateSponsorInquiryEmail(): string {
+  const to = "sponsor@sarasota.tech";
   const subject = encodeURIComponent("Sarasota Tech Sponsor Inquiry");
   const body = encodeURIComponent(
     `I'm interested I learning more about sponsorships for Sarasotas Tech.
@@ -11,5 +12,5 @@ Contact mobile:
 Goals of sponsoring:`
   );
   
-  return `mailto:?subject=${subject}&body=${body}`;
+  return `mailto:${to}?subject=${subject}&body=${body}`;
 }

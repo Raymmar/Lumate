@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/hooks/use-auth";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
+import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 
 interface PlanFeature {
   text: string;
@@ -43,8 +44,8 @@ export default function MembershipsPage() {
   const { user } = useAuth();
   const isLoggedIn = !!user;
 
-  const handleContactClick = () => {
-    window.open("https://calendly.com/srqyou/sarasotatech", "_blank");
+  const handleSponsorInquiry = () => {
+    window.location.href = generateSponsorInquiryEmail();
   };
 
   const pricingPlans: PricingPlan[] = [
@@ -101,7 +102,7 @@ export default function MembershipsPage() {
       ],
       cta: {
         text: "Contact Us",
-        action: handleContactClick,
+        action: handleSponsorInquiry,
       },
     },
   ];
@@ -221,7 +222,7 @@ export default function MembershipsPage() {
                       in our directory, recognition at all events, and opportunities to engage
                       directly with the local tech ecosystem.
                     </p>
-                    <Button onClick={handleContactClick}>
+                    <Button onClick={handleSponsorInquiry}>
                       <Briefcase className="mr-2 h-4 w-4" />
                       Contact Us About Sponsorship
                     </Button>
