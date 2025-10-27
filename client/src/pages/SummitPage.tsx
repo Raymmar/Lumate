@@ -702,7 +702,7 @@ function SponsorsGrid() {
                             />
                           </div>
                           <div className="text-center">
-                            <h4 className="font-semibold text-sm">
+                            <h4 className="font-semibold text-sm line-clamp-2">
                               {sponsor.name}
                             </h4>
                           </div>
