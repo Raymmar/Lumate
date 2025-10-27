@@ -548,7 +548,7 @@ function SponsorsGrid() {
       cols: 1,
       description: "Premier sponsors",
     },
-    { name: "Seed", key: "Seed", cols: 3, description: "Core sponsors" },
+    { name: "Seed", key: "Seed", cols: 2, description: "Core sponsors" },
     { name: "Angel", key: "Angel", cols: 5, description: "Growth sponsors" },
     {
       name: "Friends & Family",
@@ -671,9 +671,11 @@ function SponsorsGrid() {
                     className={`grid gap-4 ${
                       tier.cols === 1
                         ? "grid-cols-1"
-                        : tier.cols === 3
-                          ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                          : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                        : tier.cols === 2
+                          ? "grid-cols-1 sm:grid-cols-2"
+                          : tier.cols === 3
+                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
                     }`}
                   >
                     {tierSponsors.map((sponsor) => (
@@ -686,7 +688,7 @@ function SponsorsGrid() {
                         data-testid={`sponsor-card-${sponsor.id}`}
                       >
                         <div className="flex flex-col h-full">
-                          <div className="mb-3">
+                          <div className="mb-3 bg-white dark:bg-white p-4 rounded-lg">
                             <img
                               src={sponsor.logo}
                               alt={sponsor.name}
