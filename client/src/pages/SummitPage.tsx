@@ -588,7 +588,7 @@ function SponsorsGrid() {
       cols: 1,
     },
     { name: "Seed", key: "Seed", cols: 2 },
-    { name: "Angel", key: "Angel", cols: 3 },
+    { name: "Angel", key: "Angel", cols: 4 },
     {
       name: "Friends & Family",
       key: "Friends & Family",
@@ -715,7 +715,9 @@ function SponsorsGrid() {
                           ? "grid-cols-1 sm:grid-cols-2"
                           : tier.cols === 3
                             ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                            : tier.cols === 4
+                              ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                              : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
                     }`}
                   >
                     {tierSponsors.map((sponsor) => (
