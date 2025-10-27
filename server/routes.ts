@@ -3971,6 +3971,7 @@ export async function registerRoutes(app: Express) {
           ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
+          membersOnly: posts.membersOnly,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
           creatorId: posts.creatorId,
