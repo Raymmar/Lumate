@@ -214,6 +214,13 @@ export function ArticleContent({
             </Button>
           )}
 
+          {/* Rich Text Content Section */}
+          {editor && (
+            <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-6" data-testid="content-article-body">
+              <EditorContent editor={editor} />
+            </div>
+          )}
+
           {/* Video Section */}
           {videoEmbedUrl && (
             <div className="aspect-video bg-muted rounded-lg overflow-hidden mt-6">
@@ -224,13 +231,6 @@ export function ArticleContent({
                 className="w-full h-full"
                 data-testid="iframe-video"
               />
-            </div>
-          )}
-
-          {/* Rich Text Content Section */}
-          {editor && (
-            <div className="prose prose-lg max-w-none dark:prose-invert [&_ul]:space-y-0.5 [&_ol]:space-y-0.5 [&_li_p]:my-0 mt-6" data-testid="content-article-body">
-              <EditorContent editor={editor} />
             </div>
           )}
         </div>
