@@ -353,7 +353,7 @@ function SummitNewsSection() {
 
   return (
     <>
-      <div className="w-full max-w-full">
+      <div className="w-full max-w-90vw">
         <PublicPostsTable
           onSelect={handlePostClick}
           onCreatePost={() => setIsCreating(true)}
