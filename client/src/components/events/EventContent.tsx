@@ -290,7 +290,7 @@ export function EventContent({
             </div>
           ) : isSubmitted ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 md:p-4">
                 <h3 className="font-semibold mb-2">Welcome to Sarasota Tech</h3>
                 <p className="text-sm text-muted-foreground">
                   Thanks for joining! We've sent an invite to your email for our next event.
@@ -304,7 +304,7 @@ export function EventContent({
             </Card>
           ) : nextUpcomingEvent && !isEventEnded ? (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 md:p-4">
                 <form onSubmit={handleInvite} className="space-y-4">
                   <div className="flex gap-2">
                     <Input
@@ -347,7 +347,7 @@ export function EventContent({
             </Card>
           ) : (
             <Card>
-              <CardContent className="p-6">
+              <CardContent className="p-3 md:p-4">
                 <p className="text-sm text-muted-foreground">
                   {isEventEnded ? "This event has already ended." : "No upcoming events available at the moment."}
                 </p>
@@ -356,7 +356,7 @@ export function EventContent({
           )}
 
           <Card>
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-3 md:p-4 space-y-4">
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 shrink-0 text-muted-foreground" />
                 <div>

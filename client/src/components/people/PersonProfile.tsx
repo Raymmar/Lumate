@@ -263,7 +263,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         </div>
 
         <Card className="overflow-hidden">
-          <CardContent className="py-4 pt-4">
+          <CardContent className="p-3 md:p-4">
             {person.user?.bio ? (
               <p className="text-lg text-muted-foreground break-words">{person.user.bio}</p>
             ) : (
@@ -287,7 +287,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                 </div>
               )}
 
-              <CardContent className="pt-4 space-y-4">
+              <CardContent className="p-3 md:p-4 space-y-4">
                 <div className="flex items-center gap-3">
                   {userCompany.logoUrl && (
                     <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
@@ -347,7 +347,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
 
       <div className="w-full">
         <Card>
-          <CardContent className="space-y-4 pt-4">
+          <CardContent className="p-3 md:p-4 space-y-4">
             <div className="space-y-4">
               <StatsCard
                 title="First Seen"

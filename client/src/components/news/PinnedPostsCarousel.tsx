@@ -106,7 +106,7 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
         </>
       )}
 
-      <CardContent className="relative h-full flex flex-col justify-end p-6 text-white z-10">
+      <CardContent className="relative h-full flex flex-col justify-end p-3 md:p-4 text-white z-10">
         <h3 className="text-2xl font-bold mb-2">{currentPost.title}</h3>
         {currentPost.summary && (
           <p className="text-white/90 mb-4 line-clamp-2">

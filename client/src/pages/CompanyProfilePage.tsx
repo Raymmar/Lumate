@@ -416,7 +416,7 @@ export default function CompanyProfilePage() {
     <DashboardLayout>
       <div className="container max-w-3xl mx-auto pt-3 pb-24">
         <Card className="border-none shadow-none">
-          <CardHeader className="px-6 pb-2">
+          <CardHeader className="p-3 md:p-4 pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-2xl font-semibold">
                 {company ? 'Company Profile' : 'Create Company Profile'}
@@ -444,7 +444,7 @@ export default function CompanyProfilePage() {
               </ToggleGroup>
             </div>
           </CardHeader>
-          <CardContent className="px-6">
+          <CardContent className="p-3 md:p-4">
             {isCompaniesLoading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin" />
@@ -455,7 +455,7 @@ export default function CompanyProfilePage() {
                 
                 {!hasActiveSubscription && !isSubscriptionLoading ? (
                   <Card className="border-2 border-dashed">
-                    <CardContent className="py-8">
+                    <CardContent className="p-3 md:p-4">
                       <div className="text-center space-y-4">
                         <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
                         <h3 className="text-xl font-semibold">Company Profile Management requires a subscription</h3>

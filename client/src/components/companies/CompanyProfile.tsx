@@ -290,11 +290,11 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
         <div className="md:col-span-2 space-y-4">
           {/* Company Name and Bio */}
           <Card>
-            <CardHeader className="pb-2">
+            <CardHeader className="p-3 md:p-4 pb-2">
               <CardTitle className="text-3xl">{company.name || "Unnamed Company"}</CardTitle>
             </CardHeader>
             {company.bio && (
-              <CardContent>
+              <CardContent className="p-3 md:p-4 pt-0">
                 <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
                   <p className="text-muted-foreground">{company.bio}</p>
                 </div>
@@ -305,10 +305,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Company Description */}
           {company.description && (
             <Card>
-              <CardHeader className="py-3">
+              <CardHeader className="p-3 md:p-4 py-3">
                 <CardTitle>About</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 md:p-4 pt-0">
                 <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
                   <p>{company.description}</p>
                 </div>
@@ -319,10 +319,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Location Map */}
           {company.address && (
             <Card>
-              <CardHeader className="py-3">
+              <CardHeader className="p-3 md:p-4 py-3">
                 <CardTitle>Location</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 md:p-4 pt-0">
                 <div className="mb-3">
                   <a 
                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formattedAddress || company.address)}`}

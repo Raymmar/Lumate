@@ -54,10 +54,10 @@ export function PersonPreview({ person, people = [], onNavigate }: PersonPreview
 
           {/* Contact Information */}
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-3 md:p-4 pb-3">
               <h3 className="font-medium">Contact Information</h3>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="p-3 md:p-4 pt-0 space-y-2">
               {person.phoneNumber && (
                 <div className="flex justify-between py-1">
                   <span className="text-muted-foreground">Phone</span>
@@ -69,20 +69,20 @@ export function PersonPreview({ person, people = [], onNavigate }: PersonPreview
 
           {person.bio && (
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader className="p-3 md:p-4 pb-3">
                 <h3 className="font-medium">Bio</h3>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 md:p-4 pt-0">
                 <p className="text-sm text-muted-foreground">{person.bio}</p>
               </CardContent>
             </Card>
           )}
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-3 md:p-4 pb-3">
               <h3 className="font-medium">Event Statistics</h3>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="p-3 md:p-4 pt-0 space-y-2">
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">Total Events Attended</span>
                 <span>{person.stats?.totalEventsAttended || 0}</span>
@@ -103,10 +103,10 @@ export function PersonPreview({ person, people = [], onNavigate }: PersonPreview
           </Card>
 
           <Card>
-            <CardHeader className="pb-3">
+            <CardHeader className="p-3 md:p-4 pb-3">
               <h3 className="font-medium">Linked User Account</h3>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3 md:p-4 pt-0">
               <LinkedUser user={person.user} />
             </CardContent>
           </Card>

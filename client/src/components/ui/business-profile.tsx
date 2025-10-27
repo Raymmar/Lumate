@@ -49,11 +49,11 @@ export function BusinessProfile({
         </div>
       )}
 
-      <CardHeader className="pb-2">
+      <CardHeader className="p-3 md:p-4 pb-2">
         <h3 className="text-xl font-semibold">{name}</h3>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="p-3 md:p-4 pt-0 space-y-4">
         {description && (
           <p className="text-muted-foreground">{description}</p>
         )}

@@ -50,7 +50,7 @@ export function CompanyPreview({
         )}
       </div>
       
-      <CardHeader className="pb-2">
+      <CardHeader className="p-3 md:p-4 pb-2">
         <div className="flex items-center gap-2">
           {logoUrl && (
             <div className="h-8 w-8 shrink-0 rounded-full bg-muted overflow-hidden">
@@ -65,7 +65,7 @@ export function CompanyPreview({
         </div>
       </CardHeader>
       
-      <CardContent className="space-y-2 pb-2">
+      <CardContent className="p-3 md:p-4 pt-0 space-y-2 pb-2">
         {industry && (
           <p className="text-sm text-muted-foreground">{industry}</p>
         )}

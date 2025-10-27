@@ -272,7 +272,7 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
           </div>
 
           <Card>
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-3 md:p-4 space-y-4">
               <div className="flex items-start gap-3">
                 <Calendar className="h-5 w-5 mt-0.5 text-muted-foreground" />
                 <div>
@@ -316,7 +316,7 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
           </Card>
 
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-3 md:p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold">Event Attendees</h3>
                 <Badge variant="secondary">{attendeeCount} registered</Badge>
