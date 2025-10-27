@@ -1283,7 +1283,7 @@ export default function SummitPage() {
               </div>
 
               <p className="text-md text-muted-foreground mt-6">
-                Powered by{" "}
+                Presented by{" "}
                 <a
                   href="https://www.rework.capital/"
                   target="_blank"
