@@ -2661,9 +2661,11 @@ export async function registerRoutes(app: Express) {
           .json({ error: "Not authorized to edit this post" });
       }
 
-      // Validate the update data
-      const updateData = insertPostSchema.partial().parse(req.body);
+      // Validate the update data (exclude tags from validation as they're handled separately)
+      const { tags: bodyTags, ...postData } = req.body;
+      const updateData = insertPostSchema.partial().parse(postData);
       console.log("Validated update data:", updateData);
+      console.log("Tags to update:", bodyTags);
 
       // Update the post
       const updatedPost = await storage.updatePost(postId, updateData);
@@ -2674,15 +2676,15 @@ export async function registerRoutes(app: Express) {
       });
 
       // Update post tags if provided
-      if (req.body.tags) {
-        console.log("Updating post tags:", req.body.tags);
+      if (bodyTags && Array.isArray(bodyTags)) {
+        console.log("Updating post tags:", bodyTags);
 
         // Delete existing tags
         await db.delete(postTags).where(eq(postTags.postId, postId));
         console.log("Deleted existing tags for post:", postId);
 
         // Insert new tags
-        for (const tagText of req.body.tags) {
+        for (const tagText of bodyTags) {
           // Find or create tag
           let [tag] = await db
             .select()
