@@ -78,7 +78,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
   const displayedPosts = limitedPosts.slice(0, displayCount);
 
   // Check if user can create posts (admin or has publish_content permission)
-  const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
+  const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.some(p => p.name === 'publish_content'));
 
   // Check if user can edit a specific post
   const canEditPost = (post: Post) => {
@@ -109,7 +109,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
 
   return (
     <Card className="border">
-      <CardHeader className="p-3 md:p-3 pb-3">
+      <CardHeader className="p-3 md:p-6 pb-3">
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
           {canCreatePosts && onCreatePost && (

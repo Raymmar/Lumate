@@ -1370,7 +1370,7 @@ export default function SummitPage() {
               </div>
 
               {/* Right Content - News Feed and Gallery */}
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-4 min-w-0">
                 <SummitNewsSection />
                 <SponsorsGrid />
                 <ImageGalleryCard />
