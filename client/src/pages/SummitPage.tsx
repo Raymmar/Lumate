@@ -51,6 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
+import { SEO } from "@/components/ui/seo";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -1161,6 +1162,11 @@ export default function SummitPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative">
+      <SEO
+        title="Sarasota Tech Summit"
+        description="Florida's premier tech event"
+        image="https://file-upload.replit.app/api/storage/images%2F1761584634963-Thumbnail-Main.png"
+      />
       {/* Gradient Sunburst Background - centered on top right corner */}
       <div
         className="fixed top-0 right-0 pointer-events-none z-0 overflow-hidden"

@@ -354,6 +354,19 @@ export async function fetchEventForOpenGraph(slug: string): Promise<EventOpenGra
 }
 
 /**
+ * Returns static Open Graph data for the Summit page
+ * @returns Static Open Graph data for the Summit page
+ */
+export function fetchSummitForOpenGraph(): OpenGraphData {
+  return {
+    title: 'Sarasota Tech Summit',
+    description: "Florida's premier tech event",
+    image: 'https://file-upload.replit.app/api/storage/images%2F1761584634963-Thumbnail-Main.png',
+    url: 'https://sarasota.tech/summit'
+  };
+}
+
+/**
  * Injects Open Graph meta tags into HTML template
  * @param htmlTemplate - The original HTML template
  * @param ogData - The Open Graph data to inject

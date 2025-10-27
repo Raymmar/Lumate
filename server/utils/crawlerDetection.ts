@@ -96,12 +96,21 @@ export function isEventPage(url: string): boolean {
 }
 
 /**
+ * Checks if the URL is the summit page that needs Open Graph injection
+ * @param url - The request URL
+ * @returns True if this is the summit page
+ */
+export function isSummitPage(url: string): boolean {
+  return url === '/summit' || url.startsWith('/summit?') || url.startsWith('/summit#');
+}
+
+/**
  * Check if a URL matches any supported page pattern for Open Graph
  * @param url - The request URL
  * @returns True if this is a supported page type
  */
 export function isSupportedPage(url: string): boolean {
-  return isPostPage(url) || isCompanyPage(url) || isUserPage(url) || isEventPage(url);
+  return isPostPage(url) || isCompanyPage(url) || isUserPage(url) || isEventPage(url) || isSummitPage(url);
 }
 
 /**
