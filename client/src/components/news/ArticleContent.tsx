@@ -202,7 +202,7 @@ export function ArticleContent({
           {/* CTA Section */}
           {post?.ctaLink && (
             <Button
-              variant="outline"
+              variant="default"
               className="w-full mt-6"
               onClick={() => {
                 if (post.ctaLink) window.open(post.ctaLink, '_blank');
