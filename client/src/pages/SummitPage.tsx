@@ -442,7 +442,7 @@ function ImageGalleryCard() {
     <>
       <Card className="border pt-6 w-full max-w-full overflow-hidden">
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {galleryImages.map((image, index) => (
               <div
                 key={index}
@@ -894,7 +894,7 @@ function SponsorModal({
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)] sm:w-full">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto w-[90vw] sm:w-full">
         <DialogHeader>
           <DialogTitle>
             {sponsor ? "Edit Sponsor" : "Add New Sponsor"}
@@ -1139,14 +1139,11 @@ export default function SummitPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col relative">
       {/* Gradient Sunburst Background - centered on top right corner */}
-      <div
-        className="fixed top-0 right-0 pointer-events-none z-0 overflow-hidden"
-        style={{ transform: "translate(50%, -50%)" }}
-      >
+      <div className="fixed top-0 right-0 pointer-events-none z-0 w-1/2 h-1/2 overflow-hidden">
         <img
           src="https://file-upload.replit.app/api/storage/images%2F1761418188502-gradient-sunburst.png"
           alt=""
-          className="w-auto h-auto opacity-80 max-w-none"
+          className="w-full h-full opacity-80 object-cover"
         />
       </div>
 
@@ -1161,13 +1158,9 @@ export default function SummitPage() {
       <div className="w-full">
         <div
           className="grid lg:grid-cols-2 min-h-[50vh] lg:min-h-[600px]"
-          style={{ minHeight: "max(50vh, 500px)" }}
         >
           {/* Left Side - Full Background Image */}
-          <div
-            className="relative min-h-[50vh] lg:min-h-[70vh]"
-            style={{ minHeight: "max(50vh, 500px)" }}
-          >
+          <div className="relative min-h-[50vh] lg:min-h-[70vh]">
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg"
               alt="Startup Sarasota"
@@ -1183,8 +1176,7 @@ export default function SummitPage() {
             <img
               src="https://file-upload.replit.app/api/storage/images%2F1761418176546-Mote---Date-block.png"
               alt="Event Date"
-              className="absolute w-full max-w-full md:w-96 lg:w-128 h-auto"
-              style={{ bottom: "-4%", right: "0%" }}
+              className="absolute w-full max-w-full md:w-96 lg:w-128 h-auto bottom-0 right-0"
             />
           </div>
 
@@ -1233,7 +1225,7 @@ export default function SummitPage() {
                 >
                   <Button
                     size="lg"
-                    className="text-base w-full sm:w-auto sm:min-w-[300px] px-12"
+                    className="text-base w-full sm:w-auto px-8 sm:px-12"
                   >
                     Get Tickets
                     <ExternalLink className="ml-2 h-4 w-4" />
@@ -1347,7 +1339,7 @@ export default function SummitPage() {
               Speakers & Panelists
             </h2>
             <div
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
+              className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
               data-testid="speakers-grid"
             >
               {/* Placeholder for speakers - will be populated as they are added */}
