@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -297,6 +299,7 @@ function SummitNewsSection() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handlePostClick = (post: Post, isEditing = false) => {
     if (isEditing) {
@@ -307,17 +310,51 @@ function SummitNewsSection() {
     }
   };
 
-  const handleCreatePost = async (data: InsertPost) => {
+  const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiRequest("/api/admin/posts", "POST", data);
+      const createdPost = await apiRequest("/api/admin/posts", "POST", data) as Post;
+      
+      // Optimistically update the cache with the new post
+      queryClient.setQueryData(PUBLIC_POSTS_QUERY_KEY, (old: { posts: Post[] } | undefined) => {
+        if (!old) return old;
+        
+        // Create an optimistic post object
+        const optimisticPost: Post = {
+          id: createdPost.id || Date.now(), // Use server ID or temporary ID
+          title: data.title,
+          summary: data.summary || null,
+          body: data.body,
+          featuredImage: data.featuredImage || null,
+          videoUrl: data.videoUrl || null,
+          ctaLink: data.ctaLink || null,
+          ctaLabel: data.ctaLabel || null,
+          isPinned: data.isPinned || false,
+          membersOnly: data.membersOnly || false,
+          creatorId: user?.id || 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          creator: user ? {
+            id: user.id,
+            displayName: user.displayName || 'Unknown'
+          } : undefined,
+          tags: data.tags || []
+        };
+        
+        return {
+          posts: [optimisticPost, ...old.posts]
+        };
+      });
+      
       setIsCreating(false);
       toast({
         title: "Success",
         description: "Post created successfully",
       });
-      await queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
+      
+      // Invalidate to fetch the real data from the server
+      await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
     } catch (error) {
       toast({
         title: "Error",

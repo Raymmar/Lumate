@@ -3912,6 +3912,35 @@ export async function registerRoutes(app: Express) {
         creatorId: createdPost.creatorId,
       });
 
+      // Handle post tags if provided
+      if (req.body.tags && Array.isArray(req.body.tags)) {
+        console.log("Adding tags to post:", req.body.tags);
+
+        // Insert new tags
+        for (const tagText of req.body.tags) {
+          // Find or create tag
+          let [tag] = await db
+            .select()
+            .from(tags)
+            .where(eq(tags.text, tagText.toLowerCase()));
+
+          if (!tag) {
+            [tag] = await db
+              .insert(tags)
+              .values({ text: tagText.toLowerCase() })
+              .returning();
+            console.log("Created new tag:", tag.text);
+          }
+
+          // Link tag to post
+          await db
+            .insert(postTags)
+            .values({ postId: createdPost.id, tagId: tag.id })
+            .onConflictDoNothing();
+        }
+        console.log("Added post tags successfully");
+      }
+
       res.json(createdPost);
     } catch (error) {
       console.error("Failed to create post:", error);
