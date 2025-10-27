@@ -29,6 +29,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { PostModal } from "@/components/admin/PostModal";
+import { PostForm } from "@/components/admin/PostForm";
+import type { InsertPost } from "@shared/schema";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -289,16 +292,26 @@ function SponsorCard({ sponsor }: SponsorCardProps) {
 
 function SummitNewsCard() {
   const [, setLocation] = useLocation();
+  const [isCreating, setIsCreating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/me"],
+  });
 
   const { data, isLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
 
-  // Filter posts by "2026 summit" tag
+  // Filter posts by "2026 summit" or "summit 2026" tag
   const filteredPosts =
     data?.posts
       ?.filter((post) =>
-        post.tags?.some((tag) => tag.toLowerCase() === "2026 summit"),
+        post.tags?.some((tag) => {
+          const normalizedTag = tag.toLowerCase().trim();
+          return normalizedTag === "2026 summit" || normalizedTag === "summit 2026";
+        }),
       )
       .sort(
         (a, b) =>
@@ -311,12 +324,49 @@ function SummitNewsCard() {
     setLocation(`/post/${slug}`);
   };
 
+  const handleCreatePost = async (data: InsertPost) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await apiRequest('/api/admin/posts', 'POST', data);
+      setIsCreating(false);
+      toast({
+        title: "Success",
+        description: "Post created successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create post",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
+
   return (
-    <Card className="border">
-      <CardHeader className="pb-3">
-        <CardTitle>2026 Summit News</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <>
+      <Card className="border">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle>2026 Summit News</CardTitle>
+            {isAdmin && (
+              <Button
+                size="sm"
+                onClick={() => setIsCreating(true)}
+                data-testid="button-add-summit-post"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add New Post
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
@@ -356,6 +406,32 @@ function SummitNewsCard() {
         )}
       </CardContent>
     </Card>
+
+      {/* Create Post Modal */}
+      <PostModal 
+        open={isCreating} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreating(false);
+            setIsSubmitting(false);
+          }
+        }}
+        title="Create New Summit Post"
+        mode="create"
+        onSubmit={() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        isSubmitting={isSubmitting}
+      >
+        <PostForm 
+          onSubmit={handleCreatePost}
+          isEditing={false}
+        />
+      </PostModal>
+    </>
   );
 }
 
@@ -1116,7 +1192,7 @@ export default function SummitPage() {
               </h1>
 
               <p className="text-xl md:text-2xl font-semibold mb-4 text-foreground">
-                Startup Fair & Tech Summit
+                Tech Summit & Startup Fair
               </p>
 
               <div className="space-y-3 mb-8 text-muted-foreground">
@@ -1126,7 +1202,7 @@ export default function SummitPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin className="h-5 w-5" />
-                  <a 
+                  <a
                     href="https://maps.app.goo.gl/mu5JzP3rRPvrDzAV9"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1139,8 +1215,9 @@ export default function SummitPage() {
 
               <p className="text-lg text-muted-foreground mb-8">
                 Join us for the second annual Sarasota Tech Summit featuring a
-                startup fair, investor panels, networking opportunities, and
-                insights into building the future of Sarasota's tech ecosystem.
+                startup school, investor panels, networking opportunities, and
+                insights into how we're building the future of Sarasota's tech
+                ecosystem.
               </p>
 
               <div>
@@ -1161,7 +1238,7 @@ export default function SummitPage() {
               </div>
 
               <p className="text-md text-muted-foreground mt-6">
-                Powered by -
+                Powered by{" "}
                 <a
                   href="https://www.rework.capital/"
                   target="_blank"
@@ -1189,10 +1266,10 @@ export default function SummitPage() {
                   Startup School
                 </h3>
                 <p className="text-m text-muted-foreground mb-4 flex-grow">
-                  Experts in venture capital, deep tech, AI, robotics, business
-                  formation, intellectual property rights, accounting, finance +
-                  more will be on hand for small group breakouts and hands-on
-                  workshops
+                  Experts in venture capital, software development, branding,
+                  business formation, intellectual property rights, accounting,
+                  finance + more will be on site for small group breakouts and
+                  interactive workshops.
                 </p>
                 <Button
                   variant="outline"
@@ -1243,10 +1320,10 @@ export default function SummitPage() {
                   Keynote & Panels
                 </h3>
                 <p className="text-m text-muted-foreground mb-4 flex-grow">
-                  We're lining up experts from across the region and beyond to
-                  share how tech is impacting their business and how to take
-                  advantage of the coming transition while navigating the AI
-                  hype cycle.
+                  Stay tuned as we announce our full agenda. Expect a mix of
+                  keynote speakers and expert panelists discussing how AI and
+                  modern tech trends will impact the world through the lens of
+                  Florida's Gulf Coast.
                 </p>
                 <Button
                   variant="outline"
