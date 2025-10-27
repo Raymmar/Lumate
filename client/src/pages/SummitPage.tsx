@@ -56,7 +56,7 @@ const timeAgo = new TimeAgo("en-US");
 
 function EventLinksCard() {
   return (
-    <Card className="border">
+    <Card className="border w-full max-w-full overflow-hidden">
       <CardHeader className="pb-3">
         <CardTitle>Event Links</CardTitle>
       </CardHeader>
@@ -171,7 +171,7 @@ function EventLinksCard() {
 
 function AgendaCard() {
   return (
-    <Card className="border">
+    <Card className="border w-full max-w-full overflow-hidden">
       <CardHeader>
         <CardTitle className="text-xl md:text-2xl">
           Tentative Event Agenda
@@ -440,7 +440,7 @@ function ImageGalleryCard() {
 
   return (
     <>
-      <Card className="border pt-6">
+      <Card className="border pt-6 w-full max-w-full overflow-hidden">
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
             {galleryImages.map((image, index) => (
@@ -587,7 +587,7 @@ function SponsorsGrid() {
 
   if (isLoading) {
     return (
-      <Card className="border">
+      <Card className="border w-full max-w-full">
         <CardHeader>
           <CardTitle>Summit Sponsors</CardTitle>
         </CardHeader>
@@ -605,7 +605,7 @@ function SponsorsGrid() {
 
   return (
     <>
-      <Card className="border">
+      <Card className="border w-full max-w-full overflow-hidden">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
@@ -1137,7 +1137,7 @@ export default function SummitPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-x-hidden">
+    <div className="min-h-screen bg-background flex flex-col relative">
       {/* Gradient Sunburst Background - centered on top right corner */}
       <div
         className="fixed top-0 right-0 pointer-events-none z-0 overflow-hidden"
@@ -1262,7 +1262,7 @@ export default function SummitPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             {/* Startup Fair */}
             <Card
-              className="h-full hover:shadow-lg transition-shadow"
+              className="h-full hover:shadow-lg transition-shadow w-full max-w-full"
               data-testid="card-startup-fair"
             >
               <CardContent className="p-6 flex flex-col h-full">
@@ -1288,7 +1288,7 @@ export default function SummitPage() {
 
             {/* Main Stage */}
             <Card
-              className="h-full hover:shadow-lg transition-shadow"
+              className="h-full hover:shadow-lg transition-shadow w-full max-w-full"
               data-testid="card-main-stage"
             >
               <CardContent className="p-6 flex flex-col h-full">
@@ -1316,7 +1316,7 @@ export default function SummitPage() {
 
             {/* Keynote & Panels */}
             <Card
-              className="h-full hover:shadow-lg transition-shadow"
+              className="h-full hover:shadow-lg transition-shadow w-full max-w-full"
               data-testid="card-keynote-panels"
             >
               <CardContent className="p-6 flex flex-col h-full">
