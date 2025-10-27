@@ -691,7 +691,7 @@ function SponsorsGrid() {
                         className="block group relative w-full max-w-full"
                         data-testid={`sponsor-card-${sponsor.id}`}
                       >
-                        <div className="flex flex-col h-full w-full max-w-full">
+                        <div className="flex flex-col h-full w-full max-w-full border border-border rounded-lg p-3">
                           <div className="mb-3 bg-white dark:bg-white p-4 rounded-lg">
                             <img
                               src={sponsor.logo}
