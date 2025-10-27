@@ -1126,7 +1126,14 @@ export default function SummitPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <MapPin className="h-5 w-5" />
-                  <span className="text-lg">MOTE SEA Event Space</span>
+                  <a 
+                    href="https://maps.app.goo.gl/mu5JzP3rRPvrDzAV9"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-lg hover:underline"
+                  >
+                    MOTE SEA
+                  </a>
                 </div>
               </div>
 
