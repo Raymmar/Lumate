@@ -386,10 +386,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           
           {/* Company Info Card */}
           <Card>
-            <CardHeader className="py-3">
+            <CardHeader className="p-3 md:p-4">
               <CardTitle>Company Info</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-3 md:p-4 space-y-3">
               {company.website && (
                 <div className="flex items-center gap-2">
                   <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -465,10 +465,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           {/* Custom Links */}
           {company.customLinks && company.customLinks.length > 0 && (
             <Card>
-              <CardHeader className="py-3">
+              <CardHeader className="p-3 md:p-4">
                 <CardTitle>Links</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="p-3 md:p-4 space-y-2">
                 {company.customLinks.map((link, index) => (
                   <div key={index} className="flex items-center gap-2">
                     <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -488,10 +488,10 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
           
           {/* Company Members */}
           <Card>
-            <CardHeader className="py-3">
+            <CardHeader className="p-3 md:p-4">
               <CardTitle>Team Members</CardTitle>
             </CardHeader>
-            <CardContent className="pt-0">
+            <CardContent className="p-3 md:p-4 pt-3 md:pt-4">
               {isLoadingMembers ? (
                 <div className="space-y-2">
                   <Skeleton className="h-10 w-full" />
