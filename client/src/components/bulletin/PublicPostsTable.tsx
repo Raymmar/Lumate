@@ -40,9 +40,12 @@ export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
 interface PublicPostsTableProps {
   onSelect: (post: Post, isEditing?: boolean) => void;
   onCreatePost?: () => void;
+  filterTags?: string[];
+  title?: string;
+  maxPosts?: number;
 }
 
-export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTableProps) {
+export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "Community News", maxPosts }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -52,13 +55,27 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
     queryKey: PUBLIC_POSTS_QUERY_KEY,
   });
 
+  // Filter posts by tags if filterTags is provided
+  let filteredPosts = data?.posts || [];
+  if (filterTags && filterTags.length > 0) {
+    filteredPosts = filteredPosts.filter((post) =>
+      post.tags?.some((tag) => {
+        const normalizedTag = tag.toLowerCase().trim();
+        return filterTags.some(filterTag => normalizedTag === filterTag.toLowerCase().trim());
+      })
+    );
+  }
+
   // Sort posts by creation date (newest first)
-  const sortedPosts = data?.posts?.sort((a, b) =>
+  const sortedPosts = filteredPosts.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
+  // Limit to maxPosts if specified
+  const limitedPosts = maxPosts ? sortedPosts.slice(0, maxPosts) : sortedPosts;
+
   // Get the posts to display based on displayCount
-  const displayedPosts = sortedPosts?.slice(0, displayCount);
+  const displayedPosts = limitedPosts.slice(0, displayCount);
 
   // Check if user can create posts (admin or has publish_content permission)
   const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
@@ -94,7 +111,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
     <Card className="border">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle>Community News</CardTitle>
+          <CardTitle>{title}</CardTitle>
           {canCreatePosts && onCreatePost && (
             <Button
               onClick={onCreatePost}
@@ -233,7 +250,7 @@ export function PublicPostsTable({ onSelect, onCreatePost }: PublicPostsTablePro
             ))}
 
             {/* Load More button */}
-            {sortedPosts && displayCount < sortedPosts.length && (
+            {limitedPosts && displayCount < limitedPosts.length && (
               <div className="pt-2 text-center">
                 <Button
                   variant="outline"

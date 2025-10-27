@@ -32,6 +32,7 @@ import {
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
 import type { InsertPost } from "@shared/schema";
+import { PublicPostsTable } from "@/components/bulletin/PublicPostsTable";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -290,38 +291,20 @@ function SponsorCard({ sponsor }: SponsorCardProps) {
   );
 }
 
-function SummitNewsCard() {
+function SummitNewsSection() {
   const [, setLocation] = useLocation();
   const [isCreating, setIsCreating] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const { data: user } = useQuery({
-    queryKey: ["/api/auth/me"],
-  });
-
-  const { data, isLoading } = useQuery<{ posts: Post[] }>({
-    queryKey: ["/api/public/posts"],
-  });
-
-  // Filter posts by "2026 summit" or "summit 2026" tag
-  const filteredPosts =
-    data?.posts
-      ?.filter((post) =>
-        post.tags?.some((tag) => {
-          const normalizedTag = tag.toLowerCase().trim();
-          return normalizedTag === "2026 summit" || normalizedTag === "summit 2026";
-        }),
-      )
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )
-      .slice(0, 5) || [];
-
-  const handlePostClick = (post: Post) => {
-    const slug = formatPostTitleForUrl(post.title, post.id.toString());
-    setLocation(`/post/${slug}`);
+  const handlePostClick = (post: Post, isEditing = false) => {
+    if (isEditing) {
+      setEditingPost(post);
+    } else {
+      const slug = formatPostTitleForUrl(post.title, post.id.toString());
+      setLocation(`/post/${slug}`);
+    }
   };
 
   const handleCreatePost = async (data: InsertPost) => {
@@ -346,66 +329,37 @@ function SummitNewsCard() {
     }
   };
 
-  const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
+  const handleUpdatePost = async (data: InsertPost) => {
+    if (!editingPost || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await apiRequest(`/api/admin/posts/${editingPost.id}`, 'PATCH', data);
+      setEditingPost(null);
+      toast({
+        title: "Success",
+        description: "Post updated successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update post",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <>
-      <Card className="border">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle>2026 Summit News</CardTitle>
-            {isAdmin && (
-              <Button
-                size="sm"
-                onClick={() => setIsCreating(true)}
-                data-testid="button-add-summit-post"
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Add New Post
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-        {isLoading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="pb-4 border-b last:border-0">
-                <Skeleton className="h-5 w-2/3 mb-2" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            ))}
-          </div>
-        ) : !filteredPosts.length ? (
-          <div className="text-sm text-muted-foreground">
-            No summit news available yet. Check back soon for updates!
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredPosts.map((post) => (
-              <div
-                key={post.id}
-                className="relative p-3 border cursor-pointer hover:bg-muted/50 transition-colors rounded-lg"
-                onClick={() => handlePostClick(post)}
-                data-testid={`post-summit-${post.id}`}
-              >
-                <h4 className="font-medium mb-1">{post.title}</h4>
-                {post.summary && (
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {post.summary}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <span>{post.creator?.displayName || "Unknown"}</span>
-                  <span>•</span>
-                  <span>{timeAgo.format(new Date(post.createdAt))}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      <PublicPostsTable
+        onSelect={handlePostClick}
+        onCreatePost={() => setIsCreating(true)}
+        filterTags={["2026 summit", "summit 2026"]}
+        title="2026 Summit News"
+        maxPosts={50}
+      />
 
       {/* Create Post Modal */}
       <PostModal 
@@ -429,6 +383,32 @@ function SummitNewsCard() {
         <PostForm 
           onSubmit={handleCreatePost}
           isEditing={false}
+        />
+      </PostModal>
+
+      {/* Edit Post Modal */}
+      <PostModal 
+        open={!!editingPost} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingPost(null);
+            setIsSubmitting(false);
+          }
+        }}
+        title="Edit Summit Post"
+        mode="edit"
+        onSubmit={() => {
+          const form = document.querySelector('form');
+          if (form) {
+            form.requestSubmit();
+          }
+        }}
+        isSubmitting={isSubmitting}
+      >
+        <PostForm 
+          onSubmit={handleUpdatePost}
+          defaultValues={editingPost || undefined}
+          isEditing={true}
         />
       </PostModal>
     </>
@@ -1365,7 +1345,7 @@ export default function SummitPage() {
 
               {/* Right Content - News Feed and Gallery */}
               <div className="lg:col-span-2 space-y-4">
-                <SummitNewsCard />
+                <SummitNewsSection />
                 <SponsorsGrid />
                 <ImageGalleryCard />
               </div>
