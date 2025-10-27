@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/select";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 import { SEO } from "@/components/ui/seo";
+import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -76,6 +77,19 @@ function EventLinksCard() {
               className="w-full justify-between font-normal hover:bg-muted"
             >
               <span className="flex items-center gap-2">Sponsor Overview</span>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </a>
+          <a
+            href={generateSponsorInquiryEmail()}
+            className="block"
+          >
+            <Button
+              variant="outline"
+              className="w-full justify-between font-normal hover:bg-muted"
+              data-testid="button-become-sponsor-event-links"
+            >
+              <span className="flex items-center gap-2">Become a Sponsor</span>
               <ExternalLink className="h-4 w-4" />
             </Button>
           </a>
@@ -638,9 +652,7 @@ function SponsorsGrid() {
             </CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <a
-                href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
-                target="_blank"
-                rel="noopener noreferrer"
+                href={generateSponsorInquiryEmail()}
                 className="flex-1 sm:flex-none"
               >
                 <Button
@@ -776,9 +788,7 @@ function SponsorsGrid() {
 
                     {tier.key === "Seed" && tierSponsors.length % 2 === 1 && (
                       <a
-                        href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={generateSponsorInquiryEmail()}
                         className="block"
                         data-testid="cta-become-sponsor-seed"
                       >
