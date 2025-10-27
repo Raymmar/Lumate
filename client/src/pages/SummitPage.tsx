@@ -679,7 +679,7 @@ function SponsorsGrid() {
                           ? "grid-cols-1 sm:grid-cols-2"
                           : tier.cols === 3
                             ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                            : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                            : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
                     }`}
                   >
                     {tierSponsors.map((sponsor) => (
@@ -688,10 +688,10 @@ function SponsorsGrid() {
                         href={sponsor.url || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block group relative"
+                        className="block group relative w-full max-w-full"
                         data-testid={`sponsor-card-${sponsor.id}`}
                       >
-                        <div className="flex flex-col h-full">
+                        <div className="flex flex-col h-full w-full max-w-full">
                           <div className="mb-3 bg-white dark:bg-white p-4 rounded-lg">
                             <img
                               src={sponsor.logo}
@@ -1347,7 +1347,7 @@ export default function SummitPage() {
               Speakers & Panelists
             </h2>
             <div
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4"
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
               data-testid="speakers-grid"
             >
               {/* Placeholder for speakers - will be populated as they are added */}
