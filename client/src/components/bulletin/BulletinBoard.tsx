@@ -28,13 +28,13 @@ import { PinnedPostsCarousel } from "@/components/news/PinnedPostsCarousel";
 function LinksSection() {
   return (
     <Card className="border">
-      <CardHeader className="pb-3">
+      <CardHeader className="p-3 md:p-4 pb-3">
         <div className="flex justify-between items-center">
           <CardTitle>Links</CardTitle>
           <SocialLinks iconClassName="h-4 w-4" />
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
+      <CardContent className="p-3 md:p-4 pt-4">
         <div className="flex flex-col gap-4">
           <Link href="/about" className="block">
             <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted">

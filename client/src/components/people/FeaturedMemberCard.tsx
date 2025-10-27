@@ -170,10 +170,10 @@ export function FeaturedMemberCard({
   if (!person) {
     return (
       <Card className={`w-full h-full ${className}`}>
-        <CardHeader className="pb-2">
+        <CardHeader className="p-3 md:p-4 pb-2">
           <CardTitle className="text-lg">Featured Member</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 md:p-4 pt-0">
           <div className="text-center py-6 text-muted-foreground">
             <User className="mx-auto h-12 w-12 mb-2 opacity-30" />
             <p>No members available</p>
@@ -193,12 +193,12 @@ export function FeaturedMemberCard({
   return (
     <Link href={profilePath} className="group block w-full h-full">
       <Card className={`w-full h-full flex flex-col ${className} hover:shadow-md transition-shadow`}>
-        <CardHeader className="pb-2 flex-none">
+        <CardHeader className="p-3 md:p-4 pb-2 flex-none">
           <CardTitle className="flex justify-between items-center text-lg">
             <span>Featured Member</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 flex-1 flex flex-col">
+        <CardContent className="p-3 md:p-4 pt-0 space-y-4 flex-1 flex flex-col">
           <div className="flex items-center gap-3">
             <Avatar className="h-14 w-14 transition-all group-hover:shadow-md">
               {person.avatarUrl ? (

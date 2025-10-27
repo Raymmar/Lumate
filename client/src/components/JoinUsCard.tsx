@@ -117,7 +117,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
   return (
     <Card className="border">
       {showHeader && (
-        <CardHeader className="pb-3">
+        <CardHeader className="p-3 md:p-4 pb-3">
           {isSubmitted ? (
             <CardTitle>Welcome to Sarasota Tech</CardTitle>
           ) : (
@@ -131,7 +131,7 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
           )}
         </CardHeader>
       )}
-      <CardContent className="pt-12">
+      <CardContent className="p-3 md:p-4 pt-12">
         {isSubmitted ? (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
