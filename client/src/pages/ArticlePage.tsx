@@ -252,7 +252,7 @@ export function ArticlePage() {
               ctaLabel: editingPost?.ctaLabel || "",
               isPinned: editingPost?.isPinned || false,
               membersOnly: editingPost?.membersOnly || false,
-              tags: [] // Tags will be handled by PostForm if needed
+              tags: editingPost?.tags || []
             } : undefined}
             isEditing={isEditing}
           />
