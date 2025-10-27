@@ -751,18 +751,13 @@ function SponsorsGrid() {
                         href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block group"
+                        className="block"
                         data-testid="cta-become-sponsor-seed"
                       >
-                        <div className="flex flex-col h-full">
-                          <div className="mb-3 p-4 rounded-lg border-2 border-dashed border-muted-foreground/30 hover:border-muted-foreground/50 transition-colors flex items-center justify-center aspect-square">
-                            <Plus className="h-12 w-12 text-muted-foreground" />
-                          </div>
-                          <div className="text-center">
-                            <h4 className="font-semibold text-sm text-muted-foreground flex items-center justify-center gap-1">
-                              Become a Sponsor
-                              <ExternalLink className="h-3 w-3" />
-                            </h4>
+                        <div className="flex flex-col h-full items-center justify-center p-8 border-2 border-dashed rounded-lg hover:border-muted-foreground/50 transition-colors">
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <span>Become a Sponsor</span>
+                            <ExternalLink className="h-4 w-4" />
                           </div>
                         </div>
                       </a>
