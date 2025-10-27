@@ -120,20 +120,6 @@ function EventLinksCard() {
               <ExternalLink className="h-4 w-4" />
             </Button>
           </a>
-          <a
-            href="https://www.dropbox.com/scl/fo/tx5vb725ywzytkfog1iv1/AGfyY_yWKWKsnOn64QjCXiA?rlkey=ue2nlaso4lrb3ug59memgqqmh&dl=0"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block"
-          >
-            <Button
-              variant="outline"
-              className="w-full justify-between font-normal hover:bg-muted"
-            >
-              <span className="flex items-center gap-2">Photos from 2025</span>
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </a>
           <Button
             variant="outline"
             className="w-full justify-between font-normal hover:bg-muted"
