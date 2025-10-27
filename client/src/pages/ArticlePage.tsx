@@ -110,7 +110,7 @@ export function ArticlePage() {
         await queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
       } else {
         // Create new post
-        await apiRequest('/api/posts', 'POST', data);
+        await apiRequest('/api/admin/posts', 'POST', data);
         toast({
           title: "Success",
           description: "Post created successfully"
