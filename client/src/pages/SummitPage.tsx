@@ -485,11 +485,26 @@ function SponsorsGrid() {
   const sponsors = data?.sponsors || [];
 
   const tiers = [
-    { name: "Series A", key: "Series A", cols: 1, description: "Premier sponsors" },
+    {
+      name: "Series A",
+      key: "Series A",
+      cols: 1,
+      description: "Premier sponsors",
+    },
     { name: "Seed", key: "Seed", cols: 3, description: "Core sponsors" },
     { name: "Angel", key: "Angel", cols: 5, description: "Growth sponsors" },
-    { name: "Friends & Family", key: "Friends & Family", cols: 5, description: "Community sponsors" },
-    { name: "501c3/.edu", key: "501c3/.edu", cols: 5, description: "Nonprofit & education sponsors" },
+    {
+      name: "Friends & Family",
+      key: "Friends & Family",
+      cols: 5,
+      description: "Community sponsors",
+    },
+    {
+      name: "501c3/.edu",
+      key: "501c3/.edu",
+      cols: 5,
+      description: "Nonprofit & education sponsors",
+    },
   ];
 
   const handleEdit = (sponsor: Sponsor) => {
@@ -570,17 +585,17 @@ function SponsorsGrid() {
         </CardHeader>
         <CardContent className="space-y-8">
           {tiers.map((tier) => {
-            const tierSponsors = sponsors.filter(
-              (s) => s.tier === tier.key,
-            );
+            const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
 
             return (
               <div key={tier.key} className="space-y-4">
                 <div>
                   <h3 className="text-lg font-semibold">{tier.name}</h3>
-                  <p className="text-sm text-muted-foreground">{tier.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {tier.description}
+                  </p>
                 </div>
-                
+
                 {tierSponsors.length === 0 ? (
                   <div className="flex items-center justify-center py-8 border-2 border-dashed rounded-lg">
                     <Button
@@ -1167,10 +1182,10 @@ export default function SummitPage() {
                   Startup School
                 </h3>
                 <p className="text-m text-muted-foreground mb-4 flex-grow">
-                  Industry experts from the world of startups, venture funding,
-                  business formation, intellectual property, accounting &
-                  finance, + more will be hosting breakouts and workshops to
-                  review your ideas and talk about how to build a startup.
+                  Experts in venture capital, deep tech, AI, robotics, business
+                  formation, intellectual property rights, accounting, finance +
+                  more will be on hand for small group breakouts and hands-on
+                  workshops
                 </p>
                 <Button
                   variant="outline"
@@ -1193,10 +1208,10 @@ export default function SummitPage() {
                   Main Stage
                 </h3>
                 <p className="text-m text-muted-foreground mb-4 flex-grow">
-                  Apply to speak and we might just put you on the main stage.
-                  We're looking for founder stories, interesting applications of
-                  deep tech, AI, hardware, robotics, 3D printing, digital media
-                  or vibe code.
+                  Apply to speak and you might end up on the main stage. We're
+                  looking for breakout stories, interesting uses of AI, deep
+                  tech, hardware, robotics, 3D printing, digital media or vibe
+                  code.
                 </p>
                 <Button className="w-full" data-testid="button-apply-speak">
                   <a
@@ -1222,9 +1237,9 @@ export default function SummitPage() {
                 </h3>
                 <p className="text-m text-muted-foreground mb-4 flex-grow">
                   We're lining up experts from across the region and beyond to
-                  share how tech is impacting their businesses as well as how
-                  you can take advantage of the coming transition while
-                  navigating the AI hype cycle.
+                  share how tech is impacting their business and how to take
+                  advantage of the coming transition while navigating the AI
+                  hype cycle.
                 </p>
                 <Button
                   variant="outline"
