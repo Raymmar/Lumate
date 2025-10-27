@@ -35,8 +35,6 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
   useEffect(() => {
     if (defaultValues?.tags) {
       setTags(defaultValues.tags);
-    } else {
-      setTags([]);
     }
   }, [defaultValues?.tags]);
 
