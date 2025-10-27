@@ -148,9 +148,9 @@ function EventLinksCard() {
           </Button>
 
           {/* YouTube Video Embed */}
-          <div className="mt-4">
+          <div className="mt-4 w-full max-w-full">
             <div
-              className="relative w-full"
+              className="relative w-full max-w-full overflow-hidden"
               style={{ paddingBottom: "56.25%" }}
             >
               <iframe
