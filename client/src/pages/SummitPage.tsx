@@ -353,13 +353,15 @@ function SummitNewsSection() {
 
   return (
     <>
-      <PublicPostsTable
-        onSelect={handlePostClick}
-        onCreatePost={() => setIsCreating(true)}
-        filterTags={["2026 summit", "summit 2026"]}
-        title="2026 Summit News"
-        maxPosts={50}
-      />
+      <div className="w-full max-w-full">
+        <PublicPostsTable
+          onSelect={handlePostClick}
+          onCreatePost={() => setIsCreating(true)}
+          filterTags={["2026 summit", "summit 2026"]}
+          title="2026 Summit News"
+          maxPosts={50}
+        />
+      </div>
 
       {/* Create Post Modal */}
       <PostModal 

@@ -109,7 +109,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
 
   return (
     <Card className="border">
-      <CardHeader className="pb-3">
+      <CardHeader className="p-3 md:p-6 pb-3">
         <div className="flex items-center justify-between">
           <CardTitle>{title}</CardTitle>
           {canCreatePosts && onCreatePost && (
@@ -123,7 +123,7 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
           )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-3 md:p-6">
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
