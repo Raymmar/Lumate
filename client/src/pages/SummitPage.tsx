@@ -57,10 +57,10 @@ const timeAgo = new TimeAgo("en-US");
 function EventLinksCard() {
   return (
     <Card className="border w-full max-w-full overflow-hidden">
-      <CardHeader className="p-3 pb-3">
+      <CardHeader className="p-3 md:p-4 pb-3">
         <CardTitle>Event Links</CardTitle>
       </CardHeader>
-      <CardContent className="p-3 pt-4">
+      <CardContent className="p-3 md:p-4 pt-4">
         <div className="flex flex-col gap-3">
           <a
             href="https://drive.google.com/file/d/1gcsQov4eRW_-GL25k1e7AypxU6qpxIWz/view?usp=drive_link"
@@ -172,12 +172,12 @@ function EventLinksCard() {
 function AgendaCard() {
   return (
     <Card className="border w-full max-w-full overflow-hidden">
-      <CardHeader className="p-3">
+      <CardHeader className="p-3 md:p-4">
         <CardTitle className="text-xl md:text-2xl">
           Tentative Event Agenda
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-3">
+      <CardContent className="p-3 md:p-4">
         <div className="space-y-6 md:space-y-8">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
@@ -442,8 +442,8 @@ function ImageGalleryCard() {
 
   return (
     <>
-      <Card className="border pt-3 w-full max-w-full overflow-hidden">
-        <CardContent className="p-3">
+      <Card className="border pt-3 md:pt-4 w-full max-w-full overflow-hidden">
+        <CardContent className="p-3 md:p-4">
           <div className="grid grid-cols-2 gap-3">
             {galleryImages.map((image, index) => (
               <div
@@ -590,10 +590,10 @@ function SponsorsGrid() {
   if (isLoading) {
     return (
       <Card className="border w-full max-w-full">
-        <CardHeader className="p-3">
+        <CardHeader className="p-3 md:p-4">
           <CardTitle>Summit Sponsors</CardTitle>
         </CardHeader>
-        <CardContent className="p-3">
+        <CardContent className="p-3 md:p-4">
           <Skeleton className="h-32 w-full" />
         </CardContent>
       </Card>
@@ -608,7 +608,7 @@ function SponsorsGrid() {
   return (
     <>
       <Card className="border w-full max-w-full overflow-hidden">
-        <CardHeader className="p-3">
+        <CardHeader className="p-3 md:p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -646,7 +646,7 @@ function SponsorsGrid() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-3 space-y-8">
+        <CardContent className="p-3 md:p-4 space-y-8">
           {tiers.map((tier) => {
             const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
 
@@ -1267,7 +1267,7 @@ export default function SummitPage() {
               className="h-full hover:shadow-lg transition-shadow w-full max-w-full"
               data-testid="card-startup-fair"
             >
-              <CardContent className="p-3 flex flex-col h-full">
+              <CardContent className="p-3 md:p-4 flex flex-col h-full">
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Startup School
                 </h3>
@@ -1293,7 +1293,7 @@ export default function SummitPage() {
               className="h-full hover:shadow-lg transition-shadow w-full max-w-full"
               data-testid="card-main-stage"
             >
-              <CardContent className="p-3 flex flex-col h-full">
+              <CardContent className="p-3 md:p-4 flex flex-col h-full">
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Main Stage
                 </h3>
@@ -1321,7 +1321,7 @@ export default function SummitPage() {
               className="h-full hover:shadow-lg transition-shadow w-full max-w-full"
               data-testid="card-keynote-panels"
             >
-              <CardContent className="p-3 flex flex-col h-full">
+              <CardContent className="p-3 md:p-4 flex flex-col h-full">
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Keynote & Panels
                 </h3>
