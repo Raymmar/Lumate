@@ -29,20 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { CompanyMembersList } from "./CompanyMembersList";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
+import { CompanyMembersManager } from "./CompanyMembersManager";
 import { cn } from "@/lib/utils";
 
 interface CompanyPreviewProps {
@@ -102,6 +89,18 @@ export function CompanyPreview({
       return response.json();
     },
     enabled: !!company?.id
+  });
+
+  // Fetch all users for member management
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[], total: number }>({
+    queryKey: ["/api/admin/members"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/members?limit=100");
+      if (!response.ok) {
+        throw new Error("Failed to fetch members");
+      }
+      return response.json();
+    }
   });
   
   useEffect(() => {
@@ -646,31 +645,72 @@ export function CompanyPreview({
                   })()}
                 </div>
 
-                {/* Company Members */}
-                <div>
-                  <h2 className="text-lg font-semibold mb-4">Company Members</h2>
-                  {isLoadingMembers ? (
+                {/* Company Members - Unified Component */}
+                {isLoadingMembers ? (
+                  <div>
+                    <h2 className="text-lg font-semibold mb-4">Company Members</h2>
                     <div className="space-y-2">
                       <Skeleton className="h-12 w-full" />
                       <Skeleton className="h-12 w-full" />
                       <Skeleton className="h-12 w-full" />
                     </div>
-                  ) : members.length > 0 ? (
-                    <CompanyMembersList 
-                      members={members} 
-                      companyId={company?.id || 0} 
-                      onMembersChanged={() => {
-                        if (company?.id) {
-                          queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="p-4 border rounded-md text-center text-muted-foreground">
-                      No members associated with this company
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <CompanyMembersManager
+                    members={members}
+                    allUsers={usersData?.users || []}
+                    isLoadingUsers={isLoadingUsers}
+                    canEdit={canEditCompany}
+                    canManageRoles={user?.isAdmin || false}
+                    onAddMember={async (userId) => {
+                      if (!company?.id) return;
+                      try {
+                        await apiRequest(`/api/companies/${company.id}/members`, {
+                          method: 'POST',
+                          body: JSON.stringify({ userId, role: 'user' })
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
+                      } catch (error) {
+                        toast({
+                          variant: "destructive",
+                          title: "Failed to add member",
+                          description: error instanceof Error ? error.message : "Unknown error"
+                        });
+                      }
+                    }}
+                    onRemoveMember={async (userId) => {
+                      if (!company?.id) return;
+                      try {
+                        await apiRequest(`/api/companies/${company.id}/members/${userId}`, {
+                          method: 'DELETE'
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
+                      } catch (error) {
+                        toast({
+                          variant: "destructive",
+                          title: "Failed to remove member",
+                          description: error instanceof Error ? error.message : "Unknown error"
+                        });
+                      }
+                    }}
+                    onChangeRole={async (userId, role) => {
+                      if (!company?.id) return;
+                      try {
+                        await apiRequest(`/api/companies/${company.id}/members/${userId}/role`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ role })
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
+                      } catch (error) {
+                        toast({
+                          variant: "destructive",
+                          title: "Failed to update role",
+                          description: error instanceof Error ? error.message : "Unknown error"
+                        });
+                      }
+                    }}
+                  />
+                )}
 
                 {/* Admin Action Buttons */}
                 {canEditCompany && (
