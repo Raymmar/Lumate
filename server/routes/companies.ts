@@ -248,11 +248,18 @@ router.post("/:id/members", requireAuth, async (req: Request, res: Response) => 
 
     const memberData = memberSchema.parse(req.body);
     
+    // Check if this will be the first/only member
+    const currentMembers = await storage.getCompanyMembers(companyId);
+    const isFirstMember = currentMembers.length === 0;
+    
+    // If this is the first member, automatically assign them as owner
+    const role = isFirstMember ? "owner" : memberData.role;
+    
     // Add the member
     const member = await storage.addMemberToCompany({
       companyId,
       userId: memberData.userId,
-      role: memberData.role,
+      role,
       title: memberData.title,
       isPublic: memberData.isPublic,
       addedBy: req.session.userId!
@@ -340,6 +347,17 @@ router.delete("/:companyId/members/:userId", requireAuth, async (req: Request, r
 
     // Remove the member
     await storage.removeCompanyMember(companyId, userId);
+    
+    // Check if there's only one member left after removal
+    const remainingMembers = await storage.getCompanyMembers(companyId);
+    if (remainingMembers.length === 1) {
+      // Automatically promote the sole remaining member to owner
+      const soleMember = remainingMembers[0];
+      if (soleMember.role !== 'owner') {
+        await storage.updateCompanyMemberRole(companyId, soleMember.userId, 'owner');
+        console.log(`Automatically promoted user ${soleMember.userId} to owner as they are the sole remaining member of company ${companyId}`);
+      }
+    }
     
     res.json({ success: true });
   } catch (error) {

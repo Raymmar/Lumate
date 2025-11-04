@@ -699,8 +699,8 @@ export function CompanyPreview({
                       if (!company?.id) return;
                       try {
                         await apiRequest(
-                          `/api/companies/${company.id}/members/${userId}/role`,
-                          'PATCH',
+                          `/api/companies/${company.id}/members/${userId}`,
+                          'PUT',
                           { role }
                         );
                         queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
