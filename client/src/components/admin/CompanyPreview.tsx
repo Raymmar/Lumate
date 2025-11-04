@@ -353,9 +353,48 @@ export function CompanyPreview({
         if (!open) onClose();
       }}
       title={isNew ? "Create Company" : company?.name || "Company Details"}
+      headerActions={
+        !isNew && !isEditMode && canEditCompany && company ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                data-testid="button-company-actions"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setIsEditMode(true)} data-testid="menu-item-edit">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Company
+              </DropdownMenuItem>
+              {(companyDetails?.slug || company?.slug) && (
+                <RouterLink to={`/companies/${companyDetails?.slug || company?.slug}`}>
+                  <DropdownMenuItem data-testid="menu-item-view">
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View Public Profile
+                  </DropdownMenuItem>
+                </RouterLink>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                data-testid="menu-item-delete"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Company
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null
+      }
     >
       {error ? (
-        <div className="p-4 text-center">
+        <div className="p-6 text-center">
           <div className="text-destructive mb-2">Error</div>
           <p className="text-muted-foreground">{error}</p>
           <Button className="mt-4" variant="outline" onClick={onClose}>
@@ -363,7 +402,7 @@ export function CompanyPreview({
           </Button>
         </div>
       ) : isEditMode || isNew ? (
-        <div className="p-4">
+        <div className="p-6">
           <CompanyForm
             company={companyDetails || company}
             onSubmit={handleCompanySave}
@@ -375,7 +414,7 @@ export function CompanyPreview({
         <div className="flex flex-col h-full">
           {/* Navigation Controls */}
           {!isNew && !readOnly && (
-            <div className="flex items-center justify-between p-2 border-b">
+            <div className="flex items-center justify-between px-4 py-2 border-b">
               <Button
                 variant="ghost"
                 size="sm"
@@ -384,6 +423,7 @@ export function CompanyPreview({
                   hasPrevious && 
                   handleNavigate(availableCompanies[currentIndex - 1])
                 }
+                data-testid="button-previous-company"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 Previous
@@ -396,6 +436,7 @@ export function CompanyPreview({
                   hasNext && 
                   handleNavigate(availableCompanies[currentIndex + 1])
                 }
+                data-testid="button-next-company"
               >
                 Next
                 <ChevronRight className="h-4 w-4 ml-1" />
@@ -406,7 +447,7 @@ export function CompanyPreview({
           {/* Company Content */}
           <div className="flex-1 overflow-y-auto">
             {isLoadingDetails ? (
-              <div className="p-4 space-y-4">
+              <div className="p-6 space-y-4">
                 <div className="w-full aspect-video bg-muted rounded-lg animate-pulse"></div>
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 rounded-lg bg-muted animate-pulse"></div>
@@ -424,7 +465,7 @@ export function CompanyPreview({
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 p-4">
+              <div className="space-y-6 p-6">
                 {/* Company Header */}
                 <div className="relative">
                   {/* Use companyDetails if available, otherwise fall back to company prop */}
@@ -435,37 +476,6 @@ export function CompanyPreview({
                         alt={(companyDetails?.name || company?.name) || "Company"} 
                         className="w-full h-full object-cover" 
                       />
-                      
-                      {/* Top Right Action Menu */}
-                      {canEditCompany && (
-                        <div className="absolute top-3 right-3">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 bg-black/40 hover:bg-black/60 text-white border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-sm"
-                              >
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setIsEditMode(true)}>
-                                <Edit className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => setShowDeleteDialog(true)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -713,49 +723,6 @@ export function CompanyPreview({
                       }
                     }}
                   />
-                )}
-
-                {/* Admin Action Buttons */}
-                {canEditCompany && (
-                  <div className="border-t pt-4 flex justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditMode(true)}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Company
-                    </Button>
-                    
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setShowDeleteDialog(true)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </Button>
-                  </div>
-                )}
-
-                {/* View Public Profile Button */}
-                {/* Use companyDetails when available, otherwise fall back to company prop */}
-                {(companyDetails?.slug || company?.slug) && (
-                  <div className="mt-4">
-                    <RouterLink to={`/companies/${companyDetails?.slug || company?.slug}`}>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View Public Profile
-                      </Button>
-                    </RouterLink>
-                  </div>
-                )}
-                
-                {/* Show explanation if company exists but has no slug */}
-                {(companyDetails || company)?.name && !(companyDetails?.slug || company?.slug) && (
-                  <div className="mt-4 p-2 border border-yellow-200 bg-yellow-50 rounded-md text-sm text-amber-800">
-                    No public profile URL is available. Please edit the company to regenerate its URL.
-                  </div>
                 )}
               </div>
             )}
