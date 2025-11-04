@@ -2253,7 +2253,10 @@ export class PostgresStorage implements IStorage {
         .where(and(
           eq(companyMembers.companyId, companyId),
           eq(companyMembers.userId, userId),
-          eq(companyMembers.role, 'admin')
+          or(
+            eq(companyMembers.role, 'admin'),
+            eq(companyMembers.role, 'owner')
+          )
         ))
         .limit(1);
       

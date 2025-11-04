@@ -103,16 +103,16 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     // Log the system admin check
     console.log(`User ${req.session.userId} isAdmin check: ${isSystemAdmin}`);
     
-    // If not a system admin, verify if they're a company member (any role)
+    // If not a system admin, verify if they're a company admin/owner
     if (!isSystemAdmin) {
-      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, id);
-      console.log(`User ${req.session.userId} isCompanyMember check: ${isCompanyMember}`);
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
+      console.log(`User ${req.session.userId} isCompanyAdmin check: ${isCompanyAdmin}`);
       
-      if (!isCompanyMember) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company member`);
+      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     } else {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     }
@@ -174,14 +174,14 @@ router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company member (any role)
-      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, id);
+      // If not a system admin, verify if they're a company admin/owner
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
       
-      if (!isCompanyMember) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company member`);
+      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Delete the company
@@ -229,13 +229,13 @@ router.post("/:id/members", requireAuth, async (req: Request, res: Response) => 
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company member (any role)
-      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, companyId);
-      if (!isCompanyMember) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
+      // If not a system admin, verify if they're a company admin/owner
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company member`);
+      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Validate the member data
@@ -284,13 +284,13 @@ router.put("/:companyId/members/:userId", requireAuth, async (req: Request, res:
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company member (any role)
-      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, companyId);
-      if (!isCompanyMember) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
+      // If not a system admin, verify if they're a company admin/owner
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company member`);
+      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Validate the role data
@@ -329,13 +329,13 @@ router.delete("/:companyId/members/:userId", requireAuth, async (req: Request, r
     if (isSystemAdmin) {
       console.log(`Access granted: User ${req.session.userId} is a system admin`);
     } else {
-      // If not a system admin, verify if they're a company member (any role)
-      const isCompanyMember = await storage.isCompanyMember(req.session.userId!, companyId);
-      if (!isCompanyMember) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company member`);
+      // If not a system admin, verify if they're a company admin/owner
+      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
+      if (!isCompanyAdmin) {
+        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
         return res.status(403).json({ error: "Unauthorized" });
       }
-      console.log(`Access granted: User ${req.session.userId} is a company member`);
+      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Remove the member
