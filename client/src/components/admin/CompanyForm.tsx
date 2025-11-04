@@ -731,108 +731,23 @@ export function CompanyForm({
             </FormDescription>
             
             {!readOnly && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">
-                  Company Members
-                  <span className="text-muted-foreground ml-1 text-xs">(Optional)</span>
-                </label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="justify-between w-full md:w-80 border-primary/40"
-                    >
-                      {selectedMembers.length > 0 
-                        ? `${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''} selected`
-                        : "Select members"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-full md:w-80 p-0 z-[99999999]" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search users..." />
-                      <CommandEmpty>
-                        {isLoadingUsers ? "Loading users..." : "No users found."}
-                      </CommandEmpty>
-                      <CommandList>
-                        <CommandGroup>
-                          {isLoadingUsers ? (
-                            <div className="flex justify-center items-center py-6">
-                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                            </div>
-                          ) : (
-                            <ScrollArea className="h-72">
-                              {usersData?.users?.map((user: User) => (
-                                <CommandItem
-                                  key={user.id}
-                                  value={user.email}
-                                  onSelect={() => handleMemberToggle(user.id)}
-                                >
-                                  <div className="flex items-center gap-2 w-full">
-                                    <div className={cn(
-                                      "flex h-4 w-4 items-center justify-center rounded-sm border",
-                                      selectedMembers.includes(user.id) 
-                                        ? "bg-primary text-primary-foreground" 
-                                        : "opacity-50"
-                                    )}>
-                                      {selectedMembers.includes(user.id) && (
-                                        <Check className="h-3 w-3" />
-                                      )}
-                                    </div>
-                                    <span className="flex-1 truncate">{user.displayName || user.email}</span>
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </ScrollArea>
-                          )}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-                
+              <div className="space-y-4">
+                {/* Show selected members FIRST (above the dropdown) so they're immediately visible */}
                 {selectedMembers.length > 0 && (
-                  <>
-                    <div className="flex flex-col gap-4 mt-4 mb-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Company Owner <span className="text-destructive">*</span>
-                        </label>
-                        <FormDescription className="mt-0 mb-2">
-                          Select which member will be the company owner/admin
-                        </FormDescription>
-                        <Select
-                          disabled={readOnly}
-                          onValueChange={(value) => handleSetOwner(parseInt(value))}
-                          value={ownerUserId?.toString() || undefined}
-                          defaultValue={ownerUserId?.toString() || undefined}
-                        >
-                          <SelectTrigger className="w-full md:w-80">
-                            <SelectValue placeholder="Select company owner" />
-                          </SelectTrigger>
-                          <SelectContent className="z-[99999999]">
-                            {selectedMembers.map(userId => {
-                              const user = usersData?.users?.find((u: User) => u.id === userId);
-                              return user ? (
-                                <SelectItem key={userId} value={userId.toString()}>
-                                  {user.displayName || user.email}
-                                </SelectItem>
-                              ) : null;
-                            })}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                  <div className="border border-primary/20 rounded-lg p-4 bg-muted/20">
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium">
+                        Selected Members ({selectedMembers.length})
+                      </label>
                     </div>
-                    
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-2">
                       {selectedMembers.map(userId => {
                         const user = usersData?.users?.find((u: User) => u.id === userId);
                         return user ? (
                           <Badge 
                             key={userId} 
                             variant={userId === ownerUserId ? "default" : "secondary"} 
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm"
                           >
                             {userId === ownerUserId && "👑 "}
                             {user.displayName || user.email}
@@ -840,6 +755,7 @@ export function CompanyForm({
                               type="button"
                               onClick={() => handleMemberToggle(userId)}
                               className="ml-1 text-muted-foreground hover:text-foreground"
+                              data-testid={`button-remove-member-${userId}`}
                             >
                               <X className="h-3 w-3" />
                             </button>
@@ -847,7 +763,101 @@ export function CompanyForm({
                         ) : null;
                       })}
                     </div>
-                  </>
+                  </div>
+                )}
+
+                <div>
+                  <label className="text-sm font-medium block mb-2">
+                    Add / Remove Company Members
+                    <span className="text-muted-foreground ml-1 text-xs font-normal">(Optional)</span>
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="justify-between w-full md:w-80 border-primary/40"
+                        data-testid="button-select-members"
+                      >
+                        {selectedMembers.length > 0 
+                          ? `${selectedMembers.length} member${selectedMembers.length > 1 ? 's' : ''} selected`
+                          : "Select members"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full md:w-80 p-0 z-[99999999]" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search users..." />
+                        <CommandEmpty>
+                          {isLoadingUsers ? "Loading users..." : "No users found."}
+                        </CommandEmpty>
+                        <CommandList>
+                          <CommandGroup>
+                            {isLoadingUsers ? (
+                              <div className="flex justify-center items-center py-6">
+                                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                              </div>
+                            ) : (
+                              <ScrollArea className="h-72">
+                                {usersData?.users?.map((user: User) => (
+                                  <CommandItem
+                                    key={user.id}
+                                    value={user.email}
+                                    onSelect={() => handleMemberToggle(user.id)}
+                                  >
+                                    <div className="flex items-center gap-2 w-full">
+                                      <div className={cn(
+                                        "flex h-4 w-4 items-center justify-center rounded-sm border",
+                                        selectedMembers.includes(user.id) 
+                                          ? "bg-primary text-primary-foreground" 
+                                          : "opacity-50"
+                                      )}>
+                                        {selectedMembers.includes(user.id) && (
+                                          <Check className="h-3 w-3" />
+                                        )}
+                                      </div>
+                                      <span className="flex-1 truncate">{user.displayName || user.email}</span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </ScrollArea>
+                            )}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {selectedMembers.length > 0 && (
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Company Owner <span className="text-destructive">*</span>
+                    </label>
+                    <FormDescription className="mt-0 mb-2">
+                      Select which member will be the company owner/admin
+                    </FormDescription>
+                    <Select
+                      disabled={readOnly}
+                      onValueChange={(value) => handleSetOwner(parseInt(value))}
+                      value={ownerUserId?.toString() || undefined}
+                      defaultValue={ownerUserId?.toString() || undefined}
+                    >
+                      <SelectTrigger className="w-full md:w-80">
+                        <SelectValue placeholder="Select company owner" />
+                      </SelectTrigger>
+                      <SelectContent className="z-[99999999]">
+                        {selectedMembers.map(userId => {
+                          const user = usersData?.users?.find((u: User) => u.id === userId);
+                          return user ? (
+                            <SelectItem key={userId} value={userId.toString()}>
+                              {user.displayName || user.email}
+                            </SelectItem>
+                          ) : null;
+                        })}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
               </div>
             )}

@@ -72,8 +72,6 @@ export function CompanyPreview({
   const [isEditMode, setIsEditMode] = useState(isEditing);
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   
   // Check if user can edit this company
   const canEditCompany = user?.isAdmin;
@@ -111,52 +109,6 @@ export function CompanyPreview({
       setMembers(membersData.members);
     }
   }, [membersData]);
-
-  // Fetch all users for member assignment
-  const { data: usersData } = useQuery<{ users: User[] }>({
-    queryKey: ["/api/admin/members"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/members?limit=100");
-      if (!response.ok) {
-        throw new Error("Failed to fetch members");
-      }
-      return response.json();
-    },
-    enabled: canEditCompany && !isNew
-  });
-
-  // Add member mutation
-  const addMemberMutation = useMutation({
-    mutationFn: async ({ userId, role = "user" }: { userId: number, role?: string }) => {
-      if (!company?.id) return;
-      return apiRequest(`/api/companies/${company.id}/members`, 'POST', {
-        userId,
-        role,
-        isPublic: true
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company?.id] });
-      toast({
-        title: 'Member added',
-        description: 'The member has been added to the company',
-      });
-      setShowAddMember(false);
-      setSelectedUserId(null);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to add member: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: 'destructive',
-      });
-    }
-  });
-
-  // Filter out users who are already members
-  const availableUsers = usersData?.users?.filter(u => 
-    !members.some(m => m.userId === u.id)
-  ) || [];
 
   // Filter out the available companies for navigation
   const availableCompanies = companies;
@@ -696,51 +648,7 @@ export function CompanyPreview({
 
                 {/* Company Members */}
                 <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">Company Members</h2>
-                    {canEditCompany && (
-                      <Popover open={showAddMember} onOpenChange={setShowAddMember}>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm" data-testid="button-add-member">
-                            <UserPlus className="h-4 w-4 mr-2" />
-                            Add Member
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[300px] p-0" align="end">
-                          <Command>
-                            <CommandInput placeholder="Search users..." />
-                            <CommandEmpty>No users found.</CommandEmpty>
-                            <CommandList>
-                              <CommandGroup>
-                                {availableUsers.map((user: User) => (
-                                  <CommandItem
-                                    key={user.id}
-                                    value={user.email}
-                                    onSelect={() => {
-                                      addMemberMutation.mutate({ userId: user.id });
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        selectedUserId === user.id ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    <div className="flex flex-col">
-                                      <span>{user.displayName || user.email}</span>
-                                      {user.displayName && (
-                                        <span className="text-xs text-muted-foreground">{user.email}</span>
-                                      )}
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  </div>
+                  <h2 className="text-lg font-semibold mb-4">Company Members</h2>
                   {isLoadingMembers ? (
                     <div className="space-y-2">
                       <Skeleton className="h-12 w-full" />
