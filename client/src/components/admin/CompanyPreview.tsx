@@ -414,7 +414,7 @@ export function CompanyPreview({
         <div className="flex flex-col h-full">
           {/* Navigation Controls */}
           {!isNew && !readOnly && (
-            <div className="flex items-center justify-between px-4 py-2 border-b">
+            <div className="flex items-center justify-between px-6 py-2 border-b">
               <Button
                 variant="ghost"
                 size="sm"
