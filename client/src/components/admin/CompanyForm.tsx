@@ -105,6 +105,9 @@ interface CompanyFormProps {
   onSubmit: (data: InsertCompany) => Promise<void>;
   isLoading?: boolean;
   readOnly?: boolean;
+  onCancel?: () => void;
+  hideButtons?: boolean;
+  onFormReady?: (formRef: { submit: () => void }) => void;
 }
 
 export function CompanyForm({
@@ -112,8 +115,10 @@ export function CompanyForm({
   onSubmit,
   isLoading = false,
   readOnly = false,
-  onCancel
-}: CompanyFormProps & { onCancel?: () => void }) {
+  onCancel,
+  hideButtons = false,
+  onFormReady
+}: CompanyFormProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState("");
   const [customLinks, setCustomLinks] = useState<UserCustomLink[]>([]);
@@ -356,6 +361,15 @@ export function CompanyForm({
       console.error("Error submitting company form:", error);
     }
   };
+
+  // Expose form submit method to parent
+  useEffect(() => {
+    if (onFormReady) {
+      onFormReady({
+        submit: () => form.handleSubmit(handleSubmit)()
+      });
+    }
+  }, [onFormReady, form, handleSubmit]);
 
   return (
     <Form {...form}>
@@ -803,7 +817,7 @@ export function CompanyForm({
         </div>
 
         {/* Submit Button */}
-        {!readOnly && (
+        {!readOnly && !hideButtons && (
           <div className="flex justify-between">
             {onCancel && (
               <Button

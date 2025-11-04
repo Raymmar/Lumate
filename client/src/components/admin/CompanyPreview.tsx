@@ -2,7 +2,7 @@ import { Company, InsertCompany, User } from "@shared/schema";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2, UserPlus, Check } from "lucide-react";
+import { ExternalLink, ChevronLeft, ChevronRight, MoreVertical, Edit, Trash2, UserPlus, Check, Eye, X } from "lucide-react";
 import { CompanyForm } from "./CompanyForm";
 import { useEffect, useState } from 'react';
 import { format } from "date-fns";
@@ -59,6 +59,7 @@ export function CompanyPreview({
   const [isEditMode, setIsEditMode] = useState(isEditing);
   const [error, setError] = useState<string | null>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [formRef, setFormRef] = useState<{ submit: () => void } | null>(null);
   
   // Check if user can edit this company
   const canEditCompany = user?.isAdmin;
@@ -354,7 +355,30 @@ export function CompanyPreview({
       }}
       title={isNew ? "Create Company" : company?.name || "Company Details"}
       headerActions={
-        !isNew && !isEditMode && canEditCompany && company ? (
+        isEditMode || isNew ? (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsEditMode(false)}
+              disabled={updateCompanyMutation.isPending}
+              data-testid="button-cancel-edit"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => formRef?.submit()}
+              disabled={updateCompanyMutation.isPending}
+              data-testid="button-save-company"
+            >
+              <Check className="h-4 w-4 mr-2" />
+              {updateCompanyMutation.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </>
+        ) : !isNew && canEditCompany && company ? (
           <>
             <Button
               variant="ghost"
@@ -374,7 +398,7 @@ export function CompanyPreview({
                   className="h-8 w-8"
                   data-testid="button-view-profile"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <Eye className="h-4 w-4" />
                   <span className="sr-only">View Public Profile</span>
                 </Button>
               </RouterLink>
@@ -398,6 +422,8 @@ export function CompanyPreview({
             onSubmit={handleCompanySave}
             isLoading={updateCompanyMutation.isPending}
             onCancel={() => setIsEditMode(false)}
+            hideButtons={true}
+            onFormReady={setFormRef}
           />
         </div>
       ) : (
