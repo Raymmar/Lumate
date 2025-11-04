@@ -355,41 +355,31 @@ export function CompanyPreview({
       title={isNew ? "Create Company" : company?.name || "Company Details"}
       headerActions={
         !isNew && !isEditMode && canEditCompany && company ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                data-testid="button-company-actions"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditMode(true)} data-testid="menu-item-edit">
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Company
-              </DropdownMenuItem>
-              {(companyDetails?.slug || company?.slug) && (
-                <RouterLink to={`/companies/${companyDetails?.slug || company?.slug}`}>
-                  <DropdownMenuItem data-testid="menu-item-view">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View Public Profile
-                  </DropdownMenuItem>
-                </RouterLink>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => setShowDeleteDialog(true)}
-                data-testid="menu-item-delete"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Company
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsEditMode(true)}
+              data-testid="button-edit-company"
+            >
+              <Edit className="h-4 w-4" />
+              <span className="sr-only">Edit Company</span>
+            </Button>
+            {(companyDetails?.slug || company?.slug) && (
+              <RouterLink to={`/companies/${companyDetails?.slug || company?.slug}`}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  data-testid="button-view-profile"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span className="sr-only">View Public Profile</span>
+                </Button>
+              </RouterLink>
+            )}
+          </>
         ) : null
       }
     >
@@ -723,6 +713,22 @@ export function CompanyPreview({
                       }
                     }}
                   />
+                )}
+
+                {/* Delete Button - Separated at bottom */}
+                {canEditCompany && !isNew && (
+                  <div className="pt-6 mt-6 border-t">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setShowDeleteDialog(true)}
+                      className="w-full"
+                      data-testid="button-delete-company"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Company
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
