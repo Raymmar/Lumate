@@ -60,9 +60,12 @@ export function CompanyMembersManager({
   const [searchQuery, setSearchQuery] = useState("");
 
   const memberUserIds = members.map(m => m.userId);
-  const availableUsers = allUsers.filter(u => !memberUserIds.includes(u.id));
 
   const handleAddMember = (userId: number) => {
+    // Only add if not already a member
+    if (memberUserIds.includes(userId)) {
+      return;
+    }
     onAddMember?.(userId);
     setIsAddingMember(false);
     setSearchQuery("");
@@ -77,16 +80,16 @@ export function CompanyMembersManager({
       .slice(0, 2);
   };
 
-  // Smart search and ranking function
+  // Smart search and ranking function - shows ALL users, not just available ones
   const getFilteredAndSortedUsers = () => {
     if (!searchQuery.trim()) {
-      return availableUsers;
+      return allUsers;
     }
 
     const query = searchQuery.toLowerCase().trim();
     
     // Filter and score users
-    const scoredUsers = availableUsers
+    const scoredUsers = allUsers
       .map(user => {
         const displayName = (user.displayName || "").toLowerCase();
         const email = (user.email || "").toLowerCase();
@@ -114,11 +117,16 @@ export function CompanyMembersManager({
           score = 10;
         }
         
-        return { user, score };
+        return { user, score, isAlreadyMember: memberUserIds.includes(user.id) };
       })
       .filter(item => item.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .map(item => item.user);
+      .sort((a, b) => {
+        // Sort by: non-members first, then by score
+        if (a.isAlreadyMember !== b.isAlreadyMember) {
+          return a.isAlreadyMember ? 1 : -1;
+        }
+        return b.score - a.score;
+      });
     
     return scoredUsers;
   };
@@ -165,15 +173,27 @@ export function CompanyMembersManager({
                             No users found matching "{searchQuery}"
                           </div>
                         ) : (
-                          filteredUsers.map((user) => (
+                          filteredUsers.map(({ user, isAlreadyMember }) => (
                             <CommandItem
                               key={user.id}
                               value={user.id.toString()}
                               onSelect={() => handleAddMember(user.id)}
+                              disabled={isAlreadyMember}
+                              className={cn(
+                                isAlreadyMember && "opacity-50 cursor-not-allowed"
+                              )}
                             >
-                              <Check className="mr-2 h-4 w-4 opacity-0" />
-                              <div className="flex flex-col">
-                                <span className="font-medium">{user.displayName || user.email}</span>
+                              <Check className={cn(
+                                "mr-2 h-4 w-4",
+                                isAlreadyMember ? "opacity-100" : "opacity-0"
+                              )} />
+                              <div className="flex flex-col flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{user.displayName || user.email}</span>
+                                  {isAlreadyMember && (
+                                    <span className="text-xs text-muted-foreground">(Already a member)</span>
+                                  )}
+                                </div>
                                 {user.displayName && (
                                   <span className="text-xs text-muted-foreground">{user.email}</span>
                                 )}
