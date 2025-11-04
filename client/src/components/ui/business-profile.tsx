@@ -10,6 +10,7 @@ import {
   Link as LinkIcon
 } from "lucide-react";
 import { Location, UserCustomLink } from "@shared/schema";
+import { TruncatedText } from "@/components/ui/truncated-text";
 
 export interface BusinessProfileProps {
   name: string;
@@ -55,7 +56,7 @@ export function BusinessProfile({
 
       <CardContent className="p-3 md:p-4 pt-0 space-y-4">
         {description && (
-          <p className="text-muted-foreground">{description}</p>
+          <TruncatedText text={description} />
         )}
 
         <div className="space-y-2">

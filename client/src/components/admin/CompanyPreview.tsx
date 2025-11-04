@@ -31,6 +31,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { CompanyMembersManager } from "./CompanyMembersManager";
 import { cn } from "@/lib/utils";
+import { TruncatedText } from "@/components/ui/truncated-text";
 
 interface CompanyPreviewProps {
   company?: Company;
@@ -536,7 +537,7 @@ export function CompanyPreview({
                   {(companyDetails?.bio || company?.bio) && (
                     <div className="mb-4">
                       <h2 className="text-lg font-semibold mb-2">About</h2>
-                      <p>{companyDetails?.bio || company?.bio}</p>
+                      <TruncatedText text={companyDetails?.bio || company?.bio || ""} />
                     </div>
                   )}
                   

@@ -15,6 +15,7 @@ import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
 import { User } from '@shared/schema';
 import { Link } from 'wouter';
+import { TruncatedText } from "@/components/ui/truncated-text";
 
 interface PersonProfileProps {
   username: string;
@@ -265,7 +266,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         <Card className="overflow-hidden">
           <CardContent className="p-3 md:p-4">
             {person.user?.bio ? (
-              <p className="text-lg text-muted-foreground break-words">{person.user.bio}</p>
+              <TruncatedText text={person.user.bio} className="text-lg" />
             ) : (
               <p className="text-lg text-muted-foreground">No bio available</p>
             )}
@@ -306,7 +307,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                 )}
                 
                 {userCompany.bio && (
-                  <p className="text-muted-foreground">{userCompany.bio}</p>
+                  <TruncatedText text={userCompany.bio} />
                 )}
                 
                 {userCompany.tags && userCompany.tags.length > 0 && (
