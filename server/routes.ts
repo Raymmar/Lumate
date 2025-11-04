@@ -3228,9 +3228,7 @@ export async function registerRoutes(app: Express) {
             ? sql`(
               LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
               LOWER(full_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
+              LOWER(email) LIKE ${`%${searchQuery}%`}
             )`
             : sql`1=1`,
         )
@@ -3244,9 +3242,7 @@ export async function registerRoutes(app: Express) {
             ? sql`(
               LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
               LOWER(full_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(organization_name, '')) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(COALESCE(job_title, '')) LIKE ${`%${searchQuery}%`}
+              LOWER(email) LIKE ${`%${searchQuery}%`}
             )`
             : sql`1=1`,
         )
