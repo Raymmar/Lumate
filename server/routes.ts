@@ -4031,9 +4031,14 @@ export async function registerRoutes(app: Express) {
       const totalCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(users)
+        .leftJoin(people, eq(users.personId, people.id))
         .where(
           searchQuery
-            ? sql`(LOWER(email) LIKE ${`%${searchQuery}%`} OR LOWER(display_name) LIKE ${`%${searchQuery}%`})`
+            ? sql`(
+              LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(${people.userName}) LIKE ${`%${searchQuery}%`}
+            )`
             : sql`1=1`,
         )
         .then((result) => Number(result[0].count));
@@ -4043,6 +4048,7 @@ export async function registerRoutes(app: Express) {
           id: users.id,
           email: users.email,
           displayName: users.displayName,
+          userName: people.userName,
           isVerified: users.isVerified,
           isAdmin: users.isAdmin,
           createdAt: users.createdAt,
@@ -4052,7 +4058,11 @@ export async function registerRoutes(app: Express) {
         .leftJoin(people, eq(users.personId, people.id))
         .where(
           searchQuery
-            ? sql`(LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`})`
+            ? sql`(
+              LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR 
+              LOWER(${people.userName}) LIKE ${`%${searchQuery}%`}
+            )`
             : sql`1=1`,
         )
         .orderBy(users.createdAt)

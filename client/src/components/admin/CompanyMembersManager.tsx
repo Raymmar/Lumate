@@ -107,6 +107,7 @@ export function CompanyMembersManager({
     const scoredUsers = usersWithStatus
       .map(item => {
         const displayName = (item.user.displayName || "").toLowerCase();
+        const userName = (item.user.userName || "").toLowerCase();
         const email = (item.user.email || "").toLowerCase();
         
         let score = 0;
@@ -115,13 +116,25 @@ export function CompanyMembersManager({
         if (displayName === query) {
           score = 1000;
         }
+        // Exact match on user name
+        else if (userName === query) {
+          score = 900;
+        }
         // Starts with query in display name
         else if (displayName.startsWith(query)) {
           score = 500;
         }
+        // Starts with query in user name
+        else if (userName.startsWith(query)) {
+          score = 400;
+        }
         // Contains query in display name
         else if (displayName.includes(query)) {
           score = 100;
+        }
+        // Contains query in user name
+        else if (userName.includes(query)) {
+          score = 90;
         }
         // Starts with query in email
         else if (email.startsWith(query)) {
@@ -204,12 +217,12 @@ export function CompanyMembersManager({
                               )} />
                               <div className="flex flex-col flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">{user.displayName || user.email}</span>
+                                  <span className="font-medium">{user.displayName || user.userName || user.email}</span>
                                   {isAlreadyMember && (
                                     <span className="text-xs text-muted-foreground">(Already a member)</span>
                                   )}
                                 </div>
-                                {user.displayName && (
+                                {(user.displayName || user.userName) && (
                                   <span className="text-xs text-muted-foreground">{user.email}</span>
                                 )}
                               </div>
