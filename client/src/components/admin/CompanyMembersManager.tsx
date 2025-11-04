@@ -82,17 +82,32 @@ export function CompanyMembersManager({
 
   // Smart search and ranking function - shows ALL users, not just available ones
   const getFilteredAndSortedUsers = () => {
-    if (!searchQuery.trim()) {
-      return allUsers;
-    }
-
     const query = searchQuery.toLowerCase().trim();
     
-    // Filter and score users
-    const scoredUsers = allUsers
-      .map(user => {
-        const displayName = (user.displayName || "").toLowerCase();
-        const email = (user.email || "").toLowerCase();
+    // Map all users to include member status
+    const usersWithStatus = allUsers.map(user => ({
+      user,
+      isAlreadyMember: memberUserIds.includes(user.id)
+    }));
+
+    // If no search query, return all users with non-members first
+    if (!query) {
+      return usersWithStatus.sort((a, b) => {
+        if (a.isAlreadyMember !== b.isAlreadyMember) {
+          return a.isAlreadyMember ? 1 : -1;
+        }
+        // Sort alphabetically by display name
+        const nameA = (a.user.displayName || a.user.email || "").toLowerCase();
+        const nameB = (b.user.displayName || b.user.email || "").toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    }
+    
+    // Filter and score users based on search query
+    const scoredUsers = usersWithStatus
+      .map(item => {
+        const displayName = (item.user.displayName || "").toLowerCase();
+        const email = (item.user.email || "").toLowerCase();
         
         let score = 0;
         
@@ -117,7 +132,7 @@ export function CompanyMembersManager({
           score = 10;
         }
         
-        return { user, score, isAlreadyMember: memberUserIds.includes(user.id) };
+        return { ...item, score };
       })
       .filter(item => item.score > 0)
       .sort((a, b) => {
