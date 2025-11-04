@@ -406,6 +406,38 @@ export function CompanyPreview({
           </>
         ) : null
       }
+      navigation={
+        !isNew && !readOnly && !isEditMode ? (
+          <div className="flex items-center justify-between px-6 py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!hasPrevious}
+              onClick={() => 
+                hasPrevious && 
+                handleNavigate(availableCompanies[currentIndex - 1])
+              }
+              data-testid="button-previous-company"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={!hasNext}
+              onClick={() => 
+                hasNext && 
+                handleNavigate(availableCompanies[currentIndex + 1])
+              }
+              data-testid="button-next-company"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        ) : null
+      }
     >
       {error ? (
         <div className="p-6 text-center">
@@ -428,38 +460,6 @@ export function CompanyPreview({
         </div>
       ) : (
         <div className="flex flex-col h-full">
-          {/* Navigation Controls */}
-          {!isNew && !readOnly && (
-            <div className="flex items-center justify-between px-6 py-2 border-b">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!hasPrevious}
-                onClick={() => 
-                  hasPrevious && 
-                  handleNavigate(availableCompanies[currentIndex - 1])
-                }
-                data-testid="button-previous-company"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!hasNext}
-                onClick={() => 
-                  hasNext && 
-                  handleNavigate(availableCompanies[currentIndex + 1])
-                }
-                data-testid="button-next-company"
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          )}
-
           {/* Company Content */}
           <div className="flex-1 overflow-y-auto">
             {isLoadingDetails ? (
