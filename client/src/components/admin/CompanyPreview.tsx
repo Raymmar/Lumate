@@ -665,10 +665,11 @@ export function CompanyPreview({
                     onAddMember={async (userId) => {
                       if (!company?.id) return;
                       try {
-                        await apiRequest(`/api/companies/${company.id}/members`, {
-                          method: 'POST',
-                          body: JSON.stringify({ userId, role: 'user' })
-                        });
+                        await apiRequest(
+                          `/api/companies/${company.id}/members`,
+                          'POST',
+                          { userId, role: 'user' }
+                        );
                         queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
                       } catch (error) {
                         toast({
@@ -681,9 +682,10 @@ export function CompanyPreview({
                     onRemoveMember={async (userId) => {
                       if (!company?.id) return;
                       try {
-                        await apiRequest(`/api/companies/${company.id}/members/${userId}`, {
-                          method: 'DELETE'
-                        });
+                        await apiRequest(
+                          `/api/companies/${company.id}/members/${userId}`,
+                          'DELETE'
+                        );
                         queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
                       } catch (error) {
                         toast({
@@ -696,10 +698,11 @@ export function CompanyPreview({
                     onChangeRole={async (userId, role) => {
                       if (!company?.id) return;
                       try {
-                        await apiRequest(`/api/companies/${company.id}/members/${userId}/role`, {
-                          method: 'PATCH',
-                          body: JSON.stringify({ role })
-                        });
+                        await apiRequest(
+                          `/api/companies/${company.id}/members/${userId}/role`,
+                          'PATCH',
+                          { role }
+                        );
                         queryClient.invalidateQueries({ queryKey: ['/api/companies/members', company.id] });
                       } catch (error) {
                         toast({
