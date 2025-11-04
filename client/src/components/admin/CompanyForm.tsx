@@ -122,11 +122,11 @@ export function CompanyForm({
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [ownerUserId, setOwnerUserId] = useState<number | null>(null);
   
-  // Fetch all users for member assignment
+  // Fetch all users for member assignment - get ALL users, not just first 100
   const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[], total: number }>({
     queryKey: ["/api/admin/members"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/members?limit=100");
+      const response = await fetch("/api/admin/members?limit=10000"); // Get ALL users for search
       if (!response.ok) {
         throw new Error("Failed to fetch members");
       }

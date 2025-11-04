@@ -95,7 +95,7 @@ export function CompanyPreview({
   const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[], total: number }>({
     queryKey: ["/api/admin/members"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/members?limit=100");
+      const response = await fetch("/api/admin/members?limit=10000"); // Get ALL users for search
       if (!response.ok) {
         throw new Error("Failed to fetch members");
       }
