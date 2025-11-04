@@ -57,6 +57,7 @@ export function CompanyMembersManager({
   className = "",
 }: CompanyMembersManagerProps) {
   const [isAddingMember, setIsAddingMember] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const memberUserIds = members.map(m => m.userId);
   const availableUsers = allUsers.filter(u => !memberUserIds.includes(u.id));
@@ -64,6 +65,7 @@ export function CompanyMembersManager({
   const handleAddMember = (userId: number) => {
     onAddMember?.(userId);
     setIsAddingMember(false);
+    setSearchQuery("");
   };
 
   const getInitials = (name: string) => {
@@ -74,6 +76,54 @@ export function CompanyMembersManager({
       .toUpperCase()
       .slice(0, 2);
   };
+
+  // Smart search and ranking function
+  const getFilteredAndSortedUsers = () => {
+    if (!searchQuery.trim()) {
+      return availableUsers;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+    
+    // Filter and score users
+    const scoredUsers = availableUsers
+      .map(user => {
+        const displayName = (user.displayName || "").toLowerCase();
+        const email = (user.email || "").toLowerCase();
+        
+        let score = 0;
+        
+        // Exact match on display name (highest priority)
+        if (displayName === query) {
+          score = 1000;
+        }
+        // Starts with query in display name
+        else if (displayName.startsWith(query)) {
+          score = 500;
+        }
+        // Contains query in display name
+        else if (displayName.includes(query)) {
+          score = 100;
+        }
+        // Starts with query in email
+        else if (email.startsWith(query)) {
+          score = 50;
+        }
+        // Contains query in email
+        else if (email.includes(query)) {
+          score = 10;
+        }
+        
+        return { user, score };
+      })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .map(item => item.user);
+    
+    return scoredUsers;
+  };
+
+  const filteredUsers = getFilteredAndSortedUsers();
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -93,8 +143,12 @@ export function CompanyMembersManager({
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0 z-[99999999]" align="end">
-              <Command>
-                <CommandInput placeholder="Search users..." />
+              <Command shouldFilter={false}>
+                <CommandInput 
+                  placeholder="Search users..." 
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                />
                 <CommandEmpty>
                   {isLoadingUsers ? "Loading users..." : "No users found."}
                 </CommandEmpty>
@@ -106,16 +160,27 @@ export function CompanyMembersManager({
                       </div>
                     ) : (
                       <ScrollArea className="h-72">
-                        {availableUsers.map((user) => (
-                          <CommandItem
-                            key={user.id}
-                            value={user.email}
-                            onSelect={() => handleAddMember(user.id)}
-                          >
-                            <Check className="mr-2 h-4 w-4 opacity-0" />
-                            <span>{user.displayName || user.email}</span>
-                          </CommandItem>
-                        ))}
+                        {filteredUsers.length === 0 ? (
+                          <div className="py-6 text-center text-sm text-muted-foreground">
+                            No users found matching "{searchQuery}"
+                          </div>
+                        ) : (
+                          filteredUsers.map((user) => (
+                            <CommandItem
+                              key={user.id}
+                              value={user.id.toString()}
+                              onSelect={() => handleAddMember(user.id)}
+                            >
+                              <Check className="mr-2 h-4 w-4 opacity-0" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">{user.displayName || user.email}</span>
+                                {user.displayName && (
+                                  <span className="text-xs text-muted-foreground">{user.email}</span>
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))
+                        )}
                       </ScrollArea>
                     )}
                   </CommandGroup>
