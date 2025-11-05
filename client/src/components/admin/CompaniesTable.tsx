@@ -39,7 +39,7 @@ export function CompaniesTable() {
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const [location, setLocation] = useLocation();
-  const ITEMS_PER_PAGE = 10;
+  const ITEMS_PER_PAGE = 50;
   
   // Check URL params for "action=new" to automatically open the create company form
   useEffect(() => {
