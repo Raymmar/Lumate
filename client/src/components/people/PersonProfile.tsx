@@ -279,7 +279,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
             <h3 className="text-lg font-medium ml-1">Company</h3>
             {userCompany.slug ? (
               <Link href={`/companies/${userCompany.slug}`}>
-                <Card className="overflow-hidden rounded-xl cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02]">
+                <Card className="overflow-hidden rounded-xl cursor-pointer">
                   {userCompany.featuredImageUrl && (
                     <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
                       <img
@@ -321,11 +321,19 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                         ))}
                       </div>
                     )}
+                    
+                    <Button 
+                      variant="outline" 
+                      className="w-full mt-2"
+                      data-testid="button-view-company"
+                    >
+                      View full company profile
+                    </Button>
                   </CardContent>
                 </Card>
               </Link>
             ) : (
-              <Card className="overflow-hidden rounded-xl opacity-60">
+              <Card className="overflow-hidden rounded-xl">
                 {userCompany.featuredImageUrl && (
                   <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
                     <img
@@ -367,6 +375,15 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                       ))}
                     </div>
                   )}
+                  
+                  <Button 
+                    variant="outline" 
+                    disabled
+                    className="w-full mt-2"
+                    title="Company profile URL not available"
+                  >
+                    View full company profile
+                  </Button>
                 </CardContent>
               </Card>
             )}
