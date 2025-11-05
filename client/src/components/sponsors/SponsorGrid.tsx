@@ -17,6 +17,7 @@ interface SponsorGridProps {
   title?: string;
   icon?: React.ReactNode;
   showBecomeSponsorCTA?: boolean;
+  tiers?: string[];
 }
 
 export function SponsorGrid({
@@ -24,6 +25,7 @@ export function SponsorGrid({
   title = "Sponsors",
   icon,
   showBecomeSponsorCTA = true,
+  tiers,
 }: SponsorGridProps) {
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -136,7 +138,7 @@ export function SponsorGrid({
           </div>
         </CardHeader>
         <CardContent className="p-3 md:p-4 space-y-8">
-          {SPONSOR_TIERS.map((tier) => {
+          {SPONSOR_TIERS.filter((tier) => !tiers || tiers.includes(tier.key)).map((tier) => {
             const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
 
             return (
