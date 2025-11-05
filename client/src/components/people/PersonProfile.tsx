@@ -277,71 +277,99 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         {userCompany && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
-            <Card className="overflow-hidden rounded-xl">
-              {userCompany.featuredImageUrl && (
-                <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
-                  <img
-                    src={userCompany.featuredImageUrl}
-                    alt={userCompany.name}
-                    className="h-full w-full object-cover"
-                  />
-                </div>
-              )}
-
-              <CardContent className="p-3 md:p-4 space-y-4">
-                <div className="flex items-center gap-3">
-                  {userCompany.logoUrl && (
-                    <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
-                      <img 
-                        src={userCompany.logoUrl} 
-                        alt={userCompany.name} 
+            {userCompany.slug ? (
+              <Link href={`/companies/${userCompany.slug}`}>
+                <Card className="overflow-hidden rounded-xl cursor-pointer transition-all hover:shadow-lg hover:scale-[1.02]">
+                  {userCompany.featuredImageUrl && (
+                    <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
+                      <img
+                        src={userCompany.featuredImageUrl}
+                        alt={userCompany.name}
                         className="h-full w-full object-cover"
                       />
                     </div>
                   )}
-                  <h3 className="text-xl font-semibold">{userCompany.name}</h3>
-                </div>
-                
-                {userCompany.industry && (
-                  <p className="text-sm text-muted-foreground">{userCompany.industry}</p>
-                )}
-                
-                {userCompany.bio && (
-                  <TruncatedText text={userCompany.bio} />
-                )}
-                
-                {userCompany.tags && userCompany.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {userCompany.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))}
+
+                  <CardContent className="p-3 md:p-4 space-y-4">
+                    <div className="flex items-center gap-3">
+                      {userCompany.logoUrl && (
+                        <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                          <img 
+                            src={userCompany.logoUrl} 
+                            alt={userCompany.name} 
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <h3 className="text-xl font-semibold">{userCompany.name}</h3>
+                    </div>
+                    
+                    {userCompany.industry && (
+                      <p className="text-sm text-muted-foreground">{userCompany.industry}</p>
+                    )}
+                    
+                    {userCompany.bio && (
+                      <p className="text-muted-foreground line-clamp-3">{userCompany.bio}</p>
+                    )}
+                    
+                    {userCompany.tags && userCompany.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {userCompany.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ) : (
+              <Card className="overflow-hidden rounded-xl opacity-60">
+                {userCompany.featuredImageUrl && (
+                  <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
+                    <img
+                      src={userCompany.featuredImageUrl}
+                      alt={userCompany.name}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                 )}
-                
-                {userCompany.slug ? (
-                  <Button 
-                    variant="outline" 
-                    asChild
-                    className="w-full mt-2"
-                  >
-                    <Link href={`/companies/${userCompany.slug}`}>
-                      View full company profile
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button 
-                    variant="outline" 
-                    disabled
-                    className="w-full mt-2"
-                    title="Company profile URL not available"
-                  >
-                    View full company profile
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+
+                <CardContent className="p-3 md:p-4 space-y-4">
+                  <div className="flex items-center gap-3">
+                    {userCompany.logoUrl && (
+                      <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                        <img 
+                          src={userCompany.logoUrl} 
+                          alt={userCompany.name} 
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <h3 className="text-xl font-semibold">{userCompany.name}</h3>
+                  </div>
+                  
+                  {userCompany.industry && (
+                    <p className="text-sm text-muted-foreground">{userCompany.industry}</p>
+                  )}
+                  
+                  {userCompany.bio && (
+                    <p className="text-muted-foreground line-clamp-3">{userCompany.bio}</p>
+                  )}
+                  
+                  {userCompany.tags && userCompany.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {userCompany.tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
       </div>
