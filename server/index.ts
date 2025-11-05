@@ -8,6 +8,7 @@ import unsplashRoutes from "./routes/unsplash";
 import stripeRoutes from "./routes/stripe";
 import { badgeService } from "./services/BadgeService";
 import { startEventSyncService } from "./services/eventSyncService";
+import { emailInvitationService } from "./services/EmailInvitationService";
 import { pool } from "./db";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -231,6 +232,10 @@ app.use(
     // Start background services after server is listening
     try {
       eventSyncIntervals = await startEventSyncService(false);
+      
+      // Start email invitation service
+      emailInvitationService.start();
+      
       console.log('[Server] Background services initialized');
     } catch (error) {
       console.error('[Server] Error starting background services:', error);
@@ -269,6 +274,10 @@ app.use(
       clearInterval(eventSyncIntervals.futureSyncInterval);
       console.log('[Server] Cleared event sync intervals');
     }
+    
+    // Stop email invitation service
+    emailInvitationService.stop();
+    console.log('[Server] Stopped email invitation service');
 
     // Close SSE connections
     const activeConnections = app.get('activeSSEConnections') || [];
