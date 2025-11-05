@@ -1,17 +1,31 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Redirect } from "wouter";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SponsorGrid, SingleSponsor, SponsorCard } from "@/components/sponsors";
-import { Sparkles, GraduationCap, Building2, Rocket } from "lucide-react";
+import { Sparkles, GraduationCap, Building2, Rocket, Calendar } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SponsorShowcasePage() {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/auth/me"],
   });
 
   const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
+  
+  // Generate year options (current year + 2 past years + 2 future years)
+  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
 
   if (isLoading) {
     return null;
@@ -30,10 +44,43 @@ export default function SponsorShowcasePage() {
       <PageContainer>
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="border-b pb-6">
-            <h1 className="text-3xl font-bold mb-2">Sponsor Component Showcase</h1>
-            <p className="text-muted-foreground">
-              This admin-only page demonstrates all the different ways to use sponsor components throughout the site.
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">Sponsor Component Showcase</h1>
+                <p className="text-muted-foreground">
+                  This admin-only page demonstrates all the different ways to use sponsor components throughout the site.
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <Select
+                  value={selectedYear.toString()}
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-32" data-testid="select-year">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearOptions.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-2">
+              <h3 className="font-semibold text-sm">How Multi-Year Sponsorships Work:</h3>
+              <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                <li>Each sponsor entry is tied to a specific year</li>
+                <li>If a company sponsors multiple years, create a separate entry for each year</li>
+                <li>Use the year selector above to view sponsors from different years</li>
+                <li>When adding/editing sponsors, you can set which year they're sponsoring</li>
+              </ul>
+            </div>
           </div>
 
           {/* Full Sponsor Grid */}
@@ -44,12 +91,12 @@ export default function SponsorShowcasePage() {
                 Default usage: Shows all sponsor tiers for a specific year
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={2025} title="Our Amazing Sponsors" icon={<Sparkles />} />`}
+                {`<SponsorGrid year={${selectedYear}} title="Our Amazing Sponsors" icon={<Sparkles />} />`}
               </code>
             </div>
             <SponsorGrid 
-              year={2025}
-              title="Our Amazing Sponsors"
+              year={selectedYear}
+              title={`${selectedYear} Sponsors`}
               icon={<Sparkles className="h-5 w-5" />}
               showBecomeSponsorCTA={true}
             />
@@ -63,11 +110,11 @@ export default function SponsorShowcasePage() {
                 Use the <code className="bg-muted px-2 py-1 rounded">tiers</code> prop to show only specific sponsor tiers
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={2025} tiers={["Series A"]} title="Premier Sponsors" />`}
+                {`<SponsorGrid year={${selectedYear}} tiers={["Series A"]} title="Premier Sponsors" />`}
               </code>
             </div>
             <SponsorGrid 
-              year={2025}
+              year={selectedYear}
               tiers={["Series A"]}
               title="Premier Sponsors"
               icon={<Building2 className="h-5 w-5" />}
@@ -83,11 +130,11 @@ export default function SponsorShowcasePage() {
                 Show multiple specific tiers - great for themed sections
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={2025} tiers={["Seed", "MVP", "Prototype"]} title="Startup Supporters" />`}
+                {`<SponsorGrid year={${selectedYear}} tiers={["Seed", "MVP", "Prototype"]} title="Startup Supporters" />`}
               </code>
             </div>
             <SponsorGrid 
-              year={2025}
+              year={selectedYear}
               tiers={["Seed", "MVP", "Prototype"]}
               title="Startup Supporters"
               icon={<Rocket className="h-5 w-5" />}
@@ -102,11 +149,11 @@ export default function SponsorShowcasePage() {
                 Perfect for education or community partnership pages
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={2025} tiers={["Nonprofit"]} title="Nonprofit Partners" />`}
+                {`<SponsorGrid year={${selectedYear}} tiers={["Nonprofit"]} title="Nonprofit Partners" />`}
               </code>
             </div>
             <SponsorGrid 
-              year={2025}
+              year={selectedYear}
               tiers={["Nonprofit"]}
               title="Nonprofit Partners"
               icon={<GraduationCap className="h-5 w-5" />}
