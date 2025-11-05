@@ -18,9 +18,10 @@ import {
   CompanyMember, InsertCompanyMember,
   CompanyTag, InsertCompanyTag,
   Sponsor, InsertSponsor,
+  EmailInvitation, InsertEmailInvitation,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -168,6 +169,12 @@ export interface IStorage {
   createSponsor(sponsorData: InsertSponsor): Promise<Sponsor>;
   updateSponsor(sponsorId: number, data: Partial<Sponsor>): Promise<Sponsor>;
   deleteSponsor(sponsorId: number, deletedBy: number): Promise<void>;
+
+  // Email invitation tracking
+  getEmailInvitationByPersonId(personId: number): Promise<EmailInvitation | null>;
+  createEmailInvitation(data: InsertEmailInvitation): Promise<EmailInvitation>;
+  updateEmailInvitation(id: number, data: Partial<EmailInvitation>): Promise<EmailInvitation>;
+  getEmailInvitationsDueForSending(): Promise<(EmailInvitation & { person: Person })[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -2497,6 +2504,82 @@ export class PostgresStorage implements IStorage {
         .where(eq(sponsors.id, sponsorId));
     } catch (error) {
       console.error('Failed to delete sponsor:', error);
+      throw error;
+    }
+  }
+
+  // Email invitation tracking methods
+  async getEmailInvitationByPersonId(personId: number): Promise<EmailInvitation | null> {
+    try {
+      const result = await db
+        .select()
+        .from(emailInvitations)
+        .where(eq(emailInvitations.personId, personId))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get email invitation by person id:', error);
+      throw error;
+    }
+  }
+
+  async createEmailInvitation(data: InsertEmailInvitation): Promise<EmailInvitation> {
+    try {
+      const result = await db
+        .insert(emailInvitations)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create email invitation:', error);
+      throw error;
+    }
+  }
+
+  async updateEmailInvitation(id: number, data: Partial<EmailInvitation>): Promise<EmailInvitation> {
+    try {
+      const result = await db
+        .update(emailInvitations)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(emailInvitations.id, id))
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error('Email invitation not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update email invitation:', error);
+      throw error;
+    }
+  }
+
+  async getEmailInvitationsDueForSending(): Promise<(EmailInvitation & { person: Person })[]> {
+    try {
+      const now = new Date();
+      
+      // Get invitations that are due for sending (nextSendAt is in the past and not opted out or final message sent)
+      const result = await db
+        .select({
+          invitation: emailInvitations,
+          person: people
+        })
+        .from(emailInvitations)
+        .innerJoin(people, eq(emailInvitations.personId, people.id))
+        .where(and(
+          sql`${emailInvitations.nextSendAt} IS NOT NULL`,
+          sql`${emailInvitations.nextSendAt} <= ${now.toISOString()}`,
+          eq(emailInvitations.optedOut, false),
+          eq(emailInvitations.finalMessageSent, false)
+        ));
+      
+      return result.map(row => ({
+        ...row.invitation,
+        person: row.person
+      }));
+    } catch (error) {
+      console.error('Failed to get email invitations due for sending:', error);
       throw error;
     }
   }

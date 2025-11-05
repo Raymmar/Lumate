@@ -623,3 +623,25 @@ export const insertSponsorSchema = createInsertSchema(sponsors).omit({
 
 export type Sponsor = typeof sponsors.$inferSelect;
 export type InsertSponsor = z.infer<typeof insertSponsorSchema>;
+
+// Email invitations tracking for automated follow-ups
+export const emailInvitations = pgTable("email_invitations", {
+  id: serial("id").primaryKey(),
+  personId: integer("person_id").notNull().references(() => people.id),
+  emailsSentCount: integer("emails_sent_count").notNull().default(0),
+  lastSentAt: timestamp("last_sent_at", { mode: 'string', withTimezone: true }),
+  nextSendAt: timestamp("next_send_at", { mode: 'string', withTimezone: true }),
+  optedOut: boolean("opted_out").notNull().default(false),
+  finalMessageSent: boolean("final_message_sent").notNull().default(false),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertEmailInvitationSchema = createInsertSchema(emailInvitations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type EmailInvitation = typeof emailInvitations.$inferSelect;
+export type InsertEmailInvitation = z.infer<typeof insertEmailInvitationSchema>;
