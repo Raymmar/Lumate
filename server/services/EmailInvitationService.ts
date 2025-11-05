@@ -1,0 +1,287 @@
+import { storage } from '../storage';
+import { sendVerificationEmail } from '../email';
+import { Person } from '@shared/schema';
+import { toZonedTime } from 'date-fns-tz';
+
+export class EmailInvitationService {
+  private static instance: EmailInvitationService;
+  private readonly SYNC_INTERVAL = 60 * 60 * 1000; // Run every hour
+  private serviceInterval: NodeJS.Timeout | null = null;
+  private isProcessing = false;
+  
+  private constructor() {}
+
+  public static getInstance(): EmailInvitationService {
+    if (!EmailInvitationService.instance) {
+      EmailInvitationService.instance = new EmailInvitationService();
+    }
+    return EmailInvitationService.instance;
+  }
+
+  // Calculate the next send time based on email count
+  private calculateNextSendTime(emailsSentCount: number): Date | null {
+    const easternTz = 'America/New_York';
+    const now = new Date();
+    const easternTime = toZonedTime(now, easternTz);
+    
+    // Create a base date at 9:30 AM Eastern
+    let nextSend = new Date(easternTime);
+    nextSend.setHours(9, 30, 0, 0);
+
+    // Calculate days to add based on email count
+    let daysToAdd: number;
+    
+    switch (emailsSentCount) {
+      case 0: // Initial email - immediately
+        return now;
+      case 1: // 24 hours after initial
+        daysToAdd = 1;
+        break;
+      case 2: // 36 hours after initial (1.5 days, but we'll round to next 9:30 AM)
+        daysToAdd = 2;
+        break;
+      case 3: // 7 days after initial
+        daysToAdd = 7;
+        break;
+      case 4: // 14 days after initial
+        daysToAdd = 14;
+        break;
+      default: // Monthly thereafter (up to 90 days)
+        // Check if it's been more than 90 days since the first email
+        if (emailsSentCount >= 7) { // 90 days = initial + 1 + 2 + 7 + 14 + 30 + 30 + 30
+          return null; // Stop sending
+        }
+        daysToAdd = 30;
+        break;
+    }
+
+    // Add the days
+    nextSend.setDate(nextSend.getDate() + daysToAdd);
+    
+    // If the calculated time is in the past, move to tomorrow 9:30 AM
+    if (nextSend <= now) {
+      nextSend.setDate(now.getDate() + 1);
+    }
+    
+    return nextSend;
+  }
+
+  // Get the appropriate email subject based on email count
+  private getEmailSubject(emailsSentCount: number): string {
+    switch (emailsSentCount) {
+      case 0:
+        return 'Your Sarasota Tech member profile is ready to claim';
+      case 1:
+        return 'Reminder: Your Sarasota Tech profile is waiting';
+      case 2:
+        return "Don't miss out on your Sarasota Tech membership";
+      case 3:
+        return 'Your Sarasota Tech profile is still available';
+      case 4:
+        return 'Last chance to easily claim your Sarasota Tech profile';
+      default:
+        if (emailsSentCount >= 7) {
+          return 'Final notice: Your Sarasota Tech profile';
+        }
+        return 'Monthly reminder: Claim your Sarasota Tech profile';
+    }
+  }
+
+  // Check if we're in the sending window (9-10 AM Eastern)
+  private isInSendingWindow(): boolean {
+    const easternTz = 'America/New_York';
+    const easternTime = toZonedTime(new Date(), easternTz);
+    const hour = easternTime.getHours();
+    return hour === 9; // 9 AM hour (9:00-9:59)
+  }
+
+  // Process new people who don't have invitations yet
+  private async processNewPeople(): Promise<void> {
+    try {
+      const unclaimedPeople = await storage.getUnclaimedPeople();
+      console.log(`[EmailInvitation] Found ${unclaimedPeople.length} unclaimed people`);
+      
+      for (const person of unclaimedPeople) {
+        // Check if we already have an invitation for this person
+        const existingInvitation = await storage.getEmailInvitationByPersonId(person.id);
+        
+        if (!existingInvitation) {
+          console.log(`[EmailInvitation] Creating new invitation for ${person.email}`);
+          
+          // Create verification token
+          const verificationToken = await storage.createVerificationToken(person.email);
+          
+          // Send initial email
+          const emailSent = await sendVerificationEmail(
+            person.email, 
+            verificationToken.token, 
+            true // adminCreated flag
+          );
+          
+          if (emailSent) {
+            // Create invitation record
+            const nextSendAt = this.calculateNextSendTime(1); // Calculate next send time for follow-up
+            
+            await storage.createEmailInvitation({
+              personId: person.id,
+              emailsSentCount: 1,
+              lastSentAt: new Date().toISOString(),
+              nextSendAt: nextSendAt ? nextSendAt.toISOString() : null,
+              optedOut: false,
+              finalMessageSent: false
+            });
+            
+            console.log(`[EmailInvitation] Successfully sent initial email to ${person.email}`);
+          } else {
+            console.error(`[EmailInvitation] Failed to send initial email to ${person.email}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[EmailInvitation] Error processing new people:', error);
+    }
+  }
+
+  // Process follow-up emails for existing invitations
+  private async processFollowUps(): Promise<void> {
+    try {
+      // Only send follow-ups during the sending window
+      if (!this.isInSendingWindow()) {
+        return;
+      }
+
+      const dueInvitations = await storage.getEmailInvitationsDueForSending();
+      console.log(`[EmailInvitation] Found ${dueInvitations.length} invitations due for follow-up`);
+      
+      for (const invitation of dueInvitations) {
+        const { person } = invitation;
+        
+        // Check if person now has a user account (claimed)
+        const user = await storage.getUserByEmail(person.email);
+        if (user && user.isVerified) {
+          console.log(`[EmailInvitation] ${person.email} has claimed their account, skipping`);
+          continue;
+        }
+        
+        // Check if we should send final message (90+ days)
+        if (invitation.emailsSentCount >= 6) { // After initial + follow-ups
+          // Send final message
+          await this.sendFinalMessage(invitation, person);
+          continue;
+        }
+        
+        // Create new verification token for follow-up
+        const verificationToken = await storage.createVerificationToken(person.email);
+        
+        // Send follow-up email
+        const emailSent = await sendVerificationEmail(
+          person.email, 
+          verificationToken.token, 
+          true // adminCreated flag
+        );
+        
+        if (emailSent) {
+          const newCount = invitation.emailsSentCount + 1;
+          const nextSendAt = this.calculateNextSendTime(newCount);
+          
+          // Update invitation record
+          await storage.updateEmailInvitation(invitation.id, {
+            emailsSentCount: newCount,
+            lastSentAt: new Date().toISOString(),
+            nextSendAt: nextSendAt ? nextSendAt.toISOString() : null
+          });
+          
+          console.log(`[EmailInvitation] Sent follow-up #${newCount} to ${person.email}`);
+        } else {
+          console.error(`[EmailInvitation] Failed to send follow-up to ${person.email}`);
+        }
+      }
+    } catch (error) {
+      console.error('[EmailInvitation] Error processing follow-ups:', error);
+    }
+  }
+
+  // Send final message after 90 days
+  private async sendFinalMessage(invitation: any, person: Person): Promise<void> {
+    try {
+      // TODO: We'll implement a custom final message email template
+      // For now, we'll just mark it as final message sent
+      console.log(`[EmailInvitation] Would send final message to ${person.email}`);
+      
+      await storage.updateEmailInvitation(invitation.id, {
+        finalMessageSent: true,
+        lastSentAt: new Date().toISOString(),
+        nextSendAt: null // No more emails
+      });
+      
+      console.log(`[EmailInvitation] Marked final message sent for ${person.email}`);
+    } catch (error) {
+      console.error(`[EmailInvitation] Error sending final message to ${person.email}:`, error);
+    }
+  }
+
+  // Main processing function
+  public async processInvitations(): Promise<void> {
+    if (this.isProcessing) {
+      console.log('[EmailInvitation] Already processing, skipping...');
+      return;
+    }
+
+    this.isProcessing = true;
+    console.log('[EmailInvitation] Starting invitation processing...');
+    
+    try {
+      // Process new people (always, regardless of time)
+      await this.processNewPeople();
+      
+      // Process follow-ups (only during sending window)
+      await this.processFollowUps();
+      
+      console.log('[EmailInvitation] Completed invitation processing');
+    } catch (error) {
+      console.error('[EmailInvitation] Error during processing:', error);
+    } finally {
+      this.isProcessing = false;
+    }
+  }
+
+  // Start the service
+  public start(): void {
+    if (this.serviceInterval) {
+      console.log('[EmailInvitation] Service already started');
+      return;
+    }
+
+    console.log('[EmailInvitation] Starting email invitation service...');
+    
+    // Run immediately on start
+    this.processInvitations().catch(error => {
+      console.error('[EmailInvitation] Error in initial processing:', error);
+    });
+
+    // Set up hourly interval
+    this.serviceInterval = setInterval(() => {
+      this.processInvitations().catch(error => {
+        console.error('[EmailInvitation] Error in scheduled processing:', error);
+      });
+    }, this.SYNC_INTERVAL);
+
+    // Keep the interval active
+    if (this.serviceInterval.ref) {
+      this.serviceInterval.ref();
+    }
+
+    console.log('[EmailInvitation] Service started with hourly checks');
+  }
+
+  // Stop the service
+  public stop(): void {
+    if (this.serviceInterval) {
+      clearInterval(this.serviceInterval);
+      this.serviceInterval = null;
+      console.log('[EmailInvitation] Service stopped');
+    }
+  }
+}
+
+export const emailInvitationService = EmailInvitationService.getInstance();
