@@ -310,9 +310,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                 <CardTitle>About</CardTitle>
               </CardHeader>
               <CardContent className="p-3 md:p-4 pt-0">
-                <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
-                  <TruncatedText text={company.description} />
-                </div>
+                <TruncatedText text={company.description} />
               </CardContent>
             </Card>
           )}
