@@ -633,6 +633,7 @@ export const emailInvitations = pgTable("email_invitations", {
   nextSendAt: timestamp("next_send_at", { mode: 'string', withTimezone: true }),
   optedOut: boolean("opted_out").notNull().default(false),
   finalMessageSent: boolean("final_message_sent").notNull().default(false),
+  completedAt: timestamp("completed_at", { mode: 'string', withTimezone: true }),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });

@@ -206,7 +206,14 @@ export class EmailInvitationService {
         // Check if person now has a user account (claimed)
         const user = await storage.getUserByEmail(person.email);
         if (user && user.isVerified) {
-          console.log(`[EmailInvitation] ${person.email} has claimed their account, skipping`);
+          console.log(`[EmailInvitation] ${person.email} has claimed their account, marking as complete`);
+          
+          // Mark invitation as completed
+          await storage.updateEmailInvitation(invitation.id, {
+            completedAt: new Date().toISOString(),
+            nextSendAt: null // Stop future sends
+          });
+          
           continue;
         }
         
