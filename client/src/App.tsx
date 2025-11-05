@@ -23,6 +23,7 @@ import IndustriesPage from "@/pages/admin/IndustriesPage";
 import RolesPage from "@/pages/admin/RolesPage";
 import AboutPage from "@/pages/AboutPage";
 import SummitPage from "@/pages/SummitPage";
+import SponsorShowcasePage from "@/pages/SponsorShowcasePage";
 import Summit2025Page from "@/pages/Summit2025Page";
 import MembershipsPage from "@/pages/MembershipsPage";
 import NotFound from "@/pages/not-found";
@@ -60,6 +61,7 @@ function Router() {
           <Route path="/admin/companies" component={AdminCompaniesPage} />
           <Route path="/admin/industries" component={IndustriesPage} />
           <Route path="/admin/roles" component={RolesPage} />
+          <Route path="/admin/sponsor-showcase" component={SponsorShowcasePage} />
           <Route path="/subscription/success" component={SubscriptionSuccessPage} />
           <Route path="/subscription/cancel" component={SubscriptionCancelPage} />
           <Route component={NotFound} />
