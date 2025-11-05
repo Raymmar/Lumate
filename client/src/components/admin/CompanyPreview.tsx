@@ -531,7 +531,12 @@ export function CompanyPreview({
                 {/* Company Details */}
                 <div>
                   {(companyDetails?.description || company?.description) && (
-                    <p className="text-lg mb-4">{companyDetails?.description || company?.description}</p>
+                    <div className="mb-4">
+                      <TruncatedText 
+                        text={companyDetails?.description || company?.description || ""} 
+                        className="text-lg"
+                      />
+                    </div>
                   )}
                   
                   {(companyDetails?.bio || company?.bio) && (

@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { GoogleMap, Marker, useLoadScript } from '@react-google-maps/api';
 import { formatUsernameForUrl } from '@/lib/utils';
 import { SEO } from "@/components/ui/seo";
+import { TruncatedText } from "@/components/ui/truncated-text";
 
 interface CompanyProfileProps {
   nameSlug: string;
@@ -310,7 +311,7 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
               </CardHeader>
               <CardContent className="p-3 md:p-4 pt-0">
                 <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert">
-                  <p>{company.description}</p>
+                  <TruncatedText text={company.description} />
                 </div>
               </CardContent>
             </Card>
