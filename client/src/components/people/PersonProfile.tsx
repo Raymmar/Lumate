@@ -278,7 +278,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
             {userCompany.slug ? (
-              <Link href={`/companies/${userCompany.slug}`}>
+              <Link href={`/companies/${userCompany.slug}`} className="no-underline">
                 <Card className="overflow-hidden rounded-xl cursor-pointer">
                   {userCompany.featuredImageUrl && (
                     <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
