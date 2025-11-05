@@ -13,7 +13,7 @@ import {
 
 export default function AdminSponsorsPage() {
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedYear, setSelectedYear] = useState(2026);
   
   // Generate year options (2 past years + current + 2 future years)
   const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
