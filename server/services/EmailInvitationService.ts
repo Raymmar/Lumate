@@ -10,15 +10,28 @@ export class EmailInvitationService {
   private isProcessing = false;
   private dryRun: boolean = true; // SAFETY: Default to dry-run mode
   
+  // TEST MODE: Set to true to only process test emails
+  private readonly TEST_MODE = true;
+  private readonly TEST_EMAILS = [
+    'test@raymmar.com',
+    'testmore@raymmar.com'
+  ];
+  
   private constructor() {
-    // Check environment variable for dry-run mode
-    // Must explicitly set EMAIL_INVITATION_DRY_RUN=false to send real emails
-    this.dryRun = process.env.EMAIL_INVITATION_DRY_RUN !== 'false';
-    
-    if (this.dryRun) {
-      console.log('[EmailInvitationService] Running in DRY RUN mode - no emails will be sent');
+    // In test mode, send real emails but only to test addresses
+    if (this.TEST_MODE) {
+      this.dryRun = false; // Send real emails to test addresses
+      console.log('[EmailInvitationService] Running in TEST MODE - emails will be sent ONLY to:', this.TEST_EMAILS.join(', '));
     } else {
-      console.log('[EmailInvitationService] Running in LIVE mode - emails WILL be sent');
+      // Check environment variable for dry-run mode
+      // Must explicitly set EMAIL_INVITATION_DRY_RUN=false to send real emails
+      this.dryRun = process.env.EMAIL_INVITATION_DRY_RUN !== 'false';
+      
+      if (this.dryRun) {
+        console.log('[EmailInvitationService] Running in DRY RUN mode - no emails will be sent');
+      } else {
+        console.log('[EmailInvitationService] Running in LIVE mode - emails WILL be sent');
+      }
     }
   }
 
@@ -109,8 +122,16 @@ export class EmailInvitationService {
   // Process new people who don't have invitations yet
   private async processNewPeople(): Promise<void> {
     try {
-      const unclaimedPeople = await storage.getUnclaimedPeople();
+      let unclaimedPeople = await storage.getUnclaimedPeople();
       console.log(`[EmailInvitation] Found ${unclaimedPeople.length} unclaimed people`);
+      
+      // Filter to only test emails if in TEST_MODE
+      if (this.TEST_MODE) {
+        unclaimedPeople = unclaimedPeople.filter(person => 
+          this.TEST_EMAILS.includes(person.email)
+        );
+        console.log(`[EmailInvitation] TEST MODE: Filtered to ${unclaimedPeople.length} test emails`);
+      }
       
       for (const person of unclaimedPeople) {
         // Check if we already have an invitation for this person
@@ -168,8 +189,16 @@ export class EmailInvitationService {
         return;
       }
 
-      const dueInvitations = await storage.getEmailInvitationsDueForSending();
+      let dueInvitations = await storage.getEmailInvitationsDueForSending();
       console.log(`[EmailInvitation] Found ${dueInvitations.length} invitations due for follow-up`);
+      
+      // Filter to only test emails if in TEST_MODE
+      if (this.TEST_MODE) {
+        dueInvitations = dueInvitations.filter(invitation => 
+          this.TEST_EMAILS.includes(invitation.person.email)
+        );
+        console.log(`[EmailInvitation] TEST MODE: Filtered to ${dueInvitations.length} test email follow-ups`);
+      }
       
       for (const invitation of dueInvitations) {
         const { person } = invitation;
