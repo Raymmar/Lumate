@@ -19,13 +19,143 @@ if (!FROM_EMAIL) {
   throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
 }
 
+// Generate email template based on follow-up stage
+function getEmailTemplate(emailStage: number, verificationUrl: string): { subject: string; htmlContent: string; textContent: string } {
+  let subject: string;
+  let htmlContent: string;
+  let textContent: string;
+
+  switch (emailStage) {
+    case 0: // Initial email
+      subject = 'Your Sarasota Tech member profile is ready to claim';
+      htmlContent = `
+        <div>
+          <h2>Welcome to Sarasota Tech!</h2>
+          <p>You've been added to the Sarasota Tech online directory. We're excited to have you as part of our tech community!</p>
+          <p>Click the button below to claim your profile, set your password, and add your bio:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Claim Your Profile
+          </a>
+          <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
+          <p>${verificationUrl}</p>
+          <p style="margin-top:20px">Once you've set your password, you can upgrade to a premium listing to showcase your company and expertise.</p>
+        </div>
+      `;
+      textContent = `Welcome to Sarasota Tech! You've been added to the Sarasota Tech online directory. Click the following link to claim your profile and set your password: ${verificationUrl}`;
+      break;
+
+    case 1: // 24-hour follow-up
+      subject = 'Reminder: Your Sarasota Tech profile is waiting';
+      htmlContent = `
+        <div>
+          <h2>Don't forget to claim your Sarasota Tech profile</h2>
+          <p>Yesterday, we sent you an invitation to claim your profile in the Sarasota Tech directory.</p>
+          <p>It only takes a minute to set up your password and add your information:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Claim Profile Now
+          </a>
+          <p style="margin-top:20px">Link: ${verificationUrl}</p>
+        </div>
+      `;
+      textContent = `Reminder: Your Sarasota Tech profile is waiting. Click here to claim it: ${verificationUrl}`;
+      break;
+
+    case 2: // 36-hour follow-up
+      subject = "Quick reminder: Set up your Sarasota Tech profile";
+      htmlContent = `
+        <div>
+          <h2>Your Sarasota Tech profile is still available</h2>
+          <p>Just a quick reminder that your profile in the Sarasota Tech directory is ready for you to claim.</p>
+          <p>Take a moment to set it up:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Set Up Profile
+          </a>
+          <p style="margin-top:20px">${verificationUrl}</p>
+        </div>
+      `;
+      textContent = `Quick reminder: Your Sarasota Tech profile is ready. Set it up here: ${verificationUrl}`;
+      break;
+
+    case 3: // 7-day follow-up
+      subject = 'Your Sarasota Tech profile is still available';
+      htmlContent = `
+        <div>
+          <h2>It's been a week - your profile is still waiting</h2>
+          <p>We noticed you haven't claimed your Sarasota Tech profile yet. As a member of our community, having your profile helps others connect with you.</p>
+          <p>Benefits of claiming your profile:</p>
+          <ul>
+            <li>Be discoverable in our member directory</li>
+            <li>Showcase your expertise and projects</li>
+            <li>Connect with other tech professionals</li>
+            <li>Option to upgrade for a full company listing</li>
+          </ul>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Claim Your Profile
+          </a>
+          <p style="margin-top:20px">${verificationUrl}</p>
+        </div>
+      `;
+      textContent = `It's been a week - your Sarasota Tech profile is still available. Claim it here: ${verificationUrl}`;
+      break;
+
+    case 4: // 14-day follow-up
+      subject = 'Two weeks later: Your Sarasota Tech profile';
+      htmlContent = `
+        <div>
+          <h2>Your Sarasota Tech profile has been waiting for 2 weeks</h2>
+          <p>We'd love to have you active in the Sarasota Tech directory. Your fellow community members want to connect with you!</p>
+          <p>It only takes 30 seconds to claim your profile:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Activate Profile
+          </a>
+          <p style="margin-top:20px">${verificationUrl}</p>
+        </div>
+      `;
+      textContent = `Two weeks later: Your Sarasota Tech profile is still available. Activate it here: ${verificationUrl}`;
+      break;
+
+    case 5: // Monthly follow-up
+      subject = 'Monthly reminder: Claim your Sarasota Tech profile';
+      htmlContent = `
+        <div>
+          <h2>Monthly Reminder</h2>
+          <p>This is your monthly reminder that you have a profile waiting in the Sarasota Tech directory.</p>
+          <p>When you're ready, click below to claim it:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Claim Profile
+          </a>
+          <p style="margin-top:20px">${verificationUrl}</p>
+        </div>
+      `;
+      textContent = `Monthly reminder: Your Sarasota Tech profile is waiting. Claim it here: ${verificationUrl}`;
+      break;
+
+    default: // Final message (90+ days)
+      subject = 'Final notice: Your Sarasota Tech profile';
+      htmlContent = `
+        <div>
+          <h2>Final Notice</h2>
+          <p>This is our final automated reminder about your Sarasota Tech profile.</p>
+          <p>We won't send any more automatic emails, but your profile will remain available.</p>
+          <p>If you'd like to claim it in the future, you can always request a new verification link at our website using this email address: <strong>${verificationUrl.split('?')[0].replace('/verify', '')}</strong></p>
+          <p>We hope to see you in the directory someday!</p>
+        </div>
+      `;
+      textContent = `Final notice: This is our last automated reminder. You can always claim your profile later by requesting a new link at our website.`;
+      break;
+  }
+
+  return { subject, htmlContent, textContent };
+}
+
 export async function sendVerificationEmail(
   email: string,
   token: string,
-  adminCreated: boolean = false
+  adminCreated: boolean = false,
+  emailStage: number = -1 // -1 means use the old template
 ): Promise<boolean> {
   try {
-    console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '');
+    console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '', 'Stage:', emailStage);
     const verificationUrl = `${(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/verify?token=${token}`;
 
     // In development, just log the verification URL
@@ -33,7 +163,8 @@ export async function sendVerificationEmail(
       console.log('Development mode - Email would have been sent with:', {
         to: email,
         verificationUrl,
-        adminCreated
+        adminCreated,
+        emailStage
       });
       return true;
     }
@@ -44,52 +175,64 @@ export async function sendVerificationEmail(
       fromEmail: FROM_EMAIL,
       isDevelopment,
       verificationUrl,
-      adminCreated
+      adminCreated,
+      emailStage
     });
 
-    // Customize subject and content based on whether this is admin-created
-    const subject = adminCreated 
-      ? 'Your Sarasota Tech member profile is ready to claim' 
-      : 'Verify your Sarasota Tech member profile';
+    let subject: string;
+    let htmlContent: string;
+    let textContent: string;
+
+    // Use new template system for staged emails, otherwise use legacy templates
+    if (emailStage >= 0) {
+      const template = getEmailTemplate(emailStage, verificationUrl);
+      subject = template.subject;
+      htmlContent = template.htmlContent;
+      textContent = template.textContent;
+    } else {
+      // Legacy template for backward compatibility
+      subject = adminCreated 
+        ? 'Your Sarasota Tech member profile is ready to claim' 
+        : 'Verify your Sarasota Tech member profile';
+
+      htmlContent = adminCreated 
+        ? `
+          <div>
+            <h2>Your Sarasota Tech Member Profile is Ready</h2>
+            <p>An administrator has created a member profile for you on the Sarasota Tech platform.</p>
+            <p>Click the button below to claim your profile and set your password:</p>
+            <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+              Claim Profile
+            </a>
+            <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
+            <p>${verificationUrl}</p>
+            <p style="margin-top:20px">You've also been invited to our next event. Check your email for the invitation!</p>
+          </div>
+        `
+        : `
+          <div>
+            <h2>Verify Your Sarasota Tech Member Profile</h2>
+            <p>Click the button below to verify your Sarasota Tech member profile:</p>
+            <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+              Verify Profile
+            </a>
+            <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
+            <p>${verificationUrl}</p>
+          </div>
+        `;
+
+      textContent = adminCreated
+        ? `An administrator has created a member profile for you on the Sarasota Tech platform. Click the following link to claim your profile and set your password: ${verificationUrl}. You've also been invited to our next event. Check your email for the invitation!`
+        : `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`;
+    }
 
     console.log('Attempting to send verification email with message:', {
       to: email,
       from: FROM_EMAIL,
       subject,
-      adminCreated
+      adminCreated,
+      emailStage
     });
-
-    // Different email content for admin-created accounts
-    const htmlContent = adminCreated 
-      ? `
-        <div>
-          <h2>Your Sarasota Tech Member Profile is Ready</h2>
-          <p>An administrator has created a member profile for you on the Sarasota Tech platform.</p>
-          <p>Click the button below to claim your profile and set your password:</p>
-          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
-            Claim Profile
-          </a>
-          <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
-          <p>${verificationUrl}</p>
-          <p style="margin-top:20px">You've also been invited to our next event. Check your email for the invitation!</p>
-        </div>
-      `
-      : `
-        <div>
-          <h2>Verify Your Sarasota Tech Member Profile</h2>
-          <p>Click the button below to verify your Sarasota Tech member profile:</p>
-          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
-            Verify Profile
-          </a>
-          <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
-          <p>${verificationUrl}</p>
-        </div>
-      `;
-
-    // Different text content for admin-created accounts
-    const textContent = adminCreated
-      ? `An administrator has created a member profile for you on the Sarasota Tech platform. Click the following link to claim your profile and set your password: ${verificationUrl}. You've also been invited to our next event. Check your email for the invitation!`
-      : `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`;
 
     await mailService.send({
       to: email,
@@ -103,7 +246,8 @@ export async function sendVerificationEmail(
       statusCode: 'Success',
       headers: null,
       email: email,
-      adminCreated
+      adminCreated,
+      emailStage
     });
 
     console.log('Verification email sent successfully to:', email);

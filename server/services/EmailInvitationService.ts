@@ -111,11 +111,12 @@ export class EmailInvitationService {
           // Create verification token
           const verificationToken = await storage.createVerificationToken(person.email);
           
-          // Send initial email
+          // Send initial email (stage 0)
           const emailSent = await sendVerificationEmail(
             person.email, 
             verificationToken.token, 
-            true // adminCreated flag
+            true, // adminCreated flag
+            0 // emailStage for initial email
           );
           
           if (emailSent) {
@@ -173,11 +174,12 @@ export class EmailInvitationService {
         // Create new verification token for follow-up
         const verificationToken = await storage.createVerificationToken(person.email);
         
-        // Send follow-up email
+        // Send follow-up email with appropriate stage
         const emailSent = await sendVerificationEmail(
           person.email, 
           verificationToken.token, 
-          true // adminCreated flag
+          true, // adminCreated flag
+          invitation.emailsSentCount // Use current count as stage
         );
         
         if (emailSent) {
