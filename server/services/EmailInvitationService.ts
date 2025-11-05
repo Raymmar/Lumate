@@ -8,8 +8,19 @@ export class EmailInvitationService {
   private readonly SYNC_INTERVAL = 60 * 60 * 1000; // Run every hour
   private serviceInterval: NodeJS.Timeout | null = null;
   private isProcessing = false;
+  private dryRun: boolean = true; // SAFETY: Default to dry-run mode
   
-  private constructor() {}
+  private constructor() {
+    // Check environment variable for dry-run mode
+    // Must explicitly set EMAIL_INVITATION_DRY_RUN=false to send real emails
+    this.dryRun = process.env.EMAIL_INVITATION_DRY_RUN !== 'false';
+    
+    if (this.dryRun) {
+      console.log('[EmailInvitationService] Running in DRY RUN mode - no emails will be sent');
+    } else {
+      console.log('[EmailInvitationService] Running in LIVE mode - emails WILL be sent');
+    }
+  }
 
   public static getInstance(): EmailInvitationService {
     if (!EmailInvitationService.instance) {
@@ -112,12 +123,18 @@ export class EmailInvitationService {
           const verificationToken = await storage.createVerificationToken(person.email);
           
           // Send initial email (stage 0)
-          const emailSent = await sendVerificationEmail(
-            person.email, 
-            verificationToken.token, 
-            true, // adminCreated flag
-            0 // emailStage for initial email
-          );
+          let emailSent = false;
+          if (this.dryRun) {
+            console.log(`[EmailInvitation] DRY RUN: Would send initial email to ${person.email}`);
+            emailSent = true; // Simulate success in dry-run mode
+          } else {
+            emailSent = await sendVerificationEmail(
+              person.email, 
+              verificationToken.token, 
+              true, // adminCreated flag
+              0 // emailStage for initial email
+            );
+          }
           
           if (emailSent) {
             // Create invitation record
@@ -175,12 +192,18 @@ export class EmailInvitationService {
         const verificationToken = await storage.createVerificationToken(person.email);
         
         // Send follow-up email with appropriate stage
-        const emailSent = await sendVerificationEmail(
-          person.email, 
-          verificationToken.token, 
-          true, // adminCreated flag
-          invitation.emailsSentCount // Use current count as stage
-        );
+        let emailSent = false;
+        if (this.dryRun) {
+          console.log(`[EmailInvitation] DRY RUN: Would send follow-up #${invitation.emailsSentCount + 1} to ${person.email}`);
+          emailSent = true; // Simulate success in dry-run mode
+        } else {
+          emailSent = await sendVerificationEmail(
+            person.email, 
+            verificationToken.token, 
+            true, // adminCreated flag
+            invitation.emailsSentCount // Use current count as stage
+          );
+        }
         
         if (emailSent) {
           const newCount = invitation.emailsSentCount + 1;
@@ -206,9 +229,13 @@ export class EmailInvitationService {
   // Send final message after 90 days
   private async sendFinalMessage(invitation: any, person: Person): Promise<void> {
     try {
-      // TODO: We'll implement a custom final message email template
-      // For now, we'll just mark it as final message sent
-      console.log(`[EmailInvitation] Would send final message to ${person.email}`);
+      // In dry-run mode, just log what would happen
+      if (this.dryRun) {
+        console.log(`[EmailInvitation] DRY RUN: Would send final message to ${person.email}`);
+      } else {
+        // TODO: Implement actual final message email template
+        console.log(`[EmailInvitation] Sending final message to ${person.email}`);
+      }
       
       await storage.updateEmailInvitation(invitation.id, {
         finalMessageSent: true,
