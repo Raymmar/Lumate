@@ -44,6 +44,7 @@ import { CacheService } from "./services/CacheService";
 import stripeRouter from "./routes/stripe";
 import { StripeService } from "./services/stripe";
 import { badgeService } from "./services/BadgeService";
+import { EmailInvitationService } from "./services/EmailInvitationService";
 
 // Add session type declaration
 declare module "express-session" {
@@ -230,6 +231,18 @@ export async function registerRoutes(app: Express) {
   
   // Resend verification email endpoint
   app.post("/api/admin/members/:id/resend-verification", resendVerification);
+
+  // Manually trigger email invitation service
+  app.post("/api/admin/trigger-email-invitations", requireAdmin, async (req, res) => {
+    try {
+      const emailService = EmailInvitationService.getInstance();
+      await emailService.processInvitations();
+      res.json({ success: true, message: 'Email invitation service triggered successfully' });
+    } catch (error) {
+      console.error('Error triggering email invitation service:', error);
+      res.status(500).json({ error: 'Failed to trigger email invitation service' });
+    }
+  });
 
   app.post("/api/register", async (req, res) => {
     try {
