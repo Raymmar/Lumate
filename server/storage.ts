@@ -551,9 +551,9 @@ export class PostgresStorage implements IStorage {
       // Generate a secure random token
       const token = crypto.randomBytes(32).toString('hex');
       
-      // Set expiration to 24 hours from now
+      // Set expiration to 7 days from now
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24);
+      expiresAt.setDate(expiresAt.getDate() + 7);
       
       const [newToken] = await db
         .insert(verificationTokens)
