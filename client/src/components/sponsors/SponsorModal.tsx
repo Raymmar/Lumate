@@ -64,7 +64,10 @@ export function SponsorModal({
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/sponsors?year=2026"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/sponsors?year=${sponsorYear}`] });
+      if (sponsor && sponsor.year !== sponsorYear) {
+        queryClient.invalidateQueries({ queryKey: [`/api/sponsors?year=${sponsor.year}`] });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/sponsors"] });
       toast({
         title: "Success",

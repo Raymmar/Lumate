@@ -49,6 +49,7 @@ import {
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 import { SEO } from "@/components/ui/seo";
 import { SponsorGrid } from "@/components/sponsors";
+import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
