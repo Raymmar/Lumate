@@ -1,6 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
-import { format } from "date-fns";
 import type { Company, InsertCompany } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
@@ -173,19 +172,6 @@ export function CompaniesTable() {
       ),
     },
     {
-      key: "industry",
-      header: "Industry",
-      cell: (row: CompanyWithMemberCount) => (
-        <div>
-          {row.industry ? (
-            <Badge variant="outline">{row.industry}</Badge>
-          ) : (
-            <span className="text-muted-foreground text-sm">—</span>
-          )}
-        </div>
-      ),
-    },
-    {
       key: "website",
       header: "Website",
       cell: (row: CompanyWithMemberCount) => (
@@ -217,11 +203,6 @@ export function CompaniesTable() {
           <span>{row.memberCount}</span>
         </div>
       ),
-    },
-    {
-      key: "createdAt",
-      header: "Created",
-      cell: (row: CompanyWithMemberCount) => format(new Date(row.createdAt), "MMM d, yyyy"),
     },
   ];
 
