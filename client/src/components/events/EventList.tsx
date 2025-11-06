@@ -219,7 +219,7 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
             )}
           </AspectRatio>
 
-          <div className="absolute bottom-2 left-2">
+          <div className="absolute top-2 right-2">
             <AuthGuard>
               {event.visibility !== 'private' && (
                 <Button
