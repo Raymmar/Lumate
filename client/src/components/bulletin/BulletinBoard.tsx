@@ -21,7 +21,7 @@ import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
 import { YoutubeEmbed } from "@/components/ui/youtube-embed";
 import { FeaturedMemberCard } from "@/components/people/FeaturedMemberCard";
-import { FeaturedCompaniesGrid } from "@/components/companies/FeaturedCompaniesGrid";
+import { SponsorGrid } from "@/components/sponsors";
 import { PinnedPostsCarousel } from "@/components/news/PinnedPostsCarousel";
 
 
@@ -209,8 +209,12 @@ export function BulletinBoard() {
         onCreatePost={() => setIsCreating(true)}
       />
 
-      {/* Featured Companies Grid */}
-      <FeaturedCompaniesGrid />
+      {/* Sponsor Grid - Shows 2026 sponsors through 2026, then current year after */}
+      <SponsorGrid 
+        year={new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()}
+        title="Our Sponsors"
+        showBecomeSponsorCTA={true}
+      />
 
       {/* Create Post Modal */}
       <PostModal 
