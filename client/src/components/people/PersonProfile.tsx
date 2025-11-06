@@ -305,7 +305,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         {/* Company information from companies table - Always shown to ALL visitors */}
         {userCompany && (
           <div className="space-y-2">
-            <h3 className="text-lg font-medium ml-1">Company</h3>
             <Card className="overflow-hidden rounded-xl">
               {userCompany.featuredImageUrl && (
                 <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
