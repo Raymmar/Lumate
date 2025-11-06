@@ -94,6 +94,33 @@ function StatsCard({ title, value, icon, description }: StatsCardProps) {
   );
 }
 
+interface CommunityBadgesProps {
+  badges: Badge[] | undefined;
+}
+
+function CommunityBadges({ badges }: CommunityBadgesProps) {
+  if (!badges || badges.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardContent className="p-3 md:p-4">
+        <h3 className="text-sm font-medium mb-3 text-muted-foreground">Community Badges</h3>
+        <div className="flex flex-wrap gap-2">
+          {badges.map((badge) => (
+            <ProfileBadge
+              key={badge.id}
+              name={badge.name}
+              icon={renderBadgeIcon(badge)}
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 const renderBadgeIcon = (badge: Badge) => {
   return getBadgeIcon(badge.icon);
@@ -254,13 +281,6 @@ export default function PersonProfile({ username }: PersonProfileProps) {
                     {person.role}
                   </Badge>
                 )}
-                {person.user?.badges?.map((badge) => (
-                  <ProfileBadge
-                    key={badge.id}
-                    name={badge.name}
-                    icon={renderBadgeIcon(badge)}
-                  />
-                ))}
               </div>
             </div>
           </div>
@@ -392,7 +412,9 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         )}
       </div>
 
-      <div className="w-full">
+      <div className="w-full space-y-4">
+        <CommunityBadges badges={person.user?.badges} />
+        
         <Card>
           <CardContent className="p-3 md:p-4 space-y-4">
             <div className="space-y-4">
