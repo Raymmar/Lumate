@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,6 +52,15 @@ export function SponsorModal({
   const filteredCompanies = companies.filter((c) =>
     c.name.toLowerCase().includes(companySearch.toLowerCase()),
   );
+
+  useEffect(() => {
+    if (sponsor?.companyId && companies.length > 0 && !companySearch) {
+      const linkedCompany = companies.find((c) => c.id === sponsor.companyId);
+      if (linkedCompany) {
+        setCompanySearch(linkedCompany.name);
+      }
+    }
+  }, [sponsor?.companyId, companies, companySearch]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
