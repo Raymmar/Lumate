@@ -175,6 +175,7 @@ export interface IStorage {
   createEmailInvitation(data: InsertEmailInvitation): Promise<EmailInvitation>;
   updateEmailInvitation(id: number, data: Partial<EmailInvitation>): Promise<EmailInvitation>;
   getEmailInvitationsDueForSending(): Promise<(EmailInvitation & { person: Person })[]>;
+  getActiveEmailInvitations(): Promise<(EmailInvitation & { person: Person })[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -2580,6 +2581,31 @@ export class PostgresStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Failed to get email invitations due for sending:', error);
+      throw error;
+    }
+  }
+
+  async getActiveEmailInvitations(): Promise<(EmailInvitation & { person: Person })[]> {
+    try {
+      // Get all invitations that are still active (not completed, not opted out)
+      const result = await db
+        .select({
+          invitation: emailInvitations,
+          person: people
+        })
+        .from(emailInvitations)
+        .innerJoin(people, eq(emailInvitations.personId, people.id))
+        .where(and(
+          sql`${emailInvitations.completedAt} IS NULL`,
+          eq(emailInvitations.optedOut, false)
+        ));
+      
+      return result.map(row => ({
+        ...row.invitation,
+        person: row.person
+      }));
+    } catch (error) {
+      console.error('Failed to get active email invitations:', error);
       throw error;
     }
   }

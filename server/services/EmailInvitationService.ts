@@ -181,11 +181,47 @@ export class EmailInvitationService {
     }
   }
 
-  // Process follow-up emails for existing invitations
-  private async processFollowUps(): Promise<void> {
+  // Detect and mark claimed accounts (runs 24/7 every hour)
+  private async detectClaimedAccounts(): Promise<void> {
+    try {
+      // Get all active invitations (not completed, not opted out)
+      let activeInvitations = await storage.getActiveEmailInvitations();
+      console.log(`[EmailInvitation] Checking ${activeInvitations.length} active invitations for claimed accounts`);
+      
+      // Filter to only test emails if in TEST_MODE
+      if (this.TEST_MODE) {
+        activeInvitations = activeInvitations.filter(invitation => 
+          this.TEST_EMAILS.includes(invitation.person.email)
+        );
+        console.log(`[EmailInvitation] TEST MODE: Filtered to ${activeInvitations.length} test emails for claim detection`);
+      }
+      
+      for (const invitation of activeInvitations) {
+        const { person } = invitation;
+        
+        // Check if person now has a verified user account (claimed)
+        const user = await storage.getUserByEmail(person.email);
+        if (user && user.isVerified) {
+          console.log(`[EmailInvitation] ${person.email} has claimed their account, marking as complete`);
+          
+          // Mark invitation as completed
+          await storage.updateEmailInvitation(invitation.id, {
+            completedAt: new Date().toISOString(),
+            nextSendAt: null // Stop future sends
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[EmailInvitation] Error detecting claimed accounts:', error);
+    }
+  }
+
+  // Send follow-up emails (only runs during 9-10 AM Eastern)
+  private async sendFollowUpEmails(): Promise<void> {
     try {
       // Only send follow-ups during the sending window
       if (!this.isInSendingWindow()) {
+        console.log('[EmailInvitation] Outside sending window (9-10 AM Eastern), skipping follow-up emails');
         return;
       }
 
@@ -203,17 +239,15 @@ export class EmailInvitationService {
       for (const invitation of dueInvitations) {
         const { person } = invitation;
         
-        // Check if person now has a user account (claimed)
+        // Double-check if person has claimed since last check
         const user = await storage.getUserByEmail(person.email);
         if (user && user.isVerified) {
-          console.log(`[EmailInvitation] ${person.email} has claimed their account, marking as complete`);
-          
-          // Mark invitation as completed
+          console.log(`[EmailInvitation] ${person.email} has claimed their account, skipping email`);
+          // The detectClaimedAccounts() should have already marked this, but just in case
           await storage.updateEmailInvitation(invitation.id, {
             completedAt: new Date().toISOString(),
-            nextSendAt: null // Stop future sends
+            nextSendAt: null
           });
-          
           continue;
         }
         
@@ -258,7 +292,7 @@ export class EmailInvitationService {
         }
       }
     } catch (error) {
-      console.error('[EmailInvitation] Error processing follow-ups:', error);
+      console.error('[EmailInvitation] Error sending follow-up emails:', error);
     }
   }
 
@@ -296,11 +330,14 @@ export class EmailInvitationService {
     console.log('[EmailInvitation] Starting invitation processing...');
     
     try {
-      // Process new people (always, regardless of time)
+      // 1. Detect claimed accounts (runs 24/7 every hour)
+      await this.detectClaimedAccounts();
+      
+      // 2. Process new people (always, regardless of time)
       await this.processNewPeople();
       
-      // Process follow-ups (only during sending window)
-      await this.processFollowUps();
+      // 3. Send follow-up emails (only during 9-10 AM Eastern window)
+      await this.sendFollowUpEmails();
       
       console.log('[EmailInvitation] Completed invitation processing');
     } catch (error) {
