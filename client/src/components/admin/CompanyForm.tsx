@@ -779,6 +779,13 @@ export function CompanyForm({
             // Update the role in the local state
             if (role === 'owner') {
               handleSetOwner(userId);
+            } else {
+              // Handle other roles (admin, user, member)
+              setLocalMembers(prev => prev.map(member => 
+                member.userId === userId 
+                  ? { ...member, role } 
+                  : member
+              ));
             }
           }}
         />
