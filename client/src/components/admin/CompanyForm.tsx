@@ -126,6 +126,7 @@ export function CompanyForm({
   const [newLinkUrl, setNewLinkUrl] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [ownerUserId, setOwnerUserId] = useState<number | null>(null);
+  const [localMembers, setLocalMembers] = useState<Array<{userId: number, role: string, user?: User}>>([]);
   
   // Fetch all users for member assignment - get ALL users, not just first 100
   const { data: usersData, isLoading: isLoadingUsers } = useQuery<{ users: User[], total: number }>({
@@ -238,6 +239,9 @@ export function CompanyForm({
       const memberUserIds = companyMembersData.members.map(member => member.userId);
       setSelectedMembers(memberUserIds);
       
+      // Also sync localMembers with the fetched data for existing companies
+      setLocalMembers(companyMembersData.members);
+      
       // First try to find a member with explicit 'owner' role
       let ownerMember = companyMembersData.members.find(member => member.role === 'owner');
       
@@ -314,17 +318,38 @@ export function CompanyForm({
   // Handle member selection
   const handleMemberToggle = (userId: number) => {
     setSelectedMembers(current => {
-      if (current.includes(userId)) {
+      const isRemoving = current.includes(userId);
+      
+      if (isRemoving) {
         // If the user is being removed and they are the owner, clear the owner
         if (ownerUserId === userId) {
           setOwnerUserId(null);
         }
+        
+        // Remove from local members
+        setLocalMembers(prev => prev.filter(m => m.userId !== userId));
+        
         return current.filter(id => id !== userId);
       } else {
         // If this is the first member, automatically set as owner
-        if (current.length === 0) {
+        const newOwner = current.length === 0;
+        if (newOwner) {
           setOwnerUserId(userId);
         }
+        
+        // Add to local members
+        const user = usersData?.users.find(u => u.id === userId);
+        if (user) {
+          setLocalMembers(prev => [
+            ...prev,
+            {
+              userId,
+              role: newOwner ? 'owner' : 'member',
+              user
+            }
+          ]);
+        }
+        
         return [...current, userId];
       }
     });
@@ -333,6 +358,12 @@ export function CompanyForm({
   // Handle setting a member as the company owner
   const handleSetOwner = (userId: number) => {
     setOwnerUserId(userId);
+    
+    // Update local members to reflect the role change
+    setLocalMembers(prev => prev.map(member => ({
+      ...member,
+      role: member.userId === userId ? 'owner' : (member.role === 'owner' ? 'member' : member.role)
+    })));
   };
 
   // Handle form submission
@@ -737,7 +768,7 @@ export function CompanyForm({
 
         {/* Company Members - Unified Component */}
         <CompanyMembersManager
-          members={companyMembersData?.members || []}
+          members={company ? (companyMembersData?.members || []) : localMembers}
           allUsers={usersData?.users || []}
           isLoadingUsers={isLoadingUsers}
           canEdit={!readOnly}
