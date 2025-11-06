@@ -316,10 +316,6 @@ export default function AboutPage() {
       <div className="flex-1">
         <div className="relative py-12 overflow-hidden">
           <PageContainer className="relative z-10 space-y-4 text-center max-w-[1140px]">
-            <div className="w-full max-w-md mx-auto mb-8">
-              <JoinUsCard showHeader={false} />
-            </div>
-            
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
@@ -337,6 +333,10 @@ export default function AboutPage() {
                 alt="Sarasota Tech Summit 2025"
                 className="w-full max-h-[50vh] rounded-lg object-cover"
               />
+            </div>
+
+            <div className="w-full max-w-md mx-auto my-8">
+              <JoinUsCard showHeader={false} />
             </div>
 
             <div className="text-center space-y-4 mt-12">
