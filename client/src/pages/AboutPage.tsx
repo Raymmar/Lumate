@@ -316,6 +316,10 @@ export default function AboutPage() {
       <div className="flex-1">
         <div className="relative py-12 overflow-hidden">
           <PageContainer className="relative z-10 space-y-4 text-center max-w-[1140px]">
+            <div className="w-full max-w-md mx-auto mb-8">
+              <JoinUsCard showHeader={false} />
+            </div>
+            
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold">
               Welcome to Sarasota.Tech
             </h1>
@@ -327,15 +331,12 @@ export default function AboutPage() {
               <SocialLinks />
             </div>
 
-            <div className="relative py-8">
+            <div className="py-8">
               <img
                 src="https://file-upload.replit.app/api/storage/images%2F1742362143660-STS_Jan'25-25%20compressed.jpeg"
                 alt="Sarasota Tech Summit 2025"
                 className="w-full max-h-[50vh] rounded-lg object-cover"
               />
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-20">
-                <JoinUsCard showHeader={false} />
-              </div>
             </div>
 
             <div className="text-center space-y-4 mt-12">
