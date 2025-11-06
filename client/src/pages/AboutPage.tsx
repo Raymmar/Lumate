@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,70 +7,150 @@ import { SiLinkedin } from "react-icons/si";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
 import { SocialLinks } from "@/components/ui/social-links";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Plus } from "lucide-react";
+import { TimelineModal } from "@/components/timeline/TimelineModal";
+import { TimelineCard } from "@/components/timeline/TimelineCard";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { TimelineEvent } from "@shared/schema";
 
 function TimelineSection() {
-  const events = [
-    {
-      date: "May 2023",
-      title: "The First Drinky Thinky",
-      description:
-        "May of 2023 a few friends started talking about how to connect with the broader tech community in Sarasota. A couple weeks later we organized 'Drinky Thinky'. A casual happy hour at State street. 6 people showed up.",
-      imageUrl: "https://file-upload.replit.app/api/storage/images%2F1742358869475-%231%20-%20Drinky%20Thinky.jpeg",
+  const { toast } = useToast();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<TimelineEvent | null>(null);
+  
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const { data, isLoading, error } = useQuery<{ events: TimelineEvent[] }>({
+    queryKey: ["/api/timeline"],
+    enabled: true,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/timeline/${id}`, "DELETE");
     },
-    {
-      date: "August 2023",
-      title: "Growth and Momentum",
-      description:
-        "Our next event drew 12 attendees. Then 35. Then 65. Word was spreading across the region and people were driving from as far as Tampa, Orlando, Naples and even Miami to attend our events.",
-      imageUrl: "https://file-upload.replit.app/api/storage/images%2F1742358937012-%232%20-%20ST%20%40%20CMPSE.jpeg",
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/timeline"] });
+      toast({
+        title: "Success",
+        description: "Timeline event deleted successfully",
+      });
     },
-    {
-      date: "Feb 2024",
-      title: "First Tech JAM",
-      description:
-        "A few months later we hosted our first Tech JAM with more than 130 people from around the region! Since then we've hosted more than 20 events with more than 2,000 attendees.",
-      imageUrl: "https://file-upload.replit.app/api/storage/images%2F1742359075546-LAS-285.jpg",
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete timeline event",
+        variant: "destructive",
+      });
     },
-    {
-      date: "Jan 2025",
-      title: "Sarasota Tech Summit",
-      description:
-        "In 2025 we're asking the question: Can Sarasota become a tech town? With the caveat that every town is quickly becoming a tech town. Join us as we push the city forward.",
-      imageUrl: "https://file-upload.replit.app/api/storage/images%2F1742359287380-STS_Jan'25-109%20compressed.jpeg",
-    },
-  ];
+  });
+
+  const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
+  const events = data?.events || [];
+
+  const handleEdit = (event: TimelineEvent) => {
+    setEditingEvent(event);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    if (window.confirm("Are you sure you want to delete this timeline event?")) {
+      deleteMutation.mutate(id);
+    }
+  };
+
+  const handleAddNew = () => {
+    setEditingEvent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingEvent(null);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-12 max-w-[960px] py-12 md:py-24 mx-auto">
+        <div className="space-y-12 md:space-y-24">
+          <h2 className="text-3xl font-bold text-center">Sarasota Tech Timeline</h2>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex flex-col gap-8 md:flex-row">
+              <div className="flex-1">
+                <Skeleton className="w-full aspect-video rounded-lg" />
+              </div>
+              <div className="flex-1 space-y-4">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-3/4" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-12 max-w-[960px] py-12 md:py-24 mx-auto">
+        <h2 className="text-3xl font-bold text-center">Sarasota Tech Timeline</h2>
+        <p className="text-center text-muted-foreground">
+          Unable to load timeline. Please try again later.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-12 max-w-[960px] py-12 md:py-24 mx-auto">
-      <div className="space-y-12 md:space-y-24">
-        <h2 className="text-3xl font-bold text-center">Sarasota Tech Timeline</h2>
-        {events.map((event, index) => (
-          <div
-            key={index}
-            className={`flex flex-col gap-8 md:flex-row ${
-              index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
-            }`}
-          >
-            <div className="flex-1">
-              <img
-                src={event.imageUrl}
-                alt={event.title}
-                className="rounded-lg object-cover w-full aspect-video"
+    <>
+      <div className="space-y-12 max-w-[960px] py-12 md:py-24 mx-auto">
+        <div className="space-y-12 md:space-y-24">
+          <h2 className="text-3xl font-bold text-center">Sarasota Tech Timeline</h2>
+          {events.length === 0 ? (
+            <p className="text-center text-muted-foreground">
+              No timeline events found.
+            </p>
+          ) : (
+            events.map((event, index) => (
+              <TimelineCard
+                key={event.id}
+                event={event}
+                index={index}
+                isAdmin={isAdmin}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
               />
+            ))
+          )}
+          {isAdmin && (
+            <div className="flex justify-center pt-8">
+              <Button 
+                onClick={handleAddNew}
+                size="lg"
+                className="gap-2"
+                data-testid="button-add-timeline-event"
+              >
+                <Plus className="h-5 w-5" />
+                Add Timeline Event
+              </Button>
             </div>
-            <div className="flex-1 space-y-4">
-              <time className="text-muted-foreground">{event.date}</time>
-              <h3 className="text-2xl font-semibold">{event.title}</h3>
-              <p className="text-muted-foreground">{event.description}</p>
-            </div>
-          </div>
-        ))}
+          )}
+        </div>
       </div>
-    </div>
+      {isModalOpen && (
+        <TimelineModal 
+          event={editingEvent} 
+          onClose={handleCloseModal} 
+        />
+      )}
+    </>
   );
 }
 

@@ -19,9 +19,10 @@ import {
   CompanyTag, InsertCompanyTag,
   Sponsor, InsertSponsor,
   EmailInvitation, InsertEmailInvitation,
+  TimelineEvent, InsertTimelineEvent,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or } from "drizzle-orm";
@@ -176,6 +177,13 @@ export interface IStorage {
   updateEmailInvitation(id: number, data: Partial<EmailInvitation>): Promise<EmailInvitation>;
   getEmailInvitationsDueForSending(): Promise<(EmailInvitation & { person: Person })[]>;
   getActiveEmailInvitations(): Promise<(EmailInvitation & { person: Person })[]>;
+
+  // Timeline management
+  getTimelineEvents(): Promise<TimelineEvent[]>;
+  getTimelineEventById(id: number): Promise<TimelineEvent | null>;
+  createTimelineEvent(data: InsertTimelineEvent): Promise<TimelineEvent>;
+  updateTimelineEvent(id: number, data: Partial<TimelineEvent>): Promise<TimelineEvent>;
+  deleteTimelineEvent(id: number): Promise<void>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -2606,6 +2614,77 @@ export class PostgresStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Failed to get active email invitations:', error);
+      throw error;
+    }
+  }
+
+  // Timeline management
+  async getTimelineEvents(): Promise<TimelineEvent[]> {
+    try {
+      const result = await db
+        .select()
+        .from(timelineEvents)
+        .orderBy(sql`${timelineEvents.date} ASC, ${timelineEvents.displayOrder} ASC`);
+      return result;
+    } catch (error) {
+      console.error('Failed to get timeline events:', error);
+      throw error;
+    }
+  }
+
+  async getTimelineEventById(id: number): Promise<TimelineEvent | null> {
+    try {
+      const result = await db
+        .select()
+        .from(timelineEvents)
+        .where(eq(timelineEvents.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get timeline event:', error);
+      throw error;
+    }
+  }
+
+  async createTimelineEvent(data: InsertTimelineEvent): Promise<TimelineEvent> {
+    try {
+      const result = await db
+        .insert(timelineEvents)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create timeline event:', error);
+      throw error;
+    }
+  }
+
+  async updateTimelineEvent(id: number, data: Partial<TimelineEvent>): Promise<TimelineEvent> {
+    try {
+      const result = await db
+        .update(timelineEvents)
+        .set(data)
+        .where(eq(timelineEvents.id, id))
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error('Timeline event not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update timeline event:', error);
+      throw error;
+    }
+  }
+
+  async deleteTimelineEvent(id: number): Promise<void> {
+    try {
+      await db
+        .delete(timelineEvents)
+        .where(eq(timelineEvents.id, id));
+    } catch (error) {
+      console.error('Failed to delete timeline event:', error);
       throw error;
     }
   }

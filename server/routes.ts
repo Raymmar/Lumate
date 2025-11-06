@@ -549,6 +549,50 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Timeline routes
+  app.get("/api/timeline", async (req, res) => {
+    try {
+      const timelineEvents = await storage.getTimelineEvents();
+      res.json({ events: timelineEvents });
+    } catch (error) {
+      console.error("Failed to fetch timeline events:", error);
+      res.status(500).json({ error: "Failed to fetch timeline events" });
+    }
+  });
+
+  app.post("/api/timeline", requireAdmin, async (req, res) => {
+    try {
+      const eventData = req.body;
+      const timelineEvent = await storage.createTimelineEvent(eventData);
+      res.json(timelineEvent);
+    } catch (error) {
+      console.error("Failed to create timeline event:", error);
+      res.status(500).json({ error: "Failed to create timeline event" });
+    }
+  });
+
+  app.patch("/api/timeline/:id", requireAdmin, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      const timelineEvent = await storage.updateTimelineEvent(eventId, req.body);
+      res.json(timelineEvent);
+    } catch (error) {
+      console.error("Failed to update timeline event:", error);
+      res.status(500).json({ error: "Failed to update timeline event" });
+    }
+  });
+
+  app.delete("/api/timeline/:id", requireAdmin, async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.id);
+      await storage.deleteTimelineEvent(eventId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete timeline event:", error);
+      res.status(500).json({ error: "Failed to delete timeline event" });
+    }
+  });
+
   app.get("/api/subscription/status", async (req, res) => {
     try {
       if (!req.session.userId) {
