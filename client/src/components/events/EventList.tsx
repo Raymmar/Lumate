@@ -205,12 +205,12 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
     >
       <div className="rounded-lg border bg-card text-card-foreground hover:bg-muted/50 transition-colors group">
         <div className="w-full relative">
-          <AspectRatio ratio={16 / 9}>
+          <AspectRatio ratio={1}>
             {event.coverUrl ? (
               <img
                 src={event.coverUrl}
                 alt={event.title}
-                className="rounded-t-lg object-cover w-full h-full"
+                className="rounded-t-lg object-contain w-full h-full bg-muted"
               />
             ) : (
               <div className="w-full h-full bg-muted rounded-t-lg flex items-center justify-center">
