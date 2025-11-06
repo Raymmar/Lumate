@@ -2143,19 +2143,9 @@ export async function registerRoutes(app: Express) {
         .from(attendance)
         .where(sql`LOWER(user_email) = LOWER(${person.email})`);
 
-      // Get the earliest event date from attendance records
-      const earliestEvent = await db
-        .select({
-          startTime: sql`MIN(${events.startTime})`.as('earliest_start_time')
-        })
-        .from(attendance)
-        .innerJoin(events, eq(attendance.eventApiId, events.api_id))
-        .where(sql`LOWER(${attendance.userEmail}) = LOWER(${person.email})`);
-
       // Update the person's stats in the database
       const stats = {
         attendanceCount: Number(attendanceCount[0]?.count || 0),
-        firstSeen: earliestEvent[0]?.startTime || person.createdAt,
       };
 
       // Update the stats in the people table

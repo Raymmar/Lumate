@@ -221,6 +221,12 @@ export default function PersonProfile({ username }: PersonProfileProps) {
   const hasActiveSubscription = Boolean(currentUser?.subscriptionStatus === 'active');
   const isLoading = personLoading || statsLoading || eventsLoading || companyLoading;
 
+  const firstSeen = events && events.length > 0 
+    ? events.reduce((earliest, event) => {
+        return new Date(event.startTime) < new Date(earliest.startTime) ? event : earliest;
+      }).startTime
+    : person?.createdAt;
+
   if (personError) {
     console.error('Error in PersonProfile:', personError);
     return (
@@ -420,7 +426,7 @@ export default function PersonProfile({ username }: PersonProfileProps) {
             <div className="space-y-4">
               <StatsCard
                 title="First Seen"
-                value={stats?.firstSeen ? format(new Date(stats.firstSeen), "MMM d, yyyy") : "Unknown"}
+                value={firstSeen ? format(new Date(firstSeen), "MMM d, yyyy") : "Unknown"}
                 icon={<CalendarDays className="h-4 w-4 text-foreground" />}
               />
               <StatsCard
