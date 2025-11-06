@@ -6,6 +6,22 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### November 6, 2025 - Email Invitation Claim Detection Fixed
+- **Issue**: Service only checked for claimed accounts during 9-10 AM Eastern window, causing up to 23-hour delay in detection
+- **Root Cause**: `processFollowUps()` had early return if outside sending window, preventing claim detection from running
+- **Solution**: Separated claim detection from email sending into two distinct methods
+  - `detectClaimedAccounts()` - Runs every hour, 24/7, regardless of time
+  - `sendFollowUpEmails()` - Only runs during 9-10 AM Eastern window
+- **Changes Made**:
+  - Refactored EmailInvitationService to separate concerns
+  - Added new storage method `getActiveEmailInvitations()` for 24/7 claim detection
+  - Updated `processInvitations()` to call both methods in proper sequence
+- **Testing Verified**: 
+  - Test accounts (ID 1364, 1365) marked completed_at within 5 seconds of server restart at 10:42 PM
+  - Accounts excluded from "due for sending" query (0 results)
+  - No duplicate emails will be sent to completed accounts
+- **Impact**: Claimed accounts now detected immediately (within 1 hour) instead of waiting up to 23 hours
+
 ### October 1, 2025 - Profile URL Generation Fixed
 - **Issue**: Users without Luma profile names were getting broken profile pages
 - **Root Causes Identified**:
