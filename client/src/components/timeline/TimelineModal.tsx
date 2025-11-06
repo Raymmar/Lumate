@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -11,38 +13,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { TimelineEvent } from "@shared/schema";
+import { insertTimelineEventSchema, type TimelineEvent } from "@shared/schema";
+import { z } from "zod";
 
 interface TimelineModalProps {
   event: TimelineEvent | null;
   onClose: () => void;
 }
 
+const formSchema = insertTimelineEventSchema.extend({
+  date: z.string().min(1, "Date is required"),
+  title: z.string().min(1, "Title is required"),
+});
+
+type FormData = z.infer<typeof formSchema>;
+
 export function TimelineModal({ event, onClose }: TimelineModalProps) {
   const { toast } = useToast();
-  const [title, setTitle] = useState(event?.title || "");
-  const [description, setDescription] = useState(event?.description || "");
-  const [imageUrl, setImageUrl] = useState(event?.imageUrl || "");
-  const [date, setDate] = useState(
-    event?.date ? new Date(event.date).toISOString().split("T")[0] : ""
-  );
   const [uploadingImage, setUploadingImage] = useState(false);
 
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: event?.title || "",
+      description: event?.description || "",
+      imageUrl: event?.imageUrl || "",
+      date: event?.date ? new Date(event.date).toISOString().split("T")[0] : "",
+    },
+  });
+
   const saveMutation = useMutation({
-    mutationFn: async () => {
-      const data = { 
-        title, 
-        description, 
-        imageUrl: imageUrl || null,
-        date: date ? new Date(date).toISOString() : new Date().toISOString()
+    mutationFn: async (data: FormData) => {
+      const payload = {
+        ...data,
+        date: data.date ? new Date(data.date).toISOString() : new Date().toISOString(),
+        imageUrl: data.imageUrl || null,
       };
 
       if (event) {
-        return apiRequest(`/api/timeline/${event.id}`, "PATCH", data);
+        return apiRequest(`/api/timeline/${event.id}`, "PATCH", payload);
       } else {
-        return apiRequest("/api/timeline", "POST", data);
+        return apiRequest("/api/timeline", "POST", payload);
       }
     },
     onSuccess: () => {
@@ -94,7 +115,7 @@ export function TimelineModal({ event, onClose }: TimelineModalProps) {
       }
 
       const data = await response.json();
-      setImageUrl(data.url);
+      form.setValue("imageUrl", data.url);
       toast({
         title: "Success",
         description: "Image uploaded successfully",
@@ -114,29 +135,11 @@ export function TimelineModal({ event, onClose }: TimelineModalProps) {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!title.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!date) {
-      toast({
-        title: "Validation Error",
-        description: "Date is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    saveMutation.mutate();
+  const onSubmit = (data: FormData) => {
+    saveMutation.mutate(data);
   };
+
+  const imageUrl = form.watch("imageUrl");
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
@@ -152,86 +155,131 @@ export function TimelineModal({ event, onClose }: TimelineModalProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSave} className="space-y-4 mt-4">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Company Founded"
-              required
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      data-testid="input-timeline-title"
+                      placeholder="e.g., Company Founded"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="date">Date *</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date *</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="date"
+                      data-testid="input-timeline-date"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe this milestone..."
-              rows={4}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      value={field.value || ""}
+                      data-testid="input-timeline-description"
+                      placeholder="Describe this milestone..."
+                      rows={4}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="imageUrl">Image URL</Label>
-            <Input
-              id="imageUrl"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Image URL</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      value={field.value || ""}
+                      data-testid="input-timeline-imageurl"
+                      placeholder="https://example.com/image.jpg"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="imageUpload">Or Upload Image</Label>
-            <Input
-              id="imageUpload"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              disabled={uploadingImage}
-            />
-            {uploadingImage && (
-              <p className="text-sm text-muted-foreground">Uploading...</p>
-            )}
-          </div>
-
-          {imageUrl && (
             <div className="grid gap-2">
-              <Label>Preview</Label>
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-                <img
-                  src={imageUrl}
-                  alt="Timeline event preview"
-                  className="object-cover w-full h-full"
-                />
-              </div>
+              <Label htmlFor="imageUpload">Or Upload Image</Label>
+              <Input
+                id="imageUpload"
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+                data-testid="input-timeline-image-upload"
+              />
+              {uploadingImage && (
+                <p className="text-sm text-muted-foreground">Uploading...</p>
+              )}
             </div>
-          )}
 
-          <div className="flex gap-2 justify-end pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={saveMutation.isPending}>
-              {saveMutation.isPending ? "Saving..." : "Save"}
-            </Button>
-          </div>
-        </form>
+            {imageUrl && (
+              <div className="grid gap-2">
+                <Label>Preview</Label>
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
+                  <img
+                    src={imageUrl}
+                    alt="Timeline event preview"
+                    className="object-cover w-full h-full"
+                    data-testid="img-timeline-preview"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                data-testid="button-cancel-timeline"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={saveMutation.isPending}
+                data-testid="button-save-timeline"
+              >
+                {saveMutation.isPending ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
