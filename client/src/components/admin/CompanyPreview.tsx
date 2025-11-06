@@ -747,9 +747,18 @@ export function CompanyPreview({
                   />
                 )}
 
+                {/* Created Date */}
+                {!isNew && (companyDetails?.createdAt || company?.createdAt) && (
+                  <div className="pt-6 mt-6 border-t">
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">Created:</span> {format(new Date(companyDetails?.createdAt || company?.createdAt), "MMM d, yyyy")}
+                    </div>
+                  </div>
+                )}
+
                 {/* Delete Button - Separated at bottom */}
                 {canEditCompany && !isNew && (
-                  <div className="pt-6 mt-6 border-t">
+                  <div className={`${(companyDetails?.createdAt || company?.createdAt) ? 'pt-4 mt-4' : 'pt-6 mt-6 border-t'}`}>
                     <Button
                       variant="destructive"
                       size="sm"
