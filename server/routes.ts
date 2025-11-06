@@ -32,6 +32,7 @@ import {
   companyMembers,
   companyTags,
   industries,
+  insertTimelineEventSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -562,8 +563,14 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/timeline", requireAdmin, async (req, res) => {
     try {
-      const eventData = req.body;
-      const timelineEvent = await storage.createTimelineEvent(eventData);
+      const result = insertTimelineEventSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid timeline event data", 
+          details: result.error.format() 
+        });
+      }
+      const timelineEvent = await storage.createTimelineEvent(result.data);
       res.json(timelineEvent);
     } catch (error) {
       console.error("Failed to create timeline event:", error);
@@ -574,7 +581,17 @@ export async function registerRoutes(app: Express) {
   app.patch("/api/timeline/:id", requireAdmin, async (req, res) => {
     try {
       const eventId = parseInt(req.params.id);
-      const timelineEvent = await storage.updateTimelineEvent(eventId, req.body);
+      const result = insertTimelineEventSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid timeline event data", 
+          details: result.error.format() 
+        });
+      }
+      const timelineEvent = await storage.updateTimelineEvent(eventId, result.data);
+      if (!timelineEvent) {
+        return res.status(404).json({ error: "Timeline event not found" });
+      }
       res.json(timelineEvent);
     } catch (error) {
       console.error("Failed to update timeline event:", error);
