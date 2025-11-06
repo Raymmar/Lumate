@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
-import { CalendarDays, Users } from 'lucide-react';
+import { CalendarDays, Users, ExternalLink, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { BusinessProfile } from "@/components/ui/business-profile";
 import { ProfileBadge } from "@/components/ui/profile-badge";
 import { getBadgeIcon } from '@/lib/badge-icons';
 import { CompanyPreview } from '@/components/companies/CompanyPreview';
-import { User } from '@shared/schema';
-import { Link } from 'wouter';
+import { User, UserCustomLink } from '@shared/schema';
+import { Link, useLocation } from 'wouter';
 import { TruncatedText } from "@/components/ui/truncated-text";
 
 interface PersonProfileProps {
@@ -59,6 +59,8 @@ interface UserCompany {
   bio: string | null;
   tags: string[] | null;
   role: string; // member role in company: 'admin' or 'user'
+  ctaText: string | null;
+  customLinks: UserCustomLink[] | null;
 }
 
 interface Person {
@@ -115,6 +117,7 @@ const generateSlug = (name: string): string => {
 export default function PersonProfile({ username }: PersonProfileProps) {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   console.log('PersonProfile - Attempting to fetch profile for username:', username);
 
@@ -277,116 +280,114 @@ export default function PersonProfile({ username }: PersonProfileProps) {
         {userCompany && (
           <div className="space-y-2">
             <h3 className="text-lg font-medium ml-1">Company</h3>
-            {userCompany.slug ? (
-              <Link href={`/companies/${userCompany.slug}`} className="no-underline">
-                <Card className="overflow-hidden rounded-xl cursor-pointer">
-                  {userCompany.featuredImageUrl && (
-                    <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
-                      <img
-                        src={userCompany.featuredImageUrl}
-                        alt={userCompany.name}
+            <Card className="overflow-hidden rounded-xl">
+              {userCompany.featuredImageUrl && (
+                <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
+                  <img
+                    src={userCompany.featuredImageUrl}
+                    alt={userCompany.name}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+              )}
+
+              <CardContent className="p-3 md:p-4 space-y-4">
+                <div className="flex items-center gap-3">
+                  {userCompany.logoUrl && (
+                    <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
+                      <img 
+                        src={userCompany.logoUrl} 
+                        alt={userCompany.name} 
                         className="h-full w-full object-cover"
                       />
                     </div>
                   )}
-
-                  <CardContent className="p-3 md:p-4 space-y-4">
-                    <div className="flex items-center gap-3">
-                      {userCompany.logoUrl && (
-                        <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
-                          <img 
-                            src={userCompany.logoUrl} 
-                            alt={userCompany.name} 
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <h3 className="text-xl font-semibold">{userCompany.name}</h3>
-                    </div>
-                    
-                    {userCompany.industry && (
-                      <p className="text-sm text-muted-foreground">{userCompany.industry}</p>
-                    )}
-                    
-                    {userCompany.bio && (
-                      <p className="text-muted-foreground line-clamp-3">{userCompany.bio}</p>
-                    )}
-                    
-                    {userCompany.tags && userCompany.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {userCompany.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <Button 
-                      variant="outline" 
-                      className="w-full mt-2"
-                      data-testid="button-view-company"
-                    >
-                      View full company profile
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
-            ) : (
-              <Card className="overflow-hidden rounded-xl">
-                {userCompany.featuredImageUrl && (
-                  <div className="relative h-[200px] w-full overflow-hidden rounded-t-xl">
-                    <img
-                      src={userCompany.featuredImageUrl}
-                      alt={userCompany.name}
-                      className="h-full w-full object-cover"
-                    />
+                  <h3 className="text-xl font-semibold">{userCompany.name}</h3>
+                </div>
+                
+                {userCompany.industry && (
+                  <p className="text-sm text-muted-foreground">{userCompany.industry}</p>
+                )}
+                
+                {userCompany.bio && (
+                  <p className="text-muted-foreground line-clamp-3">{userCompany.bio}</p>
+                )}
+                
+                {userCompany.tags && userCompany.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {userCompany.tags.map((tag) => (
+                      <Badge key={tag} variant="outline" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                 )}
-
-                <CardContent className="p-3 md:p-4 space-y-4">
-                  <div className="flex items-center gap-3">
-                    {userCompany.logoUrl && (
-                      <div className="h-10 w-10 rounded-full bg-muted overflow-hidden flex-shrink-0">
-                        <img 
-                          src={userCompany.logoUrl} 
-                          alt={userCompany.name} 
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <h3 className="text-xl font-semibold">{userCompany.name}</h3>
-                  </div>
-                  
-                  {userCompany.industry && (
-                    <p className="text-sm text-muted-foreground">{userCompany.industry}</p>
+                
+                <div className="space-y-2 mt-4">
+                  {userCompany.website && userCompany.ctaText && (
+                    <a 
+                      href={userCompany.website} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <Button 
+                        variant="default" 
+                        className="w-full gap-2"
+                        data-testid="button-company-cta"
+                      >
+                        <Star className="h-4 w-4" />
+                        {userCompany.ctaText}
+                      </Button>
+                    </a>
                   )}
                   
-                  {userCompany.bio && (
-                    <p className="text-muted-foreground line-clamp-3">{userCompany.bio}</p>
-                  )}
-                  
-                  {userCompany.tags && userCompany.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {userCompany.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
+                  {userCompany.customLinks && userCompany.customLinks.length > 0 && (
+                    <div className="space-y-2">
+                      {userCompany.customLinks.map((link, index) => (
+                        <a 
+                          key={index}
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <Button 
+                            variant="outline" 
+                            className="w-full gap-2 justify-start"
+                            data-testid={`button-company-link-${index}`}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            {link.title}
+                          </Button>
+                        </a>
                       ))}
                     </div>
                   )}
                   
-                  <Button 
-                    variant="outline" 
-                    disabled
-                    className="w-full mt-2"
-                    title="Company profile URL not available"
-                  >
-                    View full company profile
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                  {userCompany.slug ? (
+                    <Button 
+                      variant="outline" 
+                      className="w-full mt-2"
+                      onClick={() => setLocation(`/companies/${userCompany.slug}`)}
+                      data-testid="button-view-company"
+                    >
+                      View full company profile
+                    </Button>
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      disabled
+                      className="w-full mt-2"
+                      title="Company profile URL not available"
+                      data-testid="button-view-company"
+                    >
+                      View full company profile
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>
