@@ -33,6 +33,7 @@ import {
   companyTags,
   industries,
   insertTimelineEventSchema,
+  emailInvitations,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -3271,45 +3272,270 @@ export async function registerRoutes(app: Express) {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 100;
       const searchQuery = ((req.query.search as string) || "").toLowerCase();
+      const workflowFilter = req.query.workflowStatus as string | undefined;
       const offset = (page - 1) * limit;
 
+      // Build where conditions
+      const whereConditions = [];
+      if (searchQuery) {
+        whereConditions.push(sql`(
+          LOWER(${people.userName}) LIKE ${`%${searchQuery}%`} OR 
+          LOWER(${people.fullName}) LIKE ${`%${searchQuery}%`} OR 
+          LOWER(${people.email}) LIKE ${`%${searchQuery}%`}
+        )`);
+      }
+
+      // Add workflow filter conditions
+      if (workflowFilter === 'not_started') {
+        whereConditions.push(sql`${emailInvitations.id} IS NULL`);
+      } else if (workflowFilter === 'in_progress') {
+        whereConditions.push(sql`${emailInvitations.id} IS NOT NULL AND ${emailInvitations.completedAt} IS NULL AND ${emailInvitations.optedOut} = false`);
+      } else if (workflowFilter === 'completed') {
+        whereConditions.push(sql`${emailInvitations.completedAt} IS NOT NULL`);
+      } else if (workflowFilter === 'opted_out') {
+        whereConditions.push(sql`${emailInvitations.optedOut} = true`);
+      }
+
+      const whereClause = whereConditions.length > 0 ? and(...whereConditions) : undefined;
+
+      // Count total
       const totalCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(people)
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(full_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`,
-        )
+        .leftJoin(users, eq(people.email, users.email))
+        .leftJoin(emailInvitations, eq(people.id, emailInvitations.personId))
+        .where(whereClause)
         .then((result) => Number(result[0].count));
 
-      const peopleList = await db
-        .select()
+      // Fetch people with workflow data
+      const results = await db
+        .select({
+          id: people.id,
+          api_id: people.api_id,
+          email: people.email,
+          userName: people.userName,
+          fullName: people.fullName,
+          avatarUrl: people.avatarUrl,
+          role: people.role,
+          phoneNumber: people.phoneNumber,
+          bio: people.bio,
+          createdAt: people.createdAt,
+          stats: people.stats,
+          hasUser: sql<boolean>`${users.id} IS NOT NULL`,
+          invitationId: emailInvitations.id,
+          emailsSentCount: emailInvitations.emailsSentCount,
+          lastSentAt: emailInvitations.lastSentAt,
+          nextSendAt: emailInvitations.nextSendAt,
+          completedAt: emailInvitations.completedAt,
+          optedOut: emailInvitations.optedOut,
+        })
         .from(people)
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(user_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(full_name) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(email) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`,
-        )
+        .leftJoin(users, eq(people.email, users.email))
+        .leftJoin(emailInvitations, eq(people.id, emailInvitations.personId))
+        .where(whereClause)
         .orderBy(people.id)
         .limit(limit)
         .offset(offset);
 
+      // Transform to PersonWithWorkflow objects
+      const peopleWithWorkflow = results.map(row => {
+        let workflowStatus: 'not_started' | 'in_progress' | 'completed' | 'opted_out' = 'not_started';
+        
+        if (row.optedOut) {
+          workflowStatus = 'opted_out';
+        } else if (row.completedAt) {
+          workflowStatus = 'completed';
+        } else if (row.invitationId) {
+          workflowStatus = 'in_progress';
+        }
+
+        return {
+          id: row.id,
+          api_id: row.api_id,
+          email: row.email,
+          userName: row.userName,
+          fullName: row.fullName,
+          avatarUrl: row.avatarUrl,
+          role: row.role,
+          phoneNumber: row.phoneNumber,
+          bio: row.bio,
+          createdAt: row.createdAt,
+          stats: row.stats,
+          hasUser: Boolean(row.hasUser),
+          workflowStatus,
+          emailsSentCount: row.emailsSentCount || 0,
+          lastSentAt: row.lastSentAt,
+          nextSendAt: row.nextSendAt,
+          completedAt: row.completedAt,
+          invitationId: row.invitationId,
+        };
+      });
+
       res.json({
-        people: peopleList,
+        people: peopleWithWorkflow,
         total: totalCount,
       });
     } catch (error) {
       console.error("Failed to fetch people:", error);
       res.status(500).json({ error: "Failed to fetch people" });
+    }
+  });
+
+  // Get workflow stats
+  app.get("/api/admin/workflow-stats", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      // Get total people count
+      const totalPeopleResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(people);
+      const totalPeople = Number(totalPeopleResult[0].count);
+
+      // Get claimed users count (people with user accounts)
+      const claimedUsersResult = await db
+        .select({ count: sql<number>`count(DISTINCT ${users.id})` })
+        .from(users)
+        .innerJoin(people, eq(users.email, people.email));
+      const claimedUsers = Number(claimedUsersResult[0].count);
+
+      // Get in workflow count
+      const inWorkflowResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(emailInvitations)
+        .where(and(
+          sql`${emailInvitations.completedAt} IS NULL`,
+          eq(emailInvitations.optedOut, false)
+        ));
+      const inWorkflow = Number(inWorkflowResult[0].count);
+
+      // Get completed workflow count
+      const completedWorkflowResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(emailInvitations)
+        .where(sql`${emailInvitations.completedAt} IS NOT NULL`);
+      const completedWorkflow = Number(completedWorkflowResult[0].count);
+
+      // Get opted out count
+      const optedOutResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(emailInvitations)
+        .where(eq(emailInvitations.optedOut, true));
+      const optedOut = Number(optedOutResult[0].count);
+
+      // Get total invites sent
+      const totalInvitesSentResult = await db
+        .select({ total: sql<number>`sum(${emailInvitations.emailsSentCount})` })
+        .from(emailInvitations);
+      const totalInvitesSent = Number(totalInvitesSentResult[0].total || 0);
+
+      // Calculate conversion rate (claimed users / total people)
+      const conversionRate = totalPeople > 0 ? (claimedUsers / totalPeople) * 100 : 0;
+
+      // Calculate workflow conversion rate (users who completed workflow)
+      const workflowConversionRate = inWorkflow + completedWorkflow > 0 
+        ? (completedWorkflow / (inWorkflow + completedWorkflow)) * 100 
+        : 0;
+
+      res.json({
+        totalPeople,
+        claimedUsers,
+        inWorkflow,
+        completedWorkflow,
+        optedOut,
+        totalInvitesSent,
+        conversionRate: Math.round(conversionRate * 10) / 10,
+        workflowConversionRate: Math.round(workflowConversionRate * 10) / 10,
+      });
+    } catch (error) {
+      console.error("Failed to fetch workflow stats:", error);
+      res.status(500).json({ error: "Failed to fetch workflow stats" });
+    }
+  });
+
+  // Enroll selected people in workflow
+  app.post("/api/admin/enroll-in-workflow", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const { personIds } = req.body as { personIds: number[] };
+
+      if (!personIds || !Array.isArray(personIds) || personIds.length === 0) {
+        return res.status(400).json({ error: "No people selected" });
+      }
+
+      console.log(`Enrolling ${personIds.length} people in workflow...`);
+
+      let enrolled = 0;
+      let skipped = 0;
+      const errors = [];
+
+      for (const personId of personIds) {
+        try {
+          // Check if person already has an invitation
+          const existingInvitation = await storage.getEmailInvitationByPersonId(personId);
+          
+          if (existingInvitation) {
+            console.log(`Person ${personId} already has an invitation, skipping`);
+            skipped++;
+            continue;
+          }
+
+          // Check if person has a user account already
+          const person = await storage.getPerson(personId);
+          if (!person) {
+            console.log(`Person ${personId} not found, skipping`);
+            skipped++;
+            continue;
+          }
+
+          const existingUser = await storage.getUserByEmail(person.email);
+          if (existingUser) {
+            console.log(`Person ${person.email} already has a user account, skipping`);
+            skipped++;
+            continue;
+          }
+
+          // Create email invitation record
+          await storage.createEmailInvitation({
+            personId,
+            emailsSentCount: 0,
+            optedOut: false,
+            finalMessageSent: false,
+          });
+
+          enrolled++;
+          console.log(`Enrolled person ${personId} in workflow`);
+        } catch (error) {
+          console.error(`Failed to enroll person ${personId}:`, error);
+          errors.push({ personId, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+
+      res.json({
+        success: true,
+        enrolled,
+        skipped,
+        errors: errors.length > 0 ? errors : undefined,
+        message: `Enrolled ${enrolled} people in workflow${skipped > 0 ? `, skipped ${skipped}` : ''}`,
+      });
+    } catch (error) {
+      console.error("Failed to enroll people in workflow:", error);
+      res.status(500).json({ error: "Failed to enroll people in workflow" });
     }
   });
 

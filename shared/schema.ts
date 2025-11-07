@@ -273,6 +273,16 @@ export type Person = typeof people.$inferSelect & {
   user?: User | null;
 };
 export type InsertPerson = z.infer<typeof insertPersonSchema>;
+
+export type PersonWithWorkflow = Person & {
+  hasUser: boolean;
+  workflowStatus: 'not_started' | 'in_progress' | 'completed' | 'opted_out';
+  emailsSentCount: number;
+  lastSentAt: string | null;
+  nextSendAt: string | null;
+  completedAt: string | null;
+  invitationId: number | null;
+};
 export type CacheMetadata = typeof cacheMetadata.$inferSelect;
 export type InsertCacheMetadata = z.infer<typeof insertCacheMetadataSchema>;
 

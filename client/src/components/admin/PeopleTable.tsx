@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { DataTable } from "./DataTable";
-import type { Person } from "@shared/schema";
+import type { PersonWithWorkflow } from "@shared/schema";
 import { useState } from "react";
 import { PreviewSidebar } from "./PreviewSidebar";
 import { PersonPreview } from "./PersonPreview";
@@ -9,9 +9,10 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { formatUsernameForUrl } from "@/lib/utils";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Mail, Users } from "lucide-react";
+import { Mail, Users, Send } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,27 +31,44 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PeopleResponse {
-  people: Person[];
+  people: PersonWithWorkflow[];
   total: number;
 }
 
 export function PeopleTable() {
-  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<PersonWithWorkflow | null>(null);
+  const [selectedPeopleIds, setSelectedPeopleIds] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [workflowFilter, setWorkflowFilter] = useState<string>("all");
   const [, setLocation] = useLocation();
   const debouncedSearch = useDebounce(searchQuery, 300);
   const itemsPerPage = 100;
   const { toast } = useToast();
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch],
+    queryKey: ["/api/admin/people", currentPage, itemsPerPage, debouncedSearch, workflowFilter],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/admin/people?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
-      );
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        search: debouncedSearch,
+      });
+      
+      if (workflowFilter !== "all") {
+        params.append("workflowStatus", workflowFilter);
+      }
+
+      const response = await fetch(`/api/admin/people?${params}`);
       if (!response.ok) throw new Error("Failed to fetch people");
       const data = await response.json();
       return data as PeopleResponse;
@@ -62,55 +80,132 @@ export function PeopleTable() {
   const totalItems = data?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Query to get unclaimed people count for the batch invite button
-  const { data: unclaimedData } = useQuery({
-    queryKey: ["/api/admin/people/unclaimed"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/people/unclaimed");
-      if (!response.ok) throw new Error("Failed to fetch unclaimed people");
-      return response.json() as Person[];
-    },
+  // Fetch workflow stats
+  const { data: statsData } = useQuery({
+    queryKey: ["/api/admin/workflow-stats"],
     refetchOnWindowFocus: false,
   });
 
-  const unclaimedCount = unclaimedData?.length || 0;
-
-  // Batch invite mutation
-  const batchInviteMutation = useMutation({
-    mutationFn: async () => {
-      return await apiRequest('/api/admin/batch-invite-people', 'POST');
+  // Enroll in workflow mutation
+  const enrollMutation = useMutation({
+    mutationFn: async (personIds: number[]) => {
+      return await apiRequest('/api/admin/enroll-in-workflow', 'POST', { personIds });
     },
     onSuccess: (data: any) => {
       toast({
-        title: "Batch Invite Complete",
+        title: "Enrollment Complete",
         description: data.message,
       });
-      // Refresh the unclaimed people query
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/people/unclaimed"] });
+      setSelectedPeopleIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/people"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/workflow-stats"] });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to send batch invites",
+        description: error.message || "Failed to enroll people",
         variant: "destructive",
       });
     },
   });
 
+  const handleToggleSelect = (personId: number) => {
+    const newSelected = new Set(selectedPeopleIds);
+    if (newSelected.has(personId)) {
+      newSelected.delete(personId);
+    } else {
+      newSelected.add(personId);
+    }
+    setSelectedPeopleIds(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedPeopleIds.size === people.length) {
+      setSelectedPeopleIds(new Set());
+    } else {
+      setSelectedPeopleIds(new Set(people.map(p => p.id)));
+    }
+  };
+
+  const handleEnrollSelected = () => {
+    if (selectedPeopleIds.size === 0) return;
+    enrollMutation.mutate(Array.from(selectedPeopleIds));
+  };
+
   const columns = [
+    {
+      key: "select",
+      header: () => (
+        <Checkbox
+          checked={selectedPeopleIds.size === people.length && people.length > 0}
+          onCheckedChange={handleSelectAll}
+          aria-label="Select all"
+          data-testid="checkbox-select-all"
+        />
+      ),
+      cell: (row: PersonWithWorkflow) => (
+        <Checkbox
+          checked={selectedPeopleIds.has(row.id)}
+          onCheckedChange={() => handleToggleSelect(row.id)}
+          aria-label={`Select ${row.userName || row.email}`}
+          data-testid={`checkbox-select-${row.id}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+    },
     {
       key: "userName",
       header: "Name",
-      cell: (row: Person) => row.userName || row.fullName || "—",
+      cell: (row: PersonWithWorkflow) => row.userName || row.fullName || "—",
     },
     {
       key: "email",
       header: "Email",
-      cell: (row: Person) => row.email,
-    }
+      cell: (row: PersonWithWorkflow) => row.email,
+    },
+    {
+      key: "claimed",
+      header: "Claimed",
+      cell: (row: PersonWithWorkflow) => (
+        <span className={row.hasUser ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}>
+          {row.hasUser ? "Yes" : "No"}
+        </span>
+      ),
+    },
+    {
+      key: "workflowStatus",
+      header: "Status",
+      cell: (row: PersonWithWorkflow) => {
+        const statusConfig = {
+          not_started: { label: "Not Started", color: "text-gray-600 dark:text-gray-400" },
+          in_progress: { label: "In Progress", color: "text-blue-600 dark:text-blue-400" },
+          completed: { label: "Completed", color: "text-green-600 dark:text-green-400" },
+          opted_out: { label: "Opted Out", color: "text-red-600 dark:text-red-400" },
+        };
+        const config = statusConfig[row.workflowStatus];
+        return <span className={config.color}>{config.label}</span>;
+      },
+    },
+    {
+      key: "emailsSentCount",
+      header: "Emails Sent",
+      cell: (row: PersonWithWorkflow) => row.emailsSentCount || 0,
+    },
+    {
+      key: "lastSentAt",
+      header: "Last Sent",
+      cell: (row: PersonWithWorkflow) => 
+        row.lastSentAt ? new Date(row.lastSentAt).toLocaleDateString() : "—",
+    },
+    {
+      key: "nextSendAt",
+      header: "Next Send",
+      cell: (row: PersonWithWorkflow) => 
+        row.nextSendAt ? new Date(row.nextSendAt).toLocaleDateString() : "—",
+    },
   ];
 
-  const onRowClick = (person: Person) => {
+  const onRowClick = (person: PersonWithWorkflow) => {
     const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setSelectedPerson(person);
     setLocation(`/people/${encodeURIComponent(urlPath)}`);
@@ -124,7 +219,7 @@ export function PeopleTable() {
     if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
   };
 
-  const handleNavigate = (person: Person) => {
+  const handleNavigate = (person: PersonWithWorkflow) => {
     const urlPath = formatUsernameForUrl(person.userName, person.api_id);
     setSelectedPerson(person);
     setLocation(`/people/${encodeURIComponent(urlPath)}`);
@@ -132,46 +227,103 @@ export function PeopleTable() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">People</h1>
-        <div className="flex items-center gap-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button 
-                variant="outline" 
-                disabled={unclaimedCount === 0 || batchInviteMutation.isPending}
-                data-testid="button-batch-invite"
-              >
-                {batchInviteMutation.isPending ? (
-                  "Sending..."
-                ) : (
-                  <>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Batch Invite ({unclaimedCount})
-                  </>
-                )}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Send Batch Invitations</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will send invitation emails to all {unclaimedCount} people who have profiles but haven't claimed their accounts yet. They'll receive an email with a link to set their password and claim their profile.
-                  <br /><br />
-                  Are you sure you want to proceed?
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={() => batchInviteMutation.mutate()}
-                  data-testid="button-confirm-batch-invite"
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-4">People & Onboarding</h1>
+        
+        {statsData && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Total People</div>
+              <div className="text-2xl font-bold mt-1">{statsData.totalPeople}</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Claimed</div>
+              <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.claimedUsers}</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Conversion Rate</div>
+              <div className="text-2xl font-bold mt-1">{statsData.conversionRate}%</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">In Workflow</div>
+              <div className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">{statsData.inWorkflow}</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Completed</div>
+              <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.completedWorkflow}</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Opted Out</div>
+              <div className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">{statsData.optedOut}</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Total Invites Sent</div>
+              <div className="text-2xl font-bold mt-1">{statsData.totalInvitesSent}</div>
+            </div>
+            <div className="bg-card border rounded-lg p-4">
+              <div className="text-sm text-muted-foreground">Workflow Rate</div>
+              <div className="text-2xl font-bold mt-1">{statsData.workflowConversionRate}%</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-lg font-semibold">Manage Invitations</div>
+        <div className="flex items-center gap-3">
+          <Select value={workflowFilter} onValueChange={setWorkflowFilter}>
+            <SelectTrigger className="w-[180px]" data-testid="select-workflow-filter">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All People</SelectItem>
+              <SelectItem value="not_started">Not Started</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="opted_out">Opted Out</SelectItem>
+            </SelectContent>
+          </Select>
+          {selectedPeopleIds.size > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="default"
+                  disabled={enrollMutation.isPending}
+                  data-testid="button-enroll-selected"
                 >
-                  Send {unclaimedCount} Invitations
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+                  {enrollMutation.isPending ? (
+                    "Enrolling..."
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Enroll {selectedPeopleIds.size} in Workflow
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Enroll in Automated Workflow</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will enroll {selectedPeopleIds.size} selected {selectedPeopleIds.size === 1 ? 'person' : 'people'} in the automated email invitation workflow. They will receive a series of follow-up emails over time encouraging them to claim their account.
+                    <br /><br />
+                    People who already have accounts or are already in the workflow will be skipped.
+                    <br /><br />
+                    Are you sure you want to proceed?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleEnrollSelected}
+                    data-testid="button-confirm-enroll"
+                  >
+                    Enroll {selectedPeopleIds.size} {selectedPeopleIds.size === 1 ? 'Person' : 'People'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
