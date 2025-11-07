@@ -271,18 +271,6 @@ export function PeopleTable() {
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-semibold">Manage Invitations</div>
         <div className="flex items-center gap-3">
-          <Select value={workflowFilter} onValueChange={setWorkflowFilter}>
-            <SelectTrigger className="w-[180px]" data-testid="select-workflow-filter">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All People</SelectItem>
-              <SelectItem value="not_started">Not Started</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="opted_out">Opted Out</SelectItem>
-            </SelectContent>
-          </Select>
           {selectedPeopleIds.size > 0 && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -324,6 +312,18 @@ export function PeopleTable() {
               </AlertDialogContent>
             </AlertDialog>
           )}
+          <Select value={workflowFilter} onValueChange={setWorkflowFilter}>
+            <SelectTrigger className="w-[180px]" data-testid="select-workflow-filter">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All People</SelectItem>
+              <SelectItem value="not_started">Not Started</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="opted_out">Opted Out</SelectItem>
+            </SelectContent>
+          </Select>
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
