@@ -6,6 +6,26 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### November 7, 2025 - Email Invitation System Redesigned for Manual Control
+- **Context**: Automatic batch enrollment accidentally sent 147 emails and created 671 invitation records before being stopped, leaving 558 people with broken verification links
+- **Key Design Decisions**:
+  - **Manual Control**: Removed automatic backfilling; admins must manually select people to enroll
+  - **Immediate Sending**: Emails now send immediately when enrolled (no time restrictions) for better user experience
+  - **Automatic for New Signups Only**: New account creation automatically enrolls users in email workflow
+  - **Protected Completed Invitations**: 365 completed invitations (claimed accounts) never receive emails again
+- **Architecture Changes**:
+  - Created `enrollSpecificPeople(personIds[], apologyMessage?)` method for controlled enrollment
+  - Removed `processNewPeople()` from automatic hourly processing
+  - Updated `/api/admin/batch-invite-people` endpoint to accept specific person IDs array
+  - Automatic service now only handles: `detectClaimedAccounts()` (24/7) and `sendFollowUpEmails()` (9-10 AM Eastern)
+- **Recovery System**:
+  - Added apology message parameter to email templates
+  - Created `/api/admin/send-apology-emails` endpoint to resend working links to affected users
+  - Apology email automatically includes message: "Our previous email had a technical error with the verification link. We apologize for the inconvenience. This email contains a working link to claim your profile."
+  - SQL query identifies 558 people who received tokens without invitations: `SELECT DISTINCT p.id FROM verification_tokens vt INNER JOIN people p ON p.email = vt.email LEFT JOIN email_invitations ei ON ei.person_id = p.id WHERE vt.created_at > '2025-11-07 21:03:00' AND ei.id IS NULL`
+- **Database Cleanup**: Removed all auto-created invitations except the 365 completed ones
+- **Impact**: System now provides full admin control over enrollment while maintaining automatic processing for follow-ups and claim detection
+
 ### November 6, 2025 - Email Invitation Claim Detection Fixed
 - **Issue**: Service only checked for claimed accounts during 9-10 AM Eastern window, causing up to 23-hour delay in detection
 - **Root Cause**: `processFollowUps()` had early return if outside sending window, preventing claim detection from running
