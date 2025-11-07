@@ -3412,11 +3412,6 @@ export async function registerRoutes(app: Express) {
       // Calculate conversion rate (claimed users / total people)
       const conversionRate = totalPeople > 0 ? (claimedUsers / totalPeople) * 100 : 0;
 
-      // Calculate workflow conversion rate (users who completed workflow)
-      const workflowConversionRate = inWorkflow + completedWorkflow > 0 
-        ? (completedWorkflow / (inWorkflow + completedWorkflow)) * 100 
-        : 0;
-
       res.json({
         totalPeople,
         claimedUsers,
@@ -3425,7 +3420,6 @@ export async function registerRoutes(app: Express) {
         optedOut,
         totalInvitesSent,
         conversionRate: Math.round(conversionRate * 10) / 10,
-        workflowConversionRate: Math.round(workflowConversionRate * 10) / 10,
       });
     } catch (error) {
       console.error("Failed to fetch workflow stats:", error);
