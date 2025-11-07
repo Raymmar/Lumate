@@ -233,11 +233,11 @@ export default function CompanyDirectory() {
           {/* Sponsors Tag (always first) */}
           <Badge
             variant={activeFilter === "sponsors" ? "default" : "outline"}
-            className="cursor-pointer px-3 py-1 text-xs transition-all hover:scale-105 whitespace-nowrap"
+            className="cursor-pointer px-3 py-1 text-xs whitespace-nowrap"
             onClick={() => handleFilterClick("sponsors")}
             data-testid="filter-sponsors"
           >
-            Sponsors ({filters.sponsors.count})
+            Sponsors {/* ({filters.sponsors.count}) */}
           </Badge>
           
           {/* Industry Tags (sorted by popularity) */}
@@ -245,11 +245,11 @@ export default function CompanyDirectory() {
             <Badge
               key={industry.name}
               variant={activeFilter === industry.name ? "default" : "outline"}
-              className="cursor-pointer px-3 py-1 text-xs transition-all hover:scale-105 whitespace-nowrap"
+              className="cursor-pointer px-3 py-1 text-xs whitespace-nowrap"
               onClick={() => handleFilterClick(industry.name)}
               data-testid={`filter-industry-${industry.name.toLowerCase().replace(/\s+/g, "-")}`}
             >
-              {industry.name} ({industry.count})
+              {industry.name} {/* ({industry.count}) */}
             </Badge>
           ))}
         </div>
