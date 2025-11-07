@@ -11,11 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase, Newspaper, Sparkles } from "lucide-react";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase, Newspaper, Sparkles, Menu } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminBadge } from "@/components/AdminBadge";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
@@ -51,40 +53,87 @@ export function NavBar() {
       </Link>
       <div className="hidden md:flex items-center space-x-4 ml-4">
         <Link href="/companies" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" data-testid="nav-directory">
             Directory
           </Button>
         </Link>
         <Link href="/news" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" data-testid="nav-news">
             News
           </Button>
         </Link>
+        <Link href="/about" className="no-underline hover:no-underline">
+          <Button variant="ghost" size="sm" data-testid="nav-about">
+            About
+          </Button>
+        </Link>
         <Link href="/summit" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" data-testid="nav-summit">
             Summit
           </Button>
         </Link>
       </div>
-      <div className="lg:hidden ml-2">
-        <Drawer open={isOpen} onOpenChange={setIsOpen}>
-          <DrawerTrigger asChild>
-            <Button variant="outline" size="sm">
-              Directory
+      <div className="md:hidden ml-2">
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="sm" data-testid="button-mobile-menu" aria-label="Open navigation">
+              <Menu className="h-5 w-5" />
             </Button>
-          </DrawerTrigger>
-          <DrawerContent>
-            <div className="max-h-[calc(100vh-4rem)] overflow-hidden">
-              <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
-                <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
-                  <div className="flex-1 overflow-hidden min-h-0">
-                    <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
-                  </div>
-                </div>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Menu</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6 space-y-6">
+              <div className="space-y-2">
+                <Link href="/companies" className="no-underline hover:no-underline">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base"
+                    onClick={() => setIsOpen(false)}
+                    data-testid="mobile-nav-directory"
+                  >
+                    Directory
+                  </Button>
+                </Link>
+                <Link href="/news" className="no-underline hover:no-underline">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base"
+                    onClick={() => setIsOpen(false)}
+                    data-testid="mobile-nav-news"
+                  >
+                    News
+                  </Button>
+                </Link>
+                <Link href="/about" className="no-underline hover:no-underline">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base"
+                    onClick={() => setIsOpen(false)}
+                    data-testid="mobile-nav-about"
+                  >
+                    About
+                  </Button>
+                </Link>
+                <Link href="/summit" className="no-underline hover:no-underline">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base"
+                    onClick={() => setIsOpen(false)}
+                    data-testid="mobile-nav-summit"
+                  >
+                    Summit
+                  </Button>
+                </Link>
+              </div>
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-semibold mb-3 px-2">Search Members</h3>
+                <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
               </div>
             </div>
-          </DrawerContent>
-        </Drawer>
+          </SheetContent>
+        </Sheet>
       </div>
       <div className="ml-auto flex items-center space-x-2">
         {user && isAdmin && (
