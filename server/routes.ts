@@ -825,7 +825,7 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      const allPeople = await query.orderBy(desc(people.createdAt));
+      const allPeople = await query;
       
       // Check verification status for each person and add it to the response
       const peopleWithVerification = await Promise.all(
@@ -845,6 +845,13 @@ export async function registerRoutes(app: Express) {
           };
         })
       );
+      
+      // Sort by created_at descending (newest first)
+      peopleWithVerification.sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
 
       if (sort === "events") {
         const sortedPeople = peopleWithVerification.sort((a, b) => {
@@ -888,7 +895,7 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // Already sorted by created_at DESC from the database query
+      // Already sorted by created_at DESC above
       const sortedPeopleByVerification = peopleWithVerification;
       
       const start = (page - 1) * limit;
