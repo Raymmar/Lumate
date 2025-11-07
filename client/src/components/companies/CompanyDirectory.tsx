@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { CompanyCard } from "@/components/companies/CompanyCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
-import { Building } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Building, Search } from "lucide-react";
+import { useLocation } from "wouter";
+import { Badge } from "@/components/ui/badge";
 
 // Helper function as fallback only if slug isn't available
 const generateSlug = (name: string): string => {
@@ -50,11 +52,39 @@ interface Company {
 
 export default function CompanyDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [location, setLocation] = useLocation();
+  
+  // Get filter from URL params, default to "sponsors" (SSR-safe)
+  const getInitialFilter = () => {
+    if (typeof window === "undefined") return "sponsors";
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get("filter") || "sponsors";
+  };
+  const [activeFilter, setActiveFilter] = useState(getInitialFilter());
+  
+  // Update URL when filter changes
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (activeFilter) {
+      params.set("filter", activeFilter);
+    } else {
+      params.delete("filter");
+    }
+    const newUrl = `/companies${params.toString() ? `?${params.toString()}` : ""}`;
+    const currentPath = window.location.pathname + window.location.search;
+    if (newUrl !== currentPath) {
+      setLocation(newUrl);
+    }
+  }, [activeFilter, setLocation]);
   
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/companies"],
+    queryKey: ["/api/companies", activeFilter],
     queryFn: async () => {
-      const response = await fetch("/api/companies");
+      const params = new URLSearchParams();
+      if (activeFilter) {
+        params.set("filter", activeFilter);
+      }
+      const response = await fetch(`/api/companies?${params.toString()}`);
       if (!response.ok) {
         throw new Error("Failed to fetch companies");
       }
@@ -63,9 +93,11 @@ export default function CompanyDirectory() {
   });
 
   const companies = data?.companies || [];
+  const filters = data?.filters || { sponsors: { count: 0, tiers: [] }, industries: [] };
   
-  // Filter companies based on search query
+  // Filter companies based on search query (client-side search on top of server filter)
   const filteredCompanies = companies.filter((company: Company) => {
+    if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
       company.name.toLowerCase().includes(query) ||
@@ -74,6 +106,12 @@ export default function CompanyDirectory() {
       (company.tags && company.tags.some(tag => tag.toLowerCase().includes(query)))
     );
   });
+  
+  // Handle tag click
+  const handleFilterClick = (filter: string) => {
+    setActiveFilter(filter);
+    setSearchQuery(""); // Clear search when changing filter
+  };
 
   // Render loading skeletons
   if (isLoading) {
@@ -183,8 +221,37 @@ export default function CompanyDirectory() {
               className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              data-testid="input-search-companies"
             />
           </div>
+        </div>
+      </div>
+      
+      {/* Tag Filter Bar */}
+      <div className="overflow-x-auto mb-6 scrollbar-hide">
+        <div className="flex flex-nowrap gap-1.5 min-w-max pb-1">
+          {/* Sponsors Tag (always first) */}
+          <Badge
+            variant={activeFilter === "sponsors" ? "default" : "outline"}
+            className="cursor-pointer px-3 py-1 text-xs transition-all hover:scale-105 whitespace-nowrap"
+            onClick={() => handleFilterClick("sponsors")}
+            data-testid="filter-sponsors"
+          >
+            Sponsors ({filters.sponsors.count})
+          </Badge>
+          
+          {/* Industry Tags (sorted by popularity) */}
+          {filters.industries.map((industry: { name: string; count: number }) => (
+            <Badge
+              key={industry.name}
+              variant={activeFilter === industry.name ? "default" : "outline"}
+              className="cursor-pointer px-3 py-1 text-xs transition-all hover:scale-105 whitespace-nowrap"
+              onClick={() => handleFilterClick(industry.name)}
+              data-testid={`filter-industry-${industry.name.toLowerCase().replace(/\s+/g, "-")}`}
+            >
+              {industry.name} ({industry.count})
+            </Badge>
+          ))}
         </div>
       </div>
       

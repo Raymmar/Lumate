@@ -13,11 +13,14 @@ const requireAuth = (req: Request, res: Response, next: Function) => {
 
 const router = Router();
 
-// Get all companies
+// Get all companies with optional filtering
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const companies = await storage.getCompanies();
-    res.json({ companies });
+    const filter = req.query.filter as string | undefined;
+    const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+    
+    const result = await storage.getFilteredCompanies(filter, year);
+    res.json(result);
   } catch (error) {
     console.error("Failed to fetch companies:", error);
     res.status(500).json({ error: "Failed to fetch companies" });

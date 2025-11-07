@@ -145,6 +145,13 @@ export interface IStorage {
   createCompany(companyData: InsertCompany): Promise<Company>;
   updateCompany(companyId: number, data: Partial<Company>): Promise<Company>;
   deleteCompany(companyId: number): Promise<void>;
+  getFilteredCompanies(filter?: string, year?: number): Promise<{
+    companies: Company[];
+    filters: {
+      sponsors: { count: number; tiers: { name: string; count: number }[] };
+      industries: { name: string; count: number }[];
+    };
+  }>;
   
   // Company members management
   getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User })[]>;
@@ -2108,6 +2115,141 @@ export class PostgresStorage implements IStorage {
       console.log(`Successfully deleted company with ID ${companyId}`);
     } catch (error) {
       console.error('Failed to delete company:', error);
+      throw error;
+    }
+  }
+
+  async getFilteredCompanies(filter?: string, year: number = 2026): Promise<{
+    companies: Company[];
+    filters: {
+      sponsors: { count: number; tiers: { name: string; count: number }[] };
+      industries: { name: string; count: number }[];
+    };
+  }> {
+    try {
+      // Define sponsor tier order (highest to lowest)
+      const TIER_ORDER = ['Series A', 'Seed', 'Angel', 'Friends & Family', '501c3/.edu'];
+
+      // Get all companies with sponsor info
+      const companiesWithSponsors = await db
+        .select({
+          company: companies,
+          sponsorTier: sponsors.tier
+        })
+        .from(companies)
+        .leftJoin(sponsors, and(
+          eq(sponsors.companyId, companies.id),
+          eq(sponsors.year, year),
+          sql`${sponsors.deletedAt} IS NULL`
+        ));
+
+      // Apply filter
+      let filteredCompanies: Company[] = [];
+      if (filter === 'sponsors') {
+        // Only companies that have a sponsor entry
+        filteredCompanies = companiesWithSponsors
+          .filter(row => row.sponsorTier !== null)
+          .map(row => row.company)
+          .reduce((unique, company) => {
+            if (!unique.find(c => c.id === company.id)) {
+              unique.push(company);
+            }
+            return unique;
+          }, [] as Company[]);
+        
+        // Sort by sponsor tier (unknown tiers go to the end), then alphabetically for stability
+        filteredCompanies.sort((a, b) => {
+          const aRow = companiesWithSponsors.find(row => row.company.id === a.id);
+          const bRow = companiesWithSponsors.find(row => row.company.id === b.id);
+          let aTierIndex = TIER_ORDER.indexOf(aRow?.sponsorTier || '');
+          let bTierIndex = TIER_ORDER.indexOf(bRow?.sponsorTier || '');
+          // If tier not found, assign it to the end (beyond last known tier)
+          if (aTierIndex === -1) aTierIndex = TIER_ORDER.length;
+          if (bTierIndex === -1) bTierIndex = TIER_ORDER.length;
+          
+          // Primary sort: by tier
+          if (aTierIndex !== bTierIndex) {
+            return aTierIndex - bTierIndex;
+          }
+          // Secondary sort: alphabetically by name for deterministic ordering
+          return a.name.localeCompare(b.name);
+        });
+      } else if (filter) {
+        // Filter by industry
+        filteredCompanies = companiesWithSponsors
+          .map(row => row.company)
+          .filter(company => company.industry === filter)
+          .reduce((unique, company) => {
+            if (!unique.find(c => c.id === company.id)) {
+              unique.push(company);
+            }
+            return unique;
+          }, [] as Company[]);
+      } else {
+        // No filter - return all companies
+        filteredCompanies = companiesWithSponsors
+          .map(row => row.company)
+          .reduce((unique, company) => {
+            if (!unique.find(c => c.id === company.id)) {
+              unique.push(company);
+            }
+            return unique;
+          }, [] as Company[]);
+      }
+
+      // Calculate sponsor tier counts
+      const sponsorTierCounts: Record<string, number> = {};
+      const uniqueSponsorCompanyIds = new Set<number>();
+      
+      companiesWithSponsors.forEach(row => {
+        if (row.sponsorTier) {
+          uniqueSponsorCompanyIds.add(row.company.id);
+          sponsorTierCounts[row.sponsorTier] = (sponsorTierCounts[row.sponsorTier] || 0) + 1;
+        }
+      });
+
+      // Return tier counts in TIER_ORDER (known tiers first, then any unknown tiers)
+      const knownTierCounts = TIER_ORDER
+        .filter(tier => sponsorTierCounts[tier] > 0)
+        .map(tier => ({
+          name: tier,
+          count: sponsorTierCounts[tier]
+        }));
+      
+      // Add any unknown tiers at the end
+      const unknownTierCounts = Object.entries(sponsorTierCounts)
+        .filter(([tier]) => !TIER_ORDER.includes(tier))
+        .map(([tier, count]) => ({
+          name: tier,
+          count
+        }));
+      
+      const tierCounts = [...knownTierCounts, ...unknownTierCounts];
+
+      // Calculate industry counts (from all companies)
+      const industryCounts: Record<string, number> = {};
+      companiesWithSponsors.forEach(row => {
+        if (row.company.industry) {
+          industryCounts[row.company.industry] = (industryCounts[row.company.industry] || 0) + 1;
+        }
+      });
+
+      const industryCountsArray = Object.entries(industryCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+
+      return {
+        companies: filteredCompanies,
+        filters: {
+          sponsors: {
+            count: uniqueSponsorCompanyIds.size,
+            tiers: tierCounts
+          },
+          industries: industryCountsArray
+        }
+      };
+    } catch (error) {
+      console.error('Failed to get filtered companies:', error);
       throw error;
     }
   }
