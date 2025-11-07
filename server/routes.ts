@@ -41,7 +41,7 @@ import { comparePasswords } from "./auth";
 import { ZodError } from "zod";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { CacheService } from "./services/CacheService";
 import stripeRouter from "./routes/stripe";
 import { StripeService } from "./services/stripe";
@@ -864,7 +864,14 @@ export async function registerRoutes(app: Express) {
             countMap.get(a.email.toLowerCase())?.last_attended || "1970-01-01";
           const bDate =
             countMap.get(b.email.toLowerCase())?.last_attended || "1970-01-01";
-          return new Date(bDate).getTime() - new Date(aDate).getTime();
+          const dateComparison = new Date(bDate).getTime() - new Date(aDate).getTime();
+          
+          if (dateComparison !== 0) {
+            return dateComparison;
+          }
+          
+          // If still tied, sort by ID descending (most recent additions first)
+          return b.id - a.id;
         });
 
         const start = (page - 1) * limit;
@@ -884,22 +891,14 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // For the non-sorted case, sort by verification status first, then alphabetically by name
+      // For the non-sorted case, sort by verification status first, then by most recent additions (ID descending)
       const sortedPeopleByVerification = peopleWithVerification.sort((a, b) => {
         // First prioritize verified users
         if (a.isVerified && !b.isVerified) return -1;
         if (!a.isVerified && b.isVerified) return 1;
         
-        // Then sort alphabetically by name if available
-        if (a.fullName && b.fullName) {
-          return a.fullName.localeCompare(b.fullName);
-        }
-        if (a.userName && b.userName) {
-          return a.userName.localeCompare(b.userName);
-        }
-        
-        // Fall back to id if no names are available
-        return a.id - b.id;
+        // Then sort by ID descending (most recent first)
+        return b.id - a.id;
       });
       
       const start = (page - 1) * limit;
