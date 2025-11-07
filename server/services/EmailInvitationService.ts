@@ -329,7 +329,93 @@ export class EmailInvitationService {
     }
   }
 
-  // Main processing function
+  // Enroll specific people by IDs (for manual enrollment and new signups)
+  public async enrollSpecificPeople(personIds: number[], apologyMessage?: string): Promise<void> {
+    console.log(`[EmailInvitation] Enrolling ${personIds.length} specific people`, apologyMessage ? 'with apology message' : '');
+    
+    try {
+      // Get the next upcoming public event to include in emails
+      let nextEvent = null;
+      try {
+        const futureEvents = await storage.getFutureEvents();
+        if (futureEvents.length > 0) {
+          nextEvent = futureEvents[0];
+          console.log(`[EmailInvitation] Found next event: ${nextEvent.title}`);
+        }
+      } catch (error) {
+        console.error('[EmailInvitation] Error fetching next event:', error);
+      }
+
+      const eventInfo = nextEvent ? {
+        title: nextEvent.title,
+        url: nextEvent.url || '',
+        startTime: nextEvent.startTime
+      } : undefined;
+
+      for (const personId of personIds) {
+        // Get person details
+        const person = await storage.getPersonById(personId);
+        if (!person) {
+          console.error(`[EmailInvitation] Person not found: ${personId}`);
+          continue;
+        }
+
+        // Check if already enrolled
+        const existingInvitation = await storage.getEmailInvitationByPersonId(personId);
+        if (existingInvitation) {
+          console.log(`[EmailInvitation] ${person.email} already has an invitation, skipping`);
+          continue;
+        }
+
+        // Check if already has user account
+        const user = await storage.getUserByEmail(person.email);
+        if (user && user.isVerified) {
+          console.log(`[EmailInvitation] ${person.email} already has verified account, skipping`);
+          continue;
+        }
+
+        console.log(`[EmailInvitation] Enrolling ${person.email}`);
+
+        // Create verification token
+        const verificationToken = await storage.createVerificationToken(person.email);
+
+        // Send initial email
+        let emailSent = false;
+        if (this.dryRun) {
+          console.log(`[EmailInvitation] DRY RUN: Would send email to ${person.email}`);
+          emailSent = true;
+        } else {
+          emailSent = await sendVerificationEmail(
+            person.email,
+            verificationToken.token,
+            true, // adminCreated
+            0, // emailStage
+            eventInfo,
+            apologyMessage
+          );
+        }
+
+        if (emailSent) {
+          const nextSendAt = this.calculateNextSendTime(1);
+          await storage.createEmailInvitation({
+            personId: person.id,
+            emailsSentCount: 1,
+            lastSentAt: new Date().toISOString(),
+            nextSendAt: nextSendAt ? nextSendAt.toISOString() : null,
+            optedOut: false,
+            finalMessageSent: false
+          });
+          console.log(`[EmailInvitation] Successfully enrolled ${person.email}`);
+        } else {
+          console.error(`[EmailInvitation] Failed to send email to ${person.email}`);
+        }
+      }
+    } catch (error) {
+      console.error('[EmailInvitation] Error enrolling specific people:', error);
+    }
+  }
+
+  // Main processing function (AUTOMATED - runs hourly)
   public async processInvitations(): Promise<void> {
     if (this.isProcessing) {
       console.log('[EmailInvitation] Already processing, skipping...');
@@ -343,11 +429,10 @@ export class EmailInvitationService {
       // 1. Detect claimed accounts (runs 24/7 every hour)
       await this.detectClaimedAccounts();
       
-      // 2. Process new people (always, regardless of time)
-      await this.processNewPeople();
-      
-      // 3. Send follow-up emails (only during 9-10 AM Eastern window)
+      // 2. Send follow-up emails (only during 9-10 AM Eastern window)
       await this.sendFollowUpEmails();
+      
+      // NOTE: processNewPeople() removed - use enrollSpecificPeople() for manual/new user enrollment
       
       console.log('[EmailInvitation] Completed invitation processing');
     } catch (error) {

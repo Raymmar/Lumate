@@ -228,7 +228,7 @@ export async function sendVerificationEmail(
 
     // Use new template system for staged emails, otherwise use legacy templates
     if (emailStage >= 0) {
-      const template = getEmailTemplate(emailStage, verificationUrl, eventInfo);
+      const template = getEmailTemplate(emailStage, verificationUrl, eventInfo, apologyMessage);
       subject = template.subject;
       htmlContent = template.htmlContent;
       textContent = template.textContent;
