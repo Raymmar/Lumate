@@ -13,14 +13,10 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, Briefcase, Newspaper, Sparkles, Menu } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Sparkles, Menu } from "lucide-react";
 import { AdminBadge } from "@/components/AdminBadge";
-import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { useState } from "react";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
 import { PremiumBadge } from "@/components/PremiumBadge";
@@ -81,11 +77,18 @@ export function NavBar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-80 sm:w-96 overflow-y-auto">
-            <SheetHeader>
-              <SheetTitle>Menu</SheetTitle>
-            </SheetHeader>
             <div className="mt-6 space-y-6">
-              <div className="space-y-2">
+              <nav className="space-y-2">
+                <Link href="/" className="no-underline hover:no-underline">
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-base"
+                    onClick={() => setIsOpen(false)}
+                    data-testid="mobile-nav-home"
+                  >
+                    Home
+                  </Button>
+                </Link>
                 <Link href="/companies" className="no-underline hover:no-underline">
                   <Button 
                     variant="ghost" 
@@ -126,7 +129,7 @@ export function NavBar() {
                     Summit
                   </Button>
                 </Link>
-              </div>
+              </nav>
               <div className="border-t pt-4">
                 <h3 className="text-sm font-semibold mb-3 px-2">Search Members</h3>
                 <PeopleDirectory onMobileSelect={() => setIsOpen(false)} />
