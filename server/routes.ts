@@ -1745,54 +1745,37 @@ export async function registerRoutes(app: Express) {
       const verificationToken = await storage.createVerificationToken(normalizedEmail);
       console.log("Created verification token:", verificationToken.token);
       
-      // Send verification email
-      const emailSent = await sendVerificationEmail(
-        normalizedEmail,
-        verificationToken.token,
-        true, // adminCreated flag to modify message
-      );
-      
-      if (!emailSent) {
-        console.error("Failed to send verification email to:", normalizedEmail);
-        // Don't return an error, continue with event invite
-      } else {
-        console.log("Successfully sent verification email to:", normalizedEmail);
-      }
-      
-      // Get the next upcoming event for the invite
+      // Get the next upcoming event to include in the email (not for automatic invite)
       const futureEvents = await storage.getFutureEvents();
       const nextEvent = futureEvents.length > 0 
         ? futureEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0]
         : null;
       
-      // Send event invite if there's an upcoming event
-      if (nextEvent) {
-        try {
-          console.log("Sending event invite to new member:", {
-            email: normalizedEmail,
-            eventId: nextEvent.api_id,
-          });
-          
-          await lumaApiRequest("event/send-invites", undefined, {
-            method: "POST",
-            body: JSON.stringify({
-              guests: [{ email: normalizedEmail }],
-              event_api_id: nextEvent.api_id,
-            }),
-          });
-          
-          console.log("Successfully sent event invite");
-        } catch (error) {
-          console.error("Failed to send event invite:", error);
-          // Don't return an error, continue with success response
-        }
+      // Prepare event info for email if available
+      const eventInfo = nextEvent ? {
+        title: nextEvent.title,
+        url: nextEvent.url || '',
+        startTime: nextEvent.startTime
+      } : undefined;
+      
+      // Send verification email with event info
+      const emailSent = await sendVerificationEmail(
+        normalizedEmail,
+        verificationToken.token,
+        true, // adminCreated flag to modify message
+        -1, // Use legacy template
+        eventInfo // Include event info in email
+      );
+      
+      if (!emailSent) {
+        console.error("Failed to send verification email to:", normalizedEmail);
       } else {
-        console.log("No upcoming events available for invite");
+        console.log("Successfully sent verification email to:", normalizedEmail, "with event:", eventInfo?.title || 'none');
       }
       
       res.status(201).json({
         success: true,
-        message: "Member created successfully. Verification email sent.",
+        message: "Member created successfully. Verification email sent with event information.",
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -1800,9 +1783,6 @@ export async function registerRoutes(app: Express) {
           isAdmin: newUser.isAdmin,
           isVerified: newUser.isVerified,
         },
-        eventInvite: nextEvent 
-          ? { sent: true, eventName: nextEvent.title } 
-          : { sent: false, reason: "No upcoming events" },
       });
     } catch (error) {
       console.error("Failed to create member:", error);

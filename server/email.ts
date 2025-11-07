@@ -20,10 +20,37 @@ if (!FROM_EMAIL) {
 }
 
 // Generate email template based on follow-up stage
-function getEmailTemplate(emailStage: number, verificationUrl: string): { subject: string; htmlContent: string; textContent: string } {
+function getEmailTemplate(
+  emailStage: number, 
+  verificationUrl: string, 
+  eventInfo?: { title: string; url: string; startTime: string }
+): { subject: string; htmlContent: string; textContent: string } {
   let subject: string;
   let htmlContent: string;
   let textContent: string;
+
+  // Format event section if event info is provided
+  const eventSection = eventInfo ? `
+    <div style="margin-top:30px;padding:20px;background:#f5f5f5;border-left:4px solid #0070f3;">
+      <h3 style="margin-top:0;">Join us at our next event!</h3>
+      <p style="margin:10px 0;"><strong>${eventInfo.title}</strong></p>
+      <p style="margin:10px 0;">Date: ${new Date(eventInfo.startTime).toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'America/New_York',
+        timeZoneName: 'short'
+      })}</p>
+      <a href="${eventInfo.url}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;margin-top:10px;">
+        View Event & Register
+      </a>
+    </div>
+  ` : '';
+
+  const eventTextSection = eventInfo ? `\n\nJoin us at our next event: ${eventInfo.title} on ${new Date(eventInfo.startTime).toLocaleDateString('en-US')}. Register at: ${eventInfo.url}` : '';
 
   switch (emailStage) {
     case 0: // Initial email
@@ -39,9 +66,10 @@ function getEmailTemplate(emailStage: number, verificationUrl: string): { subjec
           <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
           <p>${verificationUrl}</p>
           <p style="margin-top:20px">Once you've set your password, you can upgrade to a premium listing to showcase your company and expertise.</p>
+          ${eventSection}
         </div>
       `;
-      textContent = `Welcome to Sarasota Tech! You've been added to the Sarasota Tech online directory. Click the following link to claim your profile and set your password: ${verificationUrl}`;
+      textContent = `Welcome to Sarasota Tech! You've been added to the Sarasota Tech online directory. Click the following link to claim your profile and set your password: ${verificationUrl}${eventTextSection}`;
       break;
 
     case 1: // 24-hour follow-up
@@ -55,9 +83,10 @@ function getEmailTemplate(emailStage: number, verificationUrl: string): { subjec
             Claim Profile Now
           </a>
           <p style="margin-top:20px">Link: ${verificationUrl}</p>
+          ${eventSection}
         </div>
       `;
-      textContent = `Reminder: Your Sarasota Tech profile is waiting. Click here to claim it: ${verificationUrl}`;
+      textContent = `Reminder: Your Sarasota Tech profile is waiting. Click here to claim it: ${verificationUrl}${eventTextSection}`;
       break;
 
     case 2: // 36-hour follow-up
@@ -152,10 +181,11 @@ export async function sendVerificationEmail(
   email: string,
   token: string,
   adminCreated: boolean = false,
-  emailStage: number = -1 // -1 means use the old template
+  emailStage: number = -1, // -1 means use the old template
+  eventInfo?: { title: string; url: string; startTime: string }
 ): Promise<boolean> {
   try {
-    console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '', 'Stage:', emailStage);
+    console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '', 'Stage:', emailStage, 'Has event:', !!eventInfo);
     const verificationUrl = `${(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/verify?token=${token}`;
 
     // In development, just log the verification URL
@@ -164,7 +194,8 @@ export async function sendVerificationEmail(
         to: email,
         verificationUrl,
         adminCreated,
-        emailStage
+        emailStage,
+        eventInfo
       });
       return true;
     }
@@ -176,7 +207,8 @@ export async function sendVerificationEmail(
       isDevelopment,
       verificationUrl,
       adminCreated,
-      emailStage
+      emailStage,
+      hasEvent: !!eventInfo
     });
 
     let subject: string;
@@ -185,7 +217,7 @@ export async function sendVerificationEmail(
 
     // Use new template system for staged emails, otherwise use legacy templates
     if (emailStage >= 0) {
-      const template = getEmailTemplate(emailStage, verificationUrl);
+      const template = getEmailTemplate(emailStage, verificationUrl, eventInfo);
       subject = template.subject;
       htmlContent = template.htmlContent;
       textContent = template.textContent;
@@ -194,6 +226,28 @@ export async function sendVerificationEmail(
       subject = adminCreated 
         ? 'Your Sarasota Tech member profile is ready to claim' 
         : 'Verify your Sarasota Tech member profile';
+
+      const eventSection = eventInfo ? `
+        <div style="margin-top:30px;padding:20px;background:#f5f5f5;border-left:4px solid #0070f3;">
+          <h3 style="margin-top:0;">Join us at our next event!</h3>
+          <p style="margin:10px 0;"><strong>${eventInfo.title}</strong></p>
+          <p style="margin:10px 0;">Date: ${new Date(eventInfo.startTime).toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: 'America/New_York',
+            timeZoneName: 'short'
+          })}</p>
+          <a href="${eventInfo.url}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;margin-top:10px;">
+            View Event & Register
+          </a>
+        </div>
+      ` : '';
+
+      const eventTextSection = eventInfo ? `\n\nJoin us at our next event: ${eventInfo.title} on ${new Date(eventInfo.startTime).toLocaleDateString('en-US')}. Register at: ${eventInfo.url}` : '';
 
       htmlContent = adminCreated 
         ? `
@@ -206,7 +260,7 @@ export async function sendVerificationEmail(
             </a>
             <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
             <p>${verificationUrl}</p>
-            <p style="margin-top:20px">You've also been invited to our next event. Check your email for the invitation!</p>
+            ${eventSection}
           </div>
         `
         : `
@@ -218,12 +272,13 @@ export async function sendVerificationEmail(
             </a>
             <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
             <p>${verificationUrl}</p>
+            ${eventSection}
           </div>
         `;
 
       textContent = adminCreated
-        ? `An administrator has created a member profile for you on the Sarasota Tech platform. Click the following link to claim your profile and set your password: ${verificationUrl}. You've also been invited to our next event. Check your email for the invitation!`
-        : `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}`;
+        ? `An administrator has created a member profile for you on the Sarasota Tech platform. Click the following link to claim your profile and set your password: ${verificationUrl}${eventTextSection}`
+        : `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}${eventTextSection}`;
     }
 
     console.log('Attempting to send verification email with message:', {
