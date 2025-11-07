@@ -3329,7 +3329,7 @@ export async function registerRoutes(app: Express) {
         .leftJoin(users, eq(people.email, users.email))
         .leftJoin(emailInvitations, eq(people.id, emailInvitations.personId))
         .where(whereClause)
-        .orderBy(people.id)
+        .orderBy(desc(people.createdAt))
         .limit(limit)
         .offset(offset);
 
