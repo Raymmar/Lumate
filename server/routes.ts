@@ -847,11 +847,7 @@ export async function registerRoutes(app: Express) {
 
       if (sort === "events") {
         const sortedPeople = peopleWithVerification.sort((a, b) => {
-          // First prioritize verified users
-          if (a.isVerified && !b.isVerified) return -1;
-          if (!a.isVerified && b.isVerified) return 1;
-          
-          // Then sort by event count
+          // Sort by event count
           const aCount = countMap.get(a.email.toLowerCase())?.event_count || 0;
           const bCount = countMap.get(b.email.toLowerCase())?.event_count || 0;
 
@@ -891,13 +887,8 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // For the non-sorted case, sort by verification status first, then by most recent additions (ID descending)
+      // Sort by most recent additions (ID descending)
       const sortedPeopleByVerification = peopleWithVerification.sort((a, b) => {
-        // First prioritize verified users
-        if (a.isVerified && !b.isVerified) return -1;
-        if (!a.isVerified && b.isVerified) return 1;
-        
-        // Then sort by ID descending (most recent first)
         return b.id - a.id;
       });
       
