@@ -23,15 +23,9 @@ export class EmailInvitationService {
       this.dryRun = false; // Send real emails to test addresses
       console.log('[EmailInvitationService] Running in TEST MODE - emails will be sent ONLY to:', this.TEST_EMAILS.join(', '));
     } else {
-      // Check environment variable for dry-run mode
-      // Default to LIVE mode (send emails) unless explicitly set to dry-run
-      this.dryRun = process.env.EMAIL_INVITATION_DRY_RUN === 'true';
-      
-      if (this.dryRun) {
-        console.log('[EmailInvitationService] Running in DRY RUN mode - no emails will be sent');
-      } else {
-        console.log('[EmailInvitationService] Running in LIVE mode - emails WILL be sent');
-      }
+      // LIVE mode - emails send only when manually triggered
+      this.dryRun = false;
+      console.log('[EmailInvitationService] Running in LIVE mode - emails will be sent when manually triggered');
     }
   }
 
