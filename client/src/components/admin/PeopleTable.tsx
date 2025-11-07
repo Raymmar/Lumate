@@ -252,11 +252,11 @@ export function PeopleTable() {
               <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.completedWorkflow}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">Conversion Rate</div>
+              <div className="text-sm text-muted-foreground">Converted</div>
               <div className="text-2xl font-bold mt-1">{statsData.conversionRate}%</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">In Workflow</div>
+              <div className="text-sm text-muted-foreground">In Flow</div>
               <div className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">{statsData.inWorkflow}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
@@ -264,7 +264,7 @@ export function PeopleTable() {
               <div className="text-2xl font-bold mt-1 text-red-600 dark:text-red-400">{statsData.optedOut}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">Total Invites Sent</div>
+              <div className="text-sm text-muted-foreground">Total Sent</div>
               <div className="text-2xl font-bold mt-1">{statsData.totalInvitesSent}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
