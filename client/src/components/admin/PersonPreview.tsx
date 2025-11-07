@@ -1,5 +1,5 @@
 import { useToast } from "@/hooks/use-toast";
-import type { Person } from "@shared/schema";
+import type { Person, PersonWithWorkflow } from "@shared/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,9 +13,9 @@ import { format } from "date-fns";
 import { LinkedUser } from "./LinkedUser";
 
 interface PersonPreviewProps {
-  person: Person;
-  people?: Person[];
-  onNavigate?: (person: Person) => void;
+  person: PersonWithWorkflow;
+  people?: PersonWithWorkflow[];
+  onNavigate?: (person: PersonWithWorkflow) => void;
 }
 
 export function PersonPreview({ person, people = [], onNavigate }: PersonPreviewProps) {
@@ -27,7 +27,7 @@ export function PersonPreview({ person, people = [], onNavigate }: PersonPreview
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < people.length - 1;
 
-  const handleNavigate = (nextPerson: Person) => {
+  const handleNavigate = (nextPerson: PersonWithWorkflow) => {
     if (onNavigate) {
       onNavigate(nextPerson);
     }

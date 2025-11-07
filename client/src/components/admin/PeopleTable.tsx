@@ -44,6 +44,17 @@ interface PeopleResponse {
   total: number;
 }
 
+interface WorkflowStats {
+  totalPeople: number;
+  claimedUsers: number;
+  conversionRate: number;
+  inWorkflow: number;
+  completedWorkflow: number;
+  optedOut: number;
+  totalInvitesSent: number;
+  workflowConversionRate: number;
+}
+
 export function PeopleTable() {
   const [selectedPerson, setSelectedPerson] = useState<PersonWithWorkflow | null>(null);
   const [selectedPeopleIds, setSelectedPeopleIds] = useState<Set<number>>(new Set());
@@ -81,7 +92,7 @@ export function PeopleTable() {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Fetch workflow stats
-  const { data: statsData } = useQuery({
+  const { data: statsData } = useQuery<WorkflowStats>({
     queryKey: ["/api/admin/workflow-stats"],
     refetchOnWindowFocus: false,
   });
@@ -135,7 +146,7 @@ export function PeopleTable() {
   const columns = [
     {
       key: "select",
-      header: () => (
+      header: (
         <Checkbox
           checked={selectedPeopleIds.size === people.length && people.length > 0}
           onCheckedChange={handleSelectAll}

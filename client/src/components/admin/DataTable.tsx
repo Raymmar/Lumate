@@ -19,7 +19,7 @@ interface DataTableProps<T> {
   data: T[];
   columns: {
     key: string;
-    header: string;
+    header: string | React.ReactNode;
     cell: (row: T) => React.ReactNode;
   }[];
   actions?: {
