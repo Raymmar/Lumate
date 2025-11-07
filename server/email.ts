@@ -83,10 +83,9 @@ function getEmailTemplate(
             Claim Profile Now
           </a>
           <p style="margin-top:20px">Link: ${verificationUrl}</p>
-          ${eventSection}
         </div>
       `;
-      textContent = `Reminder: Your Sarasota Tech profile is waiting. Click here to claim it: ${verificationUrl}${eventTextSection}`;
+      textContent = `Reminder: Your Sarasota Tech profile is waiting. Click here to claim it: ${verificationUrl}`;
       break;
 
     case 2: // 36-hour follow-up

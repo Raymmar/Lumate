@@ -258,25 +258,6 @@ export class EmailInvitationService {
         console.log(`[EmailInvitation] TEST MODE: Filtered to ${dueInvitations.length} test email follow-ups`);
       }
 
-      // Get the next upcoming public event to include in follow-up emails
-      let nextEvent = null;
-      try {
-        const futureEvents = await storage.getFutureEvents();
-        if (futureEvents.length > 0) {
-          nextEvent = futureEvents[0]; // Get the soonest upcoming event
-          console.log(`[EmailInvitation] Found next event for follow-ups: ${nextEvent.title} (${nextEvent.url})`);
-        }
-      } catch (error) {
-        console.error('[EmailInvitation] Error fetching next event for follow-ups:', error);
-      }
-
-      // Prepare event info for email if available
-      const eventInfo = nextEvent ? {
-        title: nextEvent.title,
-        url: nextEvent.url || '',
-        startTime: nextEvent.startTime
-      } : undefined;
-      
       for (const invitation of dueInvitations) {
         const { person } = invitation;
         
@@ -305,15 +286,14 @@ export class EmailInvitationService {
         // Send follow-up email with appropriate stage
         let emailSent = false;
         if (this.dryRun) {
-          console.log(`[EmailInvitation] DRY RUN: Would send follow-up #${invitation.emailsSentCount + 1} to ${person.email} with event: ${eventInfo?.title || 'none'}`);
+          console.log(`[EmailInvitation] DRY RUN: Would send follow-up #${invitation.emailsSentCount + 1} to ${person.email}`);
           emailSent = true; // Simulate success in dry-run mode
         } else {
           emailSent = await sendVerificationEmail(
             person.email, 
             verificationToken.token, 
             true, // adminCreated flag
-            invitation.emailsSentCount, // Use current count as stage
-            eventInfo // Include event info in follow-up email
+            invitation.emailsSentCount // Use current count as stage
           );
         }
         
