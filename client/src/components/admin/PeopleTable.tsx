@@ -248,7 +248,7 @@ export function PeopleTable() {
               <div className="text-2xl font-bold mt-1">{statsData.totalPeople}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">Completed</div>
+              <div className="text-sm text-muted-foreground">Members</div>
               <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.completedWorkflow}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
