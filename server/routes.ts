@@ -798,6 +798,7 @@ export async function registerRoutes(app: Express) {
           role: people.role,
           phoneNumber: people.phoneNumber,
           bio: people.bio,
+          createdAt: people.createdAt,
         })
         .from(people);
       
@@ -824,7 +825,7 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      const allPeople = await query.orderBy(people.id);
+      const allPeople = await query.orderBy(desc(people.createdAt));
       
       // Check verification status for each person and add it to the response
       const peopleWithVerification = await Promise.all(
@@ -866,8 +867,8 @@ export async function registerRoutes(app: Express) {
             return dateComparison;
           }
           
-          // If still tied, sort by ID descending (most recent additions first)
-          return b.id - a.id;
+          // If still tied, maintain the original created_at order from database
+          return 0;
         });
 
         const start = (page - 1) * limit;
@@ -887,10 +888,8 @@ export async function registerRoutes(app: Express) {
         return;
       }
 
-      // Sort by most recent additions (ID descending)
-      const sortedPeopleByVerification = peopleWithVerification.sort((a, b) => {
-        return b.id - a.id;
-      });
+      // Already sorted by created_at DESC from the database query
+      const sortedPeopleByVerification = peopleWithVerification;
       
       const start = (page - 1) * limit;
       const end = start + limit;
