@@ -233,8 +233,8 @@ app.use(
     try {
       eventSyncIntervals = await startEventSyncService(false);
       
-      // Email invitation service disabled - only manual triggers allowed
-      // emailInvitationService.start();
+      // Start email invitation service (for claim detection and follow-ups only)
+      emailInvitationService.start();
       
       console.log('[Server] Background services initialized');
     } catch (error) {

@@ -1563,68 +1563,86 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      console.log('Starting batch invite process for unclaimed people...');
+      const { personIds } = req.body;
       
-      // Get all unclaimed people
-      const unclaimedPeople = await storage.getUnclaimedPeople();
-      
-      if (unclaimedPeople.length === 0) {
-        return res.json({ 
-          success: true, 
-          message: "No unclaimed people found", 
-          invitesSent: 0 
-        });
+      if (!personIds || !Array.isArray(personIds) || personIds.length === 0) {
+        return res.status(400).json({ error: "personIds array is required" });
       }
 
-      console.log(`Found ${unclaimedPeople.length} unclaimed people to invite`);
+      console.log(`Starting batch invite for ${personIds.length} people...`);
       
-      let successCount = 0;
-      let errorCount = 0;
-      const errors = [];
-
-      // Send invitation emails to all unclaimed people
-      for (const person of unclaimedPeople) {
-        try {
-          // Create verification token for this person's email
-          const verificationToken = await storage.createVerificationToken(person.email);
-          
-          // Send verification email with adminCreated flag set to true
-          const emailSent = await sendVerificationEmail(
-            person.email, 
-            verificationToken.token, 
-            true // adminCreated flag
-          );
-          
-          if (emailSent) {
-            successCount++;
-            console.log(`Successfully sent invite to ${person.email}`);
-          } else {
-            errorCount++;
-            errors.push(`Failed to send email to ${person.email}`);
-            console.error(`Failed to send invite to ${person.email}`);
-          }
-        } catch (error) {
-          errorCount++;
-          const errorMessage = `Error sending invite to ${person.email}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          errors.push(errorMessage);
-          console.error(errorMessage);
-        }
-      }
-
-      console.log(`Batch invite completed: ${successCount} successful, ${errorCount} failed`);
+      // Use the email invitation service to enroll these people
+      const emailService = EmailInvitationService.getInstance();
+      await emailService.enrollSpecificPeople(personIds);
 
       return res.json({
         success: true,
-        message: `Batch invite completed. ${successCount} invites sent successfully${errorCount > 0 ? `, ${errorCount} failed` : ''}.`,
-        invitesSent: successCount,
-        totalPeople: unclaimedPeople.length,
-        errors: errorCount > 0 ? errors : undefined
+        message: `Batch invite initiated for ${personIds.length} people. Check server logs for details.`,
+        totalPeople: personIds.length
       });
 
     } catch (error) {
       console.error("Failed to send batch invites:", error);
       return res.status(500).json({ 
         error: "Failed to send batch invites", 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Send apology emails (admin only - temporary endpoint)
+  app.post("/api/admin/send-apology-emails", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      console.log('Finding people who need apology emails...');
+      
+      // Find people who received verification tokens but don't have email_invitations
+      const result = await db.execute(sql`
+        SELECT DISTINCT p.id
+        FROM verification_tokens vt
+        INNER JOIN people p ON p.email = vt.email
+        LEFT JOIN email_invitations ei ON ei.person_id = p.id
+        WHERE vt.created_at > '2025-11-07 21:03:00'
+          AND ei.id IS NULL
+        ORDER BY p.id
+      `);
+
+      const personIds = result.rows.map((row: any) => row.id);
+      
+      if (personIds.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: "No people found needing apology emails", 
+          count: 0 
+        });
+      }
+
+      console.log(`Found ${personIds.length} people needing apology emails`);
+      
+      // Send emails with apology message
+      const emailService = EmailInvitationService.getInstance();
+      const apologyMessage = "Our previous email had a technical error with the verification link. We apologize for the inconvenience. This email contains a working link to claim your profile.";
+      
+      await emailService.enrollSpecificPeople(personIds, apologyMessage);
+
+      return res.json({
+        success: true,
+        message: `Apology emails sent to ${personIds.length} people`,
+        count: personIds.length
+      });
+
+    } catch (error) {
+      console.error("Failed to send apology emails:", error);
+      return res.status(500).json({ 
+        error: "Failed to send apology emails", 
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
