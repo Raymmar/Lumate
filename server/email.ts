@@ -29,15 +29,6 @@ function getEmailTemplate(
   let htmlContent: string;
   let textContent: string;
 
-  // Format apology section if provided (temporary for fixing broken emails)
-  const apologySection = apologyMessage ? `
-    <div style="margin-bottom:20px;padding:15px;background:#fff3cd;border-left:4px solid #ffc107;color:#856404;">
-      <p style="margin:0;"><strong>Important:</strong> ${apologyMessage}</p>
-    </div>
-  ` : '';
-
-  const apologyTextSection = apologyMessage ? `IMPORTANT: ${apologyMessage}\n\n` : '';
-
   // Format event section if event info is provided
   const eventSection = eventInfo ? `
     <div style="margin-top:30px;padding:20px;background:#f5f5f5;border-left:4px solid #0070f3;">
@@ -66,7 +57,6 @@ function getEmailTemplate(
       subject = 'Your Sarasota Tech member profile is ready to claim';
       htmlContent = `
         <div>
-          ${apologySection}
           <h2>Welcome to Sarasota Tech!</h2>
           <p>You've been added to the Sarasota Tech online directory. We're excited to have you as part of our tech community!</p>
           <p>Click the button below to claim your profile, set your password, and add your bio:</p>
@@ -79,7 +69,7 @@ function getEmailTemplate(
           ${eventSection}
         </div>
       `;
-      textContent = `${apologyTextSection}Welcome to Sarasota Tech! You've been added to the Sarasota Tech online directory. Click the following link to claim your profile and set your password: ${verificationUrl}${eventTextSection}`;
+      textContent = `Welcome to Sarasota Tech! You've been added to the Sarasota Tech online directory. Click the following link to claim your profile and set your password: ${verificationUrl}${eventTextSection}`;
       break;
 
     case 1: // 24-hour follow-up
