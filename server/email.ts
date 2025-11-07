@@ -23,8 +23,7 @@ if (!FROM_EMAIL) {
 function getEmailTemplate(
   emailStage: number, 
   verificationUrl: string, 
-  eventInfo?: { title: string; url: string; startTime: string },
-  apologyMessage?: string
+  eventInfo?: { title: string; url: string; startTime: string }
 ): { subject: string; htmlContent: string; textContent: string } {
   let subject: string;
   let htmlContent: string;
@@ -192,8 +191,7 @@ export async function sendVerificationEmail(
   token: string,
   adminCreated: boolean = false,
   emailStage: number = -1, // -1 means use the old template
-  eventInfo?: { title: string; url: string; startTime: string },
-  apologyMessage?: string
+  eventInfo?: { title: string; url: string; startTime: string }
 ): Promise<boolean> {
   try {
     console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '', 'Stage:', emailStage, 'Has event:', !!eventInfo);
@@ -228,7 +226,7 @@ export async function sendVerificationEmail(
 
     // Use new template system for staged emails, otherwise use legacy templates
     if (emailStage >= 0) {
-      const template = getEmailTemplate(emailStage, verificationUrl, eventInfo, apologyMessage);
+      const template = getEmailTemplate(emailStage, verificationUrl, eventInfo);
       subject = template.subject;
       htmlContent = template.htmlContent;
       textContent = template.textContent;

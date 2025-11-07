@@ -273,6 +273,23 @@ export async function registerRoutes(app: Express) {
         });
       }
 
+      // Enroll new user in email invitation workflow if they have a person record
+      try {
+        const person = await storage.getPersonByEmail(user.email);
+        if (person) {
+          const emailService = EmailInvitationService.getInstance();
+          await emailService.enrollSpecificPeople([person.id]);
+          console.log(`Enrolled new user ${user.email} in email invitation workflow`);
+        }
+      } catch (enrollError) {
+        // Log but don't fail registration if enrollment fails
+        console.error("Failed to enroll new user in email workflow:", {
+          userId: user.id,
+          email: user.email,
+          error: enrollError,
+        });
+      }
+
       res.json({
         user: {
           id: user.id,
@@ -1590,64 +1607,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Send apology emails (admin only - temporary endpoint)
-  app.post("/api/admin/send-apology-emails", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ error: "Not authenticated" });
-      }
-
-      const user = await storage.getUser(req.session.userId);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-
-      console.log('Finding people who need apology emails...');
-      
-      // Find people who received verification tokens but don't have email_invitations
-      const result = await db.execute(sql`
-        SELECT DISTINCT p.id
-        FROM verification_tokens vt
-        INNER JOIN people p ON p.email = vt.email
-        LEFT JOIN email_invitations ei ON ei.person_id = p.id
-        WHERE vt.created_at > '2025-11-07 21:03:00'
-          AND ei.id IS NULL
-        ORDER BY p.id
-      `);
-
-      const personIds = result.rows.map((row: any) => row.id);
-      
-      if (personIds.length === 0) {
-        return res.json({ 
-          success: true, 
-          message: "No people found needing apology emails", 
-          count: 0 
-        });
-      }
-
-      console.log(`Found ${personIds.length} people needing apology emails`);
-      
-      // Send emails with apology message
-      const emailService = EmailInvitationService.getInstance();
-      const apologyMessage = "Our previous email had a technical error with the verification link. We apologize for the inconvenience. This email contains a working link to claim your profile.";
-      
-      await emailService.enrollSpecificPeople(personIds, apologyMessage);
-
-      return res.json({
-        success: true,
-        message: `Apology emails sent to ${personIds.length} people`,
-        count: personIds.length
-      });
-
-    } catch (error) {
-      console.error("Failed to send apology emails:", error);
-      return res.status(500).json({ 
-        error: "Failed to send apology emails", 
-        details: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  });
-  
   // Create a new member account (admin only)
   app.post("/api/admin/members", async (req, res) => {
     try {

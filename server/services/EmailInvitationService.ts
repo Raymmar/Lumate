@@ -38,48 +38,37 @@ export class EmailInvitationService {
 
   // Calculate the next send time based on email count
   private calculateNextSendTime(emailsSentCount: number): Date | null {
-    const easternTz = 'America/New_York';
     const now = new Date();
-    const easternTime = toZonedTime(now, easternTz);
-    
-    // Create a base date at 9:30 AM Eastern
-    let nextSend = new Date(easternTime);
-    nextSend.setHours(9, 30, 0, 0);
+    const nextSend = new Date(now);
 
-    // Calculate days to add based on email count
-    let daysToAdd: number;
+    // Calculate time to add based on email count
+    let hoursToAdd: number;
     
     switch (emailsSentCount) {
       case 0: // Initial email - immediately
         return now;
       case 1: // 24 hours after initial
-        daysToAdd = 1;
+        hoursToAdd = 24;
         break;
-      case 2: // 36 hours after initial (1.5 days, but we'll round to next 9:30 AM)
-        daysToAdd = 2;
+      case 2: // 36 hours after initial
+        hoursToAdd = 36;
         break;
       case 3: // 7 days after initial
-        daysToAdd = 7;
+        hoursToAdd = 7 * 24;
         break;
       case 4: // 14 days after initial
-        daysToAdd = 14;
+        hoursToAdd = 14 * 24;
         break;
       default: // Monthly thereafter (up to 90 days)
-        // Check if it's been more than 90 days since the first email
-        if (emailsSentCount >= 7) { // 90 days = initial + 1 + 2 + 7 + 14 + 30 + 30 + 30
-          return null; // Stop sending
+        if (emailsSentCount >= 7) {
+          return null; // Stop sending after 7 emails
         }
-        daysToAdd = 30;
+        hoursToAdd = 30 * 24;
         break;
     }
 
-    // Add the days
-    nextSend.setDate(nextSend.getDate() + daysToAdd);
-    
-    // If the calculated time is in the past, move to tomorrow 9:30 AM
-    if (nextSend <= now) {
-      nextSend.setDate(now.getDate() + 1);
-    }
+    // Add the hours from NOW
+    nextSend.setHours(nextSend.getHours() + hoursToAdd);
     
     return nextSend;
   }
@@ -330,8 +319,8 @@ export class EmailInvitationService {
   }
 
   // Enroll specific people by IDs (for manual enrollment and new signups)
-  public async enrollSpecificPeople(personIds: number[], apologyMessage?: string): Promise<void> {
-    console.log(`[EmailInvitation] Enrolling ${personIds.length} specific people`, apologyMessage ? 'with apology message' : '');
+  public async enrollSpecificPeople(personIds: number[]): Promise<void> {
+    console.log(`[EmailInvitation] Enrolling ${personIds.length} specific people`);
     
     try {
       // Get the next upcoming public event to include in emails
@@ -354,7 +343,7 @@ export class EmailInvitationService {
 
       for (const personId of personIds) {
         // Get person details
-        const person = await storage.getPersonById(personId);
+        const person = await storage.getPerson(personId);
         if (!person) {
           console.error(`[EmailInvitation] Person not found: ${personId}`);
           continue;
@@ -390,8 +379,7 @@ export class EmailInvitationService {
             verificationToken.token,
             true, // adminCreated
             0, // emailStage
-            eventInfo,
-            apologyMessage
+            eventInfo
           );
         }
 
