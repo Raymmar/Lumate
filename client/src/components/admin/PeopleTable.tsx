@@ -242,14 +242,14 @@ export function PeopleTable() {
         <h1 className="text-2xl font-bold mb-4">People & Onboarding</h1>
         
         {statsData && (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             <div className="bg-card border rounded-lg p-4">
               <div className="text-sm text-muted-foreground">Total People</div>
               <div className="text-2xl font-bold mt-1">{statsData.totalPeople}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">Claimed</div>
-              <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.claimedUsers}</div>
+              <div className="text-sm text-muted-foreground">Completed</div>
+              <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.completedWorkflow}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
               <div className="text-sm text-muted-foreground">Conversion Rate</div>
@@ -258,10 +258,6 @@ export function PeopleTable() {
             <div className="bg-card border rounded-lg p-4">
               <div className="text-sm text-muted-foreground">In Workflow</div>
               <div className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">{statsData.inWorkflow}</div>
-            </div>
-            <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">Completed</div>
-              <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.completedWorkflow}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
               <div className="text-sm text-muted-foreground">Opted Out</div>
