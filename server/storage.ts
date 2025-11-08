@@ -790,6 +790,9 @@ export class PostgresStorage implements IStorage {
             approvalStatus: data.approvalStatus,
             userId: matchingUser?.id,
             personId: matchingPerson?.id,
+            ticketTypeId: data.ticketTypeId,
+            ticketTypeName: data.ticketTypeName,
+            ticketAmount: data.ticketAmount,
             lastSyncedAt: new Date().toISOString()
           }
         })

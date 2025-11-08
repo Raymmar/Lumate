@@ -146,6 +146,11 @@ app.use(
   // Mount API routes
   app.use("/api/stripe", stripeRoutes);
   app.use("/api/unsplash", unsplashRoutes);
+  
+  // Import and mount premium routes
+  const { default: premiumRoutes } = await import("./routes/premium");
+  app.use(premiumRoutes);
+  
   await registerRoutes(app);
 
   // Create the server

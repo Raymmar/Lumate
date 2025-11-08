@@ -44,6 +44,10 @@ export const events = pgTable("events", {
   calendarApiId: varchar("calendar_api_id", { length: 255 }),
   lastAttendanceSync: timestamp("last_attendance_sync", { mode: 'string', withTimezone: true }),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
+  // Premium membership fields
+  grantsPremiumAccess: boolean("grants_premium_access").default(false),
+  premiumTicketTypes: json("premium_ticket_types").$type<string[]>().default([]),
+  premiumExpiresAt: timestamp("premium_expires_at", { mode: 'string', withTimezone: true }), // When attendees' premium should expire
 });
 
 export const people = pgTable("people", {
@@ -84,6 +88,12 @@ export const users = pgTable("users", {
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   subscriptionStatus: varchar("subscription_status", { length: 50 }).default('inactive'),
   subscriptionId: varchar("subscription_id", { length: 255 }),
+  // Premium membership fields
+  premiumSource: varchar("premium_source", { length: 50 }), // 'stripe' | 'luma' | 'manual'
+  premiumExpiresAt: timestamp("premium_expires_at", { mode: 'string', withTimezone: true }),
+  premiumGrantedBy: integer("premium_granted_by"),
+  premiumGrantedAt: timestamp("premium_granted_at", { mode: 'string', withTimezone: true }),
+  lumaTicketId: varchar("luma_ticket_id", { length: 255 }),
   featuredImageUrl: varchar("featured_image_url", { length: 255 }),
   bio: text("bio"),
   companyName: varchar("company_name", { length: 255 }),
@@ -125,6 +135,10 @@ export const attendance = pgTable("attendance", {
   lastSyncedAt: timestamp("last_synced_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   userId: serial("user_id").references(() => users.id),
   personId: serial("person_id").references(() => people.id),
+  // Ticket information
+  ticketTypeId: varchar("ticket_type_id", { length: 255 }),
+  ticketTypeName: varchar("ticket_type_name", { length: 255 }),
+  ticketAmount: integer("ticket_amount"), // amount in cents
 });
 
 export const tags = pgTable("tags", {

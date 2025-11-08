@@ -17,6 +17,8 @@ import {
   ExternalLink,
   Plus,
   X,
+  Crown,
+  CreditCard,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -381,6 +383,10 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
       <Separator className="my-4" />
 
+      <PremiumMembershipManagement member={member} />
+
+      <Separator className="my-4" />
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -443,6 +449,207 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// Premium Membership Management Component
+function PremiumMembershipManagement({ member }: { member: Member }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isManualPremium, setIsManualPremium] = useState(false);
+  const [premiumExpiresDate, setPremiumExpiresDate] = useState<string>("");
+
+  // Set initial state from member data
+  useEffect(() => {
+    if (member.premiumSource === 'manual' && member.premiumExpiresAt) {
+      setIsManualPremium(true);
+      const date = new Date(member.premiumExpiresAt);
+      setPremiumExpiresDate(date.toISOString().split('T')[0]);
+    } else {
+      setIsManualPremium(false);
+      // Default to end of current year
+      const currentYear = new Date().getFullYear();
+      setPremiumExpiresDate(`${currentYear}-12-31`);
+    }
+  }, [member]);
+
+  const updatePremiumMutation = useMutation({
+    mutationFn: async (data: { grantPremium: boolean; expiresAt?: string }) => {
+      const response = await apiRequest(`/api/admin/members/${member.id}/premium`, 'PATCH', data);
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "Success",
+        description: data.grantPremium 
+          ? `Premium access granted to ${member.email}` 
+          : `Premium access removed from ${member.email}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update premium status",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleToggleManualPremium = () => {
+    const newValue = !isManualPremium;
+    setIsManualPremium(newValue);
+
+    if (!newValue) {
+      // Remove manual premium access
+      updatePremiumMutation.mutate({ grantPremium: false });
+    }
+  };
+
+  const handleSaveManualPremium = () => {
+    if (!premiumExpiresDate) {
+      toast({
+        title: "Error",
+        description: "Please select an expiration date",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updatePremiumMutation.mutate({
+      grantPremium: true,
+      expiresAt: premiumExpiresDate + 'T23:59:59Z',
+    });
+  };
+
+  const hasPremiumAccess = member.premiumExpiresAt && new Date(member.premiumExpiresAt) > new Date();
+  const getPremiumSourceLabel = () => {
+    if (!member.premiumSource) return null;
+    
+    switch (member.premiumSource) {
+      case 'stripe':
+        return 'Stripe Subscription';
+      case 'luma':
+        return 'Luma Ticket';
+      case 'manual':
+        return 'Admin Grant';
+      default:
+        return member.premiumSource;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <Crown className="h-4 w-4" />
+        <h4 className="font-medium">Premium Membership</h4>
+      </div>
+
+      {/* Current Premium Status */}
+      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Status:</span>
+          <Badge variant={hasPremiumAccess ? "default" : "outline"}>
+            {hasPremiumAccess ? (
+              <>
+                <Crown className="h-3 w-3 mr-1" />
+                Premium Active
+              </>
+            ) : (
+              "No Premium Access"
+            )}
+          </Badge>
+        </div>
+
+        {member.premiumSource && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Source:</span>
+            <span className="text-sm text-muted-foreground">{getPremiumSourceLabel()}</span>
+          </div>
+        )}
+
+        {member.premiumExpiresAt && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Expires:</span>
+            <span className="text-sm text-muted-foreground">
+              {format(new Date(member.premiumExpiresAt), 'PPP')}
+            </span>
+          </div>
+        )}
+
+        {member.premiumGrantedBy && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Granted By:</span>
+            <span className="text-sm text-muted-foreground">{member.premiumGrantedBy}</span>
+          </div>
+        )}
+
+        {member.lumaTicketId && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Luma Ticket:</span>
+            <span className="text-sm text-muted-foreground font-mono">{member.lumaTicketId}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Manual Premium Grant */}
+      <div className="border rounded-lg p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <label className="text-sm font-medium">
+              Manual Premium Grant
+            </label>
+            <p className="text-xs text-muted-foreground">
+              {member.premiumSource && member.premiumSource !== 'manual' 
+                ? "This will override automatic premium sources"
+                : "Grant premium access manually"
+              }
+            </p>
+          </div>
+          <Switch
+            checked={isManualPremium}
+            onCheckedChange={handleToggleManualPremium}
+            disabled={updatePremiumMutation.isPending}
+          />
+        </div>
+
+        {isManualPremium && (
+          <>
+            <div className="space-y-2">
+              <label htmlFor="manual-premium-expires" className="text-sm font-medium">
+                Expires On
+              </label>
+              <input
+                id="manual-premium-expires"
+                type="date"
+                value={premiumExpiresDate}
+                onChange={(e) => setPremiumExpiresDate(e.target.value)}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+
+            <Button
+              onClick={handleSaveManualPremium}
+              disabled={updatePremiumMutation.isPending}
+              className="w-full"
+              size="sm"
+            >
+              {updatePremiumMutation.isPending ? (
+                <>
+                  <CreditCard className="h-4 w-4 mr-2 animate-pulse" />
+                  Granting Premium...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Grant Premium Access
+                </>
+              )}
+            </Button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

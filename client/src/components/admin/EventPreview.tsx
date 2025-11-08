@@ -1,16 +1,20 @@
 import { Event } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, MapPin, Users, RefreshCw, ChevronLeft, ChevronRight, CreditCard, CheckCircle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { Person } from "@/components/people/PeopleDirectory";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatUsernameForUrl } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
 
 interface EventPreviewProps {
   event: Event & { 
@@ -271,6 +275,8 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
             </div>
           </div>
 
+          <PremiumAccessSettings event={event} />
+
           <Card>
             <CardContent className="p-3 md:p-4 space-y-4">
               <div className="flex items-start gap-3">
@@ -389,5 +395,228 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
         </div>
       )}
     </div>
+  );
+}
+
+// Premium Access Settings Component
+function PremiumAccessSettings({ event }: { event: Event & { api_id: string } }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [grantsPremiumAccess, setGrantsPremiumAccess] = useState(false);
+  const [selectedTicketTypes, setSelectedTicketTypes] = useState<string[]>([]);
+  const [premiumExpiresAt, setPremiumExpiresAt] = useState<string>("");
+
+  // Fetch ticket types and current settings
+  const { data: ticketData, isLoading: isLoadingTickets } = useQuery({
+    queryKey: [`/api/admin/events/${event.api_id}/ticket-types`],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/events/${event.api_id}/ticket-types`);
+      if (!response.ok) throw new Error('Failed to fetch ticket types');
+      return response.json();
+    },
+    enabled: !!event.api_id,
+  });
+
+  // Load current settings when data is fetched
+  useEffect(() => {
+    if (ticketData?.event) {
+      setGrantsPremiumAccess(ticketData.event.grantsPremiumAccess || false);
+      setSelectedTicketTypes(ticketData.event.premiumTicketTypes || []);
+      if (ticketData.event.premiumExpiresAt) {
+        // Convert to local date string for input
+        const date = new Date(ticketData.event.premiumExpiresAt);
+        setPremiumExpiresAt(date.toISOString().split('T')[0]);
+      } else {
+        // Default to end of event year
+        const eventYear = new Date(event.startTime).getFullYear();
+        setPremiumExpiresAt(`${eventYear}-12-31`);
+      }
+    }
+  }, [ticketData, event.startTime]);
+
+  // Update premium settings mutation
+  const updatePremiumSettingsMutation = useMutation({
+    mutationFn: async (data: { 
+      grantsPremiumAccess: boolean; 
+      premiumTicketTypes: string[]; 
+      premiumExpiresAt: string 
+    }) => {
+      const response = await fetch(`/api/admin/events/${event.api_id}/premium-settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update premium settings');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Success",
+        description: data.updated 
+          ? `Premium settings updated. ${data.updated} users granted premium access.`
+          : "Premium settings updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/admin/events/${event.api_id}/ticket-types`] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update premium settings",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleTogglePremiumAccess = () => {
+    const newValue = !grantsPremiumAccess;
+    setGrantsPremiumAccess(newValue);
+    
+    // If disabling, clear selections and save immediately
+    if (!newValue) {
+      setSelectedTicketTypes([]);
+      updatePremiumSettingsMutation.mutate({
+        grantsPremiumAccess: false,
+        premiumTicketTypes: [],
+        premiumExpiresAt: premiumExpiresAt + 'T23:59:59Z',
+      });
+    }
+  };
+
+  const handleTicketTypeChange = (ticketTypeId: string, checked: boolean) => {
+    const newSelection = checked 
+      ? [...selectedTicketTypes, ticketTypeId]
+      : selectedTicketTypes.filter(id => id !== ticketTypeId);
+    
+    setSelectedTicketTypes(newSelection);
+  };
+
+  const handleSavePremiumSettings = () => {
+    if (!premiumExpiresAt) {
+      toast({
+        title: "Error",
+        description: "Please set an expiration date for premium access",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updatePremiumSettingsMutation.mutate({
+      grantsPremiumAccess,
+      premiumTicketTypes: selectedTicketTypes,
+      premiumExpiresAt: premiumExpiresAt + 'T23:59:59Z',
+    });
+  };
+
+  const ticketTypes = ticketData?.ticketTypes || [];
+  const hasTicketTypes = ticketTypes.length > 0;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <CreditCard className="h-5 w-5" />
+          <CardTitle className="text-lg">Premium Access Settings</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label htmlFor="premium-toggle" className="font-medium">
+              Grant Premium Access
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Attendees with selected tickets get premium membership
+            </p>
+          </div>
+          <Switch
+            id="premium-toggle"
+            checked={grantsPremiumAccess}
+            onCheckedChange={handleTogglePremiumAccess}
+            disabled={!hasTicketTypes || isLoadingTickets}
+          />
+        </div>
+
+        {!hasTicketTypes && !isLoadingTickets && (
+          <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+            Sync attendees first to see available ticket types
+          </div>
+        )}
+
+        {grantsPremiumAccess && hasTicketTypes && (
+          <>
+            <Separator />
+            
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="font-medium">Select Ticket Types</Label>
+                <p className="text-sm text-muted-foreground">
+                  Choose which tickets grant premium access
+                </p>
+                {ticketTypes.map((ticket: any) => (
+                  <div key={ticket.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={ticket.id}
+                      checked={selectedTicketTypes.includes(ticket.id)}
+                      onCheckedChange={(checked) => 
+                        handleTicketTypeChange(ticket.id, checked as boolean)
+                      }
+                    />
+                    <Label
+                      htmlFor={ticket.id}
+                      className="text-sm font-normal cursor-pointer flex items-center gap-2"
+                    >
+                      {ticket.name}
+                      {selectedTicketTypes.includes(ticket.id) && (
+                        <CheckCircle className="h-3 w-3 text-green-500" />
+                      )}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="premium-expires" className="font-medium">
+                  Premium Access Expires
+                </Label>
+                <input
+                  id="premium-expires"
+                  type="date"
+                  value={premiumExpiresAt}
+                  onChange={(e) => setPremiumExpiresAt(e.target.value)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Premium access will expire at the end of this date
+                </p>
+              </div>
+
+              <Button
+                onClick={handleSavePremiumSettings}
+                disabled={updatePremiumSettingsMutation.isPending || selectedTicketTypes.length === 0}
+                className="w-full"
+              >
+                {updatePremiumSettingsMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Save Premium Settings
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
