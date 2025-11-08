@@ -39,6 +39,15 @@ export default function AdminMenu() {
   const [syncLogs, setSyncLogs] = useState<string[]>([]);
   const [isComplete, setIsComplete] = useState(false);
   const [syncStats, setSyncStats] = useState<SyncStats | null>(null);
+  
+  const [showPremiumConfirmDialog, setShowPremiumConfirmDialog] = useState(false);
+  const [isSyncingPremium, setIsSyncingPremium] = useState(false);
+  const [premiumSyncResult, setPremiumSyncResult] = useState<{ 
+    usersProcessed: number; 
+    premiumGranted: number; 
+    users: Array<{ name: string; email: string; expiresAt: string }> 
+  } | null>(null);
+  
   const { toast } = useToast();
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -150,6 +159,36 @@ export default function AdminMenu() {
     window.location.reload();
   };
 
+  const handleSyncPremium = async () => {
+    setIsSyncingPremium(true);
+    setShowPremiumConfirmDialog(false);
+    setPremiumSyncResult(null);
+
+    try {
+      const result = await apiRequest<{
+        usersProcessed: number;
+        premiumGranted: number;
+        users: Array<{ name: string; email: string; expiresAt: string }>;
+      }>('/api/admin/sync-premium-for-existing-users', 'POST');
+
+      setPremiumSyncResult(result);
+      
+      toast({
+        title: "Premium Access Synced",
+        description: `Granted premium to ${result.premiumGranted} of ${result.usersProcessed} users with qualifying tickets.`,
+      });
+    } catch (error) {
+      console.error('Error syncing premium access:', error);
+      toast({
+        title: "Sync Failed",
+        description: error instanceof Error ? error.message : "Failed to sync premium access. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSyncingPremium(false);
+    }
+  };
+
   return (
     <>
       {/* Initial Warning Dialog */}
@@ -243,15 +282,105 @@ export default function AdminMenu() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Button
-        variant="outline"
-        className="w-full"
-        onClick={() => setShowConfirmDialog(true)}
-        disabled={isResetting}
-      >
-        <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
-        {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
-      </Button>
+      {/* Premium Sync Confirmation Dialog */}
+      <AlertDialog open={showPremiumConfirmDialog} onOpenChange={setShowPremiumConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <Crown className="mr-2 h-5 w-5 text-yellow-500" />
+              Sync Premium Access
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p className="font-medium">This will:</p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Check all users with claimed accounts</li>
+                <li>Look for VIP tickets in premium-enabled events</li>
+                <li>Grant premium access where appropriate</li>
+                <li>Respect existing Stripe subscriptions and manual grants</li>
+              </ul>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Useful after enabling premium on events or changing ticket types.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSyncPremium}>
+              Sync Premium
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Premium Sync Results Dialog */}
+      {premiumSyncResult && (
+        <AlertDialog open={!!premiumSyncResult} onOpenChange={() => setPremiumSyncResult(null)}>
+          <AlertDialogContent className="max-w-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center">
+                <CheckCircle2 className="mr-2 h-5 w-5 text-green-500" />
+                Premium Access Synced
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <div className="rounded-lg bg-green-50 p-4 dark:bg-green-900/10">
+                  <p className="font-medium text-green-900 dark:text-green-50">
+                    Granted premium to {premiumSyncResult.premiumGranted} of {premiumSyncResult.usersProcessed} users
+                  </p>
+                  {premiumSyncResult.users.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-green-900 dark:text-green-50 mb-2">
+                        Users who received premium:
+                      </p>
+                      <ScrollArea className="h-[200px] w-full rounded-md border p-2 bg-white dark:bg-gray-900">
+                        <ul className="space-y-2">
+                          {premiumSyncResult.users.map((user, index) => (
+                            <li key={index} className="text-sm text-green-800 dark:text-green-100">
+                              <span className="font-medium">{user.name}</span> ({user.email}) - 
+                              Expires: {new Date(user.expiresAt).toLocaleDateString()}
+                            </li>
+                          ))}
+                        </ul>
+                      </ScrollArea>
+                    </div>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction
+                onClick={() => setPremiumSyncResult(null)}
+                className="bg-green-600 hover:bg-green-700 focus:ring-green-600"
+              >
+                Close
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
+      <div className="space-y-2">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setShowConfirmDialog(true)}
+          disabled={isResetting}
+          data-testid="button-reset-sync-luma"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${isResetting ? 'animate-spin' : ''}`} />
+          {isResetting ? 'Syncing...' : 'Reset & Sync Luma Data'}
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => setShowPremiumConfirmDialog(true)}
+          disabled={isSyncingPremium}
+          data-testid="button-sync-premium"
+        >
+          <Crown className={`mr-2 h-4 w-4 ${isSyncingPremium ? 'animate-spin' : ''}`} />
+          {isSyncingPremium ? 'Syncing...' : 'Sync Premium Access'}
+        </Button>
+      </div>
     </>
   );
 }
