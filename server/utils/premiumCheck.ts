@@ -1,4 +1,7 @@
 import { User } from "@shared/schema";
+import { db } from "../db";
+import { users, events, attendance } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Checks if a user has active premium access from any source
@@ -128,4 +131,119 @@ export function formatPremiumStatus(user: User | null): {
     isExpiringSoon,
     displayText,
   };
+}
+
+/**
+ * Checks if a user should have premium access based on their ticket purchases
+ * and grants it if they're eligible. This should be called when:
+ * - A user creates/verifies their account
+ * - A user's attendance records change
+ * - An admin wants to sync premium access
+ * 
+ * @param userId The user's database ID
+ * @returns Object with whether premium was granted and details
+ */
+export async function checkAndGrantPremiumFromTickets(userId: number): Promise<{
+  granted: boolean;
+  source: 'luma' | null;
+  expiresAt: string | null;
+  ticketTypeId: string | null;
+}> {
+  try {
+    // Get the user
+    const userResult = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    
+    if (userResult.length === 0) {
+      return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
+    }
+    
+    const user = userResult[0];
+    
+    // Don't override active Stripe subscriptions
+    if (user.subscriptionStatus === 'active') {
+      console.log(`User ${user.email} has active Stripe subscription, skipping Luma premium grant`);
+      return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
+    }
+    
+    // Get all attendance records for this user
+    const userAttendance = await db
+      .select({
+        attendance: attendance,
+        event: events,
+      })
+      .from(attendance)
+      .leftJoin(events, eq(attendance.eventApiId, events.api_id))
+      .where(eq(attendance.userEmail, user.email.toLowerCase()));
+    
+    // Find all qualifying tickets (events that grant premium + user has qualifying ticket type)
+    const qualifyingTickets = userAttendance.filter(record => {
+      const event = record.event;
+      const att = record.attendance;
+      
+      return event?.grantsPremiumAccess && 
+             att.ticketTypeId && 
+             event.premiumTicketTypes?.includes(att.ticketTypeId);
+    });
+    
+    if (qualifyingTickets.length === 0) {
+      console.log(`User ${user.email} has no qualifying premium tickets`);
+      return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
+    }
+    
+    // Find the ticket with the latest expiration date
+    let latestExpiration: string | null = null;
+    let latestTicketTypeId: string | null = null;
+    
+    for (const record of qualifyingTickets) {
+      const event = record.event!;
+      const att = record.attendance;
+      
+      const expiresAt = event.premiumExpiresAt || 
+        new Date(`${new Date(event.startTime).getFullYear()}-12-31T23:59:59Z`).toISOString();
+      
+      if (!latestExpiration || new Date(expiresAt) > new Date(latestExpiration)) {
+        latestExpiration = expiresAt;
+        latestTicketTypeId = att.ticketTypeId;
+      }
+    }
+    
+    // Check if we should update (only if new expiration is later or user has no Luma premium)
+    const hasActiveLumaPremium = user.premiumSource === 'luma' && 
+      user.premiumExpiresAt && 
+      new Date(user.premiumExpiresAt) > new Date();
+    
+    const shouldUpdate = !hasActiveLumaPremium || 
+      (latestExpiration && new Date(latestExpiration) > new Date(user.premiumExpiresAt!));
+    
+    if (shouldUpdate && latestExpiration && latestTicketTypeId) {
+      await db
+        .update(users)
+        .set({
+          premiumSource: 'luma',
+          premiumExpiresAt: latestExpiration,
+          premiumGrantedAt: new Date().toISOString(),
+          lumaTicketId: latestTicketTypeId,
+        })
+        .where(eq(users.id, userId));
+      
+      console.log(`Granted premium access to ${user.email} through ${latestExpiration} (ticket: ${latestTicketTypeId})`);
+      
+      return {
+        granted: true,
+        source: 'luma',
+        expiresAt: latestExpiration,
+        ticketTypeId: latestTicketTypeId,
+      };
+    }
+    
+    return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
+    
+  } catch (error) {
+    console.error('Error checking and granting premium from tickets:', error);
+    return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
+  }
 }
