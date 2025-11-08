@@ -2495,6 +2495,18 @@ export async function registerRoutes(app: Express) {
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
       console.log("Cleaned up verification tokens for:", email);
 
+      // Check if user should get premium access from tickets
+      try {
+        const { checkAndGrantPremiumFromTickets } = await import("./utils/premiumCheck.js");
+        const premiumResult = await checkAndGrantPremiumFromTickets(verifiedUser.id);
+        if (premiumResult.granted) {
+          console.log(`Granted premium access to new user ${email} from Luma tickets`);
+        }
+      } catch (premiumError) {
+        // Log but don't fail account creation if premium check fails
+        console.error("Failed to check premium access for new user:", premiumError);
+      }
+
       return res.json({
         message: "Password set successfully",
         user: {
