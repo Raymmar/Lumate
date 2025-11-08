@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { attendance, events, users } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "./middleware";
 import { hasActivePremium } from "../utils/premiumCheck";
 
@@ -92,20 +92,20 @@ router.patch("/api/admin/events/:eventId/premium-settings", requireAdmin, async 
 
     // If enabling premium access, process existing attendees
     if (grantsPremiumAccess && premiumTicketTypes?.length > 0) {
-      // Get all attendance records for this event with the selected ticket types
-      const eligibleAttendees = await db
+      // Get all attendance records for this event
+      const allAttendees = await db
         .select({
           attendance: attendance,
           user: users,
         })
         .from(attendance)
         .leftJoin(users, eq(attendance.userId, users.id))
-        .where(
-          and(
-            eq(attendance.eventApiId, eventId),
-            sql`${attendance.ticketTypeId} = ANY(${premiumTicketTypes})`
-          )
-        );
+        .where(eq(attendance.eventApiId, eventId));
+      
+      // Filter for eligible attendees (those with selected ticket types)
+      const eligibleAttendees = allAttendees.filter(record => 
+        record.attendance.ticketTypeId && premiumTicketTypes.includes(record.attendance.ticketTypeId)
+      );
 
       let processedCount = 0;
       let updatedCount = 0;
