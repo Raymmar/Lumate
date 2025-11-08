@@ -169,6 +169,11 @@ export async function checkAndGrantPremiumFromTickets(userId: number): Promise<{
       return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
     }
     
+    // Don't override manual premium grants unless Luma ticket extends beyond manual grant
+    const hasActiveManualPremium = user.premiumSource === 'manual' && 
+      user.premiumExpiresAt && 
+      new Date(user.premiumExpiresAt) > new Date();
+    
     // Get all attendance records for this user
     const userAttendance = await db
       .select({
@@ -211,13 +216,40 @@ export async function checkAndGrantPremiumFromTickets(userId: number): Promise<{
       }
     }
     
-    // Check if we should update (only if new expiration is later or user has no Luma premium)
+    // Check if we should update
+    // Only update if:
+    // 1. User has no premium at all, OR
+    // 2. User has expired premium (any source), OR
+    // 3. User has Luma premium and the new ticket extends it, OR
+    // 4. User has active manual premium but the Luma ticket extends beyond manual expiration
     const hasActiveLumaPremium = user.premiumSource === 'luma' && 
       user.premiumExpiresAt && 
       new Date(user.premiumExpiresAt) > new Date();
     
-    const shouldUpdate = !hasActiveLumaPremium || 
-      (latestExpiration && new Date(latestExpiration) > new Date(user.premiumExpiresAt!));
+    let shouldUpdate = false;
+    
+    if (!user.premiumSource) {
+      // No existing premium - grant it
+      shouldUpdate = true;
+    } else if (user.premiumSource === 'manual') {
+      // User has manual premium
+      if (hasActiveManualPremium) {
+        // Active manual premium - only update if Luma extends beyond it
+        shouldUpdate = !!(latestExpiration && new Date(latestExpiration) > new Date(user.premiumExpiresAt!));
+        if (shouldUpdate) {
+          console.log(`Luma ticket extends manual premium for ${user.email}, updating to Luma`);
+        } else {
+          console.log(`User ${user.email} has active manual premium, skipping Luma grant (manual expires ${user.premiumExpiresAt}, ticket expires ${latestExpiration})`);
+        }
+      } else {
+        // Expired or missing manual premium - grant Luma
+        shouldUpdate = true;
+        console.log(`User ${user.email} has expired/missing manual premium, granting Luma premium`);
+      }
+    } else if (user.premiumSource === 'luma') {
+      // Has Luma premium - update if new ticket extends it
+      shouldUpdate = !!(latestExpiration && new Date(latestExpiration) > new Date(user.premiumExpiresAt!));
+    }
     
     if (shouldUpdate && latestExpiration && latestTicketTypeId) {
       await db
