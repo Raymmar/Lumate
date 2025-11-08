@@ -329,4 +329,54 @@ router.patch("/api/admin/users/:userId/premium", requireAdmin, async (req, res) 
   }
 });
 
+// Sync premium access for all users based on their ticket purchases
+router.post("/api/admin/sync-premium-from-tickets", requireAdmin, async (req, res) => {
+  try {
+    const { checkAndGrantPremiumFromTickets } = await import("../utils/premiumCheck.js");
+    
+    // Get all users
+    const allUsers = await db.select().from(users);
+    
+    let processed = 0;
+    let granted = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+    
+    console.log(`Starting premium sync for ${allUsers.length} users...`);
+    
+    for (const user of allUsers) {
+      try {
+        const result = await checkAndGrantPremiumFromTickets(user.id);
+        processed++;
+        
+        if (result.granted) {
+          granted++;
+          console.log(`✓ Granted premium to ${user.email}`);
+        } else {
+          skipped++;
+        }
+      } catch (error) {
+        errors.push(`Failed to process ${user.email}: ${error instanceof Error ? error.message : String(error)}`);
+        console.error(`Error processing user ${user.email}:`, error);
+      }
+    }
+    
+    console.log(`Premium sync completed: ${granted} granted, ${skipped} skipped, ${errors.length} errors`);
+    
+    res.json({
+      success: true,
+      processed,
+      granted,
+      skipped,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (error) {
+    console.error("Failed to sync premium from tickets:", error);
+    res.status(500).json({
+      error: "Failed to sync premium from tickets",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 export default router;
