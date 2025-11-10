@@ -1,6 +1,7 @@
-import { pgTable, text, serial, timestamp, varchar, json, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, json, boolean, integer, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 
 // Add validation for phone numbers
 export const phoneRegex = /^\+?[0-9\-\s()]+$/;
@@ -558,7 +559,9 @@ export const companies = pgTable("companies", {
   tags: text("tags").array(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("companies_industry_name_idx").on(table.industry, table.name),
+]);
 
 // Company Members Junction Table - Connects users to companies with role information
 export const companyMembers = pgTable("company_members", {
@@ -635,7 +638,9 @@ export const sponsors = pgTable("sponsors", {
   deletedBy: integer("deleted_by").references(() => users.id),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("sponsors_active_idx").on(table.companyId, table.year).where(sql`${table.deletedAt} IS NULL`),
+]);
 
 export const insertSponsorSchema = createInsertSchema(sponsors).omit({
   id: true,
