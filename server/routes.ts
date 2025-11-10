@@ -4359,21 +4359,35 @@ export async function registerRoutes(app: Express) {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 100;
       const searchQuery = ((req.query.search as string) || "").toLowerCase();
+      const statusFilter = (req.query.status as string) || "all";
       const offset = (page - 1) * limit;
+
+      // Build where conditions
+      const conditions = [];
+      
+      // Add search condition
+      if (searchQuery) {
+        conditions.push(sql`(
+          LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR 
+          LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR 
+          LOWER(${people.userName}) LIKE ${`%${searchQuery}%`}
+        )`);
+      }
+      
+      // Add status filter condition
+      if (statusFilter === "verified") {
+        conditions.push(eq(users.isVerified, true));
+      } else if (statusFilter === "pending") {
+        conditions.push(eq(users.isVerified, false));
+      }
+
+      const whereClause = conditions.length > 0 ? and(...conditions) : sql`1=1`;
 
       const totalCount = await db
         .select({ count: sql<number>`count(*)` })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(${people.userName}) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`,
-        )
+        .where(whereClause)
         .then((result) => Number(result[0].count));
 
       const usersList = await db
@@ -4389,15 +4403,7 @@ export async function registerRoutes(app: Express) {
         })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
-        .where(
-          searchQuery
-            ? sql`(
-              LOWER(${users.email}) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR 
-              LOWER(${people.userName}) LIKE ${`%${searchQuery}%`}
-            )`
-            : sql`1=1`,
-        )
+        .where(whereClause)
         .orderBy(users.createdAt)
         .limit(limit)
         .offset(offset);

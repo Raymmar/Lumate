@@ -27,6 +27,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
 interface Member extends User {
@@ -43,6 +50,7 @@ export function MembersTable() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreatingMember, setIsCreatingMember] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const { toast } = useToast();
@@ -65,18 +73,27 @@ export function MembersTable() {
   const itemsPerPage = 100;
 
   const { data, isLoading, isFetching, error } = useQuery<MembersResponse>({
-    queryKey: ["/api/admin/members", currentPage, itemsPerPage, debouncedSearch],
+    queryKey: ["/api/admin/members", currentPage, itemsPerPage, debouncedSearch, statusFilter],
     queryFn: async () => {
       try {
         console.log('Fetching members with params:', {
           page: currentPage,
           limit: itemsPerPage,
-          search: debouncedSearch
+          search: debouncedSearch,
+          status: statusFilter
         });
 
-        const response = await fetch(
-          `/api/admin/members?page=${currentPage}&limit=${itemsPerPage}&search=${encodeURIComponent(debouncedSearch)}`
-        );
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: itemsPerPage.toString(),
+          search: debouncedSearch,
+        });
+
+        if (statusFilter !== "all") {
+          params.append("status", statusFilter);
+        }
+
+        const response = await fetch(`/api/admin/members?${params}`);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -192,6 +209,16 @@ export function MembersTable() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}

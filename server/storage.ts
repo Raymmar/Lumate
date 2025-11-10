@@ -678,7 +678,7 @@ export class PostgresStorage implements IStorage {
     }
   }
   async getUserCount(): Promise<number> {
-    const result = await db.select({ count: sql`COUNT(*)` }).from(users);
+    const result = await db.select({ count: sql`COUNT(*)` }).from(users).where(eq(users.isVerified, true));
     const count = Number(result[0].count);
     return count;
   }

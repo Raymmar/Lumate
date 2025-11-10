@@ -177,11 +177,11 @@ export default function AdminDashboard() {
           description="68% open rate 23% click rate"
         />
         <StatCard
-          title="Claimed Accounts"
+          title="Verified Members"
           value={statsData?.users || 0}
           icon={UserPlus}
           isLoading={isLoading}
-          description="Total number of registered members"
+          description="Members who completed account verification"
         />
         <StatCard
           title="Paid Members"
