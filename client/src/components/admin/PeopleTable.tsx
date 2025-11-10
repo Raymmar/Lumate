@@ -260,10 +260,6 @@ export function PeopleTable() {
               <div className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{statsData.verifiedUsers}</div>
             </div>
             <div className="bg-card border rounded-lg p-4">
-              <div className="text-sm text-muted-foreground">Pending</div>
-              <div className="text-2xl font-bold mt-1 text-yellow-600 dark:text-yellow-400">{statsData.pendingUsers}</div>
-            </div>
-            <div className="bg-card border rounded-lg p-4">
               <div className="text-sm text-muted-foreground">Conversion Rate</div>
               <div className="text-2xl font-bold mt-1">{statsData.conversionRate}%</div>
             </div>
