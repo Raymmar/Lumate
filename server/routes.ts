@@ -4305,6 +4305,13 @@ export async function registerRoutes(app: Express) {
           isAdmin: users.isAdmin,
           createdAt: users.createdAt,
           person: people,
+          subscriptionStatus: users.subscriptionStatus,
+          premiumSource: users.premiumSource,
+          premiumExpiresAt: users.premiumExpiresAt,
+          premiumGrantedBy: users.premiumGrantedBy,
+          premiumGrantedAt: users.premiumGrantedAt,
+          stripeCustomerId: users.stripeCustomerId,
+          subscriptionId: users.subscriptionId,
         })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
