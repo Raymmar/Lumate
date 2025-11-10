@@ -86,7 +86,7 @@ export const requirePremiumOrAdmin = async (req: Request, res: Response, next: N
   }
 };
 
-// Middleware to require premium membership AND company admin privileges (or system admin)
+// Middleware to require premium membership OR company admin privileges (or system admin)
 export const requirePremiumOrCompanyAdmin = (companyIdParam: string = "id") => {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.session.userId) {
@@ -104,29 +104,27 @@ export const requirePremiumOrCompanyAdmin = (companyIdParam: string = "id") => {
         return next();
       }
       
-      // Check if user has active premium
-      if (!hasActivePremium(user)) {
-        return res.status(403).json({ 
-          error: "Premium membership required",
-          message: "Managing company profiles requires an active premium membership" 
-        });
+      // Check if user has active premium - if so, they can manage companies
+      if (hasActivePremium(user)) {
+        return next();
       }
       
-      // Check if user is a company admin/owner
+      // If no premium, check if user is a company admin/owner of THIS specific company
       const companyId = parseInt(req.params[companyIdParam]);
       if (isNaN(companyId)) {
         return res.status(400).json({ error: "Invalid company ID" });
       }
       
       const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId, companyId);
-      if (!isCompanyAdmin) {
-        return res.status(403).json({ 
-          error: "Company admin access required",
-          message: "You must be an admin or owner of this company to make changes" 
-        });
+      if (isCompanyAdmin) {
+        return next();
       }
       
-      next();
+      // If they're neither premium nor company admin, deny access
+      return res.status(403).json({ 
+        error: "Access denied",
+        message: "You must have premium membership or be an admin/owner of this company to make changes" 
+      });
     } catch (error) {
       console.error("Error checking premium and company admin status:", error);
       res.status(500).json({ error: "Internal server error" });
