@@ -10,6 +10,10 @@ export class EmailInvitationService {
   private isProcessing = false;
   private dryRun: boolean = true; // SAFETY: Default to dry-run mode
   
+  // AUTO-ENROLLMENT CUTOFF: Only auto-enroll people created after this date
+  // This prevents mass-emailing existing historical records
+  private readonly AUTO_ENROLL_CUTOFF_DATE = new Date('2025-11-10T00:00:00Z');
+  
   // TEST MODE: Set to true to only process test emails
   private readonly TEST_MODE = false;
   private readonly TEST_EMAILS = [
@@ -107,6 +111,14 @@ export class EmailInvitationService {
     try {
       let unclaimedPeople = await storage.getUnclaimedPeople();
       console.log(`[EmailInvitation] Found ${unclaimedPeople.length} unclaimed people`);
+      
+      // Filter to only people created after the cutoff date (prevents mass-emailing legacy records)
+      unclaimedPeople = unclaimedPeople.filter(person => {
+        if (!person.createdAt) return false; // Skip if no creation date
+        const createdDate = new Date(person.createdAt);
+        return createdDate >= this.AUTO_ENROLL_CUTOFF_DATE;
+      });
+      console.log(`[EmailInvitation] Filtered to ${unclaimedPeople.length} people created after ${this.AUTO_ENROLL_CUTOFF_DATE.toISOString()}`);
       
       // Filter to only test emails if in TEST_MODE
       if (this.TEST_MODE) {
@@ -420,7 +432,8 @@ export class EmailInvitationService {
       // 2. Send follow-up emails (only during 9-10 AM Eastern window)
       await this.sendFollowUpEmails();
       
-      // NOTE: processNewPeople() removed - use enrollSpecificPeople() for manual/new user enrollment
+      // 3. Process new people for auto-enrollment (only those created after cutoff date)
+      await this.processNewPeople();
       
       console.log('[EmailInvitation] Completed invitation processing');
     } catch (error) {
