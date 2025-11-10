@@ -1607,6 +1607,38 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Backfill completed invitation records for verified users (admin only)
+  app.post("/api/admin/backfill-invitations", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      console.log('Starting backfill of completed invitation records...');
+      
+      const emailService = EmailInvitationService.getInstance();
+      const stats = await emailService.backfillCompletedInvitations();
+
+      return res.json({
+        success: true,
+        message: `Backfill complete: Created ${stats.created} records, skipped ${stats.skipped}, errors: ${stats.errors}`,
+        stats
+      });
+
+    } catch (error) {
+      console.error("Failed to backfill invitations:", error);
+      return res.status(500).json({ 
+        error: "Failed to backfill invitations", 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Create a new member account (admin only)
   app.post("/api/admin/members", async (req, res) => {
     try {
@@ -2494,6 +2526,39 @@ export async function registerRoutes(app: Express) {
 
       await storage.deleteVerificationTokensByEmail(email.toLowerCase());
       console.log("Cleaned up verification tokens for:", email);
+
+      // Create or update email invitation record to mark as completed
+      try {
+        const person = await storage.getPersonByEmail(email.toLowerCase());
+        if (person) {
+          const existingInvitation = await storage.getEmailInvitationByPersonId(person.id);
+          if (existingInvitation) {
+            // Update existing invitation to mark as completed
+            if (!existingInvitation.completedAt) {
+              await storage.updateEmailInvitation(existingInvitation.id, {
+                completedAt: new Date().toISOString(),
+                nextSendAt: null
+              });
+              console.log(`Marked invitation as completed for ${email}`);
+            }
+          } else {
+            // Create new completed invitation record
+            await storage.createEmailInvitation({
+              personId: person.id,
+              emailsSentCount: 0,
+              lastSentAt: null,
+              nextSendAt: null,
+              optedOut: false,
+              finalMessageSent: false,
+              completedAt: new Date().toISOString()
+            });
+            console.log(`Created completed invitation record for ${email}`);
+          }
+        }
+      } catch (invitationError) {
+        // Log but don't fail verification if invitation record creation fails
+        console.error("Failed to create/update invitation record:", invitationError);
+      }
 
       // Check if user should get premium access from tickets
       try {

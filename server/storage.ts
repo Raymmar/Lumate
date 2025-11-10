@@ -58,6 +58,7 @@ export interface IStorage {
   createUser(userData: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
+  getAllUsers(): Promise<User[]>;
   getUserCount(): Promise<number>; 
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
   updateUserPassword(userId: number, hashedPassword: string): Promise<User>;
@@ -680,6 +681,16 @@ export class PostgresStorage implements IStorage {
     const result = await db.select({ count: sql`COUNT(*)` }).from(users);
     const count = Number(result[0].count);
     return count;
+  }
+  
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const result = await db.select().from(users);
+      return result;
+    } catch (error) {
+      console.error('Failed to get all users:', error);
+      throw error;
+    }
   }
   
   async getPaidUsersCount(): Promise<number> {

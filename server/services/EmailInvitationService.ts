@@ -330,6 +330,62 @@ export class EmailInvitationService {
     }
   }
 
+  // Backfill completed invitation records for verified users who don't have them
+  public async backfillCompletedInvitations(): Promise<{ created: number; skipped: number; errors: number }> {
+    console.log('[EmailInvitation] Starting backfill of completed invitation records...');
+    
+    const stats = { created: 0, skipped: 0, errors: 0 };
+    
+    try {
+      // Get all verified users
+      const allUsers = await storage.getAllUsers();
+      const verifiedUsers = allUsers.filter(user => user.isVerified);
+      console.log(`[EmailInvitation] Found ${verifiedUsers.length} verified users to check`);
+      
+      for (const user of verifiedUsers) {
+        try {
+          // Find the person record for this user
+          const person = await storage.getPersonByEmail(user.email);
+          if (!person) {
+            console.log(`[EmailInvitation] No person record found for ${user.email}, skipping`);
+            stats.skipped++;
+            continue;
+          }
+          
+          // Check if this person already has an invitation record
+          const existingInvitation = await storage.getEmailInvitationByPersonId(person.id);
+          if (existingInvitation) {
+            stats.skipped++;
+            continue;
+          }
+          
+          // Create a completed invitation record (no email sent)
+          await storage.createEmailInvitation({
+            personId: person.id,
+            emailsSentCount: 0, // No emails were sent
+            lastSentAt: null,
+            nextSendAt: null,
+            optedOut: false,
+            finalMessageSent: false,
+            completedAt: new Date().toISOString() // Mark as completed immediately
+          });
+          
+          console.log(`[EmailInvitation] Created completed invitation record for ${user.email}`);
+          stats.created++;
+        } catch (error) {
+          console.error(`[EmailInvitation] Error processing ${user.email}:`, error);
+          stats.errors++;
+        }
+      }
+      
+      console.log(`[EmailInvitation] Backfill complete:`, stats);
+      return stats;
+    } catch (error) {
+      console.error('[EmailInvitation] Error during backfill:', error);
+      throw error;
+    }
+  }
+
   // Enroll specific people by IDs (for manual enrollment and new signups)
   public async enrollSpecificPeople(personIds: number[]): Promise<void> {
     console.log(`[EmailInvitation] Enrolling ${personIds.length} specific people`);
@@ -371,7 +427,17 @@ export class EmailInvitationService {
         // Check if already has user account
         const user = await storage.getUserByEmail(person.email);
         if (user && user.isVerified) {
-          console.log(`[EmailInvitation] ${person.email} already has verified account, skipping`);
+          // User already verified - create completed invitation record instead of sending email
+          console.log(`[EmailInvitation] ${person.email} already has verified account, creating completed invitation record`);
+          await storage.createEmailInvitation({
+            personId: person.id,
+            emailsSentCount: 0,
+            lastSentAt: null,
+            nextSendAt: null,
+            optedOut: false,
+            finalMessageSent: false,
+            completedAt: new Date().toISOString()
+          });
           continue;
         }
 
