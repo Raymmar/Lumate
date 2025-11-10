@@ -239,7 +239,7 @@ export class StripeService {
       const subscriptions = await stripe.subscriptions.list({
         status: 'active',
         limit: 100,
-        expand: ['data.items.data.price', 'data.items.data.price.product']
+        expand: ['data.items.data.price.product']
       });
       
       console.log(`Found ${subscriptions.data.length} active subscriptions`);

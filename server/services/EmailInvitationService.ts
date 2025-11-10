@@ -1,7 +1,7 @@
 import { storage } from '../storage';
 import { sendVerificationEmail } from '../email';
 import { Person } from '@shared/schema';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 import { addDays, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 
 export class EmailInvitationService {
@@ -102,15 +102,15 @@ export class EmailInvitationService {
 
   // Check if we're in the sending window (9 AM - 7 PM Eastern, weekdays only)
   private isInSendingWindow(): boolean {
+    const now = new Date();
     const easternTz = 'America/New_York';
-    const easternTime = toZonedTime(new Date(), easternTz);
-    const hour = easternTime.getHours();
-    const day = easternTime.getDay(); // 0 = Sunday, 6 = Saturday
     
-    // Check if it's a weekday (Monday-Friday)
+    // Get hour (0-23) and day of week (1-7, where 1=Monday, 7=Sunday) in Eastern timezone
+    const hour = Number(formatInTimeZone(now, easternTz, 'H'));
+    const day = Number(formatInTimeZone(now, easternTz, 'i'));
+    
+    // Check if it's a weekday (Monday-Friday = 1-5) and within business hours (9 AM - 7 PM)
     const isWeekday = day >= 1 && day <= 5;
-    
-    // Check if it's business hours (9 AM - 7 PM)
     const isBusinessHours = hour >= 9 && hour < 19;
     
     return isWeekday && isBusinessHours;
@@ -120,60 +120,44 @@ export class EmailInvitationService {
   private adjustToBusinessHours(date: Date): Date {
     const easternTz = 'America/New_York';
     
-    // Get Eastern time components using Intl API
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: easternTz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-      weekday: 'short'
-    });
+    // Get Eastern day of week (1=Monday, 7=Sunday) and hour (0-23)
+    const day = Number(formatInTimeZone(date, easternTz, 'i'));
+    const hour = Number(formatInTimeZone(date, easternTz, 'H'));
     
-    const parts = formatter.formatToParts(date);
-    const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
-    
-    let year = parseInt(getPart('year'));
-    let month = parseInt(getPart('month'));
-    let day = parseInt(getPart('day'));
-    let hour = parseInt(getPart('hour'));
-    const weekday = getPart('weekday'); // 'Sun', 'Mon', etc.
-    
-    // Determine adjustments needed
-    if (weekday === 'Sun') {
-      // Sunday → Move to Monday 9 AM
-      day += 1;
-      hour = 9;
-    } else if (weekday === 'Sat') {
-      // Saturday → Move to Monday 9 AM
-      day += 2;
-      hour = 9;
-    } else if (hour < 9) {
-      // Before 9 AM on weekday → 9 AM same day
-      hour = 9;
-    } else if (hour >= 19) {
-      // After 7 PM on weekday → Next weekday 9 AM
-      if (weekday === 'Fri') {
-        day += 3; // Friday → Monday
-      } else {
-        day += 1; // Other weekdays → next day
-      }
-      hour = 9;
-    } else {
-      // Already in business hours
+    // Already in business hours (weekday 9am-7pm)?
+    if (day >= 1 && day <= 5 && hour >= 9 && hour < 19) {
       return date;
     }
     
-    // Construct a date string in Eastern time and convert to Date
-    // Note: month is 1-indexed in the formatter output
-    const easternDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00`;
-    const easternDate = new Date(easternDateStr);
+    // Determine how many days to advance
+    let daysToAdd = 0;
     
-    // Convert this "wall clock" Eastern time to UTC
-    return fromZonedTime(easternDate, easternTz);
+    if (day === 7) { // Sunday
+      daysToAdd = 1; // Move to Monday
+    } else if (day === 6) { // Saturday
+      daysToAdd = 2; // Move to Monday
+    } else if (hour >= 19) { // After 7 PM on weekday
+      if (day === 5) { // Friday after hours
+        daysToAdd = 3; // Move to Monday
+      } else {
+        daysToAdd = 1; // Move to next weekday
+      }
+    } else if (hour < 9) { // Before 9 AM on weekday
+      daysToAdd = 0; // Stay on same day, just adjust to 9 AM
+    }
+    
+    // Build the target date in Eastern time as "YYYY-MM-DDT09:00:00"
+    let candidate = date;
+    if (daysToAdd > 0) {
+      candidate = addDays(candidate, daysToAdd);
+    }
+    
+    // Format the candidate date in Eastern time and construct 9 AM Eastern string
+    const easternDateStr = formatInTimeZone(candidate, easternTz, 'yyyy-MM-dd');
+    const targetEasternStr = `${easternDateStr}T09:00:00`;
+    
+    // Convert the "9 AM Eastern" string back to UTC
+    return fromZonedTime(targetEasternStr, easternTz);
   }
 
   // Process new people who don't have invitations yet
@@ -306,6 +290,12 @@ export class EmailInvitationService {
   // Send follow-up emails (runs immediately when triggered)
   private async sendFollowUpEmails(): Promise<void> {
     try {
+      // Check if we're in the sending window before processing
+      if (!this.isInSendingWindow()) {
+        console.log('[EmailInvitation] Outside business hours - skipping follow-up emails');
+        return;
+      }
+      
       let dueInvitations = await storage.getEmailInvitationsDueForSending();
       console.log(`[EmailInvitation] Found ${dueInvitations.length} invitations due for follow-up`);
       
