@@ -1,7 +1,8 @@
 import { storage } from '../storage';
 import { sendVerificationEmail } from '../email';
 import { Person } from '@shared/schema';
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { addDays, setHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 
 export class EmailInvitationService {
   private static instance: EmailInvitationService;
@@ -40,7 +41,7 @@ export class EmailInvitationService {
     return EmailInvitationService.instance;
   }
 
-  // Calculate the next send time based on email count
+  // Calculate the next send time based on email count (adjusted to business hours)
   private calculateNextSendTime(emailsSentCount: number): Date | null {
     const now = new Date();
     const nextSend = new Date(now);
@@ -49,8 +50,8 @@ export class EmailInvitationService {
     let hoursToAdd: number;
     
     switch (emailsSentCount) {
-      case 0: // Initial email - immediately
-        return now;
+      case 0: // Initial email - send immediately (will be adjusted to business hours)
+        return this.adjustToBusinessHours(now);
       case 1: // 24 hours after initial
         hoursToAdd = 24;
         break;
@@ -74,7 +75,8 @@ export class EmailInvitationService {
     // Add the hours from NOW
     nextSend.setHours(nextSend.getHours() + hoursToAdd);
     
-    return nextSend;
+    // Adjust to next business hour (9 AM - 7 PM EST, weekdays only)
+    return this.adjustToBusinessHours(nextSend);
   }
 
   // Get the appropriate email subject based on email count
@@ -98,12 +100,80 @@ export class EmailInvitationService {
     }
   }
 
-  // Check if we're in the sending window (9-10 AM Eastern)
+  // Check if we're in the sending window (9 AM - 7 PM Eastern, weekdays only)
   private isInSendingWindow(): boolean {
     const easternTz = 'America/New_York';
     const easternTime = toZonedTime(new Date(), easternTz);
     const hour = easternTime.getHours();
-    return hour === 9; // 9 AM hour (9:00-9:59)
+    const day = easternTime.getDay(); // 0 = Sunday, 6 = Saturday
+    
+    // Check if it's a weekday (Monday-Friday)
+    const isWeekday = day >= 1 && day <= 5;
+    
+    // Check if it's business hours (9 AM - 7 PM)
+    const isBusinessHours = hour >= 9 && hour < 19;
+    
+    return isWeekday && isBusinessHours;
+  }
+
+  // Adjust a date to the next available business hour (9 AM - 7 PM EST, weekdays)
+  private adjustToBusinessHours(date: Date): Date {
+    const easternTz = 'America/New_York';
+    
+    // Get Eastern time components using Intl API
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: easternTz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+      weekday: 'short'
+    });
+    
+    const parts = formatter.formatToParts(date);
+    const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
+    
+    let year = parseInt(getPart('year'));
+    let month = parseInt(getPart('month'));
+    let day = parseInt(getPart('day'));
+    let hour = parseInt(getPart('hour'));
+    const weekday = getPart('weekday'); // 'Sun', 'Mon', etc.
+    
+    // Determine adjustments needed
+    if (weekday === 'Sun') {
+      // Sunday → Move to Monday 9 AM
+      day += 1;
+      hour = 9;
+    } else if (weekday === 'Sat') {
+      // Saturday → Move to Monday 9 AM
+      day += 2;
+      hour = 9;
+    } else if (hour < 9) {
+      // Before 9 AM on weekday → 9 AM same day
+      hour = 9;
+    } else if (hour >= 19) {
+      // After 7 PM on weekday → Next weekday 9 AM
+      if (weekday === 'Fri') {
+        day += 3; // Friday → Monday
+      } else {
+        day += 1; // Other weekdays → next day
+      }
+      hour = 9;
+    } else {
+      // Already in business hours
+      return date;
+    }
+    
+    // Construct a date string in Eastern time and convert to Date
+    // Note: month is 1-indexed in the formatter output
+    const easternDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00`;
+    const easternDate = new Date(easternDateStr);
+    
+    // Convert this "wall clock" Eastern time to UTC
+    return fromZonedTime(easternDate, easternTz);
   }
 
   // Process new people who don't have invitations yet
@@ -330,9 +400,112 @@ export class EmailInvitationService {
     }
   }
 
+  // Comprehensive data reconciliation: sync users and invitations properly
+  public async reconcileUserInvitations(): Promise<{
+    created: number;
+    completed: number;
+    reset: number;
+    enrolled: number;
+    skipped: number;
+    errors: number;
+  }> {
+    console.log('[EmailInvitation] Starting comprehensive user-invitation reconciliation...');
+    
+    const stats = { created: 0, completed: 0, reset: 0, enrolled: 0, skipped: 0, errors: 0 };
+    
+    try {
+      // Get all users
+      const allUsers = await storage.getAllUsers();
+      console.log(`[EmailInvitation] Processing ${allUsers.length} total users`);
+      
+      for (const user of allUsers) {
+        try {
+          // Find the person record for this user
+          const person = await storage.getPersonByEmail(user.email);
+          if (!person) {
+            console.log(`[EmailInvitation] No person record for ${user.email}, skipping`);
+            stats.skipped++;
+            continue;
+          }
+          
+          // Get or create invitation record
+          let invitation = await storage.getEmailInvitationByPersonId(person.id);
+          
+          if (!invitation) {
+            // User has no invitation record - create one
+            if (user.isVerified) {
+              // Verified user - create completed invitation
+              await storage.createEmailInvitation({
+                personId: person.id,
+                emailsSentCount: 0,
+                lastSentAt: null,
+                nextSendAt: null,
+                optedOut: false,
+                finalMessageSent: false,
+                completedAt: new Date().toISOString()
+              });
+              console.log(`[EmailInvitation] Created completed invitation for verified user ${user.email}`);
+              stats.created++;
+              stats.completed++;
+            } else {
+              // Unverified user - create in-progress invitation and enroll in workflow
+              const nextSendAt = this.calculateNextSendTime(0); // Will be adjusted to business hours
+              await storage.createEmailInvitation({
+                personId: person.id,
+                emailsSentCount: 0,
+                lastSentAt: null,
+                nextSendAt: nextSendAt ? nextSendAt.toISOString() : null,
+                optedOut: false,
+                finalMessageSent: false,
+                completedAt: null
+              });
+              console.log(`[EmailInvitation] Created in-progress invitation for unverified user ${user.email}`);
+              stats.created++;
+              stats.enrolled++;
+            }
+          } else {
+            // Invitation exists - verify it's in correct state
+            if (user.isVerified && !invitation.completedAt) {
+              // User is verified but invitation not marked complete - fix it
+              await storage.updateEmailInvitation(invitation.id, {
+                completedAt: new Date().toISOString(),
+                nextSendAt: null
+              });
+              console.log(`[EmailInvitation] Marked invitation complete for verified user ${user.email}`);
+              stats.completed++;
+            } else if (!user.isVerified && invitation.completedAt) {
+              // Invitation marked complete but user not verified - reset it
+              const nextSendAt = this.calculateNextSendTime(invitation.emailsSentCount);
+              await storage.updateEmailInvitation(invitation.id, {
+                completedAt: null,
+                nextSendAt: nextSendAt ? nextSendAt.toISOString() : null
+              });
+              console.log(`[EmailInvitation] Reset broken completed invitation for unverified user ${user.email}`);
+              stats.reset++;
+              stats.enrolled++;
+            } else {
+              stats.skipped++;
+            }
+          }
+        } catch (error) {
+          console.error(`[EmailInvitation] Error processing ${user.email}:`, error);
+          stats.errors++;
+        }
+      }
+      
+      console.log(`[EmailInvitation] Reconciliation complete:`, stats);
+      return stats;
+    } catch (error) {
+      console.error('[EmailInvitation] Error during reconciliation:', error);
+      throw error;
+    }
+  }
+
   // Backfill completed invitation records for verified users who don't have them
+  // DEPRECATED: Use reconcileUserInvitations() instead
   public async backfillCompletedInvitations(): Promise<{ created: number; skipped: number; errors: number }> {
     console.log('[EmailInvitation] Starting backfill of completed invitation records...');
+    console.log('[EmailInvitation] NOTE: This method is deprecated. Use reconcileUserInvitations() instead.');
     
     const stats = { created: 0, skipped: 0, errors: 0 };
     

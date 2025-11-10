@@ -1607,8 +1607,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Backfill completed invitation records for verified users (admin only)
-  app.post("/api/admin/backfill-invitations", async (req, res) => {
+  // Reconcile user-invitation data (admin only)
+  app.post("/api/admin/reconcile-invitations", async (req, res) => {
     try {
       if (!req.session.userId) {
         return res.status(401).json({ error: "Not authenticated" });
@@ -1619,21 +1619,21 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Not authorized" });
       }
 
-      console.log('Starting backfill of completed invitation records...');
+      console.log('Starting user-invitation reconciliation...');
       
       const emailService = EmailInvitationService.getInstance();
-      const stats = await emailService.backfillCompletedInvitations();
+      const stats = await emailService.reconcileUserInvitations();
 
       return res.json({
         success: true,
-        message: `Backfill complete: Created ${stats.created} records, skipped ${stats.skipped}, errors: ${stats.errors}`,
+        message: `Reconciliation complete: Created ${stats.created} records (${stats.completed} completed, ${stats.enrolled} enrolled), reset ${stats.reset} broken records, skipped ${stats.skipped}, errors: ${stats.errors}`,
         stats
       });
 
     } catch (error) {
-      console.error("Failed to backfill invitations:", error);
+      console.error("Failed to reconcile invitations:", error);
       return res.status(500).json({ 
-        error: "Failed to backfill invitations", 
+        error: "Failed to reconcile invitations", 
         details: error instanceof Error ? error.message : 'Unknown error'
       });
     }
