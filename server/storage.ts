@@ -2144,119 +2144,120 @@ export class PostgresStorage implements IStorage {
       // Define sponsor tier order (highest to lowest)
       const TIER_ORDER = ['Series A', 'Seed', 'Angel', 'Friends & Family', '501c3/.edu'];
 
-      // Get all companies with sponsor info
-      const companiesWithSponsors = await db
-        .select({
-          company: companies,
-          sponsorTier: sponsors.tier
-        })
-        .from(companies)
-        .leftJoin(sponsors, and(
-          eq(sponsors.companyId, companies.id),
-          eq(sponsors.year, year),
-          sql`${sponsors.deletedAt} IS NULL`
-        ));
-
-      // Apply filter
       let filteredCompanies: Company[] = [];
+
+      // Query 1: Get filtered companies based on the filter type
       if (filter === 'sponsors') {
-        // Only companies that have a sponsor entry
-        filteredCompanies = companiesWithSponsors
-          .filter(row => row.sponsorTier !== null)
-          .map(row => row.company)
-          .reduce((unique, company) => {
-            if (!unique.find(c => c.id === company.id)) {
-              unique.push(company);
-            }
-            return unique;
-          }, [] as Company[]);
-        
-        // Sort by sponsor tier (unknown tiers go to the end), then alphabetically for stability
-        filteredCompanies.sort((a, b) => {
-          const aRow = companiesWithSponsors.find(row => row.company.id === a.id);
-          const bRow = companiesWithSponsors.find(row => row.company.id === b.id);
-          let aTierIndex = TIER_ORDER.indexOf(aRow?.sponsorTier || '');
-          let bTierIndex = TIER_ORDER.indexOf(bRow?.sponsorTier || '');
-          // If tier not found, assign it to the end (beyond last known tier)
-          if (aTierIndex === -1) aTierIndex = TIER_ORDER.length;
-          if (bTierIndex === -1) bTierIndex = TIER_ORDER.length;
-          
-          // Primary sort: by tier
-          if (aTierIndex !== bTierIndex) {
-            return aTierIndex - bTierIndex;
-          }
-          // Secondary sort: alphabetically by name for deterministic ordering
-          return a.name.localeCompare(b.name);
-        });
+        // Only fetch companies that are sponsors for this year, sorted by tier
+        const tierOrderCase = sql`
+          CASE ${sponsors.tier}
+            WHEN 'Series A' THEN 0
+            WHEN 'Seed' THEN 1
+            WHEN 'Angel' THEN 2
+            WHEN 'Friends & Family' THEN 3
+            WHEN '501c3/.edu' THEN 4
+            ELSE 999
+          END
+        `;
+
+        const result = await db
+          .selectDistinct(companies)
+          .from(companies)
+          .innerJoin(sponsors, and(
+            eq(sponsors.companyId, companies.id),
+            eq(sponsors.year, year),
+            sql`${sponsors.deletedAt} IS NULL`
+          ))
+          .orderBy(tierOrderCase, companies.name);
+
+        filteredCompanies = result;
       } else if (filter) {
-        // Filter by industry
-        filteredCompanies = companiesWithSponsors
-          .map(row => row.company)
-          .filter(company => company.industry === filter)
-          .reduce((unique, company) => {
-            if (!unique.find(c => c.id === company.id)) {
-              unique.push(company);
-            }
-            return unique;
-          }, [] as Company[]);
+        // Filter by specific industry
+        filteredCompanies = await db
+          .select()
+          .from(companies)
+          .where(eq(companies.industry, filter))
+          .orderBy(companies.name);
       } else {
         // No filter - return all companies
-        filteredCompanies = companiesWithSponsors
-          .map(row => row.company)
-          .reduce((unique, company) => {
-            if (!unique.find(c => c.id === company.id)) {
-              unique.push(company);
-            }
-            return unique;
-          }, [] as Company[]);
+        filteredCompanies = await db
+          .select()
+          .from(companies)
+          .orderBy(companies.name);
       }
 
-      // Calculate sponsor tier counts
+      // Query 2: Get sponsor tier counts (aggregate at database level)
+      const sponsorTierCountsResult = await db
+        .select({
+          tier: sponsors.tier,
+          count: sql<number>`COUNT(DISTINCT ${sponsors.companyId})`
+        })
+        .from(sponsors)
+        .where(and(
+          eq(sponsors.year, year),
+          sql`${sponsors.deletedAt} IS NULL`
+        ))
+        .groupBy(sponsors.tier);
+
+      // Process tier counts to match expected format
       const sponsorTierCounts: Record<string, number> = {};
-      const uniqueSponsorCompanyIds = new Set<number>();
-      
-      companiesWithSponsors.forEach(row => {
-        if (row.sponsorTier) {
-          uniqueSponsorCompanyIds.add(row.company.id);
-          sponsorTierCounts[row.sponsorTier] = (sponsorTierCounts[row.sponsorTier] || 0) + 1;
+      sponsorTierCountsResult.forEach(row => {
+        if (row.tier) {
+          sponsorTierCounts[row.tier] = Number(row.count);
         }
       });
 
-      // Return tier counts in TIER_ORDER (known tiers first, then any unknown tiers)
       const knownTierCounts = TIER_ORDER
         .filter(tier => sponsorTierCounts[tier] > 0)
         .map(tier => ({
           name: tier,
           count: sponsorTierCounts[tier]
         }));
-      
-      // Add any unknown tiers at the end
+
       const unknownTierCounts = Object.entries(sponsorTierCounts)
         .filter(([tier]) => !TIER_ORDER.includes(tier))
         .map(([tier, count]) => ({
           name: tier,
           count
         }));
-      
+
       const tierCounts = [...knownTierCounts, ...unknownTierCounts];
 
-      // Calculate industry counts (from all companies)
-      const industryCounts: Record<string, number> = {};
-      companiesWithSponsors.forEach(row => {
-        if (row.company.industry) {
-          industryCounts[row.company.industry] = (industryCounts[row.company.industry] || 0) + 1;
-        }
-      });
+      // Get total unique sponsor company count
+      const totalSponsorsResult = await db
+        .select({
+          count: sql<number>`COUNT(DISTINCT ${sponsors.companyId})`
+        })
+        .from(sponsors)
+        .where(and(
+          eq(sponsors.year, year),
+          sql`${sponsors.deletedAt} IS NULL`
+        ));
 
-      const industryCountsArray = Object.entries(industryCounts)
-        .map(([name, count]) => ({ name, count }))
+      const totalSponsorsCount = Number(totalSponsorsResult[0]?.count || 0);
+
+      // Query 3: Get industry counts (aggregate at database level)
+      const industryCountsResult = await db
+        .select({
+          industry: companies.industry,
+          count: sql<number>`COUNT(*)`
+        })
+        .from(companies)
+        .where(sql`${companies.industry} IS NOT NULL`)
+        .groupBy(companies.industry);
+
+      const industryCountsArray = industryCountsResult
+        .map(row => ({
+          name: row.industry!,
+          count: Number(row.count)
+        }))
         .sort((a, b) => b.count - a.count);
 
       return {
         companies: filteredCompanies,
         filters: {
           sponsors: {
-            count: uniqueSponsorCompanyIds.size,
+            count: totalSponsorsCount,
             tiers: tierCounts
           },
           industries: industryCountsArray
