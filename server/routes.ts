@@ -3449,12 +3449,21 @@ export async function registerRoutes(app: Express) {
         .from(people);
       const totalPeople = Number(totalPeopleResult[0].count);
 
-      // Get claimed users count (people with user accounts)
-      const claimedUsersResult = await db
+      // Get verified users count (users who completed account setup)
+      const verifiedUsersResult = await db
         .select({ count: sql<number>`count(DISTINCT ${users.id})` })
         .from(users)
-        .innerJoin(people, eq(users.email, people.email));
-      const claimedUsers = Number(claimedUsersResult[0].count);
+        .innerJoin(people, eq(users.email, people.email))
+        .where(eq(users.isVerified, true));
+      const verifiedUsers = Number(verifiedUsersResult[0].count);
+
+      // Get pending users count (users who claimed but haven't verified)
+      const pendingUsersResult = await db
+        .select({ count: sql<number>`count(DISTINCT ${users.id})` })
+        .from(users)
+        .innerJoin(people, eq(users.email, people.email))
+        .where(eq(users.isVerified, false));
+      const pendingUsers = Number(pendingUsersResult[0].count);
 
       // Get in workflow count
       const inWorkflowResult = await db
@@ -3486,12 +3495,13 @@ export async function registerRoutes(app: Express) {
         .from(emailInvitations);
       const totalInvitesSent = Number(totalInvitesSentResult[0].total || 0);
 
-      // Calculate conversion rate (claimed users / total people)
-      const conversionRate = totalPeople > 0 ? (claimedUsers / totalPeople) * 100 : 0;
+      // Calculate conversion rate (verified users / total people)
+      const conversionRate = totalPeople > 0 ? (verifiedUsers / totalPeople) * 100 : 0;
 
       res.json({
         totalPeople,
-        claimedUsers,
+        verifiedUsers,
+        pendingUsers,
         inWorkflow,
         completedWorkflow,
         optedOut,
