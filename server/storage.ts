@@ -25,7 +25,7 @@ import {
   badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents
 } from "@shared/schema";
 import { db } from "./db";
-import { sql, eq, and, or } from "drizzle-orm";
+import { sql, eq, and, or, isNull } from "drizzle-orm";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -2149,7 +2149,8 @@ export class PostgresStorage implements IStorage {
       // Query 1: Get filtered companies based on the filter type
       if (filter === 'sponsors') {
         // Only fetch companies that are sponsors for this year, sorted by tier
-        const tierOrderCase = sql`
+        // Query companies with sponsor data
+        const tierOrderExpr = sql<number>`
           CASE ${sponsors.tier}
             WHEN 'Series A' THEN 0
             WHEN 'Seed' THEN 1
@@ -2159,18 +2160,22 @@ export class PostgresStorage implements IStorage {
             ELSE 999
           END
         `;
-
+        
         const result = await db
-          .selectDistinct(companies)
+          .select({
+            company: companies,
+            tierOrder: tierOrderExpr
+          })
           .from(companies)
           .innerJoin(sponsors, and(
             eq(sponsors.companyId, companies.id),
             eq(sponsors.year, year),
-            sql`${sponsors.deletedAt} IS NULL`
+            isNull(sponsors.deletedAt)
           ))
-          .orderBy(tierOrderCase, companies.name);
+          .orderBy(tierOrderExpr, companies.name);
 
-        filteredCompanies = result;
+        // Extract just the company objects from the joined result
+        filteredCompanies = result.map(row => row.company);
       } else if (filter) {
         // Filter by specific industry
         filteredCompanies = await db
