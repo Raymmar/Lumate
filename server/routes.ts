@@ -1799,101 +1799,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/members", async (req, res) => {
-    try {
-      const page = parseInt(req.query.page as string) || 1;
-      const limit = parseInt(req.query.limit as string) || 100;
-      const searchQuery = ((req.query.search as string) || "").toLowerCase();
-
-      console.log("Fetching members with badges:", {
-        page,
-        limit,
-        searchQuery,
-      });
-
-      // First get all users with search filter
-      const allUsers = await db
-        .select()
-        .from(users)
-        .where(
-          searchQuery
-            ? sql`(LOWER(email) LIKE ${`%${searchQuery}%`} OR LOWER(display_name) LIKE ${`%${searchQuery}%`})`
-            : sql`1=1`,
-        )
-        .orderBy(sql`created_at DESC`);
-
-      console.log(`Found ${allUsers.length} users matching search criteria`);
-
-      // For each user, fetch their badges and person profile
-      interface UserBadgeResult {
-        id: number;
-        name: string;
-        description: string | null;
-        icon: string;
-        isAutomatic: boolean;
-        assignedAt: string;
-      }
-
-      const usersWithBadgesAndProfile = await Promise.all(
-        allUsers.map(async (user) => {
-          // Fetch badges for this user
-          const assignedBadges = (await db
-            .select({
-              id: badges.id,
-              name: badges.name,
-              description: badges.description,
-              icon: badges.icon,
-              isAutomatic: badges.isAutomatic,
-              assignedAt: sql<string>`${userBadgesTable}.assigned_at`,
-            })
-            .from(userBadgesTable)
-            .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
-            .where(eq(userBadgesTable.userId, user.id))) as UserBadgeResult[];
-
-          // Fetch associated person profile
-          const person = await storage.getPersonByEmail(
-            user.email.toLowerCase(),
-          );
-
-          console.log("Retrieved user data:", {
-            userId: user.id,
-            email: user.email,
-            badgeCount: assignedBadges.length,
-            badges: assignedBadges.map((b) => b.name),
-            hasPerson: !!person,
-          });
-
-          return {
-            ...user,
-            badges: assignedBadges,
-            person: person || null,
-          };
-        }),
-      );
-
-      // Calculate pagination
-      const start = (page - 1) * limit;
-      const paginatedUsers = usersWithBadgesAndProfile.slice(
-        start,
-        start + limit,
-      );
-
-      console.log("Returning paginated users with badges and profiles:", {
-        totalUsers: usersWithBadgesAndProfile.length,
-        returnedUsers: paginatedUsers.length,
-        page,
-        limit,
-      });
-
-      res.json({
-        users: paginatedUsers,
-        total: usersWithBadgesAndProfile.length,
-      });
-    } catch (error) {
-      console.error("Failed to fetch members:", error);
-      res.status(500).json({ error: "Failed to fetch members" });
-    }
-  });
 
   app.patch("/api/admin/members/:id/admin-status", async (req, res) => {
     try {
@@ -4408,10 +4313,56 @@ export async function registerRoutes(app: Express) {
         .limit(limit)
         .offset(offset);
 
-      res.json({
-        users: usersList,
-        total: totalCount,
-      });
+      // Batch fetch all badges for these users in one query
+      const userIds = usersList.map(u => u.id);
+      
+      if (userIds.length > 0) {
+        const allBadges = await db
+          .select({
+            userId: userBadgesTable.userId,
+            badgeId: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic,
+            assignedAt: userBadgesTable.assignedAt,
+          })
+          .from(userBadgesTable)
+          .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .where(sql`${userBadgesTable.userId} IN (${sql.join(userIds.map(id => sql`${id}`), sql`, `)})`);
+
+        // Group badges by user ID
+        const badgesByUser = allBadges.reduce((acc, badge) => {
+          if (!acc[badge.userId]) {
+            acc[badge.userId] = [];
+          }
+          acc[badge.userId].push({
+            id: badge.badgeId,
+            name: badge.name,
+            description: badge.description,
+            icon: badge.icon,
+            isAutomatic: badge.isAutomatic,
+            assignedAt: badge.assignedAt,
+          });
+          return acc;
+        }, {} as Record<number, any[]>);
+
+        // Attach badges to users
+        const usersWithBadges = usersList.map(user => ({
+          ...user,
+          badges: badgesByUser[user.id] || [],
+        }));
+
+        res.json({
+          users: usersWithBadges,
+          total: totalCount,
+        });
+      } else {
+        res.json({
+          users: usersList,
+          total: totalCount,
+        });
+      }
     } catch (error) {
       console.error("Failed to fetch members:", error);
       res.status(500).json({ error: "Failed to fetch members" });
