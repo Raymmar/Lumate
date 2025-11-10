@@ -2,14 +2,7 @@ import { Request, Response, Router } from "express";
 import { storage } from "../storage";
 import { z } from "zod";
 import { insertCompanySchema, insertCompanyMemberSchema } from "@shared/schema";
-
-// Middleware for authentication and authorization
-const requireAuth = (req: Request, res: Response, next: Function) => {
-  if (!req.session.userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  next();
-};
+import { requireAuth, requirePremiumOrAdmin, requirePremiumOrCompanyAdmin } from "./middleware";
 
 const router = Router();
 
@@ -47,8 +40,8 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Create a new company (requires authentication)
-router.post("/", requireAuth, async (req: Request, res: Response) => {
+// Create a new company (requires premium membership or admin)
+router.post("/", requirePremiumOrAdmin, async (req: Request, res: Response) => {
   try {
     // Validate the company data
     const { customLinks, ...otherData } = req.body;
@@ -91,33 +84,12 @@ router.post("/", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Update a company (requires company admin or system admin)
-router.put("/:id", requireAuth, async (req: Request, res: Response) => {
+// Update a company (requires premium membership + company admin or system admin)
+router.put("/:id", requirePremiumOrCompanyAdmin(), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid company ID" });
-    }
-
-    // Check if the user is a system admin
-    const user = await storage.getUserById(req.session.userId!);
-    const isSystemAdmin = user?.isAdmin === true;
-    
-    // Log the system admin check
-    console.log(`User ${req.session.userId} isAdmin check: ${isSystemAdmin}`);
-    
-    // If not a system admin, verify if they're a company admin/owner
-    if (!isSystemAdmin) {
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
-      console.log(`User ${req.session.userId} isCompanyAdmin check: ${isCompanyAdmin}`);
-      
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
-    } else {
-      console.log(`Access granted: User ${req.session.userId} is a system admin`);
     }
 
     // Validate the company data
@@ -139,7 +111,7 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
     const company = await storage.updateCompany(id, updatedData);
     
     // Process tags if provided
-    let updatedTags = [];
+    let updatedTags: any[] = [];
     if (tagsList && Array.isArray(tagsList)) {
       console.log(`Processing tags for company update:`, tagsList);
       // Sync tags for the company
@@ -161,30 +133,12 @@ router.put("/:id", requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-// Delete a company (requires company admin or system admin)
-router.delete("/:id", requireAuth, async (req: Request, res: Response) => {
+// Delete a company (requires premium membership + company admin or system admin)
+router.delete("/:id", requirePremiumOrCompanyAdmin(), async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ error: "Invalid company ID" });
-    }
-
-    // Check if the user is a system admin
-    const user = await storage.getUserById(req.session.userId!);
-    const isSystemAdmin = user?.isAdmin === true;
-    
-    // If the user is a system admin, they have full access
-    if (isSystemAdmin) {
-      console.log(`Access granted: User ${req.session.userId} is a system admin`);
-    } else {
-      // If not a system admin, verify if they're a company admin/owner
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, id);
-      
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Delete the company
@@ -217,28 +171,12 @@ router.get("/:id/members", async (req: Request, res: Response) => {
   }
 });
 
-// Add a member to a company (requires company admin or system admin)
-router.post("/:id/members", requireAuth, async (req: Request, res: Response) => {
+// Add a member to a company (requires premium membership + company admin or system admin)
+router.post("/:id/members", requirePremiumOrCompanyAdmin(), async (req: Request, res: Response) => {
   try {
     const companyId = parseInt(req.params.id);
     if (isNaN(companyId)) {
       return res.status(400).json({ error: "Invalid company ID" });
-    }
-
-    // Check if user is a system admin first
-    const user = await storage.getUserById(req.session.userId!);
-    const isSystemAdmin = user?.isAdmin === true;
-    
-    if (isSystemAdmin) {
-      console.log(`Access granted: User ${req.session.userId} is a system admin`);
-    } else {
-      // If not a system admin, verify if they're a company admin/owner
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Validate the member data
@@ -278,29 +216,13 @@ router.post("/:id/members", requireAuth, async (req: Request, res: Response) => 
   }
 });
 
-// Update a member's role (requires company admin or system admin)
-router.put("/:companyId/members/:userId", requireAuth, async (req: Request, res: Response) => {
+// Update a member's role (requires premium membership + company admin or system admin)
+router.put("/:companyId/members/:userId", requirePremiumOrCompanyAdmin("companyId"), async (req: Request, res: Response) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const userId = parseInt(req.params.userId);
     if (isNaN(companyId) || isNaN(userId)) {
       return res.status(400).json({ error: "Invalid IDs" });
-    }
-
-    // Check if user is a system admin first
-    const user = await storage.getUserById(req.session.userId!);
-    const isSystemAdmin = user?.isAdmin === true;
-    
-    if (isSystemAdmin) {
-      console.log(`Access granted: User ${req.session.userId} is a system admin`);
-    } else {
-      // If not a system admin, verify if they're a company admin/owner
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Validate the role data
@@ -323,29 +245,13 @@ router.put("/:companyId/members/:userId", requireAuth, async (req: Request, res:
   }
 });
 
-// Remove a member from a company (requires company admin or system admin)
-router.delete("/:companyId/members/:userId", requireAuth, async (req: Request, res: Response) => {
+// Remove a member from a company (requires premium membership + company admin or system admin)
+router.delete("/:companyId/members/:userId", requirePremiumOrCompanyAdmin("companyId"), async (req: Request, res: Response) => {
   try {
     const companyId = parseInt(req.params.companyId);
     const userId = parseInt(req.params.userId);
     if (isNaN(companyId) || isNaN(userId)) {
       return res.status(400).json({ error: "Invalid IDs" });
-    }
-
-    // Check if user is a system admin first
-    const user = await storage.getUserById(req.session.userId!);
-    const isSystemAdmin = user?.isAdmin === true;
-    
-    if (isSystemAdmin) {
-      console.log(`Access granted: User ${req.session.userId} is a system admin`);
-    } else {
-      // If not a system admin, verify if they're a company admin/owner
-      const isCompanyAdmin = await storage.isCompanyAdmin(req.session.userId!, companyId);
-      if (!isCompanyAdmin) {
-        console.log(`Access denied: User ${req.session.userId} is neither a system admin nor a company admin/owner`);
-        return res.status(403).json({ error: "Unauthorized" });
-      }
-      console.log(`Access granted: User ${req.session.userId} is a company admin/owner`);
     }
 
     // Remove the member

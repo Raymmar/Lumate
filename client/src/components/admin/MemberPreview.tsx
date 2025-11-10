@@ -523,8 +523,18 @@ function PremiumMembershipManagement({ member }: { member: Member }) {
     });
   };
 
-  const hasPremiumAccess = member.premiumExpiresAt && new Date(member.premiumExpiresAt) > new Date();
+  // Check for premium access from both Stripe subscriptions and expiring grants (Luma/manual)
+  const hasPremiumAccess = 
+    member.subscriptionStatus === 'active' || 
+    (member.premiumExpiresAt && new Date(member.premiumExpiresAt) > new Date());
+  
   const getPremiumSourceLabel = () => {
+    // Check Stripe subscription first (highest priority)
+    if (member.subscriptionStatus === 'active') {
+      return 'Stripe Subscription';
+    }
+    
+    // Then check manual or Luma premium grants
     if (!member.premiumSource) return null;
     
     switch (member.premiumSource) {
@@ -562,7 +572,7 @@ function PremiumMembershipManagement({ member }: { member: Member }) {
           </Badge>
         </div>
 
-        {member.premiumSource && (
+        {hasPremiumAccess && getPremiumSourceLabel() && (
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Source:</span>
             <span className="text-sm text-muted-foreground">{getPremiumSourceLabel()}</span>
