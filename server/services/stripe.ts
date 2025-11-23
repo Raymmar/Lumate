@@ -1,18 +1,11 @@
-import Stripe from "stripe";
 import { storage } from "../storage";
-
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("STRIPE_SECRET_KEY must be defined");
-}
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-02-24.acacia",
-});
+import { getUncachableStripeClient } from "../stripeClient";
 
 export class StripeService {
   static async createCustomer(email: string, userId: number) {
     try {
       console.log("Creating Stripe customer for:", email);
+      const stripe = await getUncachableStripeClient();
       const customer = await stripe.customers.create({
         email,
         metadata: {
@@ -44,6 +37,7 @@ export class StripeService {
         userId,
       });
 
+      const stripe = await getUncachableStripeClient();
       const baseUrl = process.env.APP_URL || "http://localhost:3000";
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
@@ -78,6 +72,7 @@ export class StripeService {
   static async verifySession(sessionId: string) {
     try {
       console.log("🔍 Verifying session:", sessionId);
+      const stripe = await getUncachableStripeClient();
       const session = await stripe.checkout.sessions.retrieve(sessionId, {
         expand: ["subscription"],
       });
@@ -137,7 +132,7 @@ export class StripeService {
 
       console.log("Creating customer portal session for:", customerId);
 
-      // Use production URL, fallback to environment URL only in development
+      const stripe = await getUncachableStripeClient();
       const returnUrl = process.env.APP_URL
         ? `${process.env.APP_URL}/settings`
         : "http://localhost:3000/settings";
@@ -166,6 +161,7 @@ export class StripeService {
 
       console.log("🔍 Checking subscription status for customer:", customerId);
 
+      const stripe = await getUncachableStripeClient();
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
         limit: 1,
@@ -206,6 +202,7 @@ export class StripeService {
 
       console.log("🔄 Cancelling subscription:", subscriptionId);
 
+      const stripe = await getUncachableStripeClient();
       const subscription = await stripe.subscriptions.update(subscriptionId, {
         cancel_at_period_end: true,
       });

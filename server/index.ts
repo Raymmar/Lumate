@@ -15,6 +15,9 @@ import { fileURLToPath } from "url";
 import fs from "fs";
 import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, isEventPage, isSummitPage, extractPostSlug, extractCompanySlug, extractUsername, extractEventSlug } from "./utils/crawlerDetection";
 import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph, fetchEventForOpenGraph, fetchSummitForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
+import { runMigrations } from 'stripe-replit-sync';
+import { getStripeSync } from "./stripeClient";
+import { WebhookHandlers } from "./webhookHandlers";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,18 +28,52 @@ const isProduction = process.env.NODE_ENV === "production";
 // Initialize storage for SSE connections
 app.set('activeSSEConnections', []);
 
-// Raw body handling for Stripe webhooks must come first
+// Raw body handling for Stripe webhooks with UUID must come first
 app.post(
-  "/api/stripe/webhook",
+  "/api/stripe/webhook/:uuid",
   express.raw({ type: "application/json" }),
-  (req, res, next) => {
-    console.log("🔔 Webhook Request Details:", {
+  async (req, res) => {
+    const signature = req.headers['stripe-signature'];
+
+    console.log("🔔 Webhook received:", {
       contentType: req.headers["content-type"],
-      hasSignature: !!req.headers["stripe-signature"],
+      hasSignature: !!signature,
       bodyLength: req.body?.length || 0,
+      uuid: req.params.uuid,
     });
-    next();
-  },
+
+    if (!signature) {
+      return res.status(400).json({ error: 'Missing stripe-signature' });
+    }
+
+    try {
+      const sig = Array.isArray(signature) ? signature[0] : signature;
+
+      if (!Buffer.isBuffer(req.body)) {
+        const errorMsg = 'STRIPE WEBHOOK ERROR: req.body is not a Buffer. ' +
+          'This means express.json() ran before this webhook route. ' +
+          'FIX: Move this webhook route registration BEFORE app.use(express.json()) in your code.';
+        console.error(errorMsg);
+        return res.status(500).json({ error: 'Webhook processing error' });
+      }
+
+      const { uuid } = req.params;
+      await WebhookHandlers.processWebhook(req.body as Buffer, sig, uuid);
+
+      res.status(200).json({ received: true });
+    } catch (error: any) {
+      console.error('Webhook error:', error.message);
+
+      if (error.message && error.message.includes('payload must be provided as a string or a Buffer')) {
+        const helpfulMsg = 'STRIPE WEBHOOK ERROR: Payload is not a Buffer. ' +
+          'This usually means express.json() parsed the body before the webhook handler. ' +
+          'FIX: Ensure the webhook route is registered BEFORE app.use(express.json()).';
+        console.error(helpfulMsg);
+      }
+
+      res.status(400).json({ error: 'Webhook processing error' });
+    }
+  }
 );
 
 // Add health check endpoint
@@ -86,6 +123,50 @@ app.use(
   // First ensure database tables exist
   const { ensureTablesExist } = await import("./db");
   await ensureTablesExist();
+
+  // Initialize Stripe schema and sync
+  async function initStripe() {
+    const databaseUrl = process.env.DATABASE_URL;
+
+    if (!databaseUrl) {
+      console.warn('DATABASE_URL not found, skipping Stripe initialization');
+      return;
+    }
+
+    try {
+      console.log('[Stripe] Initializing Stripe schema...');
+      await runMigrations({ 
+        databaseUrl
+      });
+      console.log('[Stripe] Stripe schema ready');
+
+      const stripeSync = await getStripeSync();
+
+      console.log('[Stripe] Setting up managed webhook...');
+      const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
+        `${webhookBaseUrl}/api/stripe/webhook`,
+        {
+          enabled_events: ['*'],
+          description: 'Managed webhook for Stripe sync',
+        }
+      );
+      console.log(`[Stripe] Webhook configured: ${webhook.url} (UUID: ${uuid})`);
+
+      console.log('[Stripe] Starting background sync of Stripe data...');
+      stripeSync.syncBackfill()
+        .then(() => {
+          console.log('[Stripe] Stripe data synced successfully');
+        })
+        .catch((err: any) => {
+          console.error('[Stripe] Error syncing Stripe data:', err);
+        });
+    } catch (error) {
+      console.error('[Stripe] Failed to initialize Stripe:', error);
+    }
+  }
+
+  await initStripe();
 
   // Open Graph middleware for crawlers - must come before Vite/static setup
   app.use(async (req: Request, res: Response, next: NextFunction) => {
@@ -258,15 +339,16 @@ app.use(
   });
 
   // Graceful shutdown handling
+  let shutdownCalled = false;
   const gracefulShutdown = (signal: string) => {
     console.log(`[Server] Received ${signal}, starting graceful shutdown...`);
     
     // Prevent multiple shutdown attempts
-    if (gracefulShutdown.called) {
+    if (shutdownCalled) {
       console.log('[Server] Shutdown already in progress, force exiting...');
       process.exit(1);
     }
-    gracefulShutdown.called = true;
+    shutdownCalled = true;
     
     // Clear intervals immediately
     if (badgeAssignmentInterval) {

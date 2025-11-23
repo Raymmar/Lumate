@@ -2780,6 +2780,134 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Stripe data queries (from stripe schema created by stripe-replit-sync)
+  async getStripeProduct(productId: string): Promise<any> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.products WHERE id = ${productId}`
+    );
+    return result.rows[0] || null;
+  }
+
+  async listStripeProducts(active = true, limit = 20, offset = 0): Promise<any[]> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.products WHERE active = ${active} LIMIT ${limit} OFFSET ${offset}`
+    );
+    return result.rows;
+  }
+
+  async listStripeProductsWithPrices(active = true, limit = 100, offset = 0): Promise<any[]> {
+    const result = await db.execute(
+      sql`
+        WITH paginated_products AS (
+          SELECT id, name, description, metadata, active
+          FROM stripe.products
+          WHERE active = ${active}
+          ORDER BY id
+          LIMIT ${limit} OFFSET ${offset}
+        )
+        SELECT 
+          p.id as product_id,
+          p.name as product_name,
+          p.description as product_description,
+          p.active as product_active,
+          p.metadata as product_metadata,
+          pr.id as price_id,
+          pr.unit_amount,
+          pr.currency,
+          pr.recurring,
+          pr.active as price_active,
+          pr.metadata as price_metadata
+        FROM paginated_products p
+        LEFT JOIN stripe.prices pr ON pr.product = p.id AND pr.active = true
+        ORDER BY p.id, pr.unit_amount
+      `
+    );
+    return result.rows;
+  }
+
+  async getStripePrice(priceId: string): Promise<any> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.prices WHERE id = ${priceId}`
+    );
+    return result.rows[0] || null;
+  }
+
+  async listStripePrices(active = true, limit = 20, offset = 0): Promise<any[]> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.prices WHERE active = ${active} LIMIT ${limit} OFFSET ${offset}`
+    );
+    return result.rows;
+  }
+
+  async getPricesForStripeProduct(productId: string): Promise<any[]> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.prices WHERE product = ${productId} AND active = true`
+    );
+    return result.rows;
+  }
+
+  async getStripeSubscription(subscriptionId: string): Promise<any> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.subscriptions WHERE id = ${subscriptionId}`
+    );
+    return result.rows[0] || null;
+  }
+
+  async getStripeSubscriptionRevenue(): Promise<{
+    totalRevenue: number;
+    revenueByPrice: Array<{
+      id: string;
+      nickname?: string;
+      productName?: string;
+      revenue: number;
+      subscriptionCount: number;
+      unitAmount?: number;
+    }>;
+  }> {
+    try {
+      const result = await db.execute(
+        sql`
+          SELECT 
+            pr.id as price_id,
+            pr.nickname,
+            prod.name as product_name,
+            pr.unit_amount,
+            COUNT(DISTINCT si.subscription) as subscription_count,
+            SUM(COALESCE(pr.unit_amount, 0) * COALESCE(si.quantity, 1)) as revenue
+          FROM stripe.subscriptions s
+          JOIN stripe.subscription_items si ON si.subscription = s.id
+          JOIN stripe.prices pr ON pr.id = si.price
+          LEFT JOIN stripe.products prod ON prod.id = pr.product
+          WHERE s.status = 'active'
+          GROUP BY pr.id, pr.nickname, prod.name, pr.unit_amount
+          ORDER BY revenue DESC
+        `
+      );
+
+      const revenueByPrice = result.rows.map((row: any) => ({
+        id: row.price_id,
+        nickname: row.nickname,
+        productName: row.product_name,
+        revenue: (Number(row.revenue) || 0) / 100,
+        subscriptionCount: Number(row.subscription_count) || 0,
+        unitAmount: row.unit_amount ? Number(row.unit_amount) / 100 : undefined,
+      }));
+
+      const totalRevenue = revenueByPrice.reduce((sum, item) => sum + item.revenue, 0);
+
+      return {
+        totalRevenue,
+        revenueByPrice,
+      };
+    } catch (error) {
+      console.error('Error fetching Stripe subscription revenue:', error);
+      return {
+        totalRevenue: 0,
+        revenueByPrice: [],
+      };
+    }
+  }
+
   // Timeline management
   async getTimelineEvents(): Promise<TimelineEvent[]> {
     try {

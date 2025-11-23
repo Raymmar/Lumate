@@ -193,20 +193,16 @@ export default function AdminDashboard() {
         <StatCard
           title="Membership Revenue"
           value={
-            statsData?.paidUsers && statsData.paidUsers > 0
-              ? `$${(statsData.paidUsers * 199).toFixed(2)}`
-              : revenueData?.totalRevenue 
-                ? `$${revenueData.totalRevenue.toFixed(2)}` 
-                : '--'
+            revenueData?.totalRevenue 
+              ? `$${revenueData.totalRevenue.toFixed(2)}` 
+              : '--'
           }
           icon={DollarSign}
-          isLoading={isLoading || isRevenueLoading}
+          isLoading={isRevenueLoading}
           description={
-            statsData?.paidUsers && statsData.paidUsers > 0
-              ? `${statsData.paidUsers} subscriptions at $199 each`
-              : revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 
-                ? `${revenueData.revenueByPrice.length} subscription types active`
-                : "Total revenue from memberships"
+            revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 
+              ? `${revenueData.revenueByPrice.reduce((sum, item) => sum + item.subscriptionCount, 0)} active subscriptions`
+              : "Total monthly recurring revenue"
           }
         />
       </div>
@@ -236,54 +232,42 @@ export default function AdminDashboard() {
               </tr>
             </thead>
             <tbody>
-              {statsData?.paidUsers && statsData.paidUsers > 0 ? (
-                <tr className="border-t">
-                  <td className="px-4 py-3">
-                    Sarasota Tech Membership
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    $199.00
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {statsData.paidUsers}
-                  </td>
-                  <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                    ${(statsData.paidUsers * 199).toFixed(2)}
-                  </td>
-                </tr>
-              ) : (
-                revenueData?.revenueByPrice && revenueData.revenueByPrice.map((item) => (
-                  <tr key={item.id} className="border-t">
-                    <td className="px-4 py-3">
-                      {item.nickname || item.productName || 'Unknown Subscription'}
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      ${item.unitAmount ? item.unitAmount.toFixed(2) : '--'}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {item.subscriptionCount}
+              {revenueData?.revenueByPrice && revenueData.revenueByPrice.length > 0 ? (
+                <>
+                  {revenueData.revenueByPrice.map((item) => (
+                    <tr key={item.id} className="border-t">
+                      <td className="px-4 py-3">
+                        {item.nickname || item.productName || 'Unknown Subscription'}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        ${item.unitAmount ? item.unitAmount.toFixed(2) : '--'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {item.subscriptionCount}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                        ${item.revenue.toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="border-t bg-muted/20">
+                    <td className="px-4 py-3 font-medium">Total</td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {revenueData.revenueByPrice.reduce((sum, item) => sum + item.subscriptionCount, 0)}
                     </td>
                     <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                      ${item.revenue.toFixed(2)}
+                      ${revenueData.totalRevenue.toFixed(2)}
                     </td>
                   </tr>
-                ))
+                </>
+              ) : (
+                <tr className="border-t">
+                  <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
+                    {isRevenueLoading ? 'Loading revenue data...' : 'No active subscriptions found'}
+                  </td>
+                </tr>
               )}
-              <tr className="border-t bg-muted/20">
-                <td className="px-4 py-3 font-medium">Total</td>
-                <td className="px-4 py-3"></td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {statsData?.paidUsers || revenueData?.revenueByPrice?.reduce((sum, item) => sum + item.subscriptionCount, 0) || 0}
-                </td>
-                <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                  ${statsData?.paidUsers 
-                    ? (statsData.paidUsers * 199).toFixed(2) 
-                    : revenueData?.totalRevenue 
-                      ? revenueData.totalRevenue.toFixed(2) 
-                      : '0.00'
-                  }
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
