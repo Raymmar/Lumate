@@ -278,7 +278,6 @@ export default function AdminDashboard() {
                   <th className="px-4 py-3 text-right font-medium">Total Paid</th>
                   <th className="px-4 py-3 text-right font-medium">Subscription</th>
                   <th className="px-4 py-3 text-right font-medium">Last Payment</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -294,26 +293,23 @@ export default function AdminDashboard() {
                       <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
                         ${customer.totalPaid.toFixed(2)}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
-                        ${customer.subscriptionRevenue.toFixed(2)}/mo
+                      <td className={`px-4 py-3 text-right whitespace-nowrap font-semibold ${
+                        customer.subscriptionRevenue > 0 
+                          ? 'text-green-600 dark:text-green-400' 
+                          : 'text-muted-foreground'
+                      }`}>
+                        {customer.subscriptionRevenue > 0 
+                          ? `$${customer.subscriptionRevenue.toFixed(2)}/mo` 
+                          : '--'}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-muted-foreground">
                         {customer.lastPayment ? new Date(customer.lastPayment).toLocaleDateString() : '--'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          customer.status === 'Active Subscriber' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        }`}>
-                          {customer.status}
-                        </span>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr className="border-t">
-                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-8 text-center text-muted-foreground">
                       {isCustomerLoading ? 'Loading customer data...' : 'No customer revenue found'}
                     </td>
                   </tr>
