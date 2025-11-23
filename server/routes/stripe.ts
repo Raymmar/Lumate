@@ -289,4 +289,76 @@ router.get("/revenue", async (req, res) => {
   }
 });
 
+// Get comprehensive revenue overview
+router.get("/revenue-overview", async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const overview = await storage.getStripeRevenueOverview();
+    return res.json(overview);
+  } catch (error: any) {
+    console.error("Error fetching revenue overview:", error);
+    return res.status(500).json({
+      error: "Failed to fetch revenue overview",
+      message: error.message,
+    });
+  }
+});
+
+// Get customer revenue breakdown
+router.get("/customer-revenue", async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const customers = await storage.getStripeCustomerRevenue();
+    return res.json(customers);
+  } catch (error: any) {
+    console.error("Error fetching customer revenue:", error);
+    return res.status(500).json({
+      error: "Failed to fetch customer revenue",
+      message: error.message,
+    });
+  }
+});
+
+// Get revenue by product
+router.get("/product-revenue", async (req, res) => {
+  try {
+    const userId = req.session?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const user = await storage.getUserById(userId);
+    if (!user || !user.isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const products = await storage.getStripeProductRevenue();
+    return res.json(products);
+  } catch (error: any) {
+    console.error("Error fetching product revenue:", error);
+    return res.status(500).json({
+      error: "Failed to fetch product revenue",
+      message: error.message,
+    });
+  }
+});
+
 export default router;

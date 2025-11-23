@@ -2908,6 +2908,218 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  // Get comprehensive Stripe revenue data
+  async getStripeRevenueOverview(): Promise<{
+    totalRevenue: number;
+    thisMonthRevenue: number;
+    subscriptionRevenue: number;
+    activeSubscriptions: number;
+    totalCharges: number;
+    totalCustomers: number;
+  }> {
+    try {
+      // Get total revenue from all successful charges
+      const totalRevenueResult = await db.execute(
+        sql`
+          SELECT SUM(amount) as total 
+          FROM stripe.charges 
+          WHERE status = 'succeeded'
+        `
+      );
+      const totalRevenue = totalRevenueResult.rows[0]?.total ? Number(totalRevenueResult.rows[0].total) / 100 : 0;
+
+      // Get this month's revenue
+      const thisMonthStart = new Date();
+      thisMonthStart.setDate(1);
+      thisMonthStart.setHours(0, 0, 0, 0);
+      const thisMonthTimestamp = Math.floor(thisMonthStart.getTime() / 1000);
+      
+      const thisMonthResult = await db.execute(
+        sql`
+          SELECT SUM(amount) as total 
+          FROM stripe.charges 
+          WHERE status = 'succeeded' 
+          AND created >= ${thisMonthTimestamp}
+        `
+      );
+      const thisMonthRevenue = thisMonthResult.rows[0]?.total ? Number(thisMonthResult.rows[0].total) / 100 : 0;
+
+      // Get subscription revenue (MRR)
+      const subscriptionResult = await db.execute(
+        sql`
+          SELECT 
+            COUNT(DISTINCT s.id) as active_subscriptions,
+            SUM(COALESCE(pr.unit_amount, 0) * COALESCE(si.quantity, 1)) as subscription_revenue
+          FROM stripe.subscriptions s
+          JOIN stripe.subscription_items si ON si.subscription = s.id
+          JOIN stripe.prices pr ON pr.id = si.price
+          WHERE s.status = 'active'
+        `
+      );
+      const subscriptionRevenue = subscriptionResult.rows[0]?.subscription_revenue ? Number(subscriptionResult.rows[0].subscription_revenue) / 100 : 0;
+      const activeSubscriptions = Number(subscriptionResult.rows[0]?.active_subscriptions || 0);
+
+      // Get total charges and customers
+      const chargesResult = await db.execute(
+        sql`SELECT COUNT(*) as total FROM stripe.charges`
+      );
+      const totalCharges = Number(chargesResult.rows[0]?.total || 0);
+
+      const customersResult = await db.execute(
+        sql`SELECT COUNT(*) as total FROM stripe.customers`
+      );
+      const totalCustomers = Number(customersResult.rows[0]?.total || 0);
+
+      return {
+        totalRevenue,
+        thisMonthRevenue,
+        subscriptionRevenue,
+        activeSubscriptions,
+        totalCharges,
+        totalCustomers,
+      };
+    } catch (error) {
+      console.error('Error fetching Stripe revenue overview:', error);
+      return {
+        totalRevenue: 0,
+        thisMonthRevenue: 0,
+        subscriptionRevenue: 0,
+        activeSubscriptions: 0,
+        totalCharges: 0,
+        totalCustomers: 0,
+      };
+    }
+  }
+
+  // Get customer revenue breakdown
+  async getStripeCustomerRevenue(): Promise<Array<{
+    customerId: string;
+    email: string;
+    name?: string;
+    totalPaid: number;
+    subscriptionRevenue: number;
+    lastPayment?: Date;
+    status: string;
+  }>> {
+    try {
+      const result = await db.execute(
+        sql`
+          WITH customer_charges AS (
+            SELECT 
+              customer,
+              SUM(amount) as total_paid,
+              MAX(created) as last_payment
+            FROM stripe.charges
+            WHERE status = 'succeeded'
+            GROUP BY customer
+          ),
+          customer_subscriptions AS (
+            SELECT 
+              s.customer,
+              SUM(COALESCE(pr.unit_amount, 0) * COALESCE(si.quantity, 1)) as subscription_revenue
+            FROM stripe.subscriptions s
+            JOIN stripe.subscription_items si ON si.subscription = s.id
+            JOIN stripe.prices pr ON pr.id = si.price
+            WHERE s.status = 'active'
+            GROUP BY s.customer
+          )
+          SELECT 
+            c.id as customer_id,
+            c.email,
+            c.name,
+            COALESCE(cc.total_paid, 0) as total_paid,
+            COALESCE(cs.subscription_revenue, 0) as subscription_revenue,
+            cc.last_payment,
+            CASE 
+              WHEN cs.subscription_revenue > 0 THEN 'Active Subscriber'
+              WHEN cc.total_paid > 0 THEN 'Past Customer'
+              ELSE 'No Payments'
+            END as status
+          FROM stripe.customers c
+          LEFT JOIN customer_charges cc ON cc.customer = c.id
+          LEFT JOIN customer_subscriptions cs ON cs.customer = c.id
+          WHERE cc.total_paid > 0 OR cs.subscription_revenue > 0
+          ORDER BY COALESCE(cc.total_paid, 0) DESC
+          LIMIT 100
+        `
+      );
+
+      return result.rows.map((row: any) => ({
+        customerId: row.customer_id,
+        email: row.email,
+        name: row.name,
+        totalPaid: row.total_paid ? Number(row.total_paid) / 100 : 0,
+        subscriptionRevenue: row.subscription_revenue ? Number(row.subscription_revenue) / 100 : 0,
+        lastPayment: row.last_payment ? new Date(row.last_payment * 1000) : undefined,
+        status: row.status,
+      }));
+    } catch (error) {
+      console.error('Error fetching customer revenue:', error);
+      return [];
+    }
+  }
+
+  // Get revenue by product
+  async getStripeProductRevenue(): Promise<Array<{
+    productId: string;
+    productName: string;
+    revenue: number;
+    subscriptions: number;
+    charges: number;
+  }>> {
+    try {
+      const result = await db.execute(
+        sql`
+          WITH product_subscriptions AS (
+            SELECT 
+              prod.id as product_id,
+              prod.name as product_name,
+              COUNT(DISTINCT s.id) as subscription_count,
+              SUM(COALESCE(pr.unit_amount, 0) * COALESCE(si.quantity, 1)) as subscription_revenue
+            FROM stripe.products prod
+            JOIN stripe.prices pr ON pr.product = prod.id
+            JOIN stripe.subscription_items si ON si.price = pr.id
+            JOIN stripe.subscriptions s ON s.id = si.subscription
+            WHERE s.status = 'active'
+            GROUP BY prod.id, prod.name
+          ),
+          product_charges AS (
+            SELECT 
+              prod.id as product_id,
+              COUNT(*) as charge_count,
+              SUM(ch.amount) as charge_revenue
+            FROM stripe.products prod
+            JOIN stripe.prices pr ON pr.product = prod.id
+            JOIN stripe.invoices inv ON inv.id IS NOT NULL
+            JOIN stripe.charges ch ON ch.invoice = inv.id
+            WHERE ch.status = 'succeeded'
+            GROUP BY prod.id
+          )
+          SELECT 
+            COALESCE(ps.product_id, pc.product_id) as product_id,
+            ps.product_name,
+            COALESCE(ps.subscription_revenue, 0) + COALESCE(pc.charge_revenue, 0) as total_revenue,
+            COALESCE(ps.subscription_count, 0) as subscriptions,
+            COALESCE(pc.charge_count, 0) as charges
+          FROM product_subscriptions ps
+          FULL OUTER JOIN product_charges pc ON ps.product_id = pc.product_id
+          ORDER BY total_revenue DESC
+        `
+      );
+
+      return result.rows.map((row: any) => ({
+        productId: row.product_id,
+        productName: row.product_name || 'Unknown Product',
+        revenue: row.total_revenue ? Number(row.total_revenue) / 100 : 0,
+        subscriptions: Number(row.subscriptions || 0),
+        charges: Number(row.charges || 0),
+      }));
+    } catch (error) {
+      console.error('Error fetching product revenue:', error);
+      return [];
+    }
+  }
+
   // Timeline management
   async getTimelineEvents(): Promise<TimelineEvent[]> {
     try {
