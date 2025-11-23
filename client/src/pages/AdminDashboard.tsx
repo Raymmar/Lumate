@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, CreditCard, DollarSign, ExternalLink, Tickets, Coins, Building, RefreshCw, TrendingUp, ShoppingCart } from "lucide-react";
+import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Tickets, Coins, RefreshCw, TrendingUp } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/StatCard";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
@@ -13,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface RevenueData {
   totalRevenue: number;
@@ -44,14 +43,6 @@ interface CustomerRevenue {
   subscriptionRevenue: number;
   lastPayment?: string;
   status: string;
-}
-
-interface ProductRevenue {
-  productId: string;
-  productName: string;
-  revenue: number;
-  subscriptions: number;
-  charges: number;
 }
 
 export default function AdminDashboard() {
@@ -100,19 +91,6 @@ export default function AdminDashboard() {
       const response = await fetch("/api/stripe/customer-revenue");
       if (!response.ok) {
         throw new Error("Failed to fetch customer revenue");
-      }
-      return response.json();
-    },
-    retry: 1
-  });
-
-  // Fetch product revenue data
-  const { data: productRevenue, isLoading: isProductLoading } = useQuery<ProductRevenue[]>({
-    queryKey: ["/api/stripe/product-revenue"],
-    queryFn: async () => {
-      const response = await fetch("/api/stripe/product-revenue");
-      if (!response.ok) {
-        throw new Error("Failed to fetch product revenue");
       }
       return response.json();
     },
@@ -182,20 +160,6 @@ export default function AdminDashboard() {
       setIsSubmitting(false);
     }
   };
-
-  // Prepare data for pie chart
-  const pieChartData = revenueOverview ? [
-    {
-      name: 'Membership Revenue',
-      value: revenueOverview.subscriptionRevenue,
-      color: '#10b981'
-    },
-    {
-      name: 'Other Revenue',
-      value: Math.max(0, revenueOverview.totalRevenue - revenueOverview.subscriptionRevenue),
-      color: '#6366f1'
-    }
-  ].filter(item => item.value > 0) : [];
 
   return (
     <AdminLayout title={
@@ -292,82 +256,21 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Revenue Analytics Section */}
-      <div className="mt-8 space-y-8">
-        {/* Revenue Overview with Pie Chart */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Pie Chart */}
-          <div className="bg-card rounded-lg border shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Revenue Distribution</h2>
-            {pieChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={pieChartData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value, percent }) => `${name}: $${value.toLocaleString()}`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieChartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-                No revenue data available
-              </div>
-            )}
-          </div>
-
-          {/* Product Revenue */}
-          <div className="bg-card rounded-lg border shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Revenue by Product</h2>
-            <div className="space-y-3 max-h-[250px] overflow-y-auto">
-              {productRevenue && productRevenue.length > 0 ? (
-                productRevenue.map((product) => (
-                  <div key={product.productId} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                    <div>
-                      <div className="font-medium">{product.productName}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {product.subscriptions} subscriptions • {product.charges} charges
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold">${product.revenue.toLocaleString()}</div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-muted-foreground py-8">
-                  {isProductLoading ? 'Loading product data...' : 'No product revenue found'}
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Customer Revenue Table */}
+      <div className="mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Customer Revenue</h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => refetchRevenue()}
+            className="flex items-center gap-1 text-xs"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refresh
+          </Button>
         </div>
-
-        {/* Customer Revenue Table */}
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Customer Revenue</h2>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => refetchRevenue()}
-              className="flex items-center gap-1 text-xs"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Refresh
-            </Button>
-          </div>
-          <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
+        <div className="overflow-x-auto bg-card rounded-lg border shadow-sm">
             <table className="w-full text-sm">
               <thead className="bg-muted/50">
                 <tr>
@@ -417,12 +320,11 @@ export default function AdminDashboard() {
                 )}
               </tbody>
             </table>
-            {customerRevenue && customerRevenue.length > 20 && (
-              <div className="px-4 py-3 border-t text-sm text-muted-foreground text-center">
-                Showing top 20 of {customerRevenue.length} customers
-              </div>
-            )}
-          </div>
+          {customerRevenue && customerRevenue.length > 20 && (
+            <div className="px-4 py-3 border-t text-sm text-muted-foreground text-center">
+              Showing top 20 of {customerRevenue.length} customers
+            </div>
+          )}
         </div>
       </div>
 
