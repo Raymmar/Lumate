@@ -3039,7 +3039,7 @@ export class PostgresStorage implements IStorage {
           LEFT JOIN customer_charges cc ON cc.customer = c.id
           LEFT JOIN customer_subscriptions cs ON cs.customer = c.id
           WHERE cc.total_paid > 0 OR cs.subscription_revenue > 0
-          ORDER BY COALESCE(cc.total_paid, 0) DESC
+          ORDER BY cc.last_payment DESC NULLS LAST
           LIMIT 100
         `
       );

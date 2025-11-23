@@ -256,10 +256,10 @@ export default function AdminDashboard() {
         />
       </div>
 
-      {/* Customer Revenue Table */}
+      {/* Recent Transactions Table */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Customer Revenue</h2>
+          <h2 className="text-xl font-semibold">Recent Transactions</h2>
           <Button 
             variant="outline" 
             size="sm" 
@@ -322,7 +322,7 @@ export default function AdminDashboard() {
             </table>
           {customerRevenue && customerRevenue.length > 20 && (
             <div className="px-4 py-3 border-t text-sm text-muted-foreground text-center">
-              Showing top 20 of {customerRevenue.length} customers
+              Showing 20 most recent of {customerRevenue.length} customers
             </div>
           )}
         </div>
