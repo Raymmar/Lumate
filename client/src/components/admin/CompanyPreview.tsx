@@ -361,11 +361,10 @@ export function CompanyPreview({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsEditMode(false)}
+              onClick={() => isNew ? onClose() : setIsEditMode(false)}
               disabled={updateCompanyMutation.isPending}
               data-testid="button-cancel-edit"
             >
-              <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
             <Button
