@@ -3,6 +3,7 @@ import { storage } from "../storage";
 import { z } from "zod";
 import { insertCompanySchema, insertCompanyMemberSchema } from "@shared/schema";
 import { requireAuth, requirePremiumOrAdmin, requirePremiumOrCompanyAdmin } from "./middleware";
+import { hasCompanyPremiumAccess } from "../utils/premiumCheck";
 
 const router = Router();
 
@@ -275,11 +276,25 @@ router.delete("/:companyId/members/:userId", requirePremiumOrCompanyAdmin("compa
   }
 });
 
-// Get user's companies
+// Get user's companies (with premium access status)
 router.get("/user/companies", requireAuth, async (req: Request, res: Response) => {
   try {
     const companies = await storage.getUserCompanies(req.session.userId!);
-    res.json({ companies });
+    
+    // Enrich each company with its premium access status
+    const companiesWithPremiumStatus = await Promise.all(
+      companies.map(async (company) => {
+        const premiumAccess = await hasCompanyPremiumAccess(company.id);
+        return {
+          ...company,
+          hasPremiumAccess: premiumAccess.hasAccess,
+          premiumSource: premiumAccess.source,
+          premiumSponsorTier: premiumAccess.sponsorTier,
+        };
+      })
+    );
+    
+    res.json({ companies: companiesWithPremiumStatus });
   } catch (error) {
     console.error("Failed to fetch user companies:", error);
     res.status(500).json({ error: "Failed to fetch user companies" });

@@ -114,7 +114,7 @@ export default function CompanyProfilePage() {
   const [newLinkTitle, setNewLinkTitle] = useState("");
   const [newLinkUrl, setNewLinkUrl] = useState("");
 
-  // Check subscription status
+  // Check subscription status (for fallback when no company exists)
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
     useQuery({
       queryKey: ["/api/subscription/status"],
@@ -126,9 +126,6 @@ export default function CompanyProfilePage() {
       },
       enabled: !!user,
     });
-
-  const hasActiveSubscription =
-    user?.isAdmin || subscriptionStatus?.status === "active";
 
   // Start subscription function
   const startSubscription = async () => {
@@ -181,11 +178,18 @@ export default function CompanyProfilePage() {
 
   // For simplicity, we'll work with the first company found for this user
   const company = userCompanies?.companies?.[0];
-  // Check if user is a company admin or has system admin privileges
-  const isCompanyAdmin = company?.role === 'admin' || user?.isAdmin === true;
+  // Check if user is a company admin/owner or has system admin privileges
+  const isCompanyAdmin = company?.role === 'admin' || company?.role === 'owner' || user?.isAdmin === true;
   
-  // Determine if user can edit the company profile - any member of the company can edit (not just admins)
-  const canEditCompany = company !== undefined || user?.isAdmin === true;
+  // Check if company has premium access (from API response - includes sponsor status and owner premium)
+  // Falls back to user's own subscription status for creating new companies
+  const hasActiveSubscription = user?.isAdmin || 
+    company?.hasPremiumAccess || 
+    subscriptionStatus?.status === "active";
+  
+  // Determine if user can edit the company profile
+  // User can edit if they're a company admin/owner AND the company has premium access
+  const canEditCompany = (isCompanyAdmin && company?.hasPremiumAccess) || user?.isAdmin === true;
   
   const form = useForm<CompanyProfileFormValues>({
     resolver: zodResolver(companyProfileSchema),
@@ -458,9 +462,9 @@ export default function CompanyProfilePage() {
                     <CardContent className="p-3 md:p-4">
                       <div className="text-center space-y-4">
                         <Lock className="h-12 w-12 mx-auto text-muted-foreground" />
-                        <h3 className="text-xl font-semibold">Company Profile Management requires a subscription</h3>
+                        <h3 className="text-xl font-semibold">Company Profile Management requires premium access</h3>
                         <p className="text-muted-foreground max-w-md mx-auto">
-                          Upgrade to create and manage your company profile, add team members, and showcase your business in the Sarasota Tech directory.
+                          Upgrade to create and manage your company profile, add team members, and showcase your business in the Sarasota Tech directory. Premium access is also included for sponsors.
                         </p>
                         <Button 
                           onClick={startSubscription} 
@@ -1031,7 +1035,7 @@ export default function CompanyProfilePage() {
                               </TooltipTrigger>
                               {!canEditCompany && !!company && (
                                 <TooltipContent>
-                                  <p>You need admin privileges and an active subscription to edit the company profile.</p>
+                                  <p>You need admin privileges and premium access to edit the company profile. Premium access is included for sponsors.</p>
                                 </TooltipContent>
                               )}
                             </Tooltip>

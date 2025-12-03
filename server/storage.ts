@@ -178,6 +178,10 @@ export interface IStorage {
   createSponsor(sponsorData: InsertSponsor): Promise<Sponsor>;
   updateSponsor(sponsorId: number, data: Partial<Sponsor>): Promise<Sponsor>;
   deleteSponsor(sponsorId: number, deletedBy: number): Promise<void>;
+  getActiveSponsorByCompanyId(companyId: number): Promise<Sponsor | null>;
+  
+  // Company premium access
+  getCompanyOwner(companyId: number): Promise<User | null>;
 
   // Email invitation tracking
   getEmailInvitationByPersonId(personId: number): Promise<EmailInvitation | null>;
@@ -2675,6 +2679,45 @@ export class PostgresStorage implements IStorage {
         .where(eq(sponsors.id, sponsorId));
     } catch (error) {
       console.error('Failed to delete sponsor:', error);
+      throw error;
+    }
+  }
+
+  async getActiveSponsorByCompanyId(companyId: number): Promise<Sponsor | null> {
+    try {
+      const currentYear = new Date().getFullYear();
+      const result = await db
+        .select()
+        .from(sponsors)
+        .where(and(
+          eq(sponsors.companyId, companyId),
+          eq(sponsors.year, currentYear),
+          sql`${sponsors.deletedAt} IS NULL`
+        ))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get active sponsor by company id:', error);
+      throw error;
+    }
+  }
+
+  async getCompanyOwner(companyId: number): Promise<User | null> {
+    try {
+      const result = await db
+        .select({
+          user: users
+        })
+        .from(companyMembers)
+        .innerJoin(users, eq(companyMembers.userId, users.id))
+        .where(and(
+          eq(companyMembers.companyId, companyId),
+          eq(companyMembers.role, 'owner')
+        ))
+        .limit(1);
+      return result[0]?.user || null;
+    } catch (error) {
+      console.error('Failed to get company owner:', error);
       throw error;
     }
   }

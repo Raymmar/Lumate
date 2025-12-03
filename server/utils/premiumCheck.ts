@@ -1,7 +1,7 @@
 import { User } from "@shared/schema";
 import { db } from "../db";
-import { users, events, attendance } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { users, events, attendance, sponsors, companyMembers } from "@shared/schema";
+import { eq, and, sql } from "drizzle-orm";
 
 /**
  * Checks if a user has active premium access from any source
@@ -278,4 +278,119 @@ export async function checkAndGrantPremiumFromTickets(userId: number): Promise<{
     console.error('Error checking and granting premium from tickets:', error);
     return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
   }
+}
+
+/**
+ * Company-level premium access types
+ */
+export type CompanyPremiumSource = 'sponsor' | 'owner_subscription' | 'owner_manual' | 'owner_luma' | null;
+
+export interface CompanyPremiumAccess {
+  hasAccess: boolean;
+  source: CompanyPremiumSource;
+  sponsorTier?: string;
+  expiresAt?: Date | null;
+}
+
+/**
+ * Checks if a company has premium access.
+ * A company has premium access if:
+ * 1. The company has an active sponsor record for the current year
+ * 2. The company's owner has active premium membership (Stripe, manual, or Luma)
+ * 
+ * @param companyId The company's database ID
+ * @returns Object with access status and source
+ */
+export async function hasCompanyPremiumAccess(companyId: number): Promise<CompanyPremiumAccess> {
+  try {
+    const currentYear = new Date().getFullYear();
+    const nextYear = currentYear + 1;
+    
+    // Check 1: Is the company an active sponsor for the current or next year?
+    // We check both because sponsors are often set up in advance for the upcoming year
+    const activeSponsor = await db
+      .select()
+      .from(sponsors)
+      .where(and(
+        eq(sponsors.companyId, companyId),
+        sql`${sponsors.year} IN (${currentYear}, ${nextYear})`,
+        sql`${sponsors.deletedAt} IS NULL`
+      ))
+      .limit(1);
+    
+    if (activeSponsor.length > 0) {
+      const sponsorYear = activeSponsor[0].year;
+      return {
+        hasAccess: true,
+        source: 'sponsor',
+        sponsorTier: activeSponsor[0].tier,
+        expiresAt: new Date(`${sponsorYear}-12-31T23:59:59Z`)
+      };
+    }
+    
+    // Check 2: Does the company owner have active premium?
+    const ownerResult = await db
+      .select({
+        user: users
+      })
+      .from(companyMembers)
+      .innerJoin(users, eq(companyMembers.userId, users.id))
+      .where(and(
+        eq(companyMembers.companyId, companyId),
+        eq(companyMembers.role, 'owner')
+      ))
+      .limit(1);
+    
+    const owner = ownerResult[0]?.user;
+    
+    if (owner) {
+      // Check Stripe subscription
+      if (owner.subscriptionStatus === 'active') {
+        return {
+          hasAccess: true,
+          source: 'owner_subscription',
+          expiresAt: null // Active subscription has no expiration
+        };
+      }
+      
+      // Check manual or Luma premium grants
+      if (owner.premiumSource && owner.premiumExpiresAt) {
+        const expirationDate = new Date(owner.premiumExpiresAt);
+        const now = new Date();
+        
+        if (expirationDate > now) {
+          const source: CompanyPremiumSource = owner.premiumSource === 'luma' 
+            ? 'owner_luma' 
+            : 'owner_manual';
+          return {
+            hasAccess: true,
+            source,
+            expiresAt: expirationDate
+          };
+        }
+      }
+    }
+    
+    // No premium access
+    return {
+      hasAccess: false,
+      source: null
+    };
+    
+  } catch (error) {
+    console.error('Error checking company premium access:', error);
+    return {
+      hasAccess: false,
+      source: null
+    };
+  }
+}
+
+/**
+ * Simple boolean check for company premium access
+ * Use this for quick permission checks in middleware
+ */
+export async function checkCompanyHasPremiumAccess(companyId: number): Promise<boolean> {
+  const result = await hasCompanyPremiumAccess(companyId);
+  return result.hasAccess;
 }
