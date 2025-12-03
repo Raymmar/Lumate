@@ -1,7 +1,31 @@
 import { storage } from "../storage";
 import { getUncachableStripeClient } from "../stripeClient";
+import Stripe from "stripe";
 
 export class StripeService {
+  static async getPriceDetails(priceId: string) {
+    try {
+      console.log("🔍 Fetching price details for:", priceId);
+      const stripe = await getUncachableStripeClient();
+      const price = await stripe.prices.retrieve(priceId, {
+        expand: ['product']
+      });
+      
+      const product = price.product as Stripe.Product;
+      
+      return {
+        id: price.id,
+        unitAmount: price.unit_amount ? price.unit_amount / 100 : 0,
+        currency: price.currency,
+        interval: price.recurring?.interval || null,
+        productName: product.name,
+        productDescription: product.description,
+      };
+    } catch (error) {
+      console.error("❌ Error fetching price details:", error);
+      throw error;
+    }
+  }
   static async createCustomer(email: string, userId: number) {
     try {
       console.log("Creating Stripe customer for:", email);
