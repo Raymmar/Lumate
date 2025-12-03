@@ -43,6 +43,29 @@ router.get("/ping", (req, res) => {
   res.json({ status: "ok" });
 });
 
+// Get premium price details from configured STRIPE_PRICE_ID
+router.get("/premium-price", async (req, res) => {
+  try {
+    const priceId = process.env.STRIPE_PRICE_ID;
+    if (!priceId) {
+      return res.status(500).json({ error: "Stripe price ID is not configured" });
+    }
+
+    const priceDetails = await StripeService.getPriceDetails(priceId);
+    
+    res.json({
+      price: priceDetails.unitAmount,
+      currency: priceDetails.currency,
+      interval: priceDetails.interval,
+      productName: priceDetails.productName,
+      formattedPrice: `$${priceDetails.unitAmount}`,
+    });
+  } catch (error: any) {
+    console.error("Error fetching premium price:", error);
+    res.status(500).json({ error: "Failed to fetch price details" });
+  }
+});
+
 // Create checkout session
 router.post("/create-checkout-session", async (req, res) => {
   try {

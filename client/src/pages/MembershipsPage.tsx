@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { NavBar } from "@/components/NavBar";
 import {
@@ -16,6 +15,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/hooks/use-auth";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
+import { useQuery } from "@tanstack/react-query";
 
 interface PlanFeature {
   text: string;
@@ -25,6 +25,7 @@ interface PlanFeature {
 interface PricingPlan {
   name: string;
   price: string;
+  interval?: string;
   description: string;
   features: PlanFeature[];
   cta: {
@@ -38,11 +39,27 @@ interface PricingPlan {
   cardClassName?: string;
 }
 
+interface PremiumPriceData {
+  price: number;
+  currency: string;
+  interval: string | null;
+  productName: string;
+  formattedPrice: string;
+}
+
 export default function MembershipsPage() {
   const { toast } = useToast();
   const { isPremium, startSubscription, isLoading } = useSubscription();
   const { user } = useAuth();
   const isLoggedIn = !!user;
+
+  const { data: premiumPrice, isLoading: isPriceLoading } = useQuery<PremiumPriceData>({
+    queryKey: ['/api/stripe/premium-price'],
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const displayPrice = isPriceLoading ? "..." : (premiumPrice?.formattedPrice || "$199");
+  const priceInterval = premiumPrice?.interval || "year";
 
   const handleSponsorInquiry = () => {
     window.location.href = generateSponsorInquiryEmail();
@@ -52,6 +69,7 @@ export default function MembershipsPage() {
     {
       name: "Free",
       price: "$0",
+      interval: "year",
       description: "Basic membership for community members",
       icon: <UserCircle2 className="h-6 w-6" />,
       features: [
@@ -67,7 +85,8 @@ export default function MembershipsPage() {
     },
     {
       name: "Premium",
-      price: "$199",
+      price: displayPrice,
+      interval: priceInterval,
       description: "Premium features for professionals and businesses",
       icon: <Sparkles className="h-6 w-6" />,
       popular: true,
@@ -154,9 +173,9 @@ export default function MembershipsPage() {
                     </div>
                     <div className="flex items-end gap-1">
                       <span className="text-3xl font-bold">{plan.price}</span>
-                      {plan.price !== "Custom" && (
+                      {plan.interval && (
                         <span className="text-muted-foreground mb-1">
-                          /year
+                          /{plan.interval}
                         </span>
                       )}
                     </div>
