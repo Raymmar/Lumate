@@ -160,6 +160,7 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
           event_api_id: validatedData.eventApiId,
           remaining_count: 1,
           discount: {
+            discount_type: "percent",
             percent_off: validatedData.discountPercent,
           },
         };
