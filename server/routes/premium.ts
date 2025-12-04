@@ -35,7 +35,7 @@ router.get("/api/admin/events/:eventId/ticket-types", requireAdmin, async (req, 
         console.log(`Fetching ticket types from Luma API for event ${eventId}`);
         const lumaResponse = await lumaApiRequest("event/ticket-types/list", {
           event_id: eventId,
-          include_hidden: 'false',
+          include_hidden: 'true',
         });
         
         if (lumaResponse?.ticket_types && Array.isArray(lumaResponse.ticket_types)) {
