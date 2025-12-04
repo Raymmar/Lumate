@@ -516,15 +516,6 @@ export default function AdminCouponsPage() {
         }
       >
         <div className="space-y-6">
-          <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-2">
-            <h3 className="font-semibold text-sm">About Member Coupons</h3>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Generate unique coupon codes for active premium members</li>
-              <li>Each member receives their own single-use code</li>
-              <li>Codes are created in Luma and can be used during event registration</li>
-              <li>Track redemption status to see which members have claimed their tickets</li>
-            </ul>
-          </div>
 
           {isLoadingCoupons ? (
             <div className="flex items-center justify-center py-12">
