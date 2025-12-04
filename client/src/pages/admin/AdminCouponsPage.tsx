@@ -75,16 +75,36 @@ export default function AdminCouponsPage() {
     queryKey: ["/api/admin/coupons/eligible-events"],
   });
 
-  const { data: ticketTypesData, isLoading: isLoadingTicketTypes } = useQuery<{ ticketTypes: TicketType[]; event: any }>({
+  const { data: ticketTypesData, isLoading: isLoadingTicketTypes, refetch: refetchTicketTypes, isFetching: isFetchingTicketTypes } = useQuery<{ ticketTypes: TicketType[]; source: string; event: any }>({
     queryKey: ["/api/admin/events", selectedEventId, "ticket-types"],
     queryFn: async () => {
-      if (!selectedEventId) return { ticketTypes: [], event: null };
+      if (!selectedEventId) return { ticketTypes: [], source: 'none', event: null };
       const response = await fetch(`/api/admin/events/${selectedEventId}/ticket-types`);
       if (!response.ok) throw new Error("Failed to fetch ticket types");
       return response.json();
     },
     enabled: !!selectedEventId,
   });
+
+  const refreshTicketTypes = async () => {
+    if (!selectedEventId) return;
+    try {
+      const response = await fetch(`/api/admin/events/${selectedEventId}/ticket-types?refresh=true`);
+      if (!response.ok) throw new Error("Failed to refresh ticket types");
+      const data = await response.json();
+      queryClient.setQueryData(["/api/admin/events", selectedEventId, "ticket-types"], data);
+      toast({
+        title: "Ticket Types Refreshed",
+        description: `Found ${data.ticketTypes?.length || 0} ticket types from ${data.source}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to refresh ticket types from Luma",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: premiumCountData } = useQuery<{ count: number }>({
     queryKey: ["/api/admin/coupons/premium-members-count"],
@@ -222,26 +242,42 @@ export default function AdminCouponsPage() {
                   {selectedEventId && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="ticketType">Ticket Type (Optional)</Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="ticketType">Ticket Type (Optional)</Label>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={refreshTicketTypes}
+                            disabled={isFetchingTicketTypes}
+                            className="h-6 text-xs"
+                            data-testid="button-refresh-ticket-types"
+                          >
+                            <RefreshCw className={`h-3 w-3 mr-1 ${isFetchingTicketTypes ? 'animate-spin' : ''}`} />
+                            Refresh from Luma
+                          </Button>
+                        </div>
                         <Select value={selectedTicketTypeId} onValueChange={setSelectedTicketTypeId}>
                           <SelectTrigger id="ticketType" data-testid="select-ticket-type">
                             <SelectValue placeholder="All ticket types" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All ticket types</SelectItem>
-                            {isLoadingTicketTypes ? (
-                              <div className="p-2 text-center">Loading...</div>
-                            ) : (
-                              ticketTypesData?.ticketTypes?.map((ticketType) => (
+                            {isLoadingTicketTypes || isFetchingTicketTypes ? (
+                              <div className="p-2 text-center text-sm text-muted-foreground">Loading ticket types...</div>
+                            ) : ticketTypesData?.ticketTypes && ticketTypesData.ticketTypes.length > 0 ? (
+                              ticketTypesData.ticketTypes.map((ticketType) => (
                                 <SelectItem key={ticketType.id} value={ticketType.id}>
                                   {ticketType.name}
                                 </SelectItem>
                               ))
+                            ) : (
+                              <div className="p-2 text-center text-sm text-muted-foreground">No ticket types found. Click refresh to fetch from Luma.</div>
                             )}
                           </SelectContent>
                         </Select>
                         <p className="text-xs text-muted-foreground">
-                          Leave blank to apply discount to any ticket type
+                          {ticketTypesData?.source === 'luma' ? 'Ticket types from Luma' : ticketTypesData?.source === 'database' ? 'Ticket types from past attendance' : ''} - Leave blank to apply discount to any ticket type
                         </p>
                       </div>
 

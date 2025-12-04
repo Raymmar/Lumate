@@ -4,13 +4,15 @@ import { attendance, events, users } from "@shared/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "./middleware";
 import { hasActivePremium } from "../utils/premiumCheck";
+import { lumaApiRequest } from "../routes";
 
 const router = Router();
 
-// Get unique ticket types from attendance records for an event
+// Get ticket types for an event - fetches from Luma API first, falls back to database
 router.get("/api/admin/events/:eventId/ticket-types", requireAdmin, async (req, res) => {
   try {
     const eventId = req.params.eventId;
+    const refreshFromLuma = req.query.refresh === 'true';
 
     // Get the event details
     const event = await db
@@ -23,25 +25,57 @@ router.get("/api/admin/events/:eventId/ticket-types", requireAdmin, async (req, 
       return res.status(404).json({ error: "Event not found" });
     }
 
-    // Get unique ticket types from attendance records for this event
-    const ticketTypes = await db
-      .selectDistinct({
-        ticketTypeId: attendance.ticketTypeId,
-        ticketTypeName: attendance.ticketTypeName,
-      })
-      .from(attendance)
-      .where(eq(attendance.eventApiId, eventId));
+    let ticketTypesFromLuma: Array<{ id: string; name: string }> = [];
+    let source = 'database';
 
-    // Filter out null values and return unique ticket types
-    const uniqueTicketTypes = ticketTypes
-      .filter((t) => t.ticketTypeId && t.ticketTypeName)
-      .map((t) => ({
-        id: t.ticketTypeId,
-        name: t.ticketTypeName,
-      }));
+    // Try to fetch from Luma API (always try for future events or when refresh is requested)
+    const isFutureEvent = new Date(event[0].startTime) > new Date();
+    if (refreshFromLuma || isFutureEvent) {
+      try {
+        console.log(`Fetching ticket types from Luma API for event ${eventId}`);
+        const lumaResponse = await lumaApiRequest("event/ticket-types/list", {
+          event_id: eventId,
+          include_hidden: 'false',
+        });
+        
+        if (lumaResponse?.ticket_types && Array.isArray(lumaResponse.ticket_types)) {
+          ticketTypesFromLuma = lumaResponse.ticket_types.map((tt: any) => ({
+            id: tt.api_id || tt.id,
+            name: tt.name,
+            price: tt.price,
+            currency: tt.currency,
+          }));
+          source = 'luma';
+          console.log(`Found ${ticketTypesFromLuma.length} ticket types from Luma API`);
+        }
+      } catch (lumaError) {
+        console.error("Failed to fetch ticket types from Luma API:", lumaError);
+        // Fall back to database if Luma API fails
+      }
+    }
+
+    // If no Luma data, fall back to database attendance records
+    if (ticketTypesFromLuma.length === 0) {
+      const ticketTypes = await db
+        .selectDistinct({
+          ticketTypeId: attendance.ticketTypeId,
+          ticketTypeName: attendance.ticketTypeName,
+        })
+        .from(attendance)
+        .where(eq(attendance.eventApiId, eventId));
+
+      ticketTypesFromLuma = ticketTypes
+        .filter((t) => t.ticketTypeId && t.ticketTypeName)
+        .map((t) => ({
+          id: t.ticketTypeId!,
+          name: t.ticketTypeName!,
+        }));
+      source = 'database';
+    }
 
     res.json({ 
-      ticketTypes: uniqueTicketTypes,
+      ticketTypes: ticketTypesFromLuma,
+      source,
       event: {
         api_id: event[0].api_id,
         title: event[0].title,
