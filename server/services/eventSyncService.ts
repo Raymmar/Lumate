@@ -212,8 +212,8 @@ async function syncFutureEvents() {
 }
 
 export async function startEventSyncService(immediate: boolean = false): Promise<{ recentSyncInterval: NodeJS.Timeout, futureSyncInterval: NodeJS.Timeout }> {
-  // Run every 5 minutes for recently ended events
-  const RECENT_SYNC_INTERVAL = 5 * 60 * 1000;
+  // Run every hour for recently ended events
+  const RECENT_SYNC_INTERVAL = 60 * 60 * 1000;
 
   // Run every 6 hours for future events
   const FUTURE_SYNC_INTERVAL = 6 * 60 * 60 * 1000;
