@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Calendar, Users, Plus, Copy, Check, RefreshCw } from "lucide-react";
+import { Ticket, Calendar, Users, Plus, Copy, Check, RefreshCw, Search, X, UserPlus } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +34,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useDebounce } from "@/hooks/useDebounce";
 import type { Coupon } from "@shared/schema";
+
+interface SearchablePerson {
+  id: number;
+  email: string;
+  userName: string | null;
+  fullName: string | null;
+}
 
 interface CouponStats {
   eventApiId: string;
@@ -66,6 +75,10 @@ export default function AdminCouponsPage() {
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState<string>("");
   const [discountPercent, setDiscountPercent] = useState<number>(100);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [recipientType, setRecipientType] = useState<'allPremium' | 'individuals'>('allPremium');
+  const [selectedPeople, setSelectedPeople] = useState<SearchablePerson[]>([]);
+  const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
+  const debouncedPeopleSearch = useDebounce(peopleSearchQuery, 300);
 
   const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: Coupon[]; stats: CouponStats[] }>({
     queryKey: ["/api/admin/coupons"],
@@ -110,13 +123,33 @@ export default function AdminCouponsPage() {
     queryKey: ["/api/admin/coupons/premium-members-count"],
   });
 
+  const { data: peopleSearchData, isLoading: isSearchingPeople } = useQuery<{ people: SearchablePerson[] }>({
+    queryKey: ["/api/admin/people", "coupon-search", debouncedPeopleSearch],
+    queryFn: async () => {
+      if (!debouncedPeopleSearch || debouncedPeopleSearch.length < 2) {
+        return { people: [] };
+      }
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "10",
+        search: debouncedPeopleSearch,
+      });
+      const response = await fetch(`/api/admin/people?${params}`);
+      if (!response.ok) throw new Error("Failed to search people");
+      const data = await response.json();
+      return { people: data.people || [] };
+    },
+    enabled: recipientType === 'individuals' && debouncedPeopleSearch.length >= 2,
+  });
+
   const generateCouponsMutation = useMutation({
     mutationFn: async (data: {
       eventApiId: string;
       ticketTypeId?: string;
       ticketTypeName?: string;
       discountPercent: number;
-      targetGroup: 'activePremium';
+      targetGroup?: 'activePremium';
+      recipientIds?: number[];
     }) => {
       return apiRequest("/api/admin/coupons/generate", "POST", data);
     },
@@ -130,6 +163,9 @@ export default function AdminCouponsPage() {
       setSelectedEventId("");
       setSelectedTicketTypeId("");
       setDiscountPercent(100);
+      setRecipientType('allPremium');
+      setSelectedPeople([]);
+      setPeopleSearchQuery("");
     },
     onError: (error: Error) => {
       toast({
@@ -150,17 +186,55 @@ export default function AdminCouponsPage() {
       return;
     }
 
+    if (recipientType === 'individuals' && selectedPeople.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one person",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const actualTicketTypeId = selectedTicketTypeId === 'all' ? undefined : selectedTicketTypeId;
     const selectedTicket = ticketTypesData?.ticketTypes?.find(t => t.id === actualTicketTypeId);
 
-    generateCouponsMutation.mutate({
+    const mutationData: {
+      eventApiId: string;
+      ticketTypeId?: string;
+      ticketTypeName?: string;
+      discountPercent: number;
+      targetGroup?: 'activePremium';
+      recipientIds?: number[];
+    } = {
       eventApiId: selectedEventId,
       ticketTypeId: actualTicketTypeId,
       ticketTypeName: selectedTicket?.name || undefined,
       discountPercent,
-      targetGroup: 'activePremium',
-    });
+    };
+
+    if (recipientType === 'allPremium') {
+      mutationData.targetGroup = 'activePremium';
+    } else {
+      mutationData.recipientIds = selectedPeople.map(p => p.id);
+    }
+
+    generateCouponsMutation.mutate(mutationData);
   };
+
+  const handleAddPerson = (person: SearchablePerson) => {
+    if (!selectedPeople.find(p => p.id === person.id)) {
+      setSelectedPeople([...selectedPeople, person]);
+    }
+    setPeopleSearchQuery("");
+  };
+
+  const handleRemovePerson = (personId: number) => {
+    setSelectedPeople(selectedPeople.filter(p => p.id !== personId));
+  };
+
+  const filteredSearchResults = peopleSearchData?.people?.filter(
+    p => !selectedPeople.find(sp => sp.id === p.id)
+  ) || [];
 
   const copyToClipboard = async (code: string) => {
     await navigator.clipboard.writeText(code);
@@ -300,14 +374,100 @@ export default function AdminCouponsPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-lg border p-4 bg-muted/50">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Users className="h-4 w-4 text-muted-foreground" />
-                          <span>
-                            Will generate coupons for <strong>{premiumCountData?.count || 0}</strong> active premium members
-                          </span>
-                        </div>
+                      <div className="space-y-2">
+                        <Label>Recipients</Label>
+                        <RadioGroup
+                          value={recipientType}
+                          onValueChange={(value: 'allPremium' | 'individuals') => {
+                            setRecipientType(value);
+                            if (value === 'allPremium') {
+                              setSelectedPeople([]);
+                              setPeopleSearchQuery("");
+                            }
+                          }}
+                          className="flex flex-col gap-2"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="allPremium" id="allPremium" data-testid="radio-all-premium" />
+                            <Label htmlFor="allPremium" className="font-normal cursor-pointer">
+                              All Premium Members ({premiumCountData?.count || 0} people)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="individuals" id="individuals" data-testid="radio-individuals" />
+                            <Label htmlFor="individuals" className="font-normal cursor-pointer">
+                              Select Specific People
+                            </Label>
+                          </div>
+                        </RadioGroup>
                       </div>
+
+                      {recipientType === 'individuals' && (
+                        <div className="space-y-2">
+                          <Label>Search People</Label>
+                          <div className="relative">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search by name or email..."
+                              value={peopleSearchQuery}
+                              onChange={(e) => setPeopleSearchQuery(e.target.value)}
+                              className="pl-9"
+                              data-testid="input-people-search"
+                            />
+                            {isSearchingPeople && (
+                              <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-muted-foreground" />
+                            )}
+                          </div>
+                          
+                          {filteredSearchResults.length > 0 && peopleSearchQuery.length >= 2 && (
+                            <div className="border rounded-md max-h-40 overflow-y-auto">
+                              {filteredSearchResults.map((person) => (
+                                <button
+                                  key={person.id}
+                                  type="button"
+                                  onClick={() => handleAddPerson(person)}
+                                  className="w-full px-3 py-2 text-left hover:bg-muted flex items-center gap-2 text-sm"
+                                  data-testid={`button-add-person-${person.id}`}
+                                >
+                                  <UserPlus className="h-4 w-4 text-muted-foreground" />
+                                  <div>
+                                    <div className="font-medium">{person.userName || person.fullName || 'Unknown'}</div>
+                                    <div className="text-xs text-muted-foreground">{person.email}</div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {selectedPeople.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                              {selectedPeople.map((person) => (
+                                <Badge
+                                  key={person.id}
+                                  variant="secondary"
+                                  className="flex items-center gap-1 pr-1"
+                                >
+                                  {person.userName || person.fullName || person.email}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemovePerson(person.id)}
+                                    className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                    data-testid={`button-remove-person-${person.id}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {selectedPeople.length > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {selectedPeople.length} {selectedPeople.length === 1 ? 'person' : 'people'} selected
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
