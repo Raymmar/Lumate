@@ -125,6 +125,32 @@ export default function AdminCouponsPage() {
     queryKey: ["/api/admin/coupons/premium-members-count"],
   });
 
+  const selectedPeopleIds = selectedPeople.map(p => p.id).join(',');
+  
+  const { data: previewData, isLoading: isLoadingPreview } = useQuery<{ 
+    total: number; 
+    willReceive: number; 
+    alreadyHaveCoupons: number; 
+  }>({
+    queryKey: ["/api/admin/coupons/preview", selectedEventId, recipientType, selectedPeopleIds],
+    queryFn: async () => {
+      const body: any = { eventApiId: selectedEventId };
+      if (recipientType === 'allPremium') {
+        body.targetGroup = 'activePremium';
+      } else {
+        body.recipientIds = selectedPeople.map(p => p.id);
+      }
+      const response = await fetch('/api/admin/coupons/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error("Failed to load preview");
+      return response.json();
+    },
+    enabled: !!selectedEventId && (recipientType === 'allPremium' || selectedPeople.length > 0),
+  });
+
   const { data: peopleSearchData, isLoading: isSearchingPeople } = useQuery<{ people: SearchablePerson[] }>({
     queryKey: ["/api/admin/people", "coupon-search", debouncedPeopleSearch],
     queryFn: async () => {
@@ -157,9 +183,12 @@ export default function AdminCouponsPage() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/coupons"] });
+      const skippedMessage = data.results?.skipped > 0 
+        ? ` (${data.results.skipped} skipped - already had coupons)`
+        : '';
       toast({
         title: "Coupons Generated",
-        description: `Successfully created ${data.results?.created || 0} coupons`,
+        description: `Successfully created ${data.results?.created || 0} coupons${skippedMessage}`,
       });
       setIsCreateOpen(false);
       setSelectedEventId("");
@@ -489,6 +518,31 @@ export default function AdminCouponsPage() {
                       )}
                     </>
                   )}
+
+                  {selectedEventId && (recipientType === 'allPremium' || selectedPeople.length > 0) && (
+                    <div className="rounded-lg border bg-muted/50 p-4 space-y-2" data-testid="coupon-preview">
+                      <div className="text-sm font-medium">Preview</div>
+                      {isLoadingPreview ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Calculating...
+                        </div>
+                      ) : previewData ? (
+                        <div className="space-y-1 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-green-500" />
+                            <span><strong>{previewData.willReceive}</strong> will receive new coupons</span>
+                          </div>
+                          {previewData.alreadyHaveCoupons > 0 && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <div className="h-2 w-2 rounded-full bg-gray-400" />
+                              <span>{previewData.alreadyHaveCoupons} already have coupons (will be skipped)</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end gap-2">
@@ -497,7 +551,7 @@ export default function AdminCouponsPage() {
                   </Button>
                   <Button
                     onClick={handleGenerateCoupons}
-                    disabled={!selectedEventId || generateCouponsMutation.isPending}
+                    disabled={!selectedEventId || generateCouponsMutation.isPending || (previewData?.willReceive === 0)}
                     data-testid="button-confirm-generate"
                   >
                     {generateCouponsMutation.isPending ? (
@@ -505,8 +559,10 @@ export default function AdminCouponsPage() {
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Generating...
                       </>
+                    ) : previewData?.willReceive === 0 ? (
+                      "No New Recipients"
                     ) : (
-                      "Generate Coupons"
+                      `Generate ${previewData?.willReceive ?? ''} Coupons`
                     )}
                   </Button>
                 </div>
@@ -573,7 +629,7 @@ export default function AdminCouponsPage() {
                         const couponLink = getCouponLink(coupon);
                         return (
                           <TableRow key={coupon.id}>
-                            <TableCell className="font-medium max-w-[200px] truncate whitespace-nowrap" title={coupon.eventTitle}>{coupon.eventTitle}</TableCell>
+                            <TableCell className="font-medium max-w-[200px] truncate whitespace-nowrap" title={coupon.eventTitle ?? undefined}>{coupon.eventTitle}</TableCell>
                             <TableCell className="whitespace-nowrap truncate max-w-[180px]" title={coupon.recipientEmail}>{coupon.recipientEmail}</TableCell>
                             <TableCell className="whitespace-nowrap">
                               <Button

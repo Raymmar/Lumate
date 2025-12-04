@@ -100,14 +100,15 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
     
     if (validatedData.targetGroup === 'activePremium') {
       const premiumUsers = await storage.getActivePremiumMembers();
+      const usersWithEmail = premiumUsers.filter(u => u.email);
       
-      const userEmails = premiumUsers.map(u => u.email);
+      const userEmails = usersWithEmail.map(u => u.email);
       const matchedPeople = userEmails.length > 0 
         ? await db.select().from(people).where(inArray(people.email, userEmails))
         : [];
       const personEmailMap = new Map(matchedPeople.map(p => [p.email, p.id]));
       
-      recipients = premiumUsers.map(user => ({
+      recipients = usersWithEmail.map(user => ({
         id: user.id,
         email: user.email,
         userId: user.id,
@@ -144,9 +145,35 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       });
     }
     
+    // Filter out recipients who already have a coupon for this event
+    const existingCouponsForEvent = await db
+      .select({ recipientEmail: coupons.recipientEmail })
+      .from(coupons)
+      .where(eq(coupons.eventApiId, validatedData.eventApiId));
+    
+    const existingRecipientEmails = new Set(
+      existingCouponsForEvent
+        .filter(c => c.recipientEmail != null)
+        .map(c => c.recipientEmail.toLowerCase())
+    );
+    
+    const originalCount = recipients.length;
+    recipients = recipients.filter(
+      r => !existingRecipientEmails.has(r.email.toLowerCase())
+    );
+    const skippedCount = originalCount - recipients.length;
+    
+    if (recipients.length === 0) {
+      return res.status(400).json({ 
+        error: "All recipients already have coupons",
+        message: `All ${originalCount} selected recipients already have a coupon for this event`
+      });
+    }
+    
     const results = {
       created: 0,
       failed: 0,
+      skipped: skippedCount,
       errors: [] as string[],
     };
     
@@ -359,6 +386,64 @@ router.get("/api/admin/coupons/premium-members-count", requireAdmin, async (req,
     console.error("Failed to fetch premium members count:", error);
     res.status(500).json({
       error: "Failed to fetch premium members count",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.post("/api/admin/coupons/preview", requireAdmin, async (req, res) => {
+  try {
+    const { eventApiId, targetGroup, recipientIds } = req.body;
+    
+    if (!eventApiId) {
+      return res.status(400).json({ error: "Event is required" });
+    }
+    
+    let totalRecipients = 0;
+    let recipientEmails: string[] = [];
+    
+    if (targetGroup === 'activePremium') {
+      const premiumUsers = await storage.getActivePremiumMembers();
+      const usersWithEmail = premiumUsers.filter(u => u.email);
+      totalRecipients = usersWithEmail.length;
+      recipientEmails = usersWithEmail.map(u => u.email.toLowerCase());
+    } else if (recipientIds && recipientIds.length > 0) {
+      const peopleResult = await db
+        .select()
+        .from(people)
+        .where(inArray(people.id, recipientIds));
+      
+      totalRecipients = peopleResult.filter(p => p.email).length;
+      recipientEmails = peopleResult.filter(p => p.email).map(p => p.email!.toLowerCase());
+    }
+    
+    // Check existing coupons for this event
+    const existingCouponsForEvent = await db
+      .select({ recipientEmail: coupons.recipientEmail })
+      .from(coupons)
+      .where(eq(coupons.eventApiId, eventApiId));
+    
+    const existingRecipientEmails = new Set(
+      existingCouponsForEvent
+        .filter(c => c.recipientEmail != null)
+        .map(c => c.recipientEmail.toLowerCase())
+    );
+    
+    const alreadyHaveCoupons = recipientEmails.filter(
+      email => existingRecipientEmails.has(email)
+    ).length;
+    
+    const willReceive = totalRecipients - alreadyHaveCoupons;
+    
+    res.json({
+      total: totalRecipients,
+      willReceive,
+      alreadyHaveCoupons,
+    });
+  } catch (error) {
+    console.error("Failed to preview coupons:", error);
+    res.status(500).json({
+      error: "Failed to preview coupon recipients",
       message: error instanceof Error ? error.message : String(error),
     });
   }
