@@ -582,59 +582,57 @@ export default function AdminCouponsPage() {
                         const couponLink = getCouponLink(coupon);
                         return (
                           <TableRow key={coupon.id}>
-                            <TableCell className="font-medium">{coupon.eventTitle}</TableCell>
-                            <TableCell>{coupon.recipientEmail}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <code className="bg-muted px-2 py-1 rounded text-sm">{coupon.code}</code>
+                            <TableCell className="font-medium max-w-[200px] truncate whitespace-nowrap" title={coupon.eventTitle}>{coupon.eventTitle}</TableCell>
+                            <TableCell className="whitespace-nowrap truncate max-w-[180px]" title={coupon.recipientEmail}>{coupon.recipientEmail}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs"
+                                onClick={() => copyToClipboard(coupon.code)}
+                                data-testid={`button-copy-code-${coupon.id}`}
+                              >
+                                {copiedCode === coupon.code ? (
+                                  <>
+                                    <Check className="h-3 w-3 mr-1 text-green-500" />
+                                    Copied
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    Copy Code
+                                  </>
+                                )}
+                              </Button>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {couponLink ? (
                                 <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6"
-                                  onClick={() => copyToClipboard(coupon.code)}
-                                  data-testid={`button-copy-code-${coupon.id}`}
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-xs"
+                                  onClick={() => copyLinkToClipboard(couponLink)}
+                                  data-testid={`button-copy-link-${coupon.id}`}
                                 >
-                                  {copiedCode === coupon.code ? (
-                                    <Check className="h-3 w-3 text-green-500" />
+                                  {copiedLink === couponLink ? (
+                                    <>
+                                      <Check className="h-3 w-3 mr-1 text-green-500" />
+                                      Copied
+                                    </>
                                   ) : (
-                                    <Copy className="h-3 w-3" />
+                                    <>
+                                      <Copy className="h-3 w-3 mr-1" />
+                                      Copy Link
+                                    </>
                                   )}
                                 </Button>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              {couponLink ? (
-                                <div className="flex items-center gap-2">
-                                  <a 
-                                    href={couponLink} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-primary hover:underline text-sm max-w-[150px] truncate"
-                                    title={couponLink}
-                                  >
-                                    {couponLink}
-                                  </a>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 flex-shrink-0"
-                                    onClick={() => copyLinkToClipboard(couponLink)}
-                                    data-testid={`button-copy-link-${coupon.id}`}
-                                  >
-                                    {copiedLink === couponLink ? (
-                                      <Check className="h-3 w-3 text-green-500" />
-                                    ) : (
-                                      <Copy className="h-3 w-3" />
-                                    )}
-                                  </Button>
-                                </div>
                               ) : (
                                 <span className="text-muted-foreground text-sm">N/A</span>
                               )}
                             </TableCell>
-                            <TableCell>{coupon.discountPercent}%</TableCell>
-                            <TableCell>{getStatusBadge(coupon.status)}</TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="whitespace-nowrap">{coupon.discountPercent}%</TableCell>
+                            <TableCell className="whitespace-nowrap">{getStatusBadge(coupon.status)}</TableCell>
+                            <TableCell className="text-muted-foreground whitespace-nowrap">
                               {new Date(coupon.issuedAt).toLocaleDateString()}
                             </TableCell>
                           </TableRow>
