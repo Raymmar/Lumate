@@ -60,6 +60,7 @@ interface FutureEvent {
   startTime: string;
   endTime: string;
   coverUrl: string | null;
+  url: string | null;
 }
 
 interface TicketType {
@@ -75,6 +76,7 @@ export default function AdminCouponsPage() {
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState<string>("");
   const [discountPercent, setDiscountPercent] = useState<number>(100);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [recipientType, setRecipientType] = useState<'allPremium' | 'individuals'>('allPremium');
   const [selectedPeople, setSelectedPeople] = useState<SearchablePerson[]>([]);
   const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
@@ -244,6 +246,23 @@ export default function AdminCouponsPage() {
       title: "Copied",
       description: "Coupon code copied to clipboard",
     });
+  };
+
+  const copyLinkToClipboard = async (link: string) => {
+    await navigator.clipboard.writeText(link);
+    setCopiedLink(link);
+    setTimeout(() => setCopiedLink(null), 2000);
+    toast({
+      title: "Copied",
+      description: "Coupon link copied to clipboard",
+    });
+  };
+
+  const getCouponLink = (coupon: Coupon) => {
+    if (coupon.eventUrl) {
+      return `${coupon.eventUrl}?coupon=${coupon.code}`;
+    }
+    return null;
   };
 
   const getStatusBadge = (status: string) => {
@@ -552,41 +571,75 @@ export default function AdminCouponsPage() {
                         <TableHead>Event</TableHead>
                         <TableHead>Recipient</TableHead>
                         <TableHead>Code</TableHead>
+                        <TableHead>Link</TableHead>
                         <TableHead>Discount</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Issued</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {couponsData.coupons.map((coupon) => (
-                        <TableRow key={coupon.id}>
-                          <TableCell className="font-medium">{coupon.eventTitle}</TableCell>
-                          <TableCell>{coupon.recipientEmail}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <code className="bg-muted px-2 py-1 rounded text-sm">{coupon.code}</code>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={() => copyToClipboard(coupon.code)}
-                                data-testid={`button-copy-${coupon.id}`}
-                              >
-                                {copiedCode === coupon.code ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell>{coupon.discountPercent}%</TableCell>
-                          <TableCell>{getStatusBadge(coupon.status)}</TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {new Date(coupon.issuedAt).toLocaleDateString()}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {couponsData.coupons.map((coupon) => {
+                        const couponLink = getCouponLink(coupon);
+                        return (
+                          <TableRow key={coupon.id}>
+                            <TableCell className="font-medium">{coupon.eventTitle}</TableCell>
+                            <TableCell>{coupon.recipientEmail}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <code className="bg-muted px-2 py-1 rounded text-sm">{coupon.code}</code>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => copyToClipboard(coupon.code)}
+                                  data-testid={`button-copy-code-${coupon.id}`}
+                                >
+                                  {copiedCode === coupon.code ? (
+                                    <Check className="h-3 w-3 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-3 w-3" />
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {couponLink ? (
+                                <div className="flex items-center gap-2">
+                                  <a 
+                                    href={couponLink} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline text-sm max-w-[150px] truncate"
+                                    title={couponLink}
+                                  >
+                                    {couponLink}
+                                  </a>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 flex-shrink-0"
+                                    onClick={() => copyLinkToClipboard(couponLink)}
+                                    data-testid={`button-copy-link-${coupon.id}`}
+                                  >
+                                    {copiedLink === couponLink ? (
+                                      <Check className="h-3 w-3 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">N/A</span>
+                              )}
+                            </TableCell>
+                            <TableCell>{coupon.discountPercent}%</TableCell>
+                            <TableCell>{getStatusBadge(coupon.status)}</TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {new Date(coupon.issuedAt).toLocaleDateString()}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>

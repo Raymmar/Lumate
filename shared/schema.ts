@@ -681,6 +681,7 @@ export const coupons = pgTable("coupons", {
   id: serial("id").primaryKey(),
   eventApiId: varchar("event_api_id", { length: 255 }).notNull(),
   eventTitle: varchar("event_title", { length: 255 }),
+  eventUrl: varchar("event_url", { length: 255 }),
   ticketTypeId: varchar("ticket_type_id", { length: 255 }),
   ticketTypeName: varchar("ticket_type_name", { length: 255 }),
   code: varchar("code", { length: 20 }).notNull(),

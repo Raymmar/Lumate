@@ -188,6 +188,7 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
         const couponData = {
           eventApiId: validatedData.eventApiId,
           eventTitle: eventData.title,
+          eventUrl: eventData.url || null,
           ticketTypeId: validatedData.ticketTypeId || null,
           ticketTypeName: validatedData.ticketTypeName || null,
           code: couponCode,
@@ -320,6 +321,7 @@ router.get("/api/admin/coupons/eligible-events", requireAdmin, async (req, res) 
         startTime: e.startTime,
         endTime: e.endTime,
         coverUrl: e.coverUrl,
+        url: e.url,
       })),
     });
   } catch (error) {

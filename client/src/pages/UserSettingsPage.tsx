@@ -34,6 +34,7 @@ interface UserCoupon {
   id: number;
   eventApiId: string;
   eventTitle: string;
+  eventUrl: string | null;
   code: string;
   discountPercent: number;
   status: string;
@@ -398,42 +399,59 @@ export default function UserSettingsPage() {
                       </div>
                     ) : couponsData?.coupons && couponsData.coupons.length > 0 ? (
                       <div className="space-y-3">
-                        {couponsData.coupons.map((coupon) => (
-                          <div 
-                            key={coupon.id} 
-                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
-                            data-testid={`coupon-card-${coupon.id}`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{coupon.eventTitle}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {coupon.discountPercent}% off
-                                {coupon.validEndAt && ` • Expires ${new Date(coupon.validEndAt).toLocaleDateString()}`}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 ml-2">
-                              <code className="bg-background px-2 py-1 rounded text-sm font-mono">
-                                {coupon.code}
-                              </code>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 shrink-0"
-                                onClick={() => copyToClipboard(coupon.code)}
-                                data-testid={`button-copy-coupon-${coupon.id}`}
-                              >
-                                {copiedCode === coupon.code ? (
-                                  <Check className="h-4 w-4 text-green-500" />
-                                ) : (
-                                  <Copy className="h-4 w-4" />
+                        {couponsData.coupons.map((coupon) => {
+                          const couponLink = coupon.eventUrl ? `${coupon.eventUrl}?coupon=${coupon.code}` : null;
+                          return (
+                            <div 
+                              key={coupon.id} 
+                              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/50 border"
+                              data-testid={`coupon-card-${coupon.id}`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{coupon.eventTitle}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {coupon.discountPercent}% off
+                                  {coupon.validEndAt && ` • Expires ${new Date(coupon.validEndAt).toLocaleDateString()}`}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code className="bg-background px-2 py-1 rounded text-sm font-mono">
+                                  {coupon.code}
+                                </code>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 shrink-0"
+                                  onClick={() => copyToClipboard(coupon.code)}
+                                  data-testid={`button-copy-coupon-${coupon.id}`}
+                                  title="Copy code"
+                                >
+                                  {copiedCode === coupon.code ? (
+                                    <Check className="h-4 w-4 text-green-500" />
+                                  ) : (
+                                    <Copy className="h-4 w-4" />
+                                  )}
+                                </Button>
+                                {couponLink && (
+                                  <Button
+                                    type="button"
+                                    variant="default"
+                                    size="sm"
+                                    className="shrink-0"
+                                    onClick={() => window.open(couponLink, '_blank')}
+                                    data-testid={`button-use-coupon-${coupon.id}`}
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-1" />
+                                    Use Coupon
+                                  </Button>
                                 )}
-                              </Button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                         <p className="text-xs text-muted-foreground text-center mt-2">
-                          Use these codes when registering for events on Luma
+                          Click "Use Coupon" to register with your discount applied
                         </p>
                       </div>
                     ) : (
