@@ -130,11 +130,12 @@ export default function AdminCouponsPage() {
       return;
     }
 
-    const selectedTicket = ticketTypesData?.ticketTypes?.find(t => t.id === selectedTicketTypeId);
+    const actualTicketTypeId = selectedTicketTypeId === 'all' ? undefined : selectedTicketTypeId;
+    const selectedTicket = ticketTypesData?.ticketTypes?.find(t => t.id === actualTicketTypeId);
 
     generateCouponsMutation.mutate({
       eventApiId: selectedEventId,
-      ticketTypeId: selectedTicketTypeId || undefined,
+      ticketTypeId: actualTicketTypeId,
       ticketTypeName: selectedTicket?.name || undefined,
       discountPercent,
       targetGroup: 'activePremium',
@@ -227,7 +228,7 @@ export default function AdminCouponsPage() {
                             <SelectValue placeholder="All ticket types" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">All ticket types</SelectItem>
+                            <SelectItem value="all">All ticket types</SelectItem>
                             {isLoadingTicketTypes ? (
                               <div className="p-2 text-center">Loading...</div>
                             ) : (

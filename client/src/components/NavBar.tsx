@@ -196,9 +196,17 @@ export function NavBar() {
               )}
               <DropdownMenuItem asChild>
                 <Link href="/settings">
-                  <span className="flex items-center">
-                    <Settings className="mr-2 h-4 w-4 text-foreground" />
-                    Settings
+                  <span className="flex items-center justify-between w-full">
+                    <span className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4 text-foreground" />
+                      Settings
+                    </span>
+                    {hasNewCoupons && (
+                      <span className="ml-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 text-xs dark:bg-green-900 dark:text-green-300">
+                        <Ticket className="h-3 w-3" />
+                        New
+                      </span>
+                    )}
                   </span>
                 </Link>
               </DropdownMenuItem>
