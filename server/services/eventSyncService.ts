@@ -70,6 +70,7 @@ async function syncEventAttendees(event: Event) {
     // Process and store approved guests with ticket information
     const syncTimestamp = new Date().toISOString();
     let premiumGrantedCount = 0;
+    let couponsRedeemedCount = 0;
     
     for (const entry of allGuests) {
       const { guest } = entry;
@@ -78,6 +79,7 @@ async function syncEventAttendees(event: Event) {
       const ticketTypeId = guest.event_ticket?.event_ticket_type_id || null;
       const ticketTypeName = guest.event_ticket?.name || null;
       const ticketAmount = guest.event_ticket?.amount || 0;
+      const ticketDiscount = guest.event_ticket?.amount_discount || 0;
       
       // Store attendance with ticket data
       await storage.upsertAttendance({
@@ -90,6 +92,41 @@ async function syncEventAttendees(event: Event) {
         ticketTypeName: ticketTypeName,
         ticketAmount: ticketAmount,
       });
+
+      // Check for coupon redemption if a discount was applied
+      if (ticketDiscount > 0) {
+        try {
+          // Calculate the discount percentage that was applied
+          // Note: Luma's 'amount' is the price AFTER discount, so original price = amount + amount_discount
+          const originalPrice = ticketAmount + ticketDiscount;
+          const appliedDiscountPercent = Math.round((ticketDiscount / originalPrice) * 100);
+          
+          // Find unredeemed coupons for this email and event
+          const unredeemedCoupons = await storage.getUnredeemedCouponsByEventAndEmail(
+            event.api_id,
+            guest.email.toLowerCase()
+          );
+          
+          // Find a matching coupon based on discount percentage
+          for (const coupon of unredeemedCoupons) {
+            // Check if discount percentage matches (with 1% tolerance for rounding)
+            const matchesDiscount = Math.abs(coupon.discountPercent - appliedDiscountPercent) <= 1;
+            
+            // Optionally check ticket type if the coupon was for a specific ticket
+            const matchesTicketType = !coupon.ticketTypeId || coupon.ticketTypeId === ticketTypeId;
+            
+            if (matchesDiscount && matchesTicketType) {
+              // Mark coupon as redeemed
+              await storage.updateCouponStatus(coupon.id, 'redeemed', new Date().toISOString());
+              couponsRedeemedCount++;
+              console.log(`[CouponRedemption] Coupon ${coupon.code} redeemed by ${guest.email} for ${event.title} (${appliedDiscountPercent}% off)`);
+              break; // Only redeem one coupon per guest
+            }
+          }
+        } catch (couponError) {
+          console.error(`[CouponRedemption] Error checking coupon for ${guest.email}:`, couponError);
+        }
+      }
 
       // Check if this attendee should get premium access
       if (grantsPremiumAccess && 
@@ -147,7 +184,8 @@ async function syncEventAttendees(event: Event) {
 
     console.log(
       `Successfully synced ${allGuests.length} approved guests for event: ${event.title}` +
-      (premiumGrantedCount > 0 ? `, granted premium to ${premiumGrantedCount} users` : ''),
+      (premiumGrantedCount > 0 ? `, granted premium to ${premiumGrantedCount} users` : '') +
+      (couponsRedeemedCount > 0 ? `, detected ${couponsRedeemedCount} coupon redemptions` : ''),
     );
   } catch (error) {
     console.error(`Failed to sync event ${event.api_id}:`, error);

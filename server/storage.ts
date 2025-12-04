@@ -206,6 +206,7 @@ export interface IStorage {
   createCoupons(data: InsertCoupon[]): Promise<Coupon[]>;
   updateCouponStatus(id: number, status: string, redeemedAt?: string): Promise<Coupon>;
   getActivePremiumMembers(): Promise<User[]>;
+  getUnredeemedCouponsByEventAndEmail(eventApiId: string, email: string): Promise<Coupon[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -3365,6 +3366,23 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get active premium members:', error);
+      throw error;
+    }
+  }
+
+  async getUnredeemedCouponsByEventAndEmail(eventApiId: string, email: string): Promise<Coupon[]> {
+    try {
+      const result = await db
+        .select()
+        .from(coupons)
+        .where(and(
+          eq(coupons.eventApiId, eventApiId),
+          eq(coupons.recipientEmail, email.toLowerCase()),
+          eq(coupons.status, 'issued')
+        ));
+      return result;
+    } catch (error) {
+      console.error('Failed to get unredeemed coupons:', error);
       throw error;
     }
   }
