@@ -1,9 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Mail, ExternalLink, Lock } from "lucide-react";
+import { Loader2, AlertCircle, Mail, ExternalLink, Lock, Ticket, Copy, Check } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -30,10 +30,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
+interface UserCoupon {
+  id: number;
+  eventApiId: string;
+  eventTitle: string;
+  code: string;
+  discountPercent: number;
+  status: string;
+  validEndAt: string | null;
+}
+
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   
   // Enhanced subscription status check with proper typing
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
@@ -55,6 +66,21 @@ export default function UserSettingsPage() {
 
   const hasActiveSubscription =
     user?.isAdmin || subscriptionStatus?.status === "active";
+
+  const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: UserCoupon[]; hasUnclaimedCoupons: boolean }>({
+    queryKey: ["/api/user/coupons"],
+    enabled: !!user,
+  });
+
+  const copyToClipboard = async (code: string) => {
+    await navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+    toast({
+      title: "Copied",
+      description: "Coupon code copied to clipboard",
+    });
+  };
 
   const form = useForm<UpdateUserProfile>({
     resolver: zodResolver(updateUserProfileSchema),
@@ -352,6 +378,72 @@ export default function UserSettingsPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Event Coupons Section */}
+                {hasActiveSubscription && (
+                  <div className="mt-6 pt-6 border-t">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Ticket className="h-5 w-5 text-primary" />
+                      <h3 className="font-semibold">Your Event Coupons</h3>
+                      {couponsData?.hasUnclaimedCoupons && (
+                        <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                          New
+                        </span>
+                      )}
+                    </div>
+                    
+                    {isLoadingCoupons ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : couponsData?.coupons && couponsData.coupons.length > 0 ? (
+                      <div className="space-y-3">
+                        {couponsData.coupons.map((coupon) => (
+                          <div 
+                            key={coupon.id} 
+                            className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border"
+                            data-testid={`coupon-card-${coupon.id}`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{coupon.eventTitle}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {coupon.discountPercent}% off
+                                {coupon.validEndAt && ` • Expires ${new Date(coupon.validEndAt).toLocaleDateString()}`}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 ml-2">
+                              <code className="bg-background px-2 py-1 rounded text-sm font-mono">
+                                {coupon.code}
+                              </code>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 shrink-0"
+                                onClick={() => copyToClipboard(coupon.code)}
+                                data-testid={`button-copy-coupon-${coupon.id}`}
+                              >
+                                {copiedCode === coupon.code ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        <p className="text-xs text-muted-foreground text-center mt-2">
+                          Use these codes when registering for events on Luma
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-sm text-muted-foreground">
+                        <p>No coupons available yet.</p>
+                        <p className="text-xs mt-1">Check back before upcoming events!</p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {form.formState.isSubmitted &&
                   Object.keys(form.formState.errors).length > 0 && (

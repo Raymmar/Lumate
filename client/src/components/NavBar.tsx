@@ -15,12 +15,13 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { User, Settings, LogOut, LogIn, Shield, Loader2, Sparkles, Menu } from "lucide-react";
+import { User, Settings, LogOut, LogIn, Shield, Loader2, Sparkles, Menu, Ticket } from "lucide-react";
 import { AdminBadge } from "@/components/AdminBadge";
 import { useState } from "react";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
 import { PremiumBadge } from "@/components/PremiumBadge";
 import { useSubscription } from "@/hooks/use-subscription";
+import { useQuery } from "@tanstack/react-query";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -30,6 +31,14 @@ export function NavBar() {
   const isMembershipsPage = location === "/memberships";
   const [isOpen, setIsOpen] = useState(false);
   const { isPremium, startSubscription, isLoading } = useSubscription();
+
+  const { data: couponsData } = useQuery<{ hasUnclaimedCoupons: boolean }>({
+    queryKey: ["/api/user/coupons"],
+    enabled: !!user && isPremium,
+    staleTime: 60000,
+  });
+
+  const hasNewCoupons = couponsData?.hasUnclaimedCoupons || false;
 
   // Generate profile URL using username if available, fallback to API ID
   const profileUrl = user?.api_id ? 
