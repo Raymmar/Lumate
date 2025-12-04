@@ -20,9 +20,10 @@ import {
   Sponsor, InsertSponsor,
   EmailInvitation, InsertEmailInvitation,
   TimelineEvent, InsertTimelineEvent,
+  Coupon, InsertCoupon,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or, isNull } from "drizzle-orm";
@@ -196,6 +197,15 @@ export interface IStorage {
   createTimelineEvent(data: InsertTimelineEvent): Promise<TimelineEvent>;
   updateTimelineEvent(id: number, data: Partial<TimelineEvent>): Promise<TimelineEvent>;
   deleteTimelineEvent(id: number): Promise<void>;
+
+  // Coupon management
+  getCoupons(filters?: { eventApiId?: string; status?: string; recipientUserId?: number }): Promise<Coupon[]>;
+  getCouponsByUser(userId: number): Promise<Coupon[]>;
+  getCouponById(id: number): Promise<Coupon | null>;
+  createCoupon(data: InsertCoupon): Promise<Coupon>;
+  createCoupons(data: InsertCoupon[]): Promise<Coupon[]>;
+  updateCouponStatus(id: number, status: string, redeemedAt?: string): Promise<Coupon>;
+  getActivePremiumMembers(): Promise<User[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -3230,6 +3240,126 @@ export class PostgresStorage implements IStorage {
         .where(eq(timelineEvents.id, id));
     } catch (error) {
       console.error('Failed to delete timeline event:', error);
+      throw error;
+    }
+  }
+
+  // Coupon management methods
+  async getCoupons(filters?: { eventApiId?: string; status?: string; recipientUserId?: number }): Promise<Coupon[]> {
+    try {
+      const conditions = [];
+      
+      if (filters?.eventApiId) {
+        conditions.push(eq(coupons.eventApiId, filters.eventApiId));
+      }
+      if (filters?.status) {
+        conditions.push(eq(coupons.status, filters.status));
+      }
+      if (filters?.recipientUserId) {
+        conditions.push(eq(coupons.recipientUserId, filters.recipientUserId));
+      }
+
+      const result = await db
+        .select()
+        .from(coupons)
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(sql`${coupons.createdAt} DESC`);
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to get coupons:', error);
+      throw error;
+    }
+  }
+
+  async getCouponsByUser(userId: number): Promise<Coupon[]> {
+    try {
+      const result = await db
+        .select()
+        .from(coupons)
+        .where(eq(coupons.recipientUserId, userId))
+        .orderBy(sql`${coupons.createdAt} DESC`);
+      return result;
+    } catch (error) {
+      console.error('Failed to get coupons by user:', error);
+      throw error;
+    }
+  }
+
+  async getCouponById(id: number): Promise<Coupon | null> {
+    try {
+      const result = await db
+        .select()
+        .from(coupons)
+        .where(eq(coupons.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get coupon by id:', error);
+      throw error;
+    }
+  }
+
+  async createCoupon(data: InsertCoupon): Promise<Coupon> {
+    try {
+      const result = await db
+        .insert(coupons)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create coupon:', error);
+      throw error;
+    }
+  }
+
+  async createCoupons(data: InsertCoupon[]): Promise<Coupon[]> {
+    try {
+      if (data.length === 0) return [];
+      const result = await db
+        .insert(coupons)
+        .values(data)
+        .returning();
+      return result;
+    } catch (error) {
+      console.error('Failed to create coupons:', error);
+      throw error;
+    }
+  }
+
+  async updateCouponStatus(id: number, status: string, redeemedAt?: string): Promise<Coupon> {
+    try {
+      const updateData: Partial<Coupon> = { status };
+      if (redeemedAt) {
+        updateData.redeemedAt = redeemedAt;
+      }
+      
+      const result = await db
+        .update(coupons)
+        .set(updateData)
+        .where(eq(coupons.id, id))
+        .returning();
+      
+      if (!result[0]) {
+        throw new Error('Coupon not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update coupon status:', error);
+      throw error;
+    }
+  }
+
+  async getActivePremiumMembers(): Promise<User[]> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(eq(users.subscriptionStatus, 'active'));
+      return result;
+    } catch (error) {
+      console.error('Failed to get active premium members:', error);
       throw error;
     }
   }

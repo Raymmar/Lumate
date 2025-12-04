@@ -675,3 +675,39 @@ export const insertEmailInvitationSchema = createInsertSchema(emailInvitations).
 
 export type EmailInvitation = typeof emailInvitations.$inferSelect;
 export type InsertEmailInvitation = z.infer<typeof insertEmailInvitationSchema>;
+
+// Luma event coupons for member benefits
+export const coupons = pgTable("coupons", {
+  id: serial("id").primaryKey(),
+  eventApiId: varchar("event_api_id", { length: 255 }).notNull(),
+  eventTitle: varchar("event_title", { length: 255 }),
+  ticketTypeId: varchar("ticket_type_id", { length: 255 }),
+  ticketTypeName: varchar("ticket_type_name", { length: 255 }),
+  code: varchar("code", { length: 20 }).notNull(),
+  lumaCouponApiId: varchar("luma_coupon_api_id", { length: 255 }),
+  recipientUserId: integer("recipient_user_id").notNull().references(() => users.id),
+  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
+  discountPercent: integer("discount_percent").notNull(),
+  validStartAt: timestamp("valid_start_at", { mode: 'string', withTimezone: true }),
+  validEndAt: timestamp("valid_end_at", { mode: 'string', withTimezone: true }),
+  status: varchar("status", { length: 20 }).notNull().default('issued'),
+  issuedAt: timestamp("issued_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  issuedByUserId: integer("issued_by_user_id").references(() => users.id),
+  redeemedAt: timestamp("redeemed_at", { mode: 'string', withTimezone: true }),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("coupons_recipient_idx").on(table.recipientUserId),
+  index("coupons_event_idx").on(table.eventApiId),
+  index("coupons_status_idx").on(table.status),
+]);
+
+export const insertCouponSchema = createInsertSchema(coupons).omit({
+  id: true,
+  issuedAt: true,
+  createdAt: true,
+});
+
+export const couponStatusEnum = z.enum(['issued', 'redeemed', 'expired']);
+export type CouponStatus = z.infer<typeof couponStatusEnum>;
+export type Coupon = typeof coupons.$inferSelect;
+export type InsertCoupon = z.infer<typeof insertCouponSchema>;

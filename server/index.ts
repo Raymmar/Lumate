@@ -232,6 +232,10 @@ app.use(
   const { default: premiumRoutes } = await import("./routes/premium");
   app.use(premiumRoutes);
   
+  // Import and mount coupon routes
+  const { default: couponRoutes } = await import("./routes/coupons");
+  app.use(couponRoutes);
+  
   await registerRoutes(app);
 
   // Create the server
