@@ -6,6 +6,7 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, requireAuth } from "./middleware";
 import { lumaApiRequest } from "../routes";
 import { z } from "zod";
+import { sendCouponNotificationEmail } from "../email";
 
 const router = Router();
 
@@ -206,6 +207,23 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
         const createdCoupon = await storage.createCoupon(couponData);
         createdCoupons.push(createdCoupon);
         results.created++;
+        
+        // Send notification email to the recipient
+        if (eventData.url && couponCode) {
+          const registrationLink = `${eventData.url}?coupon=${couponCode}`;
+          try {
+            await sendCouponNotificationEmail(recipient.email, {
+              eventTitle: eventData.title,
+              discountPercent: validatedData.discountPercent,
+              registrationLink,
+              expirationDate: validatedData.validEndAt,
+            });
+            console.log(`Coupon notification email sent to ${recipient.email}`);
+          } catch (emailError) {
+            console.error(`Failed to send coupon email to ${recipient.email}:`, emailError);
+            // Don't fail the entire operation if email fails
+          }
+        }
         
         await new Promise(resolve => setTimeout(resolve, 200));
         

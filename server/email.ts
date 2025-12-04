@@ -319,6 +319,131 @@ export async function sendVerificationEmail(
   }
 }
 
+export async function sendCouponNotificationEmail(
+  email: string,
+  couponInfo: {
+    eventTitle: string;
+    discountPercent: number;
+    registrationLink: string;
+    expirationDate?: string;
+  }
+): Promise<boolean> {
+  try {
+    console.log('Sending coupon notification email to:', email, 'for event:', couponInfo.eventTitle);
+
+    // In development, just log the details
+    if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+      console.log('Development mode - Coupon notification email would have been sent with:', {
+        to: email,
+        couponInfo
+      });
+      return true;
+    }
+
+    console.log('Email configuration:', {
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      fromEmail: FROM_EMAIL,
+      isDevelopment,
+      eventTitle: couponInfo.eventTitle
+    });
+
+    const expirationNote = couponInfo.expirationDate 
+      ? `<p style="margin-top:10px;color:#666;font-size:14px;">This offer expires on ${new Date(couponInfo.expirationDate).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}.</p>`
+      : '';
+
+    const expirationTextNote = couponInfo.expirationDate 
+      ? ` This offer expires on ${new Date(couponInfo.expirationDate).toLocaleDateString('en-US')}.`
+      : '';
+
+    const subject = `You have a ticket to claim for ${couponInfo.eventTitle}`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">You've Got a Ticket to Claim!</h2>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+          Great news! As a valued Sarasota Tech member, you have an exclusive ${couponInfo.discountPercent}% discount ticket waiting for you for:
+        </p>
+        
+        <div style="background: linear-gradient(to right, #ecfdf5, #d1fae5); border: 1px solid #10b981; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="margin: 0 0 15px 0; color: #065f46; font-size: 20px;">${couponInfo.eventTitle}</h3>
+          <p style="margin: 0; color: #047857; font-weight: 600; font-size: 18px;">${couponInfo.discountPercent}% Off</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${couponInfo.registrationLink}" 
+             style="display: inline-block; padding: 16px 32px; background-color: #16a34a; color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold;">
+            Click to Register with Your Discount
+          </a>
+        </div>
+
+        ${expirationNote}
+
+        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 15px; margin: 25px 0;">
+          <p style="margin: 0; color: #92400e; font-size: 14px;">
+            <strong>Important:</strong> This is your personal, unique registration link. Please do not share it with others, as it can only be used once.
+          </p>
+        </div>
+
+        <p style="font-size: 14px; color: #666; line-height: 1.6;">
+          You can also access this coupon anytime by logging into your Sarasota Tech account and visiting your Settings page under "Your Event Coupons."
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="font-size: 12px; color: #9ca3af;">
+          If the button above doesn't work, copy and paste this link into your browser:<br>
+          <a href="${couponInfo.registrationLink}" style="color: #16a34a; word-break: break-all;">${couponInfo.registrationLink}</a>
+        </p>
+      </div>
+    `;
+
+    const textContent = `You've Got a Ticket to Claim!
+
+Great news! As a valued Sarasota Tech member, you have an exclusive ${couponInfo.discountPercent}% discount ticket waiting for you for: ${couponInfo.eventTitle}
+
+Click here to register with your discount: ${couponInfo.registrationLink}
+
+${expirationTextNote}
+
+IMPORTANT: This is your personal, unique registration link. Please do not share it with others, as it can only be used once.
+
+You can also access this coupon anytime by logging into your Sarasota Tech account and visiting your Settings page under "Your Event Coupons."`;
+
+    console.log('Attempting to send coupon notification email with message:', {
+      to: email,
+      from: FROM_EMAIL,
+      subject
+    });
+
+    await mailService.send({
+      to: email,
+      from: FROM_EMAIL,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    console.log('Coupon notification email sent successfully to:', email);
+    return true;
+  } catch (error) {
+    console.error('Failed to send coupon notification email:', error);
+    if (error.response) {
+      console.error('SendGrid API Error:', {
+        statusCode: error.response.statusCode,
+        body: error.response.body,
+        headers: error.response.headers,
+      });
+    }
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   token: string
