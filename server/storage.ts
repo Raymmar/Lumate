@@ -200,7 +200,7 @@ export interface IStorage {
 
   // Coupon management
   getCoupons(filters?: { eventApiId?: string; status?: string; recipientUserId?: number }): Promise<Coupon[]>;
-  getCouponsByUser(userId: number): Promise<Coupon[]>;
+  getCouponsByUser(userId: number, userEmail: string): Promise<Coupon[]>;
   getCouponById(id: number): Promise<Coupon | null>;
   createCoupon(data: InsertCoupon): Promise<Coupon>;
   createCoupons(data: InsertCoupon[]): Promise<Coupon[]>;
@@ -3272,12 +3272,17 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getCouponsByUser(userId: number): Promise<Coupon[]> {
+  async getCouponsByUser(userId: number, userEmail: string): Promise<Coupon[]> {
     try {
       const result = await db
         .select()
         .from(coupons)
-        .where(eq(coupons.recipientUserId, userId))
+        .where(
+          or(
+            eq(coupons.recipientUserId, userId),
+            eq(coupons.recipientEmail, userEmail)
+          )
+        )
         .orderBy(sql`${coupons.createdAt} DESC`);
       return result;
     } catch (error) {

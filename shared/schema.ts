@@ -685,7 +685,8 @@ export const coupons = pgTable("coupons", {
   ticketTypeName: varchar("ticket_type_name", { length: 255 }),
   code: varchar("code", { length: 20 }).notNull(),
   lumaCouponApiId: varchar("luma_coupon_api_id", { length: 255 }),
-  recipientUserId: integer("recipient_user_id").notNull().references(() => users.id),
+  recipientUserId: integer("recipient_user_id").references(() => users.id),
+  recipientPersonId: integer("recipient_person_id").references(() => people.id),
   recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
   discountPercent: integer("discount_percent").notNull(),
   validStartAt: timestamp("valid_start_at", { mode: 'string', withTimezone: true }),
@@ -697,6 +698,8 @@ export const coupons = pgTable("coupons", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("coupons_recipient_idx").on(table.recipientUserId),
+  index("coupons_recipient_person_idx").on(table.recipientPersonId),
+  index("coupons_recipient_email_idx").on(table.recipientEmail),
   index("coupons_event_idx").on(table.eventApiId),
   index("coupons_status_idx").on(table.status),
 ]);

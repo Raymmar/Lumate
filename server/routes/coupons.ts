@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
-import { events, users, coupons } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { events, users, coupons, people } from "@shared/schema";
+import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, requireAuth } from "./middleware";
 import { lumaApiRequest } from "../routes";
 import { z } from "zod";
@@ -15,6 +15,14 @@ function generateCouponCode(eventPrefix: string, recipientId: number): string {
   return code.substring(0, 20);
 }
 
+interface CouponRecipient {
+  id: number;
+  email: string;
+  userId: number | null;
+  personId: number | null;
+  type: 'user' | 'person';
+}
+
 const generateCouponsSchema = z.object({
   eventApiId: z.string().min(1, "Event is required"),
   ticketTypeId: z.string().optional(),
@@ -22,8 +30,8 @@ const generateCouponsSchema = z.object({
   discountPercent: z.number().min(1).max(100),
   validStartAt: z.string().optional(),
   validEndAt: z.string().optional(),
-  targetGroup: z.enum(['activePremium', 'specificUsers']).default('activePremium'),
-  specificUserIds: z.array(z.number()).optional(),
+  targetGroup: z.enum(['activePremium']).optional(),
+  recipientIds: z.array(z.number()).optional(),
 });
 
 router.get("/api/admin/coupons", requireAdmin, async (req, res) => {
@@ -87,19 +95,48 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       .substring(0, 6)
       .toUpperCase();
     
-    let targetUsers: typeof users.$inferSelect[] = [];
+    let recipients: CouponRecipient[] = [];
     
     if (validatedData.targetGroup === 'activePremium') {
-      targetUsers = await storage.getActivePremiumMembers();
-    } else if (validatedData.specificUserIds && validatedData.specificUserIds.length > 0) {
-      const usersResult = await db
+      const premiumUsers = await storage.getActivePremiumMembers();
+      
+      const userEmails = premiumUsers.map(u => u.email);
+      const matchedPeople = userEmails.length > 0 
+        ? await db.select().from(people).where(inArray(people.email, userEmails))
+        : [];
+      const personEmailMap = new Map(matchedPeople.map(p => [p.email, p.id]));
+      
+      recipients = premiumUsers.map(user => ({
+        id: user.id,
+        email: user.email,
+        userId: user.id,
+        personId: personEmailMap.get(user.email) || null,
+        type: 'user' as const,
+      }));
+    } else if (validatedData.recipientIds && validatedData.recipientIds.length > 0) {
+      const peopleResult = await db
         .select()
-        .from(users)
-        .where(sql`id = ANY(${validatedData.specificUserIds})`);
-      targetUsers = usersResult;
+        .from(people)
+        .where(inArray(people.id, validatedData.recipientIds));
+      
+      const peopleEmails = peopleResult.map(p => p.email).filter(Boolean);
+      const matchedUsers = peopleEmails.length > 0 
+        ? await db.select().from(users).where(inArray(users.email, peopleEmails as string[]))
+        : [];
+      const userEmailMap = new Map(matchedUsers.map(u => [u.email, u.id]));
+      
+      recipients = peopleResult
+        .filter(p => p.email)
+        .map(person => ({
+          id: person.id,
+          email: person.email!,
+          userId: userEmailMap.get(person.email!) || null,
+          personId: person.id,
+          type: 'person' as const,
+        }));
     }
     
-    if (targetUsers.length === 0) {
+    if (recipients.length === 0) {
       return res.status(400).json({ 
         error: "No eligible recipients found",
         message: "No users match the selected target group"
@@ -114,9 +151,9 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
     
     const createdCoupons = [];
     
-    for (const user of targetUsers) {
+    for (const recipient of recipients) {
       try {
-        const couponCode = generateCouponCode(eventPrefix, user.id);
+        const couponCode = generateCouponCode(eventPrefix, recipient.id);
         
         const lumaPayload: any = {
           code: couponCode,
@@ -138,7 +175,7 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
           lumaPayload.valid_end_at = validatedData.validEndAt;
         }
         
-        console.log(`Creating Luma coupon for user ${user.email}:`, couponCode);
+        console.log(`Creating Luma coupon for ${recipient.email}:`, couponCode);
         
         const lumaResponse = await lumaApiRequest("event/create-coupon", undefined, {
           method: "POST",
@@ -154,8 +191,9 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
           ticketTypeName: validatedData.ticketTypeName || null,
           code: couponCode,
           lumaCouponApiId,
-          recipientUserId: user.id,
-          recipientEmail: user.email,
+          recipientUserId: recipient.userId,
+          recipientPersonId: recipient.personId,
+          recipientEmail: recipient.email,
           discountPercent: validatedData.discountPercent,
           validStartAt: validatedData.validStartAt || null,
           validEndAt: validatedData.validEndAt || null,
@@ -172,8 +210,8 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       } catch (error) {
         results.failed++;
         const errorMessage = error instanceof Error ? error.message : String(error);
-        results.errors.push(`Failed for ${user.email}: ${errorMessage}`);
-        console.error(`Failed to create coupon for ${user.email}:`, error);
+        results.errors.push(`Failed for ${recipient.email}: ${errorMessage}`);
+        console.error(`Failed to create coupon for ${recipient.email}:`, error);
       }
     }
     
@@ -229,7 +267,12 @@ router.get("/api/user/coupons", requireAuth, async (req, res) => {
   try {
     const userId = req.session!.userId!;
     
-    const userCoupons = await storage.getCouponsByUser(userId);
+    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user[0]) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    
+    const userCoupons = await storage.getCouponsByUser(userId, user[0].email);
     
     const activeCoupons = userCoupons.filter(coupon => {
       if (coupon.status === 'redeemed' || coupon.status === 'expired') {
