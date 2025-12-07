@@ -684,13 +684,16 @@ export const coupons = pgTable("coupons", {
   eventUrl: varchar("event_url", { length: 255 }),
   ticketTypeId: varchar("ticket_type_id", { length: 255 }),
   ticketTypeName: varchar("ticket_type_name", { length: 255 }),
-  code: varchar("code", { length: 20 }).notNull(),
+  code: varchar("code", { length: 50 }).notNull(),
   lumaCouponApiId: varchar("luma_coupon_api_id", { length: 255 }),
   recipientUserId: integer("recipient_user_id").references(() => users.id),
   recipientPersonId: integer("recipient_person_id").references(() => people.id),
   recipientEmail: varchar("recipient_email", { length: 255 }),
   discountPercent: integer("discount_percent"),
   centsOff: integer("cents_off"),
+  discountType: varchar("discount_type", { length: 20 }).notNull().default('percent'),
+  couponType: varchar("coupon_type", { length: 20 }).notNull().default('targeted'),
+  maxUses: integer("max_uses").default(1),
   validStartAt: timestamp("valid_start_at", { mode: 'string', withTimezone: true }),
   validEndAt: timestamp("valid_end_at", { mode: 'string', withTimezone: true }),
   status: varchar("status", { length: 20 }).notNull().default('issued'),
@@ -707,6 +710,7 @@ export const coupons = pgTable("coupons", {
   index("coupons_event_idx").on(table.eventApiId),
   index("coupons_status_idx").on(table.status),
   index("coupons_code_event_idx").on(table.code, table.eventApiId),
+  index("coupons_coupon_type_idx").on(table.couponType),
 ]);
 
 export const insertCouponSchema = createInsertSchema(coupons).omit({
@@ -720,5 +724,12 @@ export type CouponStatus = z.infer<typeof couponStatusEnum>;
 
 export const couponSourceEnum = z.enum(['internal', 'luma']);
 export type CouponSource = z.infer<typeof couponSourceEnum>;
+
+export const couponTypeEnum = z.enum(['targeted', 'general']);
+export type CouponType = z.infer<typeof couponTypeEnum>;
+
+export const discountTypeEnum = z.enum(['percent', 'dollars']);
+export type DiscountType = z.infer<typeof discountTypeEnum>;
+
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;

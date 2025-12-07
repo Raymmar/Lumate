@@ -16,6 +16,10 @@ function generateCouponCode(eventPrefix: string, recipientId: number): string {
   return code.substring(0, 20);
 }
 
+function sanitizeCustomCode(code: string): string {
+  return code.toUpperCase().replace(/[^A-Z0-9\-_]/g, '').substring(0, 50);
+}
+
 interface CouponRecipient {
   id: number;
   email: string;
@@ -28,11 +32,30 @@ const generateCouponsSchema = z.object({
   eventApiId: z.string().min(1, "Event is required"),
   ticketTypeId: z.string().optional(),
   ticketTypeName: z.string().optional(),
-  discountPercent: z.number().min(1).max(100),
+  discountType: z.enum(['percent', 'dollars']).default('percent'),
+  discountPercent: z.number().min(1).max(100).optional(),
+  dollarOff: z.number().min(0.01).optional(),
   validStartAt: z.string().optional(),
   validEndAt: z.string().optional(),
+  couponType: z.enum(['targeted', 'general']).default('targeted'),
   targetGroup: z.enum(['activePremium']).optional(),
   recipientIds: z.array(z.number()).optional(),
+  customCode: z.string().min(3).max(50).optional(),
+  maxUses: z.number().min(1).max(10000).optional(),
+}).refine(data => {
+  if (data.discountType === 'percent') {
+    return data.discountPercent !== undefined && data.discountPercent >= 1 && data.discountPercent <= 100;
+  }
+  return data.dollarOff !== undefined && data.dollarOff > 0;
+}, {
+  message: "Discount value is required and must be valid for the selected discount type"
+}).refine(data => {
+  if (data.couponType === 'general') {
+    return data.customCode !== undefined && data.customCode.length >= 3;
+  }
+  return true;
+}, {
+  message: "Custom code is required for general use coupons"
 });
 
 router.get("/api/admin/coupons", requireAdmin, async (req, res) => {
@@ -95,6 +118,101 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       .replace(/[^a-zA-Z0-9]/g, '')
       .substring(0, 6)
       .toUpperCase();
+
+    const isGeneralCoupon = validatedData.couponType === 'general';
+    const discountType = validatedData.discountType || 'percent';
+    const centsOff = discountType === 'dollars' && validatedData.dollarOff 
+      ? Math.round(validatedData.dollarOff * 100) 
+      : null;
+    const discountPercent = discountType === 'percent' ? validatedData.discountPercent : null;
+    const maxUses = validatedData.maxUses || 1;
+
+    if (isGeneralCoupon) {
+      const couponCode = sanitizeCustomCode(validatedData.customCode!);
+      
+      if (couponCode.length < 3) {
+        return res.status(400).json({ 
+          error: "Invalid coupon code",
+          message: "Coupon code must contain at least 3 valid characters (letters, numbers, hyphens, underscores)"
+        });
+      }
+      
+      const existingCoupon = await db
+        .select()
+        .from(coupons)
+        .where(and(
+          eq(coupons.eventApiId, validatedData.eventApiId),
+          eq(coupons.code, couponCode)
+        ))
+        .limit(1);
+      
+      if (existingCoupon.length > 0) {
+        return res.status(400).json({ 
+          error: "Coupon code already exists",
+          message: `A coupon with code "${couponCode}" already exists for this event`
+        });
+      }
+
+      const lumaPayload: any = {
+        code: couponCode,
+        event_api_id: validatedData.eventApiId,
+        remaining_count: maxUses,
+        discount: discountType === 'percent' 
+          ? { discount_type: "percent", percent_off: discountPercent }
+          : { discount_type: "cents", cents_off: centsOff },
+      };
+      
+      if (validatedData.ticketTypeId) {
+        lumaPayload.discount.ticket_api_ids = [validatedData.ticketTypeId];
+      }
+      if (validatedData.validStartAt) {
+        lumaPayload.valid_start_at = validatedData.validStartAt;
+      }
+      if (validatedData.validEndAt) {
+        lumaPayload.valid_end_at = validatedData.validEndAt;
+      }
+      
+      console.log(`Creating general Luma coupon:`, couponCode);
+      
+      const lumaResponse = await lumaApiRequest("event/create-coupon", undefined, {
+        method: "POST",
+        body: JSON.stringify(lumaPayload),
+      });
+      
+      const lumaCouponApiId = lumaResponse?.coupon?.api_id || null;
+      
+      const couponData = {
+        eventApiId: validatedData.eventApiId,
+        eventTitle: eventData.title,
+        eventUrl: eventData.url || null,
+        ticketTypeId: validatedData.ticketTypeId || null,
+        ticketTypeName: validatedData.ticketTypeName || null,
+        code: couponCode,
+        lumaCouponApiId,
+        recipientUserId: null,
+        recipientPersonId: null,
+        recipientEmail: null,
+        discountPercent,
+        centsOff,
+        discountType,
+        couponType: 'general' as const,
+        maxUses,
+        remainingCount: maxUses,
+        validStartAt: validatedData.validStartAt || null,
+        validEndAt: validatedData.validEndAt || null,
+        status: 'issued',
+        issuedByUserId: adminUserId,
+      };
+      
+      const createdCoupon = await storage.createCoupon(couponData);
+      
+      return res.json({
+        success: true,
+        message: `Created general coupon "${couponCode}" for ${eventData.title}`,
+        results: { created: 1, failed: 0, skipped: 0, errors: [] },
+        coupons: [createdCoupon],
+      });
+    }
     
     let recipients: CouponRecipient[] = [];
     
@@ -145,7 +263,6 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       });
     }
     
-    // Filter out recipients who already have a coupon for this event
     const existingCouponsForEvent = await db
       .select({ recipientEmail: coupons.recipientEmail })
       .from(coupons)
@@ -187,10 +304,9 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
           code: couponCode,
           event_api_id: validatedData.eventApiId,
           remaining_count: 1,
-          discount: {
-            discount_type: "percent",
-            percent_off: validatedData.discountPercent,
-          },
+          discount: discountType === 'percent'
+            ? { discount_type: "percent", percent_off: discountPercent }
+            : { discount_type: "cents", cents_off: centsOff },
         };
         
         if (validatedData.ticketTypeId) {
@@ -224,7 +340,12 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
           recipientUserId: recipient.userId,
           recipientPersonId: recipient.personId,
           recipientEmail: recipient.email,
-          discountPercent: validatedData.discountPercent,
+          discountPercent,
+          centsOff,
+          discountType,
+          couponType: 'targeted' as const,
+          maxUses: 1,
+          remainingCount: 1,
           validStartAt: validatedData.validStartAt || null,
           validEndAt: validatedData.validEndAt || null,
           status: 'issued',
@@ -235,20 +356,36 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
         createdCoupons.push(createdCoupon);
         results.created++;
         
-        // Send notification email to the recipient
         if (eventData.url && couponCode) {
           const registrationLink = `${eventData.url}?coupon=${couponCode}`;
           try {
+            const emailInfo: {
+              eventTitle: string;
+              discountPercent?: number;
+              dollarOff?: number;
+              registrationLink: string;
+              expirationDate?: string;
+            } = {
+              eventTitle: eventData.title,
+              registrationLink,
+              expirationDate: validatedData.validEndAt,
+            };
+            
+            if (discountType === 'percent' && discountPercent) {
+              emailInfo.discountPercent = discountPercent;
+            } else if (centsOff) {
+              emailInfo.dollarOff = centsOff / 100;
+            }
+            
             await sendCouponNotificationEmail(recipient.email, {
               eventTitle: eventData.title,
-              discountPercent: validatedData.discountPercent,
+              discountPercent: discountPercent || 0,
               registrationLink,
               expirationDate: validatedData.validEndAt,
             });
             console.log(`Coupon notification email sent to ${recipient.email}`);
           } catch (emailError) {
             console.error(`Failed to send coupon email to ${recipient.email}:`, emailError);
-            // Don't fail the entire operation if email fails
           }
         }
         

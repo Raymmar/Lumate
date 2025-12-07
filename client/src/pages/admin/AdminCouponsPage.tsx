@@ -79,13 +79,18 @@ export default function AdminCouponsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [selectedTicketTypeId, setSelectedTicketTypeId] = useState<string>("");
+  const [discountType, setDiscountType] = useState<'percent' | 'dollars'>('percent');
   const [discountPercent, setDiscountPercent] = useState<number>(100);
+  const [dollarOff, setDollarOff] = useState<number>(10);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [couponType, setCouponType] = useState<'targeted' | 'general'>('targeted');
   const [recipientType, setRecipientType] = useState<'allPremium' | 'individuals'>('allPremium');
   const [selectedPeople, setSelectedPeople] = useState<SearchablePerson[]>([]);
   const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
   const debouncedPeopleSearch = useDebounce(peopleSearchQuery, 300);
+  const [customCode, setCustomCode] = useState<string>("");
+  const [maxUses, setMaxUses] = useState<number>(10);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [remainingFilter, setRemainingFilter] = useState<string>("all");
@@ -184,9 +189,14 @@ export default function AdminCouponsPage() {
       eventApiId: string;
       ticketTypeId?: string;
       ticketTypeName?: string;
-      discountPercent: number;
+      discountType: 'percent' | 'dollars';
+      discountPercent?: number;
+      dollarOff?: number;
+      couponType: 'targeted' | 'general';
       targetGroup?: 'activePremium';
       recipientIds?: number[];
+      customCode?: string;
+      maxUses?: number;
     }) => {
       return apiRequest("/api/admin/coupons/generate", "POST", data);
     },
@@ -202,10 +212,15 @@ export default function AdminCouponsPage() {
       setIsCreateOpen(false);
       setSelectedEventId("");
       setSelectedTicketTypeId("");
+      setDiscountType('percent');
       setDiscountPercent(100);
+      setDollarOff(10);
+      setCouponType('targeted');
       setRecipientType('allPremium');
       setSelectedPeople([]);
       setPeopleSearchQuery("");
+      setCustomCode("");
+      setMaxUses(10);
     },
     onError: (error: Error) => {
       toast({
@@ -226,13 +241,24 @@ export default function AdminCouponsPage() {
       return;
     }
 
-    if (recipientType === 'individuals' && selectedPeople.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one person",
-        variant: "destructive",
-      });
-      return;
+    if (couponType === 'general') {
+      if (!customCode || customCode.trim().length < 3) {
+        toast({
+          title: "Error",
+          description: "Please enter a coupon code (at least 3 characters)",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (recipientType === 'individuals' && selectedPeople.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one person",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const actualTicketTypeId = selectedTicketTypeId === 'all' ? undefined : selectedTicketTypeId;
@@ -242,20 +268,37 @@ export default function AdminCouponsPage() {
       eventApiId: string;
       ticketTypeId?: string;
       ticketTypeName?: string;
-      discountPercent: number;
+      discountType: 'percent' | 'dollars';
+      discountPercent?: number;
+      dollarOff?: number;
+      couponType: 'targeted' | 'general';
       targetGroup?: 'activePremium';
       recipientIds?: number[];
+      customCode?: string;
+      maxUses?: number;
     } = {
       eventApiId: selectedEventId,
       ticketTypeId: actualTicketTypeId,
       ticketTypeName: selectedTicket?.name || undefined,
-      discountPercent,
+      discountType,
+      couponType,
     };
 
-    if (recipientType === 'allPremium') {
-      mutationData.targetGroup = 'activePremium';
+    if (discountType === 'percent') {
+      mutationData.discountPercent = discountPercent;
     } else {
-      mutationData.recipientIds = selectedPeople.map(p => p.id);
+      mutationData.dollarOff = dollarOff;
+    }
+
+    if (couponType === 'general') {
+      mutationData.customCode = customCode.trim();
+      mutationData.maxUses = maxUses;
+    } else {
+      if (recipientType === 'allPremium') {
+        mutationData.targetGroup = 'activePremium';
+      } else {
+        mutationData.recipientIds = selectedPeople.map(p => p.id);
+      }
     }
 
     generateCouponsMutation.mutate(mutationData);
@@ -388,11 +431,11 @@ export default function AdminCouponsPage() {
                   Generate Coupons
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Generate Member Coupons</DialogTitle>
+                  <DialogTitle>Generate Coupons</DialogTitle>
                   <DialogDescription>
-                    Create discount coupons for all active premium members
+                    Create discount coupons for members or general use
                   </DialogDescription>
                 </DialogHeader>
                 
@@ -421,6 +464,40 @@ export default function AdminCouponsPage() {
 
                   {selectedEventId && (
                     <>
+                      <div className="space-y-2">
+                        <Label>Coupon Type</Label>
+                        <RadioGroup
+                          value={couponType}
+                          onValueChange={(value: 'targeted' | 'general') => {
+                            setCouponType(value);
+                            if (value === 'general') {
+                              setSelectedPeople([]);
+                              setPeopleSearchQuery("");
+                            }
+                          }}
+                          className="flex gap-4"
+                          data-testid="radio-coupon-type"
+                        >
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="targeted" id="targeted" data-testid="radio-targeted" />
+                            <Label htmlFor="targeted" className="font-normal cursor-pointer">
+                              Send to Recipients
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="general" id="general" data-testid="radio-general" />
+                            <Label htmlFor="general" className="font-normal cursor-pointer">
+                              General Use
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                        <p className="text-xs text-muted-foreground">
+                          {couponType === 'general' 
+                            ? 'Create a single coupon code that can be shared broadly' 
+                            : 'Send individual coupons to specific recipients via email'}
+                        </p>
+                      </div>
+
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
                           <Label htmlFor="ticketType">Ticket Type (Optional)</Label>
@@ -462,51 +539,137 @@ export default function AdminCouponsPage() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="discount">Discount Percentage</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="discount"
-                            type="number"
-                            min={1}
-                            max={100}
-                            value={discountPercent}
-                            onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 100)}
-                            data-testid="input-discount"
-                          />
-                          <span className="text-muted-foreground">%</span>
+                        <Label>Discount Type</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={discountType === 'percent' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDiscountType('percent')}
+                            data-testid="button-discount-percent"
+                          >
+                            Percentage Off
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={discountType === 'dollars' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setDiscountType('dollars')}
+                            data-testid="button-discount-dollars"
+                          >
+                            Dollar Amount Off
+                          </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          100% = Free ticket
-                        </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Recipients</Label>
-                        <RadioGroup
-                          value={recipientType}
-                          onValueChange={(value: 'allPremium' | 'individuals') => {
-                            setRecipientType(value);
-                            if (value === 'allPremium') {
-                              setSelectedPeople([]);
-                              setPeopleSearchQuery("");
-                            }
-                          }}
-                          className="flex flex-col gap-2"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="allPremium" id="allPremium" data-testid="radio-all-premium" />
-                            <Label htmlFor="allPremium" className="font-normal cursor-pointer">
-                              All Premium Members ({premiumCountData?.count || 0} people)
-                            </Label>
+                      {discountType === 'percent' ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="discount">Discount Percentage</Label>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              id="discount"
+                              type="number"
+                              min={1}
+                              max={100}
+                              value={discountPercent}
+                              onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 100)}
+                              data-testid="input-discount-percent"
+                            />
+                            <span className="text-muted-foreground">%</span>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="individuals" id="individuals" data-testid="radio-individuals" />
-                            <Label htmlFor="individuals" className="font-normal cursor-pointer">
-                              Select Specific People
-                            </Label>
+                          <p className="text-xs text-muted-foreground">
+                            100% = Free ticket
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="dollarOff">Dollar Amount Off</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">$</span>
+                            <Input
+                              id="dollarOff"
+                              type="number"
+                              min={0.01}
+                              step={0.01}
+                              value={dollarOff}
+                              onChange={(e) => setDollarOff(parseFloat(e.target.value) || 10)}
+                              data-testid="input-discount-dollars"
+                            />
                           </div>
-                        </RadioGroup>
-                      </div>
+                          <p className="text-xs text-muted-foreground">
+                            Enter the dollar amount to discount from the ticket price
+                          </p>
+                        </div>
+                      )}
+
+                      {couponType === 'general' ? (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="customCode">Coupon Code</Label>
+                            <Input
+                              id="customCode"
+                              placeholder="e.g., WELCOME25, SPONSOR50"
+                              value={customCode}
+                              onChange={(e) => setCustomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9\-_]/g, ''))}
+                              maxLength={50}
+                              data-testid="input-custom-code"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Letters, numbers, hyphens, and underscores only. This code will be shown exactly as entered.
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="maxUses">Number of Uses</Label>
+                            <Select value={maxUses.toString()} onValueChange={(v) => setMaxUses(parseInt(v))}>
+                              <SelectTrigger id="maxUses" data-testid="select-max-uses">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">1 use</SelectItem>
+                                <SelectItem value="5">5 uses</SelectItem>
+                                <SelectItem value="10">10 uses</SelectItem>
+                                <SelectItem value="25">25 uses</SelectItem>
+                                <SelectItem value="50">50 uses</SelectItem>
+                                <SelectItem value="100">100 uses</SelectItem>
+                                <SelectItem value="500">500 uses</SelectItem>
+                                <SelectItem value="1000">1000 uses</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                              How many times this coupon can be redeemed
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label>Recipients</Label>
+                          <RadioGroup
+                            value={recipientType}
+                            onValueChange={(value: 'allPremium' | 'individuals') => {
+                              setRecipientType(value);
+                              if (value === 'allPremium') {
+                                setSelectedPeople([]);
+                                setPeopleSearchQuery("");
+                              }
+                            }}
+                            className="flex flex-col gap-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="allPremium" id="allPremium" data-testid="radio-all-premium" />
+                              <Label htmlFor="allPremium" className="font-normal cursor-pointer">
+                                All Premium Members ({premiumCountData?.count || 0} people)
+                              </Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="individuals" id="individuals" data-testid="radio-individuals" />
+                              <Label htmlFor="individuals" className="font-normal cursor-pointer">
+                                Select Specific People
+                              </Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      )}
 
                       {recipientType === 'individuals' && (
                         <div className="space-y-2">
@@ -577,7 +740,34 @@ export default function AdminCouponsPage() {
                     </>
                   )}
 
-                  {selectedEventId && (recipientType === 'allPremium' || selectedPeople.length > 0) && (
+                  {selectedEventId && couponType === 'general' && customCode.length >= 3 && (
+                    <div className="rounded-lg border bg-muted/50 p-4 space-y-2" data-testid="coupon-preview-general">
+                      <div className="text-sm font-medium">Preview</div>
+                      <div className="space-y-1 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-green-500" />
+                          <span>Code: <strong>{customCode}</strong></span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-blue-500" />
+                          <span>
+                            {discountType === 'percent' 
+                              ? `${discountPercent}% off` 
+                              : `$${dollarOff.toFixed(2)} off`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-purple-500" />
+                          <span>{maxUses} {maxUses === 1 ? 'use' : 'uses'}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        No email will be sent. Share this code manually.
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedEventId && couponType === 'targeted' && (recipientType === 'allPremium' || selectedPeople.length > 0) && (
                     <div className="rounded-lg border bg-muted/50 p-4 space-y-2" data-testid="coupon-preview">
                       <div className="text-sm font-medium">Preview</div>
                       {isLoadingPreview ? (
@@ -609,7 +799,12 @@ export default function AdminCouponsPage() {
                   </Button>
                   <Button
                     onClick={handleGenerateCoupons}
-                    disabled={!selectedEventId || generateCouponsMutation.isPending || (previewData?.willReceive === 0)}
+                    disabled={
+                      !selectedEventId || 
+                      generateCouponsMutation.isPending || 
+                      (couponType === 'targeted' && previewData?.willReceive === 0) ||
+                      (couponType === 'general' && customCode.length < 3)
+                    }
                     data-testid="button-confirm-generate"
                   >
                     {generateCouponsMutation.isPending ? (
@@ -617,6 +812,8 @@ export default function AdminCouponsPage() {
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Generating...
                       </>
+                    ) : couponType === 'general' ? (
+                      customCode.length < 3 ? "Enter Coupon Code" : "Create Coupon"
                     ) : previewData?.willReceive === 0 ? (
                       "No New Recipients"
                     ) : (
@@ -778,7 +975,13 @@ export default function AdminCouponsPage() {
                                       </button>
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap truncate max-w-[200px]" title={coupon.recipientEmail ?? undefined}>
-                                      {coupon.recipientEmail || <span className="text-muted-foreground">—</span>}
+                                      {coupon.recipientEmail ? (
+                                        coupon.recipientEmail
+                                      ) : (coupon as any).couponType === 'general' ? (
+                                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">General Use</Badge>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap">
                                       {coupon.discountPercent ? `${coupon.discountPercent}%` : coupon.centsOff ? `$${(coupon.centsOff / 100).toFixed(2)}` : '—'}
