@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight } from "lucide-react";
+import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,6 +87,9 @@ export default function AdminCouponsPage() {
   const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
   const debouncedPeopleSearch = useDebounce(peopleSearchQuery, 300);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [remainingFilter, setRemainingFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: Coupon[]; stats: CouponStats[] }>({
     queryKey: ["/api/admin/coupons"],
@@ -327,14 +330,42 @@ export default function AdminCouponsPage() {
     });
   };
 
-  const couponsByEvent = useMemo(() => {
-    if (!couponsData?.coupons || !couponsData?.stats) return [];
+  const filteredCoupons = useMemo(() => {
+    if (!couponsData?.coupons) return [];
     
-    return couponsData.stats.map(stat => ({
-      ...stat,
-      coupons: couponsData.coupons.filter(c => c.eventApiId === stat.eventApiId)
-    }));
-  }, [couponsData]);
+    return couponsData.coupons.filter(coupon => {
+      if (statusFilter !== "all" && coupon.status !== statusFilter) return false;
+      if (remainingFilter === "has_remaining" && (coupon.remainingCount ?? 0) <= 0) return false;
+      if (remainingFilter === "fully_redeemed" && (coupon.remainingCount ?? 0) > 0) return false;
+      if (sourceFilter !== "all" && coupon.source !== sourceFilter) return false;
+      return true;
+    });
+  }, [couponsData?.coupons, statusFilter, remainingFilter, sourceFilter]);
+
+  const couponsByEvent = useMemo(() => {
+    if (!couponsData?.stats) return [];
+    
+    return couponsData.stats.map(stat => {
+      const eventCoupons = filteredCoupons.filter(c => c.eventApiId === stat.eventApiId);
+      return {
+        eventApiId: stat.eventApiId,
+        eventTitle: stat.eventTitle,
+        total: eventCoupons.length,
+        issued: eventCoupons.filter(c => c.status === 'issued').length,
+        redeemed: eventCoupons.filter(c => c.status === 'redeemed').length,
+        expired: eventCoupons.filter(c => c.status === 'expired').length,
+        coupons: eventCoupons
+      };
+    }).filter(group => group.coupons.length > 0);
+  }, [couponsData?.stats, filteredCoupons]);
+
+  const hasActiveFilters = statusFilter !== "all" || remainingFilter !== "all" || sourceFilter !== "all";
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setRemainingFilter("all");
+    setSourceFilter("all");
+  };
 
   return (
     <>
@@ -600,6 +631,67 @@ export default function AdminCouponsPage() {
       >
         <div className="space-y-4">
 
+          <Card>
+            <CardContent className="pt-4 pb-4">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Filters:</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[130px] h-8" data-testid="select-status-filter">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="issued">Issued</SelectItem>
+                      <SelectItem value="redeemed">Redeemed</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={remainingFilter} onValueChange={setRemainingFilter}>
+                    <SelectTrigger className="w-[150px] h-8" data-testid="select-remaining-filter">
+                      <SelectValue placeholder="Remaining" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Remaining</SelectItem>
+                      <SelectItem value="has_remaining">Has remaining</SelectItem>
+                      <SelectItem value="fully_redeemed">Fully redeemed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                    <SelectTrigger className="w-[120px] h-8" data-testid="select-source-filter">
+                      <SelectValue placeholder="Source" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Sources</SelectItem>
+                      <SelectItem value="luma">Luma</SelectItem>
+                      <SelectItem value="internal">Internal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-8 px-2 text-muted-foreground"
+                      data-testid="button-clear-filters"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {hasActiveFilters && (
+                  <div className="text-sm text-muted-foreground ml-auto">
+                    Showing {filteredCoupons.length} of {couponsData?.coupons?.length || 0} coupons
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {isLoadingCoupons ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -658,7 +750,7 @@ export default function AdminCouponsPage() {
                                 <TableHead>Discount</TableHead>
                                 <TableHead>Link</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Issued</TableHead>
+                                <TableHead>Remaining</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -715,8 +807,11 @@ export default function AdminCouponsPage() {
                                       )}
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap">{getStatusBadge(coupon.status)}</TableCell>
-                                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                                      {new Date(coupon.issuedAt).toLocaleDateString()}
+                                    <TableCell className="whitespace-nowrap">
+                                      {coupon.remainingCount !== null && coupon.remainingCount !== undefined 
+                                        ? <span className={coupon.remainingCount === 0 ? "text-muted-foreground" : "font-medium"}>{coupon.remainingCount}</span>
+                                        : <span className="text-muted-foreground">—</span>
+                                      }
                                     </TableCell>
                                   </TableRow>
                                 );
@@ -734,14 +829,29 @@ export default function AdminCouponsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Ticket className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No coupons yet</h3>
-                <p className="text-muted-foreground text-center mb-4">
-                  Generate coupons for your premium members to attend upcoming events
-                </p>
-                <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-first-coupons">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Generate First Coupons
-                </Button>
+                {hasActiveFilters && couponsData?.coupons?.length ? (
+                  <>
+                    <h3 className="text-lg font-semibold mb-2">No matching coupons</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      No coupons match your current filters
+                    </p>
+                    <Button variant="outline" onClick={clearFilters} data-testid="button-clear-filters-empty">
+                      <X className="h-4 w-4 mr-2" />
+                      Clear Filters
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-semibold mb-2">No coupons yet</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      Generate coupons for your premium members to attend upcoming events
+                    </p>
+                    <Button onClick={() => setIsCreateOpen(true)} data-testid="button-create-first-coupons">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Generate First Coupons
+                    </Button>
+                  </>
+                )}
               </CardContent>
             </Card>
           )}
