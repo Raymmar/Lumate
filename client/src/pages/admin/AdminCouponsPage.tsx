@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Calendar, Users, Plus, Copy, Check, RefreshCw, Search, X, UserPlus } from "lucide-react";
+import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +36,11 @@ import {
 } from "@/components/ui/table";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useDebounce } from "@/hooks/useDebounce";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import type { Coupon } from "@shared/schema";
 
 interface SearchablePerson {
@@ -81,6 +86,7 @@ export default function AdminCouponsPage() {
   const [selectedPeople, setSelectedPeople] = useState<SearchablePerson[]>([]);
   const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
   const debouncedPeopleSearch = useDebounce(peopleSearchQuery, 300);
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: Coupon[]; stats: CouponStats[] }>({
     queryKey: ["/api/admin/coupons"],
@@ -308,6 +314,27 @@ export default function AdminCouponsPage() {
   };
 
   const selectedEvent = eventsData?.events?.find(e => e.api_id === selectedEventId);
+
+  const toggleEventExpanded = (eventApiId: string) => {
+    setExpandedEvents(prev => {
+      const next = new Set(prev);
+      if (next.has(eventApiId)) {
+        next.delete(eventApiId);
+      } else {
+        next.add(eventApiId);
+      }
+      return next;
+    });
+  };
+
+  const couponsByEvent = useMemo(() => {
+    if (!couponsData?.coupons || !couponsData?.stats) return [];
+    
+    return couponsData.stats.map(stat => ({
+      ...stat,
+      coupons: couponsData.coupons.filter(c => c.eventApiId === stat.eventApiId)
+    }));
+  }, [couponsData]);
 
   return (
     <>
@@ -571,125 +598,138 @@ export default function AdminCouponsPage() {
           </div>
         }
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
 
           {isLoadingCoupons ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : couponsData?.stats && couponsData.stats.length > 0 ? (
-            <>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {couponsData.stats.map((stat) => (
-                  <Card key={stat.eventApiId}>
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">{stat.eventTitle}</CardTitle>
-                      <CardDescription>{stat.total} coupons generated</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex gap-4 text-sm">
-                        <div className="flex items-center gap-1">
-                          <div className="h-2 w-2 rounded-full bg-blue-500" />
-                          <span>{stat.issued} issued</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="h-2 w-2 rounded-full bg-green-500" />
-                          <span>{stat.redeemed} redeemed</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <div className="h-2 w-2 rounded-full bg-gray-400" />
-                          <span>{stat.expired} expired</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>All Coupons</CardTitle>
-                  <CardDescription>Complete list of generated coupons</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Event</TableHead>
-                        <TableHead>Recipient</TableHead>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Link</TableHead>
-                        <TableHead>Discount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Issued</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {couponsData.coupons.map((coupon) => {
-                        const couponLink = getCouponLink(coupon);
-                        return (
-                          <TableRow key={coupon.id}>
-                            <TableCell className="font-medium max-w-[200px] truncate whitespace-nowrap" title={coupon.eventTitle ?? undefined}>{coupon.eventTitle}</TableCell>
-                            <TableCell className="whitespace-nowrap truncate max-w-[180px]" title={coupon.recipientEmail}>{coupon.recipientEmail}</TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs"
-                                onClick={() => copyToClipboard(coupon.code)}
-                                data-testid={`button-copy-code-${coupon.id}`}
-                              >
-                                {copiedCode === coupon.code ? (
-                                  <>
-                                    <Check className="h-3 w-3 mr-1 text-green-500" />
-                                    Copied
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="h-3 w-3 mr-1" />
-                                    Copy Code
-                                  </>
-                                )}
-                              </Button>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {couponLink ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-7 text-xs"
-                                  onClick={() => copyLinkToClipboard(couponLink)}
-                                  data-testid={`button-copy-link-${coupon.id}`}
-                                >
-                                  {copiedLink === couponLink ? (
-                                    <>
-                                      <Check className="h-3 w-3 mr-1 text-green-500" />
-                                      Copied
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="h-3 w-3 mr-1" />
-                                      Copy Link
-                                    </>
-                                  )}
-                                </Button>
+          ) : couponsByEvent.length > 0 ? (
+            <div className="space-y-3">
+              {couponsByEvent.map((eventGroup) => {
+                const isExpanded = expandedEvents.has(eventGroup.eventApiId);
+                return (
+                  <Collapsible
+                    key={eventGroup.eventApiId}
+                    open={isExpanded}
+                    onOpenChange={() => toggleEventExpanded(eventGroup.eventApiId)}
+                  >
+                    <Card>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {isExpanded ? (
+                                <ChevronDown className="h-5 w-5 text-muted-foreground" />
                               ) : (
-                                <span className="text-muted-foreground text-sm">N/A</span>
+                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
                               )}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">{coupon.discountPercent}%</TableCell>
-                            <TableCell className="whitespace-nowrap">{getStatusBadge(coupon.status)}</TableCell>
-                            <TableCell className="text-muted-foreground whitespace-nowrap">
-                              {new Date(coupon.issuedAt).toLocaleDateString()}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </>
+                              <div>
+                                <CardTitle className="text-base">{eventGroup.eventTitle}</CardTitle>
+                                <CardDescription className="mt-1">
+                                  {eventGroup.total} coupons
+                                </CardDescription>
+                              </div>
+                            </div>
+                            <div className="flex gap-4 text-sm">
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-2 w-2 rounded-full bg-blue-500" />
+                                <span className="text-muted-foreground">{eventGroup.issued} issued</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-2 w-2 rounded-full bg-green-500" />
+                                <span className="text-muted-foreground">{eventGroup.redeemed} redeemed</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-2 w-2 rounded-full bg-gray-400" />
+                                <span className="text-muted-foreground">{eventGroup.expired} expired</span>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Code</TableHead>
+                                <TableHead>Recipient</TableHead>
+                                <TableHead>Discount</TableHead>
+                                <TableHead>Link</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>Issued</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {eventGroup.coupons.map((coupon) => {
+                                const couponLink = getCouponLink(coupon);
+                                return (
+                                  <TableRow key={coupon.id}>
+                                    <TableCell className="font-mono font-medium">
+                                      <button
+                                        onClick={() => copyToClipboard(coupon.code)}
+                                        className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
+                                        data-testid={`button-copy-code-${coupon.id}`}
+                                      >
+                                        {copiedCode === coupon.code ? (
+                                          <>
+                                            <Check className="h-3.5 w-3.5 text-green-500" />
+                                            <span className="text-green-600">{coupon.code}</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span>{coupon.code}</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap truncate max-w-[200px]" title={coupon.recipientEmail ?? undefined}>
+                                      {coupon.recipientEmail || <span className="text-muted-foreground">—</span>}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                      {coupon.discountPercent ? `${coupon.discountPercent}%` : coupon.centsOff ? `$${(coupon.centsOff / 100).toFixed(2)}` : '—'}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                      {couponLink ? (
+                                        <button
+                                          onClick={() => copyLinkToClipboard(couponLink)}
+                                          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                                          data-testid={`button-copy-link-${coupon.id}`}
+                                        >
+                                          {copiedLink === couponLink ? (
+                                            <>
+                                              <Check className="h-3.5 w-3.5 text-green-500" />
+                                              <span className="text-green-600">Copied</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Copy className="h-3.5 w-3.5" />
+                                              <span>Copy link</span>
+                                            </>
+                                          )}
+                                        </button>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="whitespace-nowrap">{getStatusBadge(coupon.status)}</TableCell>
+                                    <TableCell className="text-muted-foreground whitespace-nowrap">
+                                      {new Date(coupon.issuedAt).toLocaleDateString()}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                );
+              })}
+            </div>
           ) : (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
