@@ -688,11 +688,14 @@ export const coupons = pgTable("coupons", {
   lumaCouponApiId: varchar("luma_coupon_api_id", { length: 255 }),
   recipientUserId: integer("recipient_user_id").references(() => users.id),
   recipientPersonId: integer("recipient_person_id").references(() => people.id),
-  recipientEmail: varchar("recipient_email", { length: 255 }).notNull(),
-  discountPercent: integer("discount_percent").notNull(),
+  recipientEmail: varchar("recipient_email", { length: 255 }),
+  discountPercent: integer("discount_percent"),
+  centsOff: integer("cents_off"),
   validStartAt: timestamp("valid_start_at", { mode: 'string', withTimezone: true }),
   validEndAt: timestamp("valid_end_at", { mode: 'string', withTimezone: true }),
   status: varchar("status", { length: 20 }).notNull().default('issued'),
+  remainingCount: integer("remaining_count"),
+  source: varchar("source", { length: 20 }).notNull().default('internal'),
   issuedAt: timestamp("issued_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   issuedByUserId: integer("issued_by_user_id").references(() => users.id),
   redeemedAt: timestamp("redeemed_at", { mode: 'string', withTimezone: true }),
@@ -703,6 +706,7 @@ export const coupons = pgTable("coupons", {
   index("coupons_recipient_email_idx").on(table.recipientEmail),
   index("coupons_event_idx").on(table.eventApiId),
   index("coupons_status_idx").on(table.status),
+  index("coupons_code_event_idx").on(table.code, table.eventApiId),
 ]);
 
 export const insertCouponSchema = createInsertSchema(coupons).omit({
@@ -713,5 +717,8 @@ export const insertCouponSchema = createInsertSchema(coupons).omit({
 
 export const couponStatusEnum = z.enum(['issued', 'redeemed', 'expired']);
 export type CouponStatus = z.infer<typeof couponStatusEnum>;
+
+export const couponSourceEnum = z.enum(['internal', 'luma']);
+export type CouponSource = z.infer<typeof couponSourceEnum>;
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
