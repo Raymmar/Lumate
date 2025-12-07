@@ -695,6 +695,7 @@ export const coupons = pgTable("coupons", {
   validEndAt: timestamp("valid_end_at", { mode: 'string', withTimezone: true }),
   status: varchar("status", { length: 20 }).notNull().default('issued'),
   remainingCount: integer("remaining_count"),
+  initialCount: integer("initial_count"),
   source: varchar("source", { length: 20 }).notNull().default('internal'),
   issuedAt: timestamp("issued_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   issuedByUserId: integer("issued_by_user_id").references(() => users.id),
@@ -715,7 +716,7 @@ export const insertCouponSchema = createInsertSchema(coupons).omit({
   createdAt: true,
 });
 
-export const couponStatusEnum = z.enum(['issued', 'redeemed', 'expired']);
+export const couponStatusEnum = z.enum(['issued', 'active', 'redeemed', 'expired']);
 export type CouponStatus = z.infer<typeof couponStatusEnum>;
 
 export const couponSourceEnum = z.enum(['internal', 'luma']);
