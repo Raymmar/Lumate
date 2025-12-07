@@ -153,7 +153,7 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
     
     const existingRecipientEmails = new Set(
       existingCouponsForEvent
-        .filter(c => c.recipientEmail != null)
+        .filter((c): c is { recipientEmail: string } => c.recipientEmail != null)
         .map(c => c.recipientEmail.toLowerCase())
     );
     
@@ -425,7 +425,7 @@ router.post("/api/admin/coupons/preview", requireAdmin, async (req, res) => {
     
     const existingRecipientEmails = new Set(
       existingCouponsForEvent
-        .filter(c => c.recipientEmail != null)
+        .filter((c): c is { recipientEmail: string } => c.recipientEmail != null)
         .map(c => c.recipientEmail.toLowerCase())
     );
     
