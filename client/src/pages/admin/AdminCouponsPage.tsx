@@ -84,8 +84,7 @@ export default function AdminCouponsPage() {
   const [dollarOff, setDollarOff] = useState<number>(10);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
-  const [couponType, setCouponType] = useState<'targeted' | 'general'>('targeted');
-  const [recipientType, setRecipientType] = useState<'allPremium' | 'individuals'>('allPremium');
+  const [recipientMode, setRecipientMode] = useState<'allPremium' | 'individuals' | 'general'>('allPremium');
   const [selectedPeople, setSelectedPeople] = useState<SearchablePerson[]>([]);
   const [peopleSearchQuery, setPeopleSearchQuery] = useState("");
   const debouncedPeopleSearch = useDebounce(peopleSearchQuery, 300);
@@ -146,12 +145,15 @@ export default function AdminCouponsPage() {
     willReceive: number; 
     alreadyHaveCoupons: number; 
   }>({
-    queryKey: ["/api/admin/coupons/preview", selectedEventId, recipientType, selectedPeopleIds],
+    queryKey: ["/api/admin/coupons/preview", selectedEventId, recipientMode, selectedPeopleIds],
     queryFn: async () => {
+      if (recipientMode === 'general') {
+        return { total: 0, willReceive: 0, alreadyHaveCoupons: 0 };
+      }
       const body: any = { eventApiId: selectedEventId };
-      if (recipientType === 'allPremium') {
+      if (recipientMode === 'allPremium') {
         body.targetGroup = 'activePremium';
-      } else {
+      } else if (recipientMode === 'individuals') {
         body.recipientIds = selectedPeople.map(p => p.id);
       }
       const response = await fetch('/api/admin/coupons/preview', {
@@ -162,7 +164,7 @@ export default function AdminCouponsPage() {
       if (!response.ok) throw new Error("Failed to load preview");
       return response.json();
     },
-    enabled: !!selectedEventId && (recipientType === 'allPremium' || selectedPeople.length > 0),
+    enabled: !!selectedEventId && recipientMode !== 'general' && (recipientMode === 'allPremium' || selectedPeople.length > 0),
   });
 
   const { data: peopleSearchData, isLoading: isSearchingPeople } = useQuery<{ people: SearchablePerson[] }>({
@@ -181,7 +183,7 @@ export default function AdminCouponsPage() {
       const data = await response.json();
       return { people: data.people || [] };
     },
-    enabled: recipientType === 'individuals' && debouncedPeopleSearch.length >= 2,
+    enabled: recipientMode === 'individuals' && debouncedPeopleSearch.length >= 2,
   });
 
   const generateCouponsMutation = useMutation({
@@ -215,8 +217,7 @@ export default function AdminCouponsPage() {
       setDiscountType('percent');
       setDiscountPercent(100);
       setDollarOff(10);
-      setCouponType('targeted');
-      setRecipientType('allPremium');
+      setRecipientMode('allPremium');
       setSelectedPeople([]);
       setPeopleSearchQuery("");
       setCustomCode("");
@@ -241,7 +242,7 @@ export default function AdminCouponsPage() {
       return;
     }
 
-    if (couponType === 'general') {
+    if (recipientMode === 'general') {
       if (!customCode || customCode.trim().length < 3) {
         toast({
           title: "Error",
@@ -250,19 +251,19 @@ export default function AdminCouponsPage() {
         });
         return;
       }
-    } else {
-      if (recipientType === 'individuals' && selectedPeople.length === 0) {
-        toast({
-          title: "Error",
-          description: "Please select at least one person",
-          variant: "destructive",
-        });
-        return;
-      }
+    } else if (recipientMode === 'individuals' && selectedPeople.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select at least one person",
+        variant: "destructive",
+      });
+      return;
     }
 
     const actualTicketTypeId = selectedTicketTypeId === 'all' ? undefined : selectedTicketTypeId;
     const selectedTicket = ticketTypesData?.ticketTypes?.find(t => t.id === actualTicketTypeId);
+
+    const isGeneralCoupon = recipientMode === 'general';
 
     const mutationData: {
       eventApiId: string;
@@ -281,7 +282,7 @@ export default function AdminCouponsPage() {
       ticketTypeId: actualTicketTypeId,
       ticketTypeName: selectedTicket?.name || undefined,
       discountType,
-      couponType,
+      couponType: isGeneralCoupon ? 'general' : 'targeted',
     };
 
     if (discountType === 'percent') {
@@ -290,11 +291,11 @@ export default function AdminCouponsPage() {
       mutationData.dollarOff = dollarOff;
     }
 
-    if (couponType === 'general') {
+    if (isGeneralCoupon) {
       mutationData.customCode = customCode.trim();
-      mutationData.maxUses = maxUses;
+      mutationData.maxUses = Math.max(1, maxUses || 1);
     } else {
-      if (recipientType === 'allPremium') {
+      if (recipientMode === 'allPremium') {
         mutationData.targetGroup = 'activePremium';
       } else {
         mutationData.recipientIds = selectedPeople.map(p => p.id);
@@ -465,34 +466,44 @@ export default function AdminCouponsPage() {
                   {selectedEventId && (
                     <>
                       <div className="space-y-2">
-                        <Label>Coupon Type</Label>
+                        <Label>Recipients</Label>
                         <RadioGroup
-                          value={couponType}
-                          onValueChange={(value: 'targeted' | 'general') => {
-                            setCouponType(value);
-                            if (value === 'general') {
+                          value={recipientMode}
+                          onValueChange={(value: 'allPremium' | 'individuals' | 'general') => {
+                            setRecipientMode(value);
+                            if (value !== 'individuals') {
                               setSelectedPeople([]);
                               setPeopleSearchQuery("");
                             }
+                            if (value !== 'general') {
+                              setCustomCode("");
+                              setMaxUses(10);
+                            }
                           }}
-                          className="flex gap-4"
-                          data-testid="radio-coupon-type"
+                          className="flex flex-col gap-2"
+                          data-testid="radio-recipient-mode"
                         >
                           <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="targeted" id="targeted" data-testid="radio-targeted" />
-                            <Label htmlFor="targeted" className="font-normal cursor-pointer">
-                              Send to Recipients
+                            <RadioGroupItem value="allPremium" id="allPremium" data-testid="radio-all-premium" />
+                            <Label htmlFor="allPremium" className="font-normal cursor-pointer">
+                              All Premium Members ({premiumCountData?.count || 0} people)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="individuals" id="individuals" data-testid="radio-individuals" />
+                            <Label htmlFor="individuals" className="font-normal cursor-pointer">
+                              Select Specific People
                             </Label>
                           </div>
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="general" id="general" data-testid="radio-general" />
                             <Label htmlFor="general" className="font-normal cursor-pointer">
-                              General Use
+                              General Use (shareable code)
                             </Label>
                           </div>
                         </RadioGroup>
                         <p className="text-xs text-muted-foreground">
-                          {couponType === 'general' 
+                          {recipientMode === 'general' 
                             ? 'Create a single coupon code that can be shared broadly' 
                             : 'Send individual coupons to specific recipients via email'}
                         </p>
@@ -602,7 +613,7 @@ export default function AdminCouponsPage() {
                         </div>
                       )}
 
-                      {couponType === 'general' ? (
+                      {recipientMode === 'general' && (
                         <>
                           <div className="space-y-2">
                             <Label htmlFor="customCode">Coupon Code</Label>
@@ -621,57 +632,22 @@ export default function AdminCouponsPage() {
 
                           <div className="space-y-2">
                             <Label htmlFor="maxUses">Number of Uses</Label>
-                            <Select value={maxUses.toString()} onValueChange={(v) => setMaxUses(parseInt(v))}>
-                              <SelectTrigger id="maxUses" data-testid="select-max-uses">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="1">1 use</SelectItem>
-                                <SelectItem value="5">5 uses</SelectItem>
-                                <SelectItem value="10">10 uses</SelectItem>
-                                <SelectItem value="25">25 uses</SelectItem>
-                                <SelectItem value="50">50 uses</SelectItem>
-                                <SelectItem value="100">100 uses</SelectItem>
-                                <SelectItem value="500">500 uses</SelectItem>
-                                <SelectItem value="1000">1000 uses</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Input
+                              id="maxUses"
+                              type="number"
+                              min={1}
+                              value={maxUses}
+                              onChange={(e) => setMaxUses(Math.max(1, parseInt(e.target.value) || 1))}
+                              data-testid="input-max-uses"
+                            />
                             <p className="text-xs text-muted-foreground">
                               How many times this coupon can be redeemed
                             </p>
                           </div>
                         </>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label>Recipients</Label>
-                          <RadioGroup
-                            value={recipientType}
-                            onValueChange={(value: 'allPremium' | 'individuals') => {
-                              setRecipientType(value);
-                              if (value === 'allPremium') {
-                                setSelectedPeople([]);
-                                setPeopleSearchQuery("");
-                              }
-                            }}
-                            className="flex flex-col gap-2"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="allPremium" id="allPremium" data-testid="radio-all-premium" />
-                              <Label htmlFor="allPremium" className="font-normal cursor-pointer">
-                                All Premium Members ({premiumCountData?.count || 0} people)
-                              </Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="individuals" id="individuals" data-testid="radio-individuals" />
-                              <Label htmlFor="individuals" className="font-normal cursor-pointer">
-                                Select Specific People
-                              </Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
                       )}
 
-                      {recipientType === 'individuals' && (
+                      {recipientMode === 'individuals' && (
                         <div className="space-y-2">
                           <Label>Search People</Label>
                           <div className="relative">
@@ -740,7 +716,7 @@ export default function AdminCouponsPage() {
                     </>
                   )}
 
-                  {selectedEventId && couponType === 'general' && customCode.length >= 3 && (
+                  {selectedEventId && recipientMode === 'general' && customCode.length >= 3 && (
                     <div className="rounded-lg border bg-muted/50 p-4 space-y-2" data-testid="coupon-preview-general">
                       <div className="text-sm font-medium">Preview</div>
                       <div className="space-y-1 text-sm">
@@ -767,7 +743,7 @@ export default function AdminCouponsPage() {
                     </div>
                   )}
 
-                  {selectedEventId && couponType === 'targeted' && (recipientType === 'allPremium' || selectedPeople.length > 0) && (
+                  {selectedEventId && recipientMode !== 'general' && (recipientMode === 'allPremium' || selectedPeople.length > 0) && (
                     <div className="rounded-lg border bg-muted/50 p-4 space-y-2" data-testid="coupon-preview">
                       <div className="text-sm font-medium">Preview</div>
                       {isLoadingPreview ? (
@@ -802,8 +778,8 @@ export default function AdminCouponsPage() {
                     disabled={
                       !selectedEventId || 
                       generateCouponsMutation.isPending || 
-                      (couponType === 'targeted' && previewData?.willReceive === 0) ||
-                      (couponType === 'general' && customCode.length < 3)
+                      (recipientMode !== 'general' && (isLoadingPreview || !previewData || previewData.willReceive === 0)) ||
+                      (recipientMode === 'general' && customCode.length < 3)
                     }
                     data-testid="button-confirm-generate"
                   >
@@ -812,7 +788,7 @@ export default function AdminCouponsPage() {
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                         Generating...
                       </>
-                    ) : couponType === 'general' ? (
+                    ) : recipientMode === 'general' ? (
                       customCode.length < 3 ? "Enter Coupon Code" : "Create Coupon"
                     ) : previewData?.willReceive === 0 ? (
                       "No New Recipients"
