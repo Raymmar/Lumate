@@ -307,8 +307,6 @@ export default function AdminCouponsPage() {
     switch (status) {
       case 'issued':
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Issued</Badge>;
-      case 'active':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Active</Badge>;
       case 'redeemed':
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Redeemed</Badge>;
       case 'expired':
@@ -354,7 +352,6 @@ export default function AdminCouponsPage() {
         eventTitle: stat.eventTitle,
         total: eventCoupons.length,
         issued: eventCoupons.filter(c => c.status === 'issued').length,
-        active: eventCoupons.filter(c => c.status === 'active').length,
         redeemed: eventCoupons.filter(c => c.status === 'redeemed').length,
         expired: eventCoupons.filter(c => c.status === 'expired').length,
         coupons: eventCoupons
@@ -649,7 +646,6 @@ export default function AdminCouponsPage() {
                     <SelectContent>
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="issued">Issued</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="redeemed">Redeemed</SelectItem>
                       <SelectItem value="expired">Expired</SelectItem>
                     </SelectContent>
@@ -733,10 +729,6 @@ export default function AdminCouponsPage() {
                                 <span className="text-muted-foreground">{eventGroup.issued} issued</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <div className="h-2 w-2 rounded-full bg-amber-500" />
-                                <span className="text-muted-foreground">{eventGroup.active} active</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
                                 <div className="h-2 w-2 rounded-full bg-green-500" />
                                 <span className="text-muted-foreground">{eventGroup.redeemed} redeemed</span>
                               </div>
@@ -758,7 +750,7 @@ export default function AdminCouponsPage() {
                                 <TableHead>Discount</TableHead>
                                 <TableHead>Link</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Usage</TableHead>
+                                <TableHead>Remaining</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -816,33 +808,10 @@ export default function AdminCouponsPage() {
                                     </TableCell>
                                     <TableCell className="whitespace-nowrap">{getStatusBadge(coupon.status)}</TableCell>
                                     <TableCell className="whitespace-nowrap">
-                                      {coupon.initialCount !== null && coupon.initialCount !== undefined ? (
-                                        <div className="flex items-center gap-2">
-                                          <div className="flex flex-col gap-1 min-w-[80px]">
-                                            <div className="text-xs text-muted-foreground">
-                                              {(coupon.initialCount - (coupon.remainingCount ?? 0))} / {coupon.initialCount} used
-                                            </div>
-                                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                              <div 
-                                                className={`h-full rounded-full transition-all ${
-                                                  coupon.remainingCount === 0 
-                                                    ? 'bg-green-500' 
-                                                    : (coupon.remainingCount ?? 0) < coupon.initialCount 
-                                                      ? 'bg-amber-500' 
-                                                      : 'bg-blue-500'
-                                                }`}
-                                                style={{ 
-                                                  width: `${((coupon.initialCount - (coupon.remainingCount ?? 0)) / coupon.initialCount) * 100}%` 
-                                                }}
-                                              />
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ) : coupon.remainingCount !== null && coupon.remainingCount !== undefined ? (
-                                        <span className={coupon.remainingCount === 0 ? "text-muted-foreground" : "font-medium"}>{coupon.remainingCount} left</span>
-                                      ) : (
-                                        <span className="text-muted-foreground">—</span>
-                                      )}
+                                      {coupon.remainingCount !== null && coupon.remainingCount !== undefined 
+                                        ? <span className={coupon.remainingCount === 0 ? "text-muted-foreground" : "font-medium"}>{coupon.remainingCount}</span>
+                                        : <span className="text-muted-foreground">—</span>
+                                      }
                                     </TableCell>
                                   </TableRow>
                                 );

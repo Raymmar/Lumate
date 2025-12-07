@@ -3,19 +3,6 @@ import { db } from "../db";
 import { coupons, events } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 
-export function deriveCouponStatus(remainingCount: number | null, initialCount: number | null): 'issued' | 'active' | 'redeemed' {
-  if (remainingCount === null || initialCount === null) {
-    return 'issued';
-  }
-  if (remainingCount === 0) {
-    return 'redeemed';
-  }
-  if (remainingCount < initialCount) {
-    return 'active';
-  }
-  return 'issued';
-}
-
 interface LumaCoupon {
   api_id: string;
   code: string;
@@ -113,8 +100,7 @@ export async function syncCouponsForEvent(eventApiId: string): Promise<{
           .limit(1);
 
         const existingCoupon = existingCoupons[0];
-        const initialCount = existingCoupon?.initialCount ?? lumaCoupon.remaining_count;
-        const newStatus = deriveCouponStatus(lumaCoupon.remaining_count, initialCount);
+        const newStatus = lumaCoupon.remaining_count === 0 ? 'redeemed' : 'issued';
 
         if (existingCoupon) {
           const wasUnredeemed = existingCoupon.status !== 'redeemed';
@@ -124,7 +110,6 @@ export async function syncCouponsForEvent(eventApiId: string): Promise<{
             .update(coupons)
             .set({
               remainingCount: lumaCoupon.remaining_count,
-              initialCount: existingCoupon.initialCount ?? lumaCoupon.remaining_count,
               status: newStatus,
               lumaCouponApiId: lumaCoupon.api_id,
               validStartAt: lumaCoupon.valid_start_at,
@@ -151,7 +136,6 @@ export async function syncCouponsForEvent(eventApiId: string): Promise<{
             validEndAt: lumaCoupon.valid_end_at,
             status: newStatus,
             remainingCount: lumaCoupon.remaining_count,
-            initialCount: lumaCoupon.remaining_count,
             source: 'luma',
             recipientEmail: null,
             recipientUserId: null,
