@@ -660,20 +660,12 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Startup School
                 </h3>
-                <p className="text-m text-muted-foreground mb-4 flex-grow">
+                <p className="text-m text-muted-foreground flex-grow">
                   Experts in venture capital, software development, branding,
                   business formation, intellectual property rights, accounting,
                   finance + more will be on site for small group breakouts and
                   interactive workshops.
                 </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled
-                  data-testid="button-startup-fair-cta"
-                >
-                  Details Coming Soon
-                </Button>
               </CardContent>
             </Card>
 
@@ -686,15 +678,12 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Main Stage
                 </h3>
-                <p className="text-m text-muted-foreground mb-4 flex-grow">
+                <p className="text-m text-muted-foreground flex-grow">
                   Apply to speak and you might end up on the main stage. We're
                   looking for breakout stories, interesting uses of AI, deep
                   tech, hardware, robotics, 3D printing, digital media or vibe
                   code.
                 </p>
-                <Button className="w-full" disabled data-testid="button-apply-speak">
-                  Applications Closed
-                </Button>
               </CardContent>
             </Card>
 
@@ -707,20 +696,12 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Keynote & Panels
                 </h3>
-                <p className="text-m text-muted-foreground mb-4 flex-grow">
+                <p className="text-m text-muted-foreground flex-grow">
                   Stay tuned as we announce our full agenda. Expect a mix of
                   keynote speakers and expert panelists discussing how AI and
                   modern tech trends will impact the world through the lens of
                   Florida's Gulf Coast.
                 </p>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled
-                  data-testid="button-keynote-panels-cta"
-                >
-                  Details Coming Soon
-                </Button>
               </CardContent>
             </Card>
           </div>
