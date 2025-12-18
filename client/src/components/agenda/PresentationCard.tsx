@@ -289,7 +289,7 @@ export function PresentationCard({
                   <motion.div 
                     key={speaker.id}
                     layoutId={`speaker-container-${presentation.id}-${speaker.id}`}
-                    className="flex items-center gap-1.5 cursor-pointer hover:bg-muted/50 rounded-full py-0.5 px-1.5 transition-colors"
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg py-1 px-2 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSpeakerIndex(index);
@@ -301,19 +301,26 @@ export function PresentationCard({
                       layoutId={`speaker-avatar-${presentation.id}-${speaker.id}`}
                       src={speaker.photo}
                       alt={speaker.name}
-                      className="w-5 h-5 rounded-full object-cover"
+                      className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     />
-                    <motion.span 
+                    <motion.div 
                       layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
-                      className="text-xs whitespace-nowrap"
+                      className="flex flex-col min-w-0"
                       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     >
-                      {speaker.name}
-                      {speaker.isModerator && (
-                        <Mic2 className="inline h-3 w-3 ml-1 text-primary" />
+                      <span className="text-xs font-medium flex items-center gap-1">
+                        {speaker.name}
+                        {speaker.isModerator && (
+                          <Mic2 className="h-3 w-3 text-primary flex-shrink-0" />
+                        )}
+                      </span>
+                      {(speaker.title || speaker.company) && (
+                        <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                          {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
+                        </span>
                       )}
-                    </motion.span>
+                    </motion.div>
                   </motion.div>
                 ))}
               </motion.div>
@@ -385,23 +392,23 @@ export function PresentationCard({
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                       />
-                      <div className="flex flex-col min-w-0">
-                        <motion.span 
-                          layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
-                          className="text-sm font-medium flex items-center gap-1"
-                          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-                        >
+                      <motion.div 
+                        layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
+                        className="flex flex-col min-w-0"
+                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                      >
+                        <span className="text-sm font-medium flex items-center gap-1">
                           {speaker.name}
                           {speaker.isModerator && (
                             <Mic2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                           )}
-                        </motion.span>
+                        </span>
                         {(speaker.title || speaker.company) && (
                           <span className="text-xs text-muted-foreground">
                             {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
                           </span>
                         )}
-                      </div>
+                      </motion.div>
                     </div>
                     {speaker.bio && (
                       <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
