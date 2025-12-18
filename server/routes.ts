@@ -34,6 +34,9 @@ import {
   industries,
   insertTimelineEventSchema,
   emailInvitations,
+  insertPresentationSchema,
+  insertSpeakerSchema,
+  insertPresentationSpeakerSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -625,6 +628,194 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to delete timeline event:", error);
       res.status(500).json({ error: "Failed to delete timeline event" });
+    }
+  });
+
+  // Presentation routes (summit agenda)
+  app.get("/api/presentations", async (req, res) => {
+    try {
+      const presentations = await storage.getPresentations();
+      res.json({ presentations });
+    } catch (error) {
+      console.error("Failed to fetch presentations:", error);
+      res.status(500).json({ error: "Failed to fetch presentations" });
+    }
+  });
+
+  app.get("/api/presentations/:id", async (req, res) => {
+    try {
+      const presentationId = parseInt(req.params.id);
+      const presentation = await storage.getPresentationById(presentationId);
+      if (!presentation) {
+        return res.status(404).json({ error: "Presentation not found" });
+      }
+      res.json({ presentation });
+    } catch (error) {
+      console.error("Failed to fetch presentation:", error);
+      res.status(500).json({ error: "Failed to fetch presentation" });
+    }
+  });
+
+  app.post("/api/presentations", requireAdmin, async (req, res) => {
+    try {
+      const result = insertPresentationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid presentation data", 
+          details: result.error.format() 
+        });
+      }
+      const presentation = await storage.createPresentation(result.data);
+      res.json(presentation);
+    } catch (error) {
+      console.error("Failed to create presentation:", error);
+      res.status(500).json({ error: "Failed to create presentation" });
+    }
+  });
+
+  app.patch("/api/presentations/:id", requireAdmin, async (req, res) => {
+    try {
+      const presentationId = parseInt(req.params.id);
+      const result = insertPresentationSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid presentation data", 
+          details: result.error.format() 
+        });
+      }
+      const presentation = await storage.updatePresentation(presentationId, result.data);
+      res.json(presentation);
+    } catch (error) {
+      console.error("Failed to update presentation:", error);
+      res.status(500).json({ error: "Failed to update presentation" });
+    }
+  });
+
+  app.delete("/api/presentations/:id", requireAdmin, async (req, res) => {
+    try {
+      const presentationId = parseInt(req.params.id);
+      await storage.deletePresentation(presentationId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete presentation:", error);
+      res.status(500).json({ error: "Failed to delete presentation" });
+    }
+  });
+
+  // Speaker routes
+  app.get("/api/speakers", async (req, res) => {
+    try {
+      const speakers = await storage.getSpeakers();
+      res.json({ speakers });
+    } catch (error) {
+      console.error("Failed to fetch speakers:", error);
+      res.status(500).json({ error: "Failed to fetch speakers" });
+    }
+  });
+
+  app.get("/api/speakers/:id", async (req, res) => {
+    try {
+      const speakerId = parseInt(req.params.id);
+      const speaker = await storage.getSpeakerById(speakerId);
+      if (!speaker) {
+        return res.status(404).json({ error: "Speaker not found" });
+      }
+      res.json({ speaker });
+    } catch (error) {
+      console.error("Failed to fetch speaker:", error);
+      res.status(500).json({ error: "Failed to fetch speaker" });
+    }
+  });
+
+  app.post("/api/speakers", requireAdmin, async (req, res) => {
+    try {
+      const result = insertSpeakerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid speaker data", 
+          details: result.error.format() 
+        });
+      }
+      const speaker = await storage.createSpeaker(result.data);
+      res.json(speaker);
+    } catch (error) {
+      console.error("Failed to create speaker:", error);
+      res.status(500).json({ error: "Failed to create speaker" });
+    }
+  });
+
+  app.patch("/api/speakers/:id", requireAdmin, async (req, res) => {
+    try {
+      const speakerId = parseInt(req.params.id);
+      const result = insertSpeakerSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid speaker data", 
+          details: result.error.format() 
+        });
+      }
+      const speaker = await storage.updateSpeaker(speakerId, result.data);
+      res.json(speaker);
+    } catch (error) {
+      console.error("Failed to update speaker:", error);
+      res.status(500).json({ error: "Failed to update speaker" });
+    }
+  });
+
+  app.delete("/api/speakers/:id", requireAdmin, async (req, res) => {
+    try {
+      const speakerId = parseInt(req.params.id);
+      await storage.deleteSpeaker(speakerId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete speaker:", error);
+      res.status(500).json({ error: "Failed to delete speaker" });
+    }
+  });
+
+  // Presentation-Speaker relationship routes
+  app.post("/api/presentations/:id/speakers", requireAdmin, async (req, res) => {
+    try {
+      const presentationId = parseInt(req.params.id);
+      const result = insertPresentationSpeakerSchema.safeParse({
+        ...req.body,
+        presentationId,
+      });
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid data", 
+          details: result.error.format() 
+        });
+      }
+      const presentationSpeaker = await storage.addSpeakerToPresentation(result.data);
+      res.json(presentationSpeaker);
+    } catch (error) {
+      console.error("Failed to add speaker to presentation:", error);
+      res.status(500).json({ error: "Failed to add speaker to presentation" });
+    }
+  });
+
+  app.patch("/api/presentations/:presentationId/speakers/:speakerId", requireAdmin, async (req, res) => {
+    try {
+      const presentationId = parseInt(req.params.presentationId);
+      const speakerId = parseInt(req.params.speakerId);
+      const presentationSpeaker = await storage.updatePresentationSpeaker(presentationId, speakerId, req.body);
+      res.json(presentationSpeaker);
+    } catch (error) {
+      console.error("Failed to update presentation speaker:", error);
+      res.status(500).json({ error: "Failed to update presentation speaker" });
+    }
+  });
+
+  app.delete("/api/presentations/:presentationId/speakers/:speakerId", requireAdmin, async (req, res) => {
+    try {
+      const presentationId = parseInt(req.params.presentationId);
+      const speakerId = parseInt(req.params.speakerId);
+      await storage.removeSpeakerFromPresentation(presentationId, speakerId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to remove speaker from presentation:", error);
+      res.status(500).json({ error: "Failed to remove speaker from presentation" });
     }
   });
 

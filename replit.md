@@ -6,6 +6,21 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### December 18, 2025 - Interactive Event Agenda System for Summit 2026
+- **Feature**: Built a comprehensive agenda management system for the Sarasota Tech Summit 2026
+- **Database Schema**:
+  - `presentations` table: Stores agenda items with title, description, start/end times, track (startup_school/main_stage), session type (keynote/panel/workshop/break/networking/round/talk), and isFullWidth flag for breaks/networking spanning all tracks
+  - `speakers` table: Speaker profiles with name, bio, photo, title, company, and optional bio URL
+  - `presentation_speakers` junction table: Many-to-many relationship with isModerator flag and displayOrder for panel moderators
+- **Frontend Components**:
+  - `AgendaSection`: Main component with toggle between calendar day view and traditional list view
+  - `PresentationCard`: Renders individual agenda items with session type badges, track info, and speaker avatars
+  - `PresentationModal`: Admin modal for creating/editing presentations and managing speaker assignments
+  - `SpeakerModal`: Admin modal for adding/editing speakers with photo upload support
+- **Two Tracks**: Startup School and Main Stage, displayed in columns in calendar view
+- **Admin Features**: Full CRUD for presentations and speakers, moderator assignment, drag-and-drop speaker ordering
+- **Integration**: Replaced static AgendaCard on SummitPage with dynamic AgendaSection
+
 ### November 7, 2025 - Email Invitation System Redesigned for Manual Control
 - **Context**: Automatic batch enrollment accidentally sent 147 emails and created 671 invitation records before being stopped, leaving 558 people with broken verification links
 - **Key Design Decisions**:
@@ -119,6 +134,7 @@ This is a full-stack web application built for the Sarasota Tech community, desi
   - Company information (companies, company_members, company_tags, industries)
   - Permissions system (roles, permissions, role_permissions, user_roles)
   - Badge system (badges, user_badges)
+  - Summit agenda (presentations, speakers, presentation_speakers)
   - Caching layer (cache_metadata)
 
 ## Key Components

@@ -733,3 +733,81 @@ export type DiscountType = z.infer<typeof discountTypeEnum>;
 
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
+
+// Presentations for summit agenda
+export const presentations = pgTable("presentations", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { mode: 'string', withTimezone: true }).notNull(),
+  track: varchar("track", { length: 50 }).notNull(), // 'startup_school' | 'main_stage'
+  sessionType: varchar("session_type", { length: 50 }).notNull(), // 'keynote' | 'panel' | 'workshop' | 'break' | 'networking' | 'round'
+  isFullWidth: boolean("is_full_width").notNull().default(false), // For breaks/networking spanning all tracks
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("presentations_start_time_idx").on(table.startTime),
+  index("presentations_track_idx").on(table.track),
+]);
+
+// Speakers for presentations
+export const speakers = pgTable("speakers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  bio: text("bio"),
+  photo: varchar("photo", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }), // e.g., "CEO"
+  company: varchar("company", { length: 255 }), // e.g., "Mote"
+  bioUrl: varchar("bio_url", { length: 255 }),
+  urlText: varchar("url_text", { length: 255 }),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+// Junction table for presentations and speakers (many-to-many)
+export const presentationSpeakers = pgTable("presentation_speakers", {
+  id: serial("id").primaryKey(),
+  presentationId: integer("presentation_id").notNull().references(() => presentations.id, { onDelete: 'cascade' }),
+  speakerId: integer("speaker_id").notNull().references(() => speakers.id, { onDelete: 'cascade' }),
+  isModerator: boolean("is_moderator").notNull().default(false),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("presentation_speakers_presentation_idx").on(table.presentationId),
+  index("presentation_speakers_speaker_idx").on(table.speakerId),
+]);
+
+// Insert schemas
+export const insertPresentationSchema = createInsertSchema(presentations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSpeakerSchema = createInsertSchema(speakers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPresentationSpeakerSchema = createInsertSchema(presentationSpeakers).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Type definitions
+export type Presentation = typeof presentations.$inferSelect;
+export type InsertPresentation = z.infer<typeof insertPresentationSchema>;
+
+export type Speaker = typeof speakers.$inferSelect;
+export type InsertSpeaker = z.infer<typeof insertSpeakerSchema>;
+
+export type PresentationSpeaker = typeof presentationSpeakers.$inferSelect;
+export type InsertPresentationSpeaker = z.infer<typeof insertPresentationSpeakerSchema>;
+
+// Extended type for presentations with speakers
+export type PresentationWithSpeakers = Presentation & {
+  speakers: (Speaker & { isModerator: boolean; displayOrder: number })[];
+};

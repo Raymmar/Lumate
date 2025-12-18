@@ -50,6 +50,7 @@ import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 import { SEO } from "@/components/ui/seo";
 import { SponsorGrid } from "@/components/sponsors";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
+import { AgendaSection } from "@/components/agenda";
 
 // Initialize TimeAgo
 TimeAgo.addLocale(en);
@@ -169,100 +170,6 @@ function EventLinksCard() {
   );
 }
 
-function AgendaCard() {
-  return (
-    <Card className="border w-full max-w-full overflow-hidden">
-      <CardHeader className="p-3 md:p-4">
-        <CardTitle className="text-xl md:text-2xl">
-          Tentative Event Agenda
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 md:p-4">
-        <div className="space-y-6 md:space-y-8">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
-              10:00 - 11:00
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">
-                Morning Check-in & Registration
-              </div>
-              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
-                Arrival, Networking + Startup Fair Opens
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
-              11:00 - 03:00
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">
-                Startup Fair & Main Stage
-              </div>
-              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
-                Share your idea, join a workshop or breakout, meet a mentor.
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
-              03:30 - 04:30
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">
-                Investor Quick Pitch
-              </div>
-              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
-                Select attendees will get to pitch investors and the crowd.
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
-              04:30 - 06:00
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">
-                Afternoon Check-in + Networking
-              </div>
-              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
-                Late Arrival + Food + Networking + Demo tables
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
-              06:00 - 08:30
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">
-                Main Program
-              </div>
-              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
-                Keynote presentation + Panel discussions + Q&A
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-            <div className="font-semibold text-xs sm:text-sm text-muted-foreground sm:min-w-[90px] flex-shrink-0">
-              08:30 - 10:00
-            </div>
-            <div className="flex-1">
-              <div className="font-semibold text-base md:text-lg">
-                VIP Afterparty
-              </div>
-              <div className="text-sm md:text-base text-muted-foreground mt-1 md:mt-2">
-                Join us for a special reception with live music, light bites and
-                a cash bar
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
 
 interface SponsorCardProps {
   sponsor: {
@@ -542,6 +449,9 @@ function ImageGalleryCard() {
 }
 
 export default function SummitPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.isAdmin ?? false;
+  
   const vcSponsors = [
     {
       name: "Truist Foundation",
@@ -839,7 +749,7 @@ export default function SummitPage() {
               {/* Left Sidebar - Event Links and Agenda */}
               <div className="lg:col-span-1 space-y-4">
                 <EventLinksCard />
-                <AgendaCard />
+                <AgendaSection isAdmin={isAdmin} />
               </div>
 
               {/* Right Content - News Feed and Gallery */}

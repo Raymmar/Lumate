@@ -21,9 +21,14 @@ import {
   EmailInvitation, InsertEmailInvitation,
   TimelineEvent, InsertTimelineEvent,
   Coupon, InsertCoupon,
+  Presentation, InsertPresentation,
+  Speaker, InsertSpeaker,
+  PresentationSpeaker, InsertPresentationSpeaker,
+  PresentationWithSpeakers,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons,
+  presentations, speakers, presentationSpeakers
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or, isNull } from "drizzle-orm";
@@ -207,6 +212,25 @@ export interface IStorage {
   updateCouponStatus(id: number, status: string, redeemedAt?: string): Promise<Coupon>;
   getActivePremiumMembers(): Promise<User[]>;
   getUnredeemedCouponsByEventAndEmail(eventApiId: string, email: string): Promise<Coupon[]>;
+
+  // Presentation management (summit agenda)
+  getPresentations(): Promise<PresentationWithSpeakers[]>;
+  getPresentationById(id: number): Promise<PresentationWithSpeakers | null>;
+  createPresentation(data: InsertPresentation): Promise<Presentation>;
+  updatePresentation(id: number, data: Partial<Presentation>): Promise<Presentation>;
+  deletePresentation(id: number): Promise<void>;
+
+  // Speaker management
+  getSpeakers(): Promise<Speaker[]>;
+  getSpeakerById(id: number): Promise<Speaker | null>;
+  createSpeaker(data: InsertSpeaker): Promise<Speaker>;
+  updateSpeaker(id: number, data: Partial<Speaker>): Promise<Speaker>;
+  deleteSpeaker(id: number): Promise<void>;
+
+  // Presentation-Speaker relationship
+  addSpeakerToPresentation(data: InsertPresentationSpeaker): Promise<PresentationSpeaker>;
+  removeSpeakerFromPresentation(presentationId: number, speakerId: number): Promise<void>;
+  updatePresentationSpeaker(presentationId: number, speakerId: number, data: Partial<PresentationSpeaker>): Promise<PresentationSpeaker>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -3383,6 +3407,232 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get unredeemed coupons:', error);
+      throw error;
+    }
+  }
+
+  // Presentation management (summit agenda)
+  async getPresentations(): Promise<PresentationWithSpeakers[]> {
+    try {
+      const presentationsList = await db
+        .select()
+        .from(presentations)
+        .orderBy(presentations.startTime, presentations.displayOrder);
+
+      const result: PresentationWithSpeakers[] = [];
+      for (const presentation of presentationsList) {
+        const speakerLinks = await db
+          .select({
+            speaker: speakers,
+            isModerator: presentationSpeakers.isModerator,
+            displayOrder: presentationSpeakers.displayOrder,
+          })
+          .from(presentationSpeakers)
+          .innerJoin(speakers, eq(presentationSpeakers.speakerId, speakers.id))
+          .where(eq(presentationSpeakers.presentationId, presentation.id))
+          .orderBy(presentationSpeakers.displayOrder);
+
+        result.push({
+          ...presentation,
+          speakers: speakerLinks.map(link => ({
+            ...link.speaker,
+            isModerator: link.isModerator,
+            displayOrder: link.displayOrder,
+          })),
+        });
+      }
+      return result;
+    } catch (error) {
+      console.error('Failed to get presentations:', error);
+      throw error;
+    }
+  }
+
+  async getPresentationById(id: number): Promise<PresentationWithSpeakers | null> {
+    try {
+      const result = await db
+        .select()
+        .from(presentations)
+        .where(eq(presentations.id, id))
+        .limit(1);
+
+      if (!result[0]) return null;
+
+      const speakerLinks = await db
+        .select({
+          speaker: speakers,
+          isModerator: presentationSpeakers.isModerator,
+          displayOrder: presentationSpeakers.displayOrder,
+        })
+        .from(presentationSpeakers)
+        .innerJoin(speakers, eq(presentationSpeakers.speakerId, speakers.id))
+        .where(eq(presentationSpeakers.presentationId, id))
+        .orderBy(presentationSpeakers.displayOrder);
+
+      return {
+        ...result[0],
+        speakers: speakerLinks.map(link => ({
+          ...link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
+        })),
+      };
+    } catch (error) {
+      console.error('Failed to get presentation by id:', error);
+      throw error;
+    }
+  }
+
+  async createPresentation(data: InsertPresentation): Promise<Presentation> {
+    try {
+      const result = await db
+        .insert(presentations)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create presentation:', error);
+      throw error;
+    }
+  }
+
+  async updatePresentation(id: number, data: Partial<Presentation>): Promise<Presentation> {
+    try {
+      const result = await db
+        .update(presentations)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(presentations.id, id))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Presentation not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update presentation:', error);
+      throw error;
+    }
+  }
+
+  async deletePresentation(id: number): Promise<void> {
+    try {
+      await db.delete(presentations).where(eq(presentations.id, id));
+    } catch (error) {
+      console.error('Failed to delete presentation:', error);
+      throw error;
+    }
+  }
+
+  // Speaker management
+  async getSpeakers(): Promise<Speaker[]> {
+    try {
+      const result = await db.select().from(speakers).orderBy(speakers.name);
+      return result;
+    } catch (error) {
+      console.error('Failed to get speakers:', error);
+      throw error;
+    }
+  }
+
+  async getSpeakerById(id: number): Promise<Speaker | null> {
+    try {
+      const result = await db
+        .select()
+        .from(speakers)
+        .where(eq(speakers.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get speaker by id:', error);
+      throw error;
+    }
+  }
+
+  async createSpeaker(data: InsertSpeaker): Promise<Speaker> {
+    try {
+      const result = await db
+        .insert(speakers)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create speaker:', error);
+      throw error;
+    }
+  }
+
+  async updateSpeaker(id: number, data: Partial<Speaker>): Promise<Speaker> {
+    try {
+      const result = await db
+        .update(speakers)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(speakers.id, id))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Speaker not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update speaker:', error);
+      throw error;
+    }
+  }
+
+  async deleteSpeaker(id: number): Promise<void> {
+    try {
+      await db.delete(speakers).where(eq(speakers.id, id));
+    } catch (error) {
+      console.error('Failed to delete speaker:', error);
+      throw error;
+    }
+  }
+
+  // Presentation-Speaker relationship
+  async addSpeakerToPresentation(data: InsertPresentationSpeaker): Promise<PresentationSpeaker> {
+    try {
+      const result = await db
+        .insert(presentationSpeakers)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to add speaker to presentation:', error);
+      throw error;
+    }
+  }
+
+  async removeSpeakerFromPresentation(presentationId: number, speakerId: number): Promise<void> {
+    try {
+      await db
+        .delete(presentationSpeakers)
+        .where(and(
+          eq(presentationSpeakers.presentationId, presentationId),
+          eq(presentationSpeakers.speakerId, speakerId)
+        ));
+    } catch (error) {
+      console.error('Failed to remove speaker from presentation:', error);
+      throw error;
+    }
+  }
+
+  async updatePresentationSpeaker(presentationId: number, speakerId: number, data: Partial<PresentationSpeaker>): Promise<PresentationSpeaker> {
+    try {
+      const result = await db
+        .update(presentationSpeakers)
+        .set(data)
+        .where(and(
+          eq(presentationSpeakers.presentationId, presentationId),
+          eq(presentationSpeakers.speakerId, speakerId)
+        ))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Presentation-speaker relationship not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update presentation speaker:', error);
       throw error;
     }
   }
