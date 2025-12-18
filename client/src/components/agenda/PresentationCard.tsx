@@ -130,12 +130,12 @@ export function PresentationCard({
           <h4 className="font-medium leading-snug mb-1">{presentation.title}</h4>
 
           {presentation.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
               {presentation.description}
             </p>
           )}
 
-          <div className="flex items-start gap-3 flex-wrap">
+          <div className="flex items-start gap-4 flex-wrap mt-4">
             {sortedSpeakers.map((speaker, index) => (
               <div 
                 key={speaker.id} 
@@ -149,10 +149,10 @@ export function PresentationCard({
                 <img
                   src={speaker.photo}
                   alt={speaker.name}
-                  className="w-16 h-16 rounded-full object-cover mx-auto mb-3"
+                  className="w-16 h-16 rounded-full object-cover mb-3"
                 />
-                <div className="flex flex-col text-center">
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">
                       {speaker.name}
                     </span>
@@ -169,7 +169,7 @@ export function PresentationCard({
                     </span>
                   )}
                   {speaker.bio && (
-                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2 text-left">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
                       {speaker.bio}
                     </p>
                   )}
@@ -178,7 +178,7 @@ export function PresentationCard({
                       href={speaker.bioUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center justify-center gap-1 mt-2"
+                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
                       onClick={(e) => e.stopPropagation()}
                       data-testid={`link-speaker-url-${speaker.id}`}
                     >
