@@ -192,7 +192,6 @@ export function PresentationCard({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-7 px-2 text-xs pt-[4px] pb-[4px] pl-[12px] pr-[12px]"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedSpeakerIndex(index);
@@ -205,7 +204,6 @@ export function PresentationCard({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs pt-[4px] pb-[4px] pl-[12px] pr-[12px]"
                         asChild
                       >
                         <a
@@ -216,7 +214,7 @@ export function PresentationCard({
                           data-testid={`link-speaker-url-${speaker.id}`}
                         >
                           {speaker.urlText || "Website"}
-                          <ExternalLink className="h-3 w-3 ml-1" />
+                          <ExternalLink className="h-4 w-4" />
                         </a>
                       </Button>
                     )}
