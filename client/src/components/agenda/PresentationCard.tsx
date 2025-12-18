@@ -133,26 +133,35 @@ export function PresentationCard({
             </p>
           )}
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             {sortedSpeakers.map((speaker) => (
               <div 
                 key={speaker.id} 
-                className="flex items-center gap-1.5 bg-background border rounded-full px-2 py-1"
+                className="flex items-center gap-3 bg-background border rounded-lg px-3 py-2"
               >
                 <img
                   src={speaker.photo}
                   alt={speaker.name}
-                  className="w-5 h-5 rounded-full object-cover"
+                  className="w-10 h-10 rounded-full object-cover"
                 />
-                <span className="text-xs font-medium">
-                  {speaker.name}
-                </span>
-                {speaker.isModerator && (
-                  <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                    <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                    Mod
-                  </Badge>
-                )}
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      {speaker.name}
+                    </span>
+                    {speaker.isModerator && (
+                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                        <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                        Mod
+                      </Badge>
+                    )}
+                  </div>
+                  {(speaker.title || speaker.company) && (
+                    <span className="text-xs text-muted-foreground">
+                      {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
             {isAdmin && (
