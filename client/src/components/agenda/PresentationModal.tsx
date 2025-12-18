@@ -62,6 +62,34 @@ export const COLOR_MAP: Record<string, string> = {
   teal: "#14b8a6",
 };
 
+const TIME_OPTIONS = [
+  "06:00", "06:15", "06:30", "06:45",
+  "07:00", "07:15", "07:30", "07:45",
+  "08:00", "08:15", "08:30", "08:45",
+  "09:00", "09:15", "09:30", "09:45",
+  "10:00", "10:15", "10:30", "10:45",
+  "11:00", "11:15", "11:30", "11:45",
+  "12:00", "12:15", "12:30", "12:45",
+  "13:00", "13:15", "13:30", "13:45",
+  "14:00", "14:15", "14:30", "14:45",
+  "15:00", "15:15", "15:30", "15:45",
+  "16:00", "16:15", "16:30", "16:45",
+  "17:00", "17:15", "17:30", "17:45",
+  "18:00", "18:15", "18:30", "18:45",
+  "19:00", "19:15", "19:30", "19:45",
+  "20:00", "20:15", "20:30", "20:45",
+  "21:00", "21:15", "21:30", "21:45",
+  "22:00",
+];
+
+function formatTimeDisplay(time: string): string {
+  const [hours, minutes] = time.split(':');
+  const h = parseInt(hours);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
+
 export function PresentationModal({ presentation, isOpen, onClose }: PresentationModalProps) {
   const { toast } = useToast();
   const isEditing = !!presentation;
@@ -384,38 +412,74 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time *</Label>
+                <Label htmlFor="date">Date *</Label>
                 <Input
-                  id="startTime"
-                  type="datetime-local"
-                  value={startTime}
+                  id="date"
+                  type="date"
+                  value={startTime ? startTime.split('T')[0] : ''}
                   onChange={(e) => {
-                    const newStart = e.target.value;
-                    setStartTime(newStart);
-                    if (newStart && !endTime) {
-                      const startDate = new Date(newStart);
-                      startDate.setHours(startDate.getHours() + 1);
-                      setEndTime(formatDateTimeForInput(startDate.toISOString()));
-                    }
+                    const date = e.target.value;
+                    const currentStartTime = startTime ? startTime.split('T')[1] || '09:00' : '09:00';
+                    const currentEndTime = endTime ? endTime.split('T')[1] || '10:00' : '10:00';
+                    setStartTime(`${date}T${currentStartTime}`);
+                    setEndTime(`${date}T${currentEndTime}`);
                   }}
-                  step="900"
                   required
-                  data-testid="input-presentation-start-time"
+                  data-testid="input-presentation-date"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time *</Label>
-                <Input
-                  id="endTime"
-                  type="datetime-local"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  step="900"
-                  required
-                  data-testid="input-presentation-end-time"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Time *</Label>
+                  <Select
+                    value={startTime ? startTime.split('T')[1]?.substring(0, 5) : ''}
+                    onValueChange={(time) => {
+                      const date = startTime ? startTime.split('T')[0] : new Date().toISOString().split('T')[0];
+                      setStartTime(`${date}T${time}`);
+                      if (!endTime || endTime.split('T')[1]?.substring(0, 5) <= time) {
+                        const [h, m] = time.split(':').map(Number);
+                        const endMinutes = h * 60 + m + 60;
+                        const endH = Math.floor(endMinutes / 60);
+                        const endM = endMinutes % 60;
+                        setEndTime(`${date}T${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+                      }
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-start-time">
+                      <SelectValue placeholder="Select time..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {formatTimeDisplay(time)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>End Time *</Label>
+                  <Select
+                    value={endTime ? endTime.split('T')[1]?.substring(0, 5) : ''}
+                    onValueChange={(time) => {
+                      const date = endTime ? endTime.split('T')[0] : (startTime ? startTime.split('T')[0] : new Date().toISOString().split('T')[0]);
+                      setEndTime(`${date}T${time}`);
+                    }}
+                  >
+                    <SelectTrigger data-testid="select-end-time">
+                      <SelectValue placeholder="Select time..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIME_OPTIONS.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {formatTimeDisplay(time)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
