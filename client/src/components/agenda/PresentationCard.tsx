@@ -163,41 +163,53 @@ export function PresentationCard({
                 }}
                 data-testid={`speaker-card-${speaker.id}`}
               >
-                {speaker.isModerator && (
-                  <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] h-5 px-1.5">
-                    <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                    Moderator
-                  </Badge>
-                )}
-                {isAdmin && (
-                  <div className={`absolute ${speaker.isModerator ? 'top-9' : 'top-2'} right-2 flex items-center gap-1 opacity-0 group-hover/speaker:opacity-100 transition-opacity`}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingSpeaker(speaker);
-                      }}
-                      data-testid={`button-edit-speaker-${speaker.id}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeSpeakerMutation.mutate(speaker.id);
-                      }}
-                      disabled={removeSpeakerMutation.isPending}
-                      data-testid={`button-remove-speaker-${speaker.id}`}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                )}
+                <div className="absolute top-2 right-2 flex items-center gap-1">
+                  {speaker.isModerator && (
+                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
+                      <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                      Moderator
+                    </Badge>
+                  )}
+                  {isAdmin && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`button-speaker-menu-${speaker.id}`}
+                        >
+                          <MoreVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingSpeaker(speaker);
+                          }}
+                          data-testid={`button-edit-speaker-${speaker.id}`}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSpeakerMutation.mutate(speaker.id);
+                          }}
+                          disabled={removeSpeakerMutation.isPending}
+                          className="text-destructive"
+                          data-testid={`button-remove-speaker-${speaker.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Remove
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
                 <div className="flex items-end gap-3">
                   <img
                     src={speaker.photo}
