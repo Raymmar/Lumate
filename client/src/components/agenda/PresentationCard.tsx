@@ -111,10 +111,11 @@ export function PresentationCard({
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span 
-              className="text-xs px-2 py-0.5 rounded text-white"
-              style={{ backgroundColor: COLOR_MAP[sessionTypeColor] || COLOR_MAP.gray }}
-            >
+            <span className="text-xs flex items-center gap-1.5">
+              <span 
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: COLOR_MAP[sessionTypeColor] || COLOR_MAP.gray }}
+              />
               {sessionTypeLabel}
             </span>
             {!isFullWidth && (
