@@ -104,7 +104,7 @@ export function SpeakerModal({ speaker, isOpen, onClose, onCreated }: SpeakerMod
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/upload/file", {
         method: "POST",
         body: formData,
       });
