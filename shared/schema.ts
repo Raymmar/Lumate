@@ -633,6 +633,7 @@ export const sponsors = pgTable("sponsors", {
   logo: varchar("logo", { length: 255 }).notNull(),
   url: varchar("url", { length: 255 }),
   year: integer("year").notNull(),
+  logoPadding: integer("logo_padding").default(16),
   companyId: integer("company_id").references(() => companies.id),
   deletedAt: timestamp("deleted_at", { mode: 'string', withTimezone: true }),
   deletedBy: integer("deleted_by").references(() => users.id),

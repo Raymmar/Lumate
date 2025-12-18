@@ -43,6 +43,7 @@ export function SponsorModal({
   );
   const [companySearch, setCompanySearch] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [logoPadding, setLogoPadding] = useState(sponsor?.logoPadding ?? 16);
 
   const { data: companiesData } = useQuery<{ companies: any[] }>({
     queryKey: ["/api/companies"],
@@ -64,7 +65,7 @@ export function SponsorModal({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const data = { name, tier, logo, url, year: sponsorYear, companyId };
+      const data = { name, tier, logo, url, year: sponsorYear, companyId, logoPadding };
 
       if (sponsor) {
         return apiRequest(`/api/sponsors/${sponsor.id}`, "PATCH", data);
@@ -212,13 +213,37 @@ export function SponsorModal({
             )}
             {logo && (
               <div className="mt-2">
-                <img
-                  src={logo}
-                  alt="Preview"
-                  className="max-w-xs max-h-32 object-contain border border-border rounded-md bg-muted/30"
-                />
+                <div 
+                  className="inline-block border border-border rounded-md bg-white"
+                  style={{ padding: `${logoPadding}px` }}
+                >
+                  <img
+                    src={logo}
+                    alt="Preview"
+                    className="max-w-xs max-h-32 object-contain"
+                  />
+                </div>
               </div>
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="logo-padding" className="text-sm font-medium">
+              Logo Padding (px)
+            </Label>
+            <Input
+              id="logo-padding"
+              type="number"
+              min={0}
+              max={64}
+              value={logoPadding}
+              onChange={(e) => setLogoPadding(parseInt(e.target.value) || 0)}
+              placeholder="16"
+              data-testid="input-logo-padding"
+            />
+            <p className="text-xs text-muted-foreground">
+              Adjust spacing around the logo image
+            </p>
           </div>
 
           <div className="space-y-2">

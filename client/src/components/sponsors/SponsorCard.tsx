@@ -30,7 +30,10 @@ export function SponsorCard({
       data-testid={`sponsor-card-${sponsor.id}`}
     >
       <div className="flex flex-col h-full w-full max-w-full border border-border rounded-lg p-3">
-        <div className="mb-3 bg-white dark:bg-white p-4 rounded-lg flex items-center justify-center">
+        <div 
+          className="mb-3 bg-white dark:bg-white rounded-lg flex items-center justify-center"
+          style={{ padding: `${sponsor.logoPadding ?? 16}px` }}
+        >
           <img
             src={sponsor.logo}
             alt={sponsor.name}
