@@ -190,23 +190,22 @@ export function PresentationCard({
                   )}
                   <div className="flex items-center gap-2 mt-3 pt-3 border-t">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-7 px-2 text-xs text-muted-foreground"
+                      className="h-7 px-2 text-xs pt-[4px] pb-[4px] pl-[12px] pr-[12px]"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedSpeakerIndex(index);
                       }}
                       data-testid={`button-view-more-${speaker.id}`}
                     >
-                      View more
-                      <ChevronRight className="h-3 w-3 ml-1" />
+                      Details
                     </Button>
                     {speaker.bioUrl && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2 text-xs pt-[4px] pb-[4px] pl-[12px] pr-[12px]"
+                        className="h-7 text-xs pt-[4px] pb-[4px] pl-[12px] pr-[12px]"
                         asChild
                       >
                         <a
