@@ -274,79 +274,69 @@ export function PresentationCard({
       </div>
 
       {sortedSpeakers.length > 0 && (
-        <div className="mt-4">
-          <AnimatePresence mode="wait">
+        <div className="mt-3">
+          <AnimatePresence mode="wait" initial={false}>
             {!isExpanded ? (
               <motion.div
                 key="collapsed"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="flex flex-wrap items-center gap-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
+                className="flex items-center gap-2 flex-wrap"
               >
-                <div className="flex items-center">
-                  {sortedSpeakers.map((speaker, index) => (
+                {sortedSpeakers.map((speaker, index) => (
+                  <motion.div 
+                    key={speaker.id}
+                    layoutId={`speaker-container-${presentation.id}-${speaker.id}`}
+                    className="flex items-center gap-1.5 cursor-pointer hover:bg-muted/50 rounded-full py-0.5 px-1.5 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSpeakerIndex(index);
+                    }}
+                    data-testid={`speaker-collapsed-${speaker.id}`}
+                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+                  >
                     <motion.img
-                      key={speaker.id}
                       layoutId={`speaker-avatar-${presentation.id}-${speaker.id}`}
                       src={speaker.photo}
                       alt={speaker.name}
-                      className="w-7 h-7 rounded-full object-cover border-2 border-background"
-                      style={{ marginLeft: index > 0 ? "-8px" : "0", zIndex: sortedSpeakers.length - index }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSpeakerIndex(index);
-                      }}
-                      data-testid={`speaker-avatar-collapsed-${speaker.id}`}
+                      className="w-5 h-5 rounded-full object-cover"
+                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     />
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  {sortedSpeakers.map((speaker, index) => (
-                    <motion.div 
-                      key={speaker.id}
+                    <motion.span 
                       layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
-                      className="flex items-center gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSpeakerIndex(index);
-                      }}
+                      className="text-xs whitespace-nowrap"
+                      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     >
-                      <span className="text-xs font-medium cursor-pointer hover:underline">
-                        {speaker.name}
-                      </span>
+                      {speaker.name}
                       {speaker.isModerator && (
-                        <Mic2 className="h-3 w-3 text-primary" />
+                        <Mic2 className="inline h-3 w-3 ml-1 text-primary" />
                       )}
-                      {index < sortedSpeakers.length - 1 && (
-                        <span className="text-xs text-muted-foreground">,</span>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
+                    </motion.span>
+                  </motion.div>
+                ))}
               </motion.div>
             ) : (
               <motion.div
                 key="expanded"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2, ease: "easeInOut" }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.12 }}
                 className={`grid gap-4 ${isFullWidth ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'}`}
               >
                 {sortedSpeakers.map((speaker, index) => (
                   <motion.div 
                     key={speaker.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    layoutId={`speaker-container-${presentation.id}-${speaker.id}`}
                     className="group/speaker relative flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSpeakerIndex(index);
                     }}
                     data-testid={`speaker-card-${speaker.id}`}
+                    transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                   >
                     {isAdmin && (
                       <DropdownMenu>
@@ -393,11 +383,13 @@ export function PresentationCard({
                         src={speaker.photo}
                         alt={speaker.name}
                         className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                       />
                       <div className="flex flex-col min-w-0">
                         <motion.span 
                           layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
                           className="text-sm font-medium flex items-center gap-1"
+                          transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                         >
                           {speaker.name}
                           {speaker.isModerator && (
