@@ -209,14 +209,11 @@ export function PresentationCard({
                     className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                   />
                   <div className="flex flex-col min-w-0">
-                    {speaker.isModerator && (
-                      <Badge variant="secondary" className="text-[10px] h-5 px-1.5 w-fit mb-1">
-                        <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                        Moderator
-                      </Badge>
-                    )}
-                    <span className="text-sm font-medium">
+                    <span className="text-sm font-medium flex items-center gap-1">
                       {speaker.name}
+                      {speaker.isModerator && (
+                        <Mic2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      )}
                     </span>
                     {(speaker.title || speaker.company) && (
                       <span className="text-xs text-muted-foreground">
