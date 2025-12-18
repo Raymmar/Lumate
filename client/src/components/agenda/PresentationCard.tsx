@@ -127,10 +127,10 @@ export function PresentationCard({
             </span>
           </div>
 
-          <h4 className="font-medium text-sm leading-snug mb-1">{presentation.title}</h4>
+          <h4 className="font-medium leading-snug mb-1">{presentation.title}</h4>
 
           {presentation.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
               {presentation.description}
             </p>
           )}
