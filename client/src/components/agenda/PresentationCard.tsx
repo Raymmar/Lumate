@@ -65,6 +65,19 @@ export function PresentationCard({
     },
   });
 
+  const removeSpeakerMutation = useMutation({
+    mutationFn: async (speakerId: number) => {
+      return apiRequest(`/api/presentations/${presentation.id}/speakers/${speakerId}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      toast({ title: "Speaker removed from presentation" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove speaker", variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async () => {
       return apiRequest(`/api/presentations/${presentation.id}`, "DELETE");
@@ -149,18 +162,33 @@ export function PresentationCard({
                 data-testid={`speaker-card-${speaker.id}`}
               >
                 {isAdmin && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="absolute top-2 right-2 h-7 w-7 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingSpeaker(speaker);
-                    }}
-                    data-testid={`button-edit-speaker-${speaker.id}`}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/speaker:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingSpeaker(speaker);
+                      }}
+                      data-testid={`button-edit-speaker-${speaker.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeSpeakerMutation.mutate(speaker.id);
+                      }}
+                      disabled={removeSpeakerMutation.isPending}
+                      data-testid={`button-remove-speaker-${speaker.id}`}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 )}
                 <img
                   src={speaker.photo}
