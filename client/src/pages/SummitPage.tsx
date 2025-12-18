@@ -2,12 +2,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Calendar,
-  MapPin,
-  ExternalLink,
-  Building2,
-} from "lucide-react";
+import { Calendar, MapPin, ExternalLink, Building2 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -77,10 +72,7 @@ function EventLinksCard() {
               <ExternalLink className="h-4 w-4" />
             </Button>
           </a>
-          <a
-            href={generateSponsorInquiryEmail()}
-            className="block"
-          >
+          <a href={generateSponsorInquiryEmail()} className="block">
             <Button
               variant="outline"
               className="w-full justify-between font-normal hover:bg-muted"
@@ -169,7 +161,6 @@ function EventLinksCard() {
   );
 }
 
-
 interface SponsorCardProps {
   sponsor: {
     name: string;
@@ -218,45 +209,54 @@ function SummitNewsSection() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const createdPost = await apiRequest("/api/admin/posts", "POST", data) as Post;
-      
+      const createdPost = (await apiRequest(
+        "/api/admin/posts",
+        "POST",
+        data,
+      )) as Post;
+
       // Optimistically update the cache with the new post
-      queryClient.setQueryData(PUBLIC_POSTS_QUERY_KEY, (old: { posts: Post[] } | undefined) => {
-        if (!old) return old;
-        
-        // Create an optimistic post object
-        const optimisticPost: Post = {
-          id: createdPost.id || Date.now(), // Use server ID or temporary ID
-          title: data.title,
-          summary: data.summary || null,
-          body: data.body,
-          featuredImage: data.featuredImage || null,
-          videoUrl: data.videoUrl || null,
-          ctaLink: data.ctaLink || null,
-          ctaLabel: data.ctaLabel || null,
-          isPinned: data.isPinned || false,
-          membersOnly: data.membersOnly || false,
-          creatorId: user?.id || 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          creator: user ? {
-            id: user.id,
-            displayName: user.displayName || 'Unknown'
-          } : undefined,
-          tags: data.tags || []
-        };
-        
-        return {
-          posts: [optimisticPost, ...old.posts]
-        };
-      });
-      
+      queryClient.setQueryData(
+        PUBLIC_POSTS_QUERY_KEY,
+        (old: { posts: Post[] } | undefined) => {
+          if (!old) return old;
+
+          // Create an optimistic post object
+          const optimisticPost: Post = {
+            id: createdPost.id || Date.now(), // Use server ID or temporary ID
+            title: data.title,
+            summary: data.summary || null,
+            body: data.body,
+            featuredImage: data.featuredImage || null,
+            videoUrl: data.videoUrl || null,
+            ctaLink: data.ctaLink || null,
+            ctaLabel: data.ctaLabel || null,
+            isPinned: data.isPinned || false,
+            membersOnly: data.membersOnly || false,
+            creatorId: user?.id || 0,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            creator: user
+              ? {
+                  id: user.id,
+                  displayName: user.displayName || "Unknown",
+                }
+              : undefined,
+            tags: data.tags || [],
+          };
+
+          return {
+            posts: [optimisticPost, ...old.posts],
+          };
+        },
+      );
+
       setIsCreating(false);
       toast({
         title: "Success",
         description: "Post created successfully",
       });
-      
+
       // Invalidate to fetch the real data from the server
       await queryClient.invalidateQueries({ queryKey: PUBLIC_POSTS_QUERY_KEY });
     } catch (error) {
@@ -450,7 +450,7 @@ function ImageGalleryCard() {
 export default function SummitPage() {
   const { user } = useAuth();
   const isAdmin = user?.isAdmin ?? false;
-  
+
   const vcSponsors = [
     {
       name: "Truist Foundation",
@@ -663,8 +663,8 @@ export default function SummitPage() {
                 <p className="text-m text-muted-foreground flex-grow">
                   Experts in venture capital, software development, branding,
                   business formation, intellectual property rights, accounting,
-                  finance + more will be on site for small group breakouts and
-                  interactive workshops.
+                  finance + more will be on site running small group breakouts
+                  and interactive workshops.
                 </p>
               </CardContent>
             </Card>
@@ -679,10 +679,10 @@ export default function SummitPage() {
                   Main Stage
                 </h3>
                 <p className="text-m text-muted-foreground flex-grow">
-                  Apply to speak and you might end up on the main stage. We're
-                  looking for breakout stories, interesting uses of AI, deep
-                  tech, hardware, robotics, 3D printing, digital media or vibe
-                  code.
+                  Hear from local & regional business leaders about succeeding
+                  in a smaller market, reaching beyond the borders of our metro
+                  area and how to build a global scale business from right here
+                  in Sarasota.
                 </p>
               </CardContent>
             </Card>
@@ -694,13 +694,13 @@ export default function SummitPage() {
             >
               <CardContent className="p-3 md:p-4 flex flex-col h-full">
                 <h3 className="text-xl font-bold mb-3 text-foreground">
-                  Keynote & Panels
+                  Networking & Afterparty
                 </h3>
                 <p className="text-m text-muted-foreground flex-grow">
-                  Stay tuned as we announce our full agenda. Expect a mix of
-                  keynote speakers and expert panelists discussing how AI and
-                  modern tech trends will impact the world through the lens of
-                  Florida's Gulf Coast.
+                  Tech Summit is about building meaningful connections and
+                  pushing the city forward. Join us for a night of world class
+                  networking with the regions top thinkers in tech, finance,
+                  business and more.
                 </p>
               </CardContent>
             </Card>
@@ -722,7 +722,7 @@ export default function SummitPage() {
               {/* Right Content - News Feed and Gallery */}
               <div className="lg:col-span-2 space-y-4 min-w-0">
                 <SummitNewsSection />
-                <SponsorGrid 
+                <SponsorGrid
                   year={2026}
                   title="Summit Sponsors"
                   icon={<Building2 className="h-5 w-5" />}
