@@ -1,7 +1,6 @@
 import { PresentationWithSpeakers, Speaker } from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -9,6 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { SpeakerModal } from "./SpeakerModal";
 
 interface PresentationCardProps {
   presentation: PresentationWithSpeakers;
@@ -39,7 +39,7 @@ export function PresentationCard({
   isFullWidth = false,
 }: PresentationCardProps) {
   const { toast } = useToast();
-  const [addSpeakerOpen, setAddSpeakerOpen] = useState(false);
+  const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
 
   const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
@@ -60,7 +60,6 @@ export function PresentationCard({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
-      setAddSpeakerOpen(false);
       toast({ title: "Speaker added" });
     },
     onError: () => {
@@ -159,8 +158,8 @@ export function PresentationCard({
               </div>
             ))}
             {isAdmin && (
-              <Popover open={addSpeakerOpen} onOpenChange={setAddSpeakerOpen}>
-                <PopoverTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
@@ -171,38 +170,45 @@ export function PresentationCard({
                     <UserPlus className="h-3.5 w-3.5" />
                     Speaker
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="start" onClick={(e) => e.stopPropagation()}>
-                  <div className="text-xs font-medium text-muted-foreground mb-2">Add Speaker</div>
-                  {availableSpeakers.length > 0 ? (
-                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSpeakerModalOpen(true);
+                    }}
+                    data-testid={`button-create-speaker-${presentation.id}`}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Speaker
+                  </DropdownMenuItem>
+                  {availableSpeakers.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
                       {availableSpeakers.map((speaker) => (
-                        <button
+                        <DropdownMenuItem
                           key={speaker.id}
-                          className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted text-left"
-                          onClick={() => addSpeakerMutation.mutate(speaker.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addSpeakerMutation.mutate(speaker.id);
+                          }}
                           disabled={addSpeakerMutation.isPending}
                           data-testid={`button-add-speaker-${speaker.id}`}
                         >
                           <img
                             src={speaker.photo}
                             alt={speaker.name}
-                            className="w-6 h-6 rounded-full object-cover"
+                            className="w-5 h-5 rounded-full object-cover mr-2"
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{speaker.name}</p>
-                            {speaker.title && (
-                              <p className="text-[10px] text-muted-foreground truncate">{speaker.title}</p>
-                            )}
+                            <p className="text-sm truncate">{speaker.name}</p>
                           </div>
-                        </button>
+                        </DropdownMenuItem>
                       ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground py-2">No speakers available to add</p>
+                    </>
                   )}
-                </PopoverContent>
-              </Popover>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
@@ -243,6 +249,13 @@ export function PresentationCard({
           </DropdownMenu>
         )}
       </div>
+
+      <SpeakerModal
+        speaker={null}
+        isOpen={speakerModalOpen}
+        onClose={() => setSpeakerModalOpen(false)}
+        onCreated={(speakerId) => addSpeakerMutation.mutate(speakerId)}
+      />
     </div>
   );
 }
