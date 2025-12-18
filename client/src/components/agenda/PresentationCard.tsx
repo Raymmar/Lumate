@@ -260,106 +260,106 @@ export function PresentationCard({
                 </div>
               </div>
             ))}
-            {isAdmin && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2 rounded-full text-xs gap-1"
-                    onClick={(e) => e.stopPropagation()}
-                    data-testid={`button-add-speaker-quick-${presentation.id}`}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                    Speaker
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56">
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSpeakerModalOpen(true);
-                    }}
-                    data-testid={`button-create-speaker-${presentation.id}`}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Speaker
-                  </DropdownMenuItem>
-                  {availableSpeakers.length > 0 && (
-                    <>
-                      <DropdownMenuSeparator />
-                      {availableSpeakers.map((speaker) => (
-                        <DropdownMenuItem
-                          key={speaker.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addSpeakerMutation.mutate(speaker.id);
-                          }}
-                          disabled={addSpeakerMutation.isPending}
-                          data-testid={`button-add-speaker-${speaker.id}`}
-                        >
-                          <img
-                            src={speaker.photo}
-                            alt={speaker.name}
-                            className="w-5 h-5 rounded-full object-cover mr-2"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate">{speaker.name}</p>
-                          </div>
-                        </DropdownMenuItem>
-                      ))}
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
           </div>
         </div>
 
         {isAdmin && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={(e) => e.stopPropagation()}
-                data-testid={`button-presentation-menu-${presentation.id}`}
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit?.(presentation);
-                }}
-                data-testid={`button-edit-presentation-${presentation.id}`}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDuplicate?.(presentation);
-                }}
-                data-testid={`button-duplicate-presentation-${presentation.id}`}
-              >
-                <Copy className="h-4 w-4 mr-2" />
-                Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className="text-destructive"
-                data-testid={`button-delete-presentation-${presentation.id}`}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 rounded-full text-xs gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                  data-testid={`button-add-speaker-quick-${presentation.id}`}
+                >
+                  <UserPlus className="h-3.5 w-3.5" />
+                  Speaker
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSpeakerModalOpen(true);
+                  }}
+                  data-testid={`button-create-speaker-${presentation.id}`}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Speaker
+                </DropdownMenuItem>
+                {availableSpeakers.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    {availableSpeakers.map((speaker) => (
+                      <DropdownMenuItem
+                        key={speaker.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addSpeakerMutation.mutate(speaker.id);
+                        }}
+                        disabled={addSpeakerMutation.isPending}
+                        data-testid={`button-add-speaker-${speaker.id}`}
+                      >
+                        <img
+                          src={speaker.photo}
+                          alt={speaker.name}
+                          className="w-5 h-5 rounded-full object-cover mr-2"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate">{speaker.name}</p>
+                        </div>
+                      </DropdownMenuItem>
+                    ))}
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={(e) => e.stopPropagation()}
+                  data-testid={`button-presentation-menu-${presentation.id}`}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(presentation);
+                  }}
+                  data-testid={`button-edit-presentation-${presentation.id}`}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicate?.(presentation);
+                  }}
+                  data-testid={`button-duplicate-presentation-${presentation.id}`}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleDelete}
+                  className="text-destructive"
+                  data-testid={`button-delete-presentation-${presentation.id}`}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )}
       </div>
       <SpeakerModal
