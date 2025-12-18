@@ -220,7 +220,7 @@ export function PresentationCard({
                     {speaker.bio}
                   </p>
                 )}
-                <div className="flex items-center mt-3 -mx-4 -mb-4">
+                <div className="flex items-center mt-4 -mx-4 -mb-4">
                   <Button
                     variant="outline"
                     size="sm"
