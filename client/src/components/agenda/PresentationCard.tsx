@@ -1,7 +1,8 @@
 import { PresentationWithSpeakers, Speaker, AgendaSessionType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -31,6 +32,7 @@ export function PresentationCard({
 }: PresentationCardProps) {
   const { toast } = useToast();
   const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
+  const [selectedSpeakerIndex, setSelectedSpeakerIndex] = useState<number | null>(null);
 
   const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
@@ -133,20 +135,21 @@ export function PresentationCard({
             </p>
           )}
 
-          <div className="flex items-center gap-3 flex-wrap">
-            {sortedSpeakers.map((speaker) => (
+          <div className="flex flex-col gap-3">
+            {sortedSpeakers.map((speaker, index) => (
               <div 
                 key={speaker.id} 
-                className="flex items-center gap-3 bg-background border rounded-lg px-3 py-2"
+                className="flex gap-4 bg-background border rounded-lg p-4"
+                data-testid={`speaker-card-${speaker.id}`}
               >
                 <img
                   src={speaker.photo}
                   alt={speaker.name}
-                  className="w-10 h-10 rounded-full object-cover"
+                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
                 />
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
+                <div className="flex flex-col flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium">
                       {speaker.name}
                     </span>
                     {speaker.isModerator && (
@@ -157,10 +160,44 @@ export function PresentationCard({
                     )}
                   </div>
                   {(speaker.title || speaker.company) && (
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
                     </span>
                   )}
+                  {speaker.bio && (
+                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                      {speaker.bio}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3 mt-2">
+                    {speaker.bio && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="h-auto p-0 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSpeakerIndex(index);
+                        }}
+                        data-testid={`button-view-bio-${speaker.id}`}
+                      >
+                        View full bio
+                      </Button>
+                    )}
+                    {speaker.bioUrl && (
+                      <a
+                        href={speaker.bioUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`link-speaker-url-${speaker.id}`}
+                      >
+                        {speaker.urlText || "Learn more"}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -263,6 +300,95 @@ export function PresentationCard({
         onClose={() => setSpeakerModalOpen(false)}
         onCreated={(speakerId) => addSpeakerMutation.mutate(speakerId)}
       />
+
+      <Dialog 
+        open={selectedSpeakerIndex !== null} 
+        onOpenChange={(open) => !open && setSelectedSpeakerIndex(null)}
+      >
+        <DialogContent className="max-w-lg">
+          {selectedSpeakerIndex !== null && sortedSpeakers[selectedSpeakerIndex] && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-4">
+                  <img
+                    src={sortedSpeakers[selectedSpeakerIndex].photo}
+                    alt={sortedSpeakers[selectedSpeakerIndex].name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      {sortedSpeakers[selectedSpeakerIndex].name}
+                      {sortedSpeakers[selectedSpeakerIndex].isModerator && (
+                        <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                          <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                          Mod
+                        </Badge>
+                      )}
+                    </div>
+                    {(sortedSpeakers[selectedSpeakerIndex].title || sortedSpeakers[selectedSpeakerIndex].company) && (
+                      <p className="text-sm text-muted-foreground font-normal">
+                        {sortedSpeakers[selectedSpeakerIndex].title}
+                        {sortedSpeakers[selectedSpeakerIndex].title && sortedSpeakers[selectedSpeakerIndex].company ? ", " : ""}
+                        {sortedSpeakers[selectedSpeakerIndex].company}
+                      </p>
+                    )}
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="mt-4">
+                {sortedSpeakers[selectedSpeakerIndex].bio && (
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {sortedSpeakers[selectedSpeakerIndex].bio}
+                  </p>
+                )}
+                
+                {sortedSpeakers[selectedSpeakerIndex].bioUrl && (
+                  <a
+                    href={sortedSpeakers[selectedSpeakerIndex].bioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4"
+                  >
+                    {sortedSpeakers[selectedSpeakerIndex].urlText || "Learn more"}
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+
+              {sortedSpeakers.length > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSpeakerIndex(
+                      selectedSpeakerIndex === 0 ? sortedSpeakers.length - 1 : selectedSpeakerIndex - 1
+                    )}
+                    data-testid="button-prev-speaker"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedSpeakerIndex + 1} of {sortedSpeakers.length}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedSpeakerIndex(
+                      selectedSpeakerIndex === sortedSpeakers.length - 1 ? 0 : selectedSpeakerIndex + 1
+                    )}
+                    data-testid="button-next-speaker"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
