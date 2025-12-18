@@ -220,7 +220,7 @@ export function PresentationCard({
                     {speaker.bio}
                   </p>
                 )}
-                <div className="flex items-center gap-2 mt-3 -mx-4 -mb-4">
+                <div className="flex items-center mt-3 -mx-4 -mb-4">
                   <Button
                     variant="outline"
                     size="sm"
@@ -246,7 +246,7 @@ export function PresentationCard({
                         data-testid={`link-speaker-url-${speaker.id}`}
                       >
                         {speaker.urlText || "Website"}
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-2.5 w-2.5 ml-1" />
                       </a>
                     </Button>
                   )}
