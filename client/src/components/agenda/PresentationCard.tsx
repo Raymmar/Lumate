@@ -139,7 +139,7 @@ export function PresentationCard({
             {sortedSpeakers.map((speaker, index) => (
               <div 
                 key={speaker.id} 
-                className="flex gap-3 bg-background border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors max-w-xs"
+                className="flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors min-w-[200px] max-w-[250px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedSpeakerIndex(index);
@@ -149,10 +149,10 @@ export function PresentationCard({
                 <img
                   src={speaker.photo}
                   alt={speaker.name}
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  className="w-16 h-16 rounded-full object-cover mx-auto mb-3"
                 />
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-col text-center">
+                  <div className="flex items-center justify-center gap-2 flex-wrap">
                     <span className="text-sm font-medium">
                       {speaker.name}
                     </span>
@@ -169,7 +169,7 @@ export function PresentationCard({
                     </span>
                   )}
                   {speaker.bio && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2 text-left">
                       {speaker.bio}
                     </p>
                   )}
@@ -178,7 +178,7 @@ export function PresentationCard({
                       href={speaker.bioUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                      className="text-xs text-primary hover:underline flex items-center justify-center gap-1 mt-2"
                       onClick={(e) => e.stopPropagation()}
                       data-testid={`link-speaker-url-${speaker.id}`}
                     >
