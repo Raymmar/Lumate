@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Trash2, Mic2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Mic2, Pencil, X, Check } from "lucide-react";
 import { PresentationWithSpeakers, Speaker, AgendaTrack, AgendaSessionType } from "@shared/schema";
 import { SpeakerModal } from "./SpeakerModal";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,21 @@ const COLOR_OPTIONS = [
   { value: "teal", label: "Teal" },
 ];
 
+export const COLOR_MAP: Record<string, string> = {
+  blue: "#3b82f6",
+  emerald: "#10b981",
+  purple: "#a855f7",
+  amber: "#f59e0b",
+  sky: "#0ea5e9",
+  indigo: "#6366f1",
+  green: "#22c55e",
+  gray: "#6b7280",
+  red: "#ef4444",
+  orange: "#f97316",
+  pink: "#ec4899",
+  teal: "#14b8a6",
+};
+
 export function PresentationModal({ presentation, isOpen, onClose }: PresentationModalProps) {
   const { toast } = useToast();
   const isEditing = !!presentation;
@@ -66,9 +81,16 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
   const [showAddTrack, setShowAddTrack] = useState(false);
   const [newTrackLabel, setNewTrackLabel] = useState("");
   const [newTrackColor, setNewTrackColor] = useState("blue");
+  const [editingTrackId, setEditingTrackId] = useState<number | null>(null);
+  const [editTrackLabel, setEditTrackLabel] = useState("");
+  const [editTrackColor, setEditTrackColor] = useState("");
+  
   const [showAddSessionType, setShowAddSessionType] = useState(false);
   const [newSessionTypeLabel, setNewSessionTypeLabel] = useState("");
   const [newSessionTypeColor, setNewSessionTypeColor] = useState("gray");
+  const [editingSessionTypeId, setEditingSessionTypeId] = useState<number | null>(null);
+  const [editSessionTypeLabel, setEditSessionTypeLabel] = useState("");
+  const [editSessionTypeColor, setEditSessionTypeColor] = useState("");
 
   const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
@@ -249,6 +271,66 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
     },
   });
 
+  const updateTrackMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/agenda-tracks/${editingTrackId}`, "PATCH", {
+        label: editTrackLabel,
+        color: editTrackColor,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agenda-tracks"] });
+      setEditingTrackId(null);
+      toast({ title: "Track updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update track", variant: "destructive" });
+    },
+  });
+
+  const deleteTrackMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/agenda-tracks/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agenda-tracks"] });
+      toast({ title: "Track deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete track", variant: "destructive" });
+    },
+  });
+
+  const updateSessionTypeMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest(`/api/agenda-session-types/${editingSessionTypeId}`, "PATCH", {
+        label: editSessionTypeLabel,
+        color: editSessionTypeColor,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agenda-session-types"] });
+      setEditingSessionTypeId(null);
+      toast({ title: "Session type updated" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update session type", variant: "destructive" });
+    },
+  });
+
+  const deleteSessionTypeMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest(`/api/agenda-session-types/${id}`, "DELETE");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agenda-session-types"] });
+      toast({ title: "Session type deleted" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete session type", variant: "destructive" });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !startTime || !endTime) {
@@ -353,13 +435,13 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                     />
                     <Select value={newTrackColor} onValueChange={setNewTrackColor}>
                       <SelectTrigger className="w-24 h-8">
-                        <div className={`w-3 h-3 rounded-full bg-${newTrackColor}-500`} />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[newTrackColor] }} />
                       </SelectTrigger>
                       <SelectContent>
                         {COLOR_OPTIONS.map((c) => (
                           <SelectItem key={c.value} value={c.value}>
                             <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full bg-${c.value}-500`} />
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[c.value] }} />
                               {c.label}
                             </div>
                           </SelectItem>
@@ -377,21 +459,59 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                     </Button>
                   </div>
                 )}
-                <Select value={track} onValueChange={setTrack}>
-                  <SelectTrigger data-testid="select-presentation-track">
-                    <SelectValue placeholder="Select track..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tracks.map((t) => (
-                      <SelectItem key={t.slug} value={t.slug}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full bg-${t.color}-500`} />
-                          {t.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-1">
+                  {tracks.map((t) => (
+                    <div key={t.id} className="flex items-center gap-1">
+                      {editingTrackId === t.id ? (
+                        <>
+                          <Input
+                            value={editTrackLabel}
+                            onChange={(e) => setEditTrackLabel(e.target.value)}
+                            className="h-7 text-sm flex-1"
+                          />
+                          <Select value={editTrackColor} onValueChange={setEditTrackColor}>
+                            <SelectTrigger className="w-16 h-7">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[editTrackColor] }} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COLOR_OPTIONS.map((c) => (
+                                <SelectItem key={c.value} value={c.value}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[c.value] }} />
+                                    {c.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateTrackMutation.mutate()}>
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingTrackId(null)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={`flex-1 flex items-center gap-2 p-1.5 rounded text-sm text-left hover:bg-muted ${track === t.slug ? 'bg-muted' : ''}`}
+                            onClick={() => setTrack(t.slug)}
+                          >
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLOR_MAP[t.color] || t.color }} />
+                            {t.label}
+                          </button>
+                          <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setEditingTrackId(t.id); setEditTrackLabel(t.label); setEditTrackColor(t.color); }}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteTrackMutation.mutate(t.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -418,13 +538,13 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                     />
                     <Select value={newSessionTypeColor} onValueChange={setNewSessionTypeColor}>
                       <SelectTrigger className="w-24 h-8">
-                        <div className={`w-3 h-3 rounded-full bg-${newSessionTypeColor}-500`} />
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[newSessionTypeColor] }} />
                       </SelectTrigger>
                       <SelectContent>
                         {COLOR_OPTIONS.map((c) => (
                           <SelectItem key={c.value} value={c.value}>
                             <div className="flex items-center gap-2">
-                              <div className={`w-3 h-3 rounded-full bg-${c.value}-500`} />
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[c.value] }} />
                               {c.label}
                             </div>
                           </SelectItem>
@@ -442,21 +562,59 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                     </Button>
                   </div>
                 )}
-                <Select value={sessionType} onValueChange={setSessionType}>
-                  <SelectTrigger data-testid="select-presentation-type">
-                    <SelectValue placeholder="Select type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sessionTypes.map((t) => (
-                      <SelectItem key={t.slug} value={t.slug}>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full bg-${t.color}-500`} />
-                          {t.label}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-1 max-h-32 overflow-y-auto border rounded-md p-1">
+                  {sessionTypes.map((t) => (
+                    <div key={t.id} className="flex items-center gap-1">
+                      {editingSessionTypeId === t.id ? (
+                        <>
+                          <Input
+                            value={editSessionTypeLabel}
+                            onChange={(e) => setEditSessionTypeLabel(e.target.value)}
+                            className="h-7 text-sm flex-1"
+                          />
+                          <Select value={editSessionTypeColor} onValueChange={setEditSessionTypeColor}>
+                            <SelectTrigger className="w-16 h-7">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[editSessionTypeColor] }} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {COLOR_OPTIONS.map((c) => (
+                                <SelectItem key={c.value} value={c.value}>
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLOR_MAP[c.value] }} />
+                                    {c.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => updateSessionTypeMutation.mutate()}>
+                            <Check className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingSessionTypeId(null)}>
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className={`flex-1 flex items-center gap-2 p-1.5 rounded text-sm text-left hover:bg-muted ${sessionType === t.slug ? 'bg-muted' : ''}`}
+                            onClick={() => setSessionType(t.slug)}
+                          >
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLOR_MAP[t.color] || t.color }} />
+                            {t.label}
+                          </button>
+                          <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setEditingSessionTypeId(t.id); setEditSessionTypeLabel(t.label); setEditSessionTypeColor(t.color); }}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => deleteSessionTypeMutation.mutate(t.id)}>
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
