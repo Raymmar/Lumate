@@ -158,44 +158,49 @@ export function PresentationCard({
                 )}
               </div>
             ))}
-            {isAdmin && availableSpeakers.length > 0 && (
+            {isAdmin && (
               <Popover open={addSpeakerOpen} onOpenChange={setAddSpeakerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 w-7 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="h-7 px-2 rounded-full text-xs gap-1"
                     onClick={(e) => e.stopPropagation()}
                     data-testid={`button-add-speaker-quick-${presentation.id}`}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Speaker
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-56 p-2" align="start" onClick={(e) => e.stopPropagation()}>
                   <div className="text-xs font-medium text-muted-foreground mb-2">Add Speaker</div>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
-                    {availableSpeakers.map((speaker) => (
-                      <button
-                        key={speaker.id}
-                        className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted text-left"
-                        onClick={() => addSpeakerMutation.mutate(speaker.id)}
-                        disabled={addSpeakerMutation.isPending}
-                        data-testid={`button-add-speaker-${speaker.id}`}
-                      >
-                        <img
-                          src={speaker.photo}
-                          alt={speaker.name}
-                          className="w-6 h-6 rounded-full object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{speaker.name}</p>
-                          {speaker.title && (
-                            <p className="text-[10px] text-muted-foreground truncate">{speaker.title}</p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                  {availableSpeakers.length > 0 ? (
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {availableSpeakers.map((speaker) => (
+                        <button
+                          key={speaker.id}
+                          className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted text-left"
+                          onClick={() => addSpeakerMutation.mutate(speaker.id)}
+                          disabled={addSpeakerMutation.isPending}
+                          data-testid={`button-add-speaker-${speaker.id}`}
+                        >
+                          <img
+                            src={speaker.photo}
+                            alt={speaker.name}
+                            className="w-6 h-6 rounded-full object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium truncate">{speaker.name}</p>
+                            {speaker.title && (
+                              <p className="text-[10px] text-muted-foreground truncate">{speaker.title}</p>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground py-2">No speakers available to add</p>
+                  )}
                 </PopoverContent>
               </Popover>
             )}
