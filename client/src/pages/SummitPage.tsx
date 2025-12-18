@@ -783,15 +783,8 @@ export default function SummitPage() {
                   tech, hardware, robotics, 3D printing, digital media or vibe
                   code.
                 </p>
-                <Button className="w-full" data-testid="button-apply-speak">
-                  <a
-                    href="https://airtable.com/applDXoTdj4LPUUVc/shrzIM9RcYBek4C0k"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center w-full"
-                  >
-                    Apply to Speak <ExternalLink className="ml-2 h-4 w-4" />
-                  </a>
+                <Button className="w-full" disabled data-testid="button-apply-speak">
+                  Applications Closed
                 </Button>
               </CardContent>
             </Card>
