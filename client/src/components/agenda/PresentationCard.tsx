@@ -16,13 +16,13 @@ interface PresentationCardProps {
 }
 
 const SESSION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  keynote: { label: "Keynote", color: "bg-amber-500/10 text-amber-600" },
-  panel: { label: "Panel", color: "bg-blue-500/10 text-blue-600" },
-  workshop: { label: "Workshop", color: "bg-green-500/10 text-green-600" },
-  break: { label: "Break", color: "bg-gray-500/10 text-gray-600" },
-  networking: { label: "Networking", color: "bg-purple-500/10 text-purple-600" },
-  round: { label: "Round", color: "bg-teal-500/10 text-teal-600" },
-  talk: { label: "Talk", color: "bg-indigo-500/10 text-indigo-600" },
+  keynote: { label: "Keynote", color: "bg-amber-500 text-white" },
+  panel: { label: "Panel", color: "bg-blue-500 text-white" },
+  workshop: { label: "Workshop", color: "bg-green-500 text-white" },
+  break: { label: "Break", color: "bg-gray-500 text-white" },
+  networking: { label: "Networking", color: "bg-purple-500 text-white" },
+  round: { label: "Round", color: "bg-teal-500 text-white" },
+  talk: { label: "Talk", color: "bg-indigo-500 text-white" },
 };
 
 const TRACK_ICONS: Record<string, JSX.Element> = {
@@ -67,7 +67,7 @@ export function PresentationCard({
 
   const sessionTypeInfo = SESSION_TYPE_LABELS[presentation.sessionType] || { 
     label: presentation.sessionType, 
-    color: "bg-gray-500/10 text-gray-600" 
+    color: "bg-gray-500 text-white" 
   };
 
   const sortedSpeakers = [...presentation.speakers].sort((a, b) => {
