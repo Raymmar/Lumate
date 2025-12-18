@@ -21,6 +21,8 @@ import {
   EmailInvitation, InsertEmailInvitation,
   TimelineEvent, InsertTimelineEvent,
   Coupon, InsertCoupon,
+  AgendaTrack, InsertAgendaTrack,
+  AgendaSessionType, InsertAgendaSessionType,
   Presentation, InsertPresentation,
   Speaker, InsertSpeaker,
   PresentationSpeaker, InsertPresentationSpeaker,
@@ -28,7 +30,7 @@ import {
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
   badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons,
-  presentations, speakers, presentationSpeakers
+  agendaTracks, agendaSessionTypes, presentations, speakers, presentationSpeakers
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or, isNull } from "drizzle-orm";
@@ -212,6 +214,20 @@ export interface IStorage {
   updateCouponStatus(id: number, status: string, redeemedAt?: string): Promise<Coupon>;
   getActivePremiumMembers(): Promise<User[]>;
   getUnredeemedCouponsByEventAndEmail(eventApiId: string, email: string): Promise<Coupon[]>;
+
+  // Agenda tracks management
+  getAgendaTracks(): Promise<AgendaTrack[]>;
+  getAgendaTrackById(id: number): Promise<AgendaTrack | null>;
+  createAgendaTrack(data: InsertAgendaTrack): Promise<AgendaTrack>;
+  updateAgendaTrack(id: number, data: Partial<AgendaTrack>): Promise<AgendaTrack>;
+  deleteAgendaTrack(id: number): Promise<void>;
+
+  // Agenda session types management
+  getAgendaSessionTypes(): Promise<AgendaSessionType[]>;
+  getAgendaSessionTypeById(id: number): Promise<AgendaSessionType | null>;
+  createAgendaSessionType(data: InsertAgendaSessionType): Promise<AgendaSessionType>;
+  updateAgendaSessionType(id: number, data: Partial<AgendaSessionType>): Promise<AgendaSessionType>;
+  deleteAgendaSessionType(id: number): Promise<void>;
 
   // Presentation management (summit agenda)
   getPresentations(): Promise<PresentationWithSpeakers[]>;
@@ -3407,6 +3423,142 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get unredeemed coupons:', error);
+      throw error;
+    }
+  }
+
+  // Agenda tracks management
+  async getAgendaTracks(): Promise<AgendaTrack[]> {
+    try {
+      const result = await db
+        .select()
+        .from(agendaTracks)
+        .orderBy(agendaTracks.displayOrder);
+      return result;
+    } catch (error) {
+      console.error('Failed to get agenda tracks:', error);
+      throw error;
+    }
+  }
+
+  async getAgendaTrackById(id: number): Promise<AgendaTrack | null> {
+    try {
+      const result = await db
+        .select()
+        .from(agendaTracks)
+        .where(eq(agendaTracks.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get agenda track by id:', error);
+      throw error;
+    }
+  }
+
+  async createAgendaTrack(data: InsertAgendaTrack): Promise<AgendaTrack> {
+    try {
+      const result = await db
+        .insert(agendaTracks)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create agenda track:', error);
+      throw error;
+    }
+  }
+
+  async updateAgendaTrack(id: number, data: Partial<AgendaTrack>): Promise<AgendaTrack> {
+    try {
+      const result = await db
+        .update(agendaTracks)
+        .set(data)
+        .where(eq(agendaTracks.id, id))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Agenda track not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update agenda track:', error);
+      throw error;
+    }
+  }
+
+  async deleteAgendaTrack(id: number): Promise<void> {
+    try {
+      await db.delete(agendaTracks).where(eq(agendaTracks.id, id));
+    } catch (error) {
+      console.error('Failed to delete agenda track:', error);
+      throw error;
+    }
+  }
+
+  // Agenda session types management
+  async getAgendaSessionTypes(): Promise<AgendaSessionType[]> {
+    try {
+      const result = await db
+        .select()
+        .from(agendaSessionTypes)
+        .orderBy(agendaSessionTypes.displayOrder);
+      return result;
+    } catch (error) {
+      console.error('Failed to get agenda session types:', error);
+      throw error;
+    }
+  }
+
+  async getAgendaSessionTypeById(id: number): Promise<AgendaSessionType | null> {
+    try {
+      const result = await db
+        .select()
+        .from(agendaSessionTypes)
+        .where(eq(agendaSessionTypes.id, id))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get agenda session type by id:', error);
+      throw error;
+    }
+  }
+
+  async createAgendaSessionType(data: InsertAgendaSessionType): Promise<AgendaSessionType> {
+    try {
+      const result = await db
+        .insert(agendaSessionTypes)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create agenda session type:', error);
+      throw error;
+    }
+  }
+
+  async updateAgendaSessionType(id: number, data: Partial<AgendaSessionType>): Promise<AgendaSessionType> {
+    try {
+      const result = await db
+        .update(agendaSessionTypes)
+        .set(data)
+        .where(eq(agendaSessionTypes.id, id))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Agenda session type not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update agenda session type:', error);
+      throw error;
+    }
+  }
+
+  async deleteAgendaSessionType(id: number): Promise<void> {
+    try {
+      await db.delete(agendaSessionTypes).where(eq(agendaSessionTypes.id, id));
+    } catch (error) {
+      console.error('Failed to delete agenda session type:', error);
       throw error;
     }
   }

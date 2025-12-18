@@ -734,6 +734,44 @@ export type DiscountType = z.infer<typeof discountTypeEnum>;
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
 
+// Agenda Tracks (e.g., "Startup School", "Main Stage")
+export const agendaTracks = pgTable("agenda_tracks", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 50 }).notNull().unique(),
+  label: varchar("label", { length: 100 }).notNull(),
+  color: varchar("color", { length: 50 }).notNull().default("blue"), // Tailwind color name or hex
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertAgendaTrackSchema = createInsertSchema(agendaTracks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AgendaTrack = typeof agendaTracks.$inferSelect;
+export type InsertAgendaTrack = z.infer<typeof insertAgendaTrackSchema>;
+
+// Agenda Session Types (e.g., "Keynote", "Panel", "Workshop")
+export const agendaSessionTypes = pgTable("agenda_session_types", {
+  id: serial("id").primaryKey(),
+  slug: varchar("slug", { length: 50 }).notNull().unique(),
+  label: varchar("label", { length: 100 }).notNull(),
+  color: varchar("color", { length: 50 }).notNull().default("gray"), // Tailwind color name or hex
+  displayOrder: integer("display_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertAgendaSessionTypeSchema = createInsertSchema(agendaSessionTypes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type AgendaSessionType = typeof agendaSessionTypes.$inferSelect;
+export type InsertAgendaSessionType = z.infer<typeof insertAgendaSessionTypeSchema>;
+
 // Presentations for summit agenda
 export const presentations = pgTable("presentations", {
   id: serial("id").primaryKey(),

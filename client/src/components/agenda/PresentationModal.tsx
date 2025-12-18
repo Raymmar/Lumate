@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Loader2, Plus, Trash2, Mic2 } from "lucide-react";
-import { PresentationWithSpeakers, Speaker } from "@shared/schema";
+import { PresentationWithSpeakers, Speaker, AgendaTrack, AgendaSessionType } from "@shared/schema";
 import { SpeakerModal } from "./SpeakerModal";
 import { Badge } from "@/components/ui/badge";
 
@@ -32,19 +32,19 @@ interface PresentationModalProps {
   onClose: () => void;
 }
 
-const SESSION_TYPES = [
-  { value: "keynote", label: "Keynote" },
-  { value: "panel", label: "Panel" },
-  { value: "workshop", label: "Workshop" },
-  { value: "break", label: "Break" },
-  { value: "networking", label: "Networking" },
-  { value: "round", label: "Round" },
-  { value: "talk", label: "Talk" },
-];
-
-const TRACKS = [
-  { value: "startup_school", label: "Startup School" },
-  { value: "main_stage", label: "Main Stage" },
+const COLOR_OPTIONS = [
+  { value: "blue", label: "Blue" },
+  { value: "emerald", label: "Emerald" },
+  { value: "purple", label: "Purple" },
+  { value: "amber", label: "Amber" },
+  { value: "sky", label: "Sky" },
+  { value: "indigo", label: "Indigo" },
+  { value: "green", label: "Green" },
+  { value: "gray", label: "Gray" },
+  { value: "red", label: "Red" },
+  { value: "orange", label: "Orange" },
+  { value: "pink", label: "Pink" },
+  { value: "teal", label: "Teal" },
 ];
 
 export function PresentationModal({ presentation, isOpen, onClose }: PresentationModalProps) {
@@ -62,12 +62,29 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
 
   const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
   const [editingSpeaker, setEditingSpeaker] = useState<Speaker | null>(null);
+  
+  const [showAddTrack, setShowAddTrack] = useState(false);
+  const [newTrackLabel, setNewTrackLabel] = useState("");
+  const [newTrackColor, setNewTrackColor] = useState("blue");
+  const [showAddSessionType, setShowAddSessionType] = useState(false);
+  const [newSessionTypeLabel, setNewSessionTypeLabel] = useState("");
+  const [newSessionTypeColor, setNewSessionTypeColor] = useState("gray");
 
   const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
   });
 
+  const { data: tracksData } = useQuery<{ tracks: AgendaTrack[] }>({
+    queryKey: ["/api/agenda-tracks"],
+  });
+
+  const { data: sessionTypesData } = useQuery<{ sessionTypes: AgendaSessionType[] }>({
+    queryKey: ["/api/agenda-session-types"],
+  });
+
   const allSpeakers = speakersData?.speakers || [];
+  const tracks = tracksData?.tracks?.filter(t => t.isActive) || [];
+  const sessionTypes = sessionTypesData?.sessionTypes?.filter(t => t.isActive) || [];
 
   useEffect(() => {
     if (presentation) {
@@ -184,6 +201,54 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
     },
   });
 
+  const createTrackMutation = useMutation({
+    mutationFn: async (): Promise<AgendaTrack> => {
+      const slug = newTrackLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      return apiRequest("/api/agenda-tracks", "POST", {
+        slug,
+        label: newTrackLabel,
+        color: newTrackColor,
+        displayOrder: tracks.length,
+        isActive: true,
+      }) as Promise<AgendaTrack>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agenda-tracks"] });
+      setTrack(data.slug);
+      setNewTrackLabel("");
+      setNewTrackColor("blue");
+      setShowAddTrack(false);
+      toast({ title: "Track created" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create track", variant: "destructive" });
+    },
+  });
+
+  const createSessionTypeMutation = useMutation({
+    mutationFn: async (): Promise<AgendaSessionType> => {
+      const slug = newSessionTypeLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      return apiRequest("/api/agenda-session-types", "POST", {
+        slug,
+        label: newSessionTypeLabel,
+        color: newSessionTypeColor,
+        displayOrder: sessionTypes.length,
+        isActive: true,
+      }) as Promise<AgendaSessionType>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/agenda-session-types"] });
+      setSessionType(data.slug);
+      setNewSessionTypeLabel("");
+      setNewSessionTypeColor("gray");
+      setShowAddSessionType(false);
+      toast({ title: "Session type created" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create session type", variant: "destructive" });
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !startTime || !endTime) {
@@ -264,30 +329,130 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="track">Track</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="track">Track</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() => setShowAddTrack(!showAddTrack)}
+                    data-testid="button-add-track"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {showAddTrack && (
+                  <div className="flex gap-2 p-2 bg-muted/50 rounded-lg">
+                    <Input
+                      placeholder="Track name..."
+                      value={newTrackLabel}
+                      onChange={(e) => setNewTrackLabel(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                    <Select value={newTrackColor} onValueChange={setNewTrackColor}>
+                      <SelectTrigger className="w-24 h-8">
+                        <div className={`w-3 h-3 rounded-full bg-${newTrackColor}-500`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COLOR_OPTIONS.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full bg-${c.value}-500`} />
+                              {c.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => createTrackMutation.mutate()}
+                      disabled={!newTrackLabel || createTrackMutation.isPending}
+                    >
+                      {createTrackMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                    </Button>
+                  </div>
+                )}
                 <Select value={track} onValueChange={setTrack}>
                   <SelectTrigger data-testid="select-presentation-track">
-                    <SelectValue />
+                    <SelectValue placeholder="Select track..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {TRACKS.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
+                    {tracks.map((t) => (
+                      <SelectItem key={t.slug} value={t.slug}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full bg-${t.color}-500`} />
+                          {t.label}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sessionType">Session Type</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sessionType">Session Type</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() => setShowAddSessionType(!showAddSessionType)}
+                    data-testid="button-add-session-type"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                {showAddSessionType && (
+                  <div className="flex gap-2 p-2 bg-muted/50 rounded-lg">
+                    <Input
+                      placeholder="Type name..."
+                      value={newSessionTypeLabel}
+                      onChange={(e) => setNewSessionTypeLabel(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                    <Select value={newSessionTypeColor} onValueChange={setNewSessionTypeColor}>
+                      <SelectTrigger className="w-24 h-8">
+                        <div className={`w-3 h-3 rounded-full bg-${newSessionTypeColor}-500`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COLOR_OPTIONS.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-3 h-3 rounded-full bg-${c.value}-500`} />
+                              {c.label}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => createSessionTypeMutation.mutate()}
+                      disabled={!newSessionTypeLabel || createSessionTypeMutation.isPending}
+                    >
+                      {createSessionTypeMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Add"}
+                    </Button>
+                  </div>
+                )}
                 <Select value={sessionType} onValueChange={setSessionType}>
                   <SelectTrigger data-testid="select-presentation-type">
-                    <SelectValue />
+                    <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {SESSION_TYPES.map((t) => (
-                      <SelectItem key={t.value} value={t.value}>
-                        {t.label}
+                    {sessionTypes.map((t) => (
+                      <SelectItem key={t.slug} value={t.slug}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full bg-${t.color}-500`} />
+                          {t.label}
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>

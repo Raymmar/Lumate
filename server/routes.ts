@@ -37,6 +37,8 @@ import {
   insertPresentationSchema,
   insertSpeakerSchema,
   insertPresentationSpeakerSchema,
+  insertAgendaTrackSchema,
+  insertAgendaSessionTypeSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -628,6 +630,120 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to delete timeline event:", error);
       res.status(500).json({ error: "Failed to delete timeline event" });
+    }
+  });
+
+  // Agenda tracks routes
+  app.get("/api/agenda-tracks", async (req, res) => {
+    try {
+      const tracks = await storage.getAgendaTracks();
+      res.json({ tracks });
+    } catch (error) {
+      console.error("Failed to fetch agenda tracks:", error);
+      res.status(500).json({ error: "Failed to fetch agenda tracks" });
+    }
+  });
+
+  app.post("/api/agenda-tracks", requireAdmin, async (req, res) => {
+    try {
+      const result = insertAgendaTrackSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid track data", 
+          details: result.error.format() 
+        });
+      }
+      const track = await storage.createAgendaTrack(result.data);
+      res.json(track);
+    } catch (error) {
+      console.error("Failed to create agenda track:", error);
+      res.status(500).json({ error: "Failed to create agenda track" });
+    }
+  });
+
+  app.patch("/api/agenda-tracks/:id", requireAdmin, async (req, res) => {
+    try {
+      const trackId = parseInt(req.params.id);
+      const result = insertAgendaTrackSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid track data", 
+          details: result.error.format() 
+        });
+      }
+      const track = await storage.updateAgendaTrack(trackId, result.data);
+      res.json(track);
+    } catch (error) {
+      console.error("Failed to update agenda track:", error);
+      res.status(500).json({ error: "Failed to update agenda track" });
+    }
+  });
+
+  app.delete("/api/agenda-tracks/:id", requireAdmin, async (req, res) => {
+    try {
+      const trackId = parseInt(req.params.id);
+      await storage.deleteAgendaTrack(trackId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete agenda track:", error);
+      res.status(500).json({ error: "Failed to delete agenda track" });
+    }
+  });
+
+  // Agenda session types routes
+  app.get("/api/agenda-session-types", async (req, res) => {
+    try {
+      const sessionTypes = await storage.getAgendaSessionTypes();
+      res.json({ sessionTypes });
+    } catch (error) {
+      console.error("Failed to fetch agenda session types:", error);
+      res.status(500).json({ error: "Failed to fetch agenda session types" });
+    }
+  });
+
+  app.post("/api/agenda-session-types", requireAdmin, async (req, res) => {
+    try {
+      const result = insertAgendaSessionTypeSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid session type data", 
+          details: result.error.format() 
+        });
+      }
+      const sessionType = await storage.createAgendaSessionType(result.data);
+      res.json(sessionType);
+    } catch (error) {
+      console.error("Failed to create agenda session type:", error);
+      res.status(500).json({ error: "Failed to create agenda session type" });
+    }
+  });
+
+  app.patch("/api/agenda-session-types/:id", requireAdmin, async (req, res) => {
+    try {
+      const sessionTypeId = parseInt(req.params.id);
+      const result = insertAgendaSessionTypeSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid session type data", 
+          details: result.error.format() 
+        });
+      }
+      const sessionType = await storage.updateAgendaSessionType(sessionTypeId, result.data);
+      res.json(sessionType);
+    } catch (error) {
+      console.error("Failed to update agenda session type:", error);
+      res.status(500).json({ error: "Failed to update agenda session type" });
+    }
+  });
+
+  app.delete("/api/agenda-session-types/:id", requireAdmin, async (req, res) => {
+    try {
+      const sessionTypeId = parseInt(req.params.id);
+      await storage.deleteAgendaSessionType(sessionTypeId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete agenda session type:", error);
+      res.status(500).json({ error: "Failed to delete agenda session type" });
     }
   });
 
