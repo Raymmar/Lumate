@@ -188,19 +188,40 @@ export function PresentationCard({
                       {speaker.bio}
                     </p>
                   )}
-                  {speaker.bioUrl && (
-                    <a
-                      href={speaker.bioUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-2"
-                      onClick={(e) => e.stopPropagation()}
-                      data-testid={`link-speaker-url-${speaker.id}`}
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSpeakerIndex(index);
+                      }}
+                      data-testid={`button-view-more-${speaker.id}`}
                     >
-                      {speaker.urlText || "Learn more"}
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  )}
+                      View more
+                      <ChevronRight className="h-3 w-3 ml-1" />
+                    </Button>
+                    {speaker.bioUrl && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        asChild
+                      >
+                        <a
+                          href={speaker.bioUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`link-speaker-url-${speaker.id}`}
+                        >
+                          {speaker.urlText || "Website"}
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
