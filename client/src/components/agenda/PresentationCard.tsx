@@ -1,4 +1,4 @@
-import { PresentationWithSpeakers, Speaker } from "@shared/schema";
+import { PresentationWithSpeakers, Speaker, AgendaSessionType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus } from "lucide-react";
@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { SpeakerModal } from "./SpeakerModal";
+import { COLOR_MAP } from "./PresentationModal";
 
 interface PresentationCardProps {
   presentation: PresentationWithSpeakers;
@@ -16,16 +17,6 @@ interface PresentationCardProps {
   onEdit?: (presentation: PresentationWithSpeakers) => void;
   isFullWidth?: boolean;
 }
-
-const SESSION_TYPE_LABELS: Record<string, { label: string; color: string }> = {
-  keynote: { label: "Keynote", color: "bg-amber-500 text-white" },
-  panel: { label: "Panel", color: "bg-blue-500 text-white" },
-  workshop: { label: "Workshop", color: "bg-green-500 text-white" },
-  break: { label: "Break", color: "bg-gray-500 text-white" },
-  networking: { label: "Networking", color: "bg-purple-500 text-white" },
-  round: { label: "Round", color: "bg-teal-500 text-white" },
-  talk: { label: "Talk", color: "bg-indigo-500 text-white" },
-};
 
 const TRACK_ICONS: Record<string, JSX.Element> = {
   startup_school: <GraduationCap className="h-3 w-3" />,
@@ -44,6 +35,10 @@ export function PresentationCard({
   const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
     enabled: isAdmin,
+  });
+
+  const { data: sessionTypesData } = useQuery<{ sessionTypes: AgendaSessionType[] }>({
+    queryKey: ["/api/agenda-session-types"],
   });
 
   const allSpeakers = speakersData?.speakers || [];
@@ -94,10 +89,10 @@ export function PresentationCard({
     }
   };
 
-  const sessionTypeInfo = SESSION_TYPE_LABELS[presentation.sessionType] || { 
-    label: presentation.sessionType, 
-    color: "bg-gray-500 text-white" 
-  };
+  const sessionTypes = sessionTypesData?.sessionTypes || [];
+  const sessionTypeConfig = sessionTypes.find(st => st.slug === presentation.sessionType);
+  const sessionTypeColor = sessionTypeConfig?.color || "gray";
+  const sessionTypeLabel = sessionTypeConfig?.label || presentation.sessionType;
 
   const sortedSpeakers = [...presentation.speakers].sort((a, b) => {
     if (a.isModerator && !b.isModerator) return -1;
@@ -113,8 +108,11 @@ export function PresentationCard({
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className={`text-xs px-2 py-0.5 rounded ${sessionTypeInfo.color}`}>
-              {sessionTypeInfo.label}
+            <span 
+              className="text-xs px-2 py-0.5 rounded text-white"
+              style={{ backgroundColor: COLOR_MAP[sessionTypeColor] || COLOR_MAP.gray }}
+            >
+              {sessionTypeLabel}
             </span>
             {!isFullWidth && (
               <span className="text-xs text-muted-foreground flex items-center gap-1 capitalize">
