@@ -198,7 +198,7 @@ export function PresentationCard({
                     </Button>
                   </div>
                 )}
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <img
                     src={speaker.photo}
                     alt={speaker.name}
