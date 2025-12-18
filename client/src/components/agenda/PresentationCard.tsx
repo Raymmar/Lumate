@@ -163,53 +163,51 @@ export function PresentationCard({
                 }}
                 data-testid={`speaker-card-${speaker.id}`}
               >
-                <div className="absolute top-2 right-2 flex items-center gap-1">
-                  {speaker.isModerator && (
-                    <Badge variant="secondary" className="text-[10px] h-5 px-1.5">
-                      <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                      Moderator
-                    </Badge>
-                  )}
-                  {isAdmin && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 w-5 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`button-speaker-menu-${speaker.id}`}
-                        >
-                          <MoreVertical className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingSpeaker(speaker);
-                          }}
-                          data-testid={`button-edit-speaker-${speaker.id}`}
-                        >
-                          <Pencil className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeSpeakerMutation.mutate(speaker.id);
-                          }}
-                          disabled={removeSpeakerMutation.isPending}
-                          className="text-destructive"
-                          data-testid={`button-remove-speaker-${speaker.id}`}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-2 right-2 h-5 w-5 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`button-speaker-menu-${speaker.id}`}
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSpeaker(speaker);
+                        }}
+                        data-testid={`button-edit-speaker-${speaker.id}`}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeSpeakerMutation.mutate(speaker.id);
+                        }}
+                        disabled={removeSpeakerMutation.isPending}
+                        className="text-destructive"
+                        data-testid={`button-remove-speaker-${speaker.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {speaker.isModerator && (
+                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 w-fit mb-2">
+                    <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                    Moderator
+                  </Badge>
+                )}
                 <div className="flex items-end gap-3">
                   <img
                     src={speaker.photo}
