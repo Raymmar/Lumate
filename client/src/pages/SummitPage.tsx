@@ -7,7 +7,6 @@ import {
   MapPin,
   ExternalLink,
   Building2,
-  Users,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -726,30 +725,17 @@ export default function SummitPage() {
             </Card>
           </div>
 
-          {/* Speakers & Panelists Section */}
+          {/* Event Agenda Section */}
           <div className="mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6">
-              Speakers & Panelists
-            </h2>
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
-              data-testid="speakers-grid"
-            >
-              {/* Placeholder for speakers - will be populated as they are added */}
-              <div className="text-center text-muted-foreground col-span-full py-8 border rounded-lg bg-muted/30">
-                <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p className="text-sm">Speaker lineup coming soon!</p>
-              </div>
-            </div>
+            <AgendaSection isAdmin={isAdmin} />
           </div>
 
           <div className="space-y-6">
             {/* Sidebar and Main Content */}
             <div className="grid gap-4 lg:grid-cols-3">
-              {/* Left Sidebar - Event Links and Agenda */}
+              {/* Left Sidebar - Event Links */}
               <div className="lg:col-span-1 space-y-4">
                 <EventLinksCard />
-                <AgendaSection isAdmin={isAdmin} />
               </div>
 
               {/* Right Content - News Feed and Gallery */}
