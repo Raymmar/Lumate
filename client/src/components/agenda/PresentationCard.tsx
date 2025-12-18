@@ -283,13 +283,13 @@ export function PresentationCard({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.12 }}
-                className="flex items-center gap-2 flex-wrap"
+                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"
               >
                 {sortedSpeakers.map((speaker, index) => (
                   <motion.div 
                     key={speaker.id}
                     layoutId={`speaker-container-${presentation.id}-${speaker.id}`}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg py-1 px-2 transition-colors"
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-lg py-1 px-2 transition-colors min-w-0"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSpeakerIndex(index);
@@ -306,17 +306,17 @@ export function PresentationCard({
                     />
                     <motion.div 
                       layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
-                      className="flex flex-col min-w-0"
+                      className="flex flex-col min-w-0 flex-1"
                       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                     >
-                      <span className="text-xs font-medium flex items-center gap-1">
-                        {speaker.name}
+                      <span className="text-xs font-medium flex items-center gap-1 truncate">
+                        <span className="truncate">{speaker.name}</span>
                         {speaker.isModerator && (
                           <Mic2 className="h-3 w-3 text-primary flex-shrink-0" />
                         )}
                       </span>
                       {(speaker.title || speaker.company) && (
-                        <span className="text-[10px] text-muted-foreground truncate max-w-[180px]">
+                        <span className="text-[10px] text-muted-foreground truncate">
                           {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
                         </span>
                       )}
