@@ -3566,34 +3566,49 @@ export class PostgresStorage implements IStorage {
   // Presentation management (summit agenda)
   async getPresentations(): Promise<PresentationWithSpeakers[]> {
     try {
-      const presentationsList = await db
-        .select()
-        .from(presentations)
-        .orderBy(presentations.startTime, presentations.displayOrder);
-
-      const result: PresentationWithSpeakers[] = [];
-      for (const presentation of presentationsList) {
-        const speakerLinks = await db
-          .select({
-            speaker: speakers,
-            isModerator: presentationSpeakers.isModerator,
-            displayOrder: presentationSpeakers.displayOrder,
-          })
+      // Fetch all presentations and all speaker links in parallel (2 queries instead of N+1)
+      const [presentationsList, allSpeakerLinks] = await Promise.all([
+        db.select()
+          .from(presentations)
+          .orderBy(presentations.startTime, presentations.displayOrder),
+        db.select({
+          presentationId: presentationSpeakers.presentationId,
+          speaker: speakers,
+          isModerator: presentationSpeakers.isModerator,
+          displayOrder: presentationSpeakers.displayOrder,
+        })
           .from(presentationSpeakers)
           .innerJoin(speakers, eq(presentationSpeakers.speakerId, speakers.id))
-          .where(eq(presentationSpeakers.presentationId, presentation.id))
-          .orderBy(presentationSpeakers.displayOrder);
+          .orderBy(presentationSpeakers.displayOrder)
+      ]);
 
-        result.push({
-          ...presentation,
-          speakers: speakerLinks.map(link => ({
-            ...link.speaker,
-            isModerator: link.isModerator,
-            displayOrder: link.displayOrder,
-          })),
+      // Group speakers by presentation ID in memory
+      const speakersByPresentationId = new Map<number, Array<{
+        speaker: typeof speakers.$inferSelect;
+        isModerator: boolean;
+        displayOrder: number;
+      }>>();
+      
+      for (const link of allSpeakerLinks) {
+        if (!speakersByPresentationId.has(link.presentationId)) {
+          speakersByPresentationId.set(link.presentationId, []);
+        }
+        speakersByPresentationId.get(link.presentationId)!.push({
+          speaker: link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
         });
       }
-      return result;
+
+      // Combine presentations with their speakers
+      return presentationsList.map(presentation => ({
+        ...presentation,
+        speakers: (speakersByPresentationId.get(presentation.id) || []).map(link => ({
+          ...link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
+        })),
+      }));
     } catch (error) {
       console.error('Failed to get presentations:', error);
       throw error;
