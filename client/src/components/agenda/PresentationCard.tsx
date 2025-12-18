@@ -198,54 +198,56 @@ export function PresentationCard({
                     </Button>
                   </div>
                 )}
-                <img
-                  src={speaker.photo}
-                  alt={speaker.name}
-                  className="w-16 h-16 rounded-full object-cover mb-3"
-                />
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium">
-                    {speaker.name}
-                  </span>
-                  {(speaker.title || speaker.company) && (
-                    <span className="text-xs text-muted-foreground">
-                      {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
+                <div className="flex items-start gap-3">
+                  <img
+                    src={speaker.photo}
+                    alt={speaker.name}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-medium">
+                      {speaker.name}
                     </span>
-                  )}
-                  {speaker.bio && (
-                    <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                      {speaker.bio}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                    {(speaker.title || speaker.company) && (
+                      <span className="text-xs text-muted-foreground">
+                        {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {speaker.bio && (
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                    {speaker.bio}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedSpeakerIndex(index);
+                    }}
+                    data-testid={`button-view-more-${speaker.id}`}
+                  >Full Bio</Button>
+                  {speaker.bioUrl && (
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedSpeakerIndex(index);
-                      }}
-                      data-testid={`button-view-more-${speaker.id}`}
-                    >Full Bio</Button>
-                    {speaker.bioUrl && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
+                      asChild
+                    >
+                      <a
+                        href={speaker.bioUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`link-speaker-url-${speaker.id}`}
                       >
-                        <a
-                          href={speaker.bioUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          data-testid={`link-speaker-url-${speaker.id}`}
-                        >
-                          {speaker.urlText || "Website"}
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
-                  </div>
+                        {speaker.urlText || "Website"}
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
