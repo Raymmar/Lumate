@@ -92,7 +92,7 @@ function formatTimeDisplay(time: string): string {
 
 export function PresentationModal({ presentation, isOpen, onClose }: PresentationModalProps) {
   const { toast } = useToast();
-  const isEditing = !!presentation;
+  const isEditing = !!presentation && presentation.id > 0;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

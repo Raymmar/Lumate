@@ -50,6 +50,17 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     setIsModalOpen(true);
   };
 
+  const handleDuplicate = (presentation: PresentationWithSpeakers) => {
+    const duplicated = {
+      ...presentation,
+      id: 0,
+      title: `${presentation.title} (Copy)`,
+      speakers: [],
+    } as PresentationWithSpeakers;
+    setEditingPresentation(duplicated);
+    setIsModalOpen(true);
+  };
+
   const handleAdd = () => {
     setEditingPresentation(null);
     setIsModalOpen(true);
@@ -121,12 +132,14 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               groupedByTime={groupedByTime}
               isAdmin={isAdmin}
               onEdit={handleEdit}
+              onDuplicate={handleDuplicate}
             />
           ) : (
             <TableView
               presentations={presentations}
               isAdmin={isAdmin}
               onEdit={handleEdit}
+              onDuplicate={handleDuplicate}
             />
           )}
 
@@ -160,9 +173,10 @@ interface CalendarViewProps {
   groupedByTime: Record<string, PresentationWithSpeakers[]>;
   isAdmin: boolean;
   onEdit: (presentation: PresentationWithSpeakers) => void;
+  onDuplicate: (presentation: PresentationWithSpeakers) => void;
 }
 
-function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit }: CalendarViewProps) {
+function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate }: CalendarViewProps) {
   return (
     <div className="space-y-4">
       {sortedTimeSlots.map((timeSlot) => {
@@ -186,6 +200,7 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit }: Calen
                 presentation={presentation}
                 isAdmin={isAdmin}
                 onEdit={onEdit}
+                onDuplicate={onDuplicate}
                 isFullWidth
               />
             ))}
@@ -200,6 +215,7 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit }: Calen
                         presentation={presentation}
                         isAdmin={isAdmin}
                         onEdit={onEdit}
+                        onDuplicate={onDuplicate}
                       />
                     ))
                   ) : (
@@ -216,6 +232,7 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit }: Calen
                         presentation={presentation}
                         isAdmin={isAdmin}
                         onEdit={onEdit}
+                        onDuplicate={onDuplicate}
                       />
                     ))
                   ) : (
@@ -237,9 +254,10 @@ interface TableViewProps {
   presentations: PresentationWithSpeakers[];
   isAdmin: boolean;
   onEdit: (presentation: PresentationWithSpeakers) => void;
+  onDuplicate: (presentation: PresentationWithSpeakers) => void;
 }
 
-function TableView({ presentations, isAdmin, onEdit }: TableViewProps) {
+function TableView({ presentations, isAdmin, onEdit, onDuplicate }: TableViewProps) {
   const sortedPresentations = [...presentations].sort((a, b) => 
     new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );

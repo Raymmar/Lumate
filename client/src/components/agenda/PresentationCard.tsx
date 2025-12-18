@@ -2,7 +2,7 @@ import { PresentationWithSpeakers, Speaker, AgendaSessionType } from "@shared/sc
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -16,6 +16,7 @@ interface PresentationCardProps {
   presentation: PresentationWithSpeakers;
   isAdmin?: boolean;
   onEdit?: (presentation: PresentationWithSpeakers) => void;
+  onDuplicate?: (presentation: PresentationWithSpeakers) => void;
   isFullWidth?: boolean;
 }
 
@@ -28,6 +29,7 @@ export function PresentationCard({
   presentation,
   isAdmin = false,
   onEdit,
+  onDuplicate,
   isFullWidth = false,
 }: PresentationCardProps) {
   const { toast } = useToast();
@@ -326,6 +328,16 @@ export function PresentationCard({
               >
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate?.(presentation);
+                }}
+                data-testid={`button-duplicate-presentation-${presentation.id}`}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                Duplicate
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleDelete}
