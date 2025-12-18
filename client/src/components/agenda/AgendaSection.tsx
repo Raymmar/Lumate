@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, List, Clock, Users, Mic2 } from "lucide-react";
+import { Plus, Calendar, List, Clock, Users, Mic2, ChevronDown, ChevronUp } from "lucide-react";
 import { PresentationWithSpeakers, AgendaSessionType, Speaker } from "@shared/schema";
 import { PresentationCard } from "./PresentationCard";
 import { PresentationModal } from "./PresentationModal";
@@ -15,10 +15,45 @@ interface AgendaSectionProps {
   isAdmin?: boolean;
 }
 
+const SPEAKERS_EXPANDED_KEY = "agenda-speakers-expanded";
+
 export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
   const [view, setView] = useState<"calendar" | "table">("calendar");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPresentation, setEditingPresentation] = useState<PresentationWithSpeakers | null>(null);
+  const [globalSpeakersExpanded, setGlobalSpeakersExpanded] = useState(() => {
+    const stored = localStorage.getItem(SPEAKERS_EXPANDED_KEY);
+    return stored === "true";
+  });
+  const [expandedPresentations, setExpandedPresentations] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    localStorage.setItem(SPEAKERS_EXPANDED_KEY, String(globalSpeakersExpanded));
+  }, [globalSpeakersExpanded]);
+
+  const toggleGlobalExpanded = () => {
+    setGlobalSpeakersExpanded(prev => !prev);
+    setExpandedPresentations(new Set());
+  };
+
+  const togglePresentationExpanded = (presentationId: number) => {
+    setExpandedPresentations(prev => {
+      const next = new Set(prev);
+      if (next.has(presentationId)) {
+        next.delete(presentationId);
+      } else {
+        next.add(presentationId);
+      }
+      return next;
+    });
+  };
+
+  const isPresentationExpanded = (presentationId: number) => {
+    if (expandedPresentations.has(presentationId)) {
+      return !globalSpeakersExpanded;
+    }
+    return globalSpeakersExpanded;
+  };
 
   const { data, isLoading } = useQuery<{ presentations: PresentationWithSpeakers[] }>({
     queryKey: ["/api/presentations"],
@@ -132,18 +167,41 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               <Calendar className="h-5 w-5" />
               Event Agenda
             </CardTitle>
-            <Tabs value={view} onValueChange={(v) => setView(v as "calendar" | "table")}>
-              <TabsList className="h-8">
-                <TabsTrigger value="calendar" className="text-xs px-2" data-testid="tab-calendar-view">
-                  <Calendar className="h-3 w-3 mr-1" />
-                  Calendar
-                </TabsTrigger>
-                <TabsTrigger value="table" className="text-xs px-2" data-testid="tab-table-view">
-                  <List className="h-3 w-3 mr-1" />
-                  List
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div className="flex items-center gap-2">
+              {view === "calendar" && presentations.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 text-xs gap-1"
+                  onClick={toggleGlobalExpanded}
+                  data-testid="button-toggle-speakers-expanded"
+                >
+                  {globalSpeakersExpanded ? (
+                    <>
+                      <ChevronUp className="h-3 w-3" />
+                      Collapse All
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3 w-3" />
+                      Expand All
+                    </>
+                  )}
+                </Button>
+              )}
+              <Tabs value={view} onValueChange={(v) => setView(v as "calendar" | "table")}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="calendar" className="text-xs px-2" data-testid="tab-calendar-view">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Calendar
+                  </TabsTrigger>
+                  <TabsTrigger value="table" className="text-xs px-2" data-testid="tab-table-view">
+                    <List className="h-3 w-3 mr-1" />
+                    List
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -168,6 +226,8 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               onAddAtTime={handleAddAtTime}
               sessionTypes={sessionTypes}
               allSpeakers={allSpeakers}
+              isPresentationExpanded={isPresentationExpanded}
+              onTogglePresentationExpanded={togglePresentationExpanded}
             />
           ) : (
             <TableView
@@ -214,9 +274,11 @@ interface CalendarViewProps {
   onAddAtTime: (timeSlot: string) => void;
   sessionTypes: AgendaSessionType[];
   allSpeakers: Speaker[];
+  isPresentationExpanded: (presentationId: number) => boolean;
+  onTogglePresentationExpanded: (presentationId: number) => void;
 }
 
-function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate, onAddAtTime, sessionTypes, allSpeakers }: CalendarViewProps) {
+function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate, onAddAtTime, sessionTypes, allSpeakers, isPresentationExpanded, onTogglePresentationExpanded }: CalendarViewProps) {
   return (
     <div className="space-y-4">
       {sortedTimeSlots.map((timeSlot) => {
@@ -257,6 +319,8 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
                 isFullWidth
                 sessionTypes={sessionTypes}
                 allSpeakers={allSpeakers}
+                isExpanded={isPresentationExpanded(presentation.id)}
+                onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
               />
             ))}
 
@@ -273,6 +337,8 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
                         onDuplicate={onDuplicate}
                         sessionTypes={sessionTypes}
                         allSpeakers={allSpeakers}
+                        isExpanded={isPresentationExpanded(presentation.id)}
+                        onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
                       />
                     ))
                   ) : (
@@ -292,6 +358,8 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
                         onDuplicate={onDuplicate}
                         sessionTypes={sessionTypes}
                         allSpeakers={allSpeakers}
+                        isExpanded={isPresentationExpanded(presentation.id)}
+                        onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
                       />
                     ))
                   ) : (

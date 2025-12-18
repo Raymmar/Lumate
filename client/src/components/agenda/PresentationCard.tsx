@@ -2,7 +2,7 @@ import { PresentationWithSpeakers, Speaker, AgendaSessionType } from "@shared/sc
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight, Copy } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { SpeakerModal } from "./SpeakerModal";
 import { COLOR_MAP } from "./PresentationModal";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface PresentationCardProps {
   presentation: PresentationWithSpeakers;
@@ -20,6 +21,8 @@ interface PresentationCardProps {
   isFullWidth?: boolean;
   sessionTypes?: AgendaSessionType[];
   allSpeakers?: Speaker[];
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 const TRACK_ICONS: Record<string, JSX.Element> = {
@@ -35,6 +38,8 @@ export function PresentationCard({
   isFullWidth = false,
   sessionTypes = [],
   allSpeakers = [],
+  isExpanded = false,
+  onToggleExpanded,
 }: PresentationCardProps) {
   const { toast } = useToast();
   const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
@@ -111,10 +116,19 @@ export function PresentationCard({
     return a.displayOrder - b.displayOrder;
   });
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('[data-admin-menu]') || target.closest('button') || target.closest('[role="menu"]')) {
+      return;
+    }
+    onToggleExpanded?.();
+  };
+
   return (
     <div 
-      className={`group relative p-4 ${isFullWidth ? "bg-muted/30" : ""} hover:bg-muted/50 transition-colors`}
+      className={`group relative p-4 ${isFullWidth ? "bg-muted/30" : ""} hover:bg-muted/50 transition-colors cursor-pointer`}
       data-testid={`presentation-card-${presentation.id}`}
+      onClick={handleCardClick}
     >
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
@@ -145,6 +159,19 @@ export function PresentationCard({
             </p>
           )}
         </div>
+
+        {sortedSpeakers.length > 0 && (
+          <button 
+            className="flex-shrink-0 p-1 text-muted-foreground hover:text-foreground transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleExpanded?.();
+            }}
+            data-testid={`button-toggle-speakers-${presentation.id}`}
+          >
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
+        )}
 
         {isAdmin && (
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -247,116 +274,186 @@ export function PresentationCard({
       </div>
 
       {sortedSpeakers.length > 0 && (
-        <div className={`grid gap-4 mt-4 ${isFullWidth ? 'grid-cols-4' : 'grid-cols-2'}`}>
-          {sortedSpeakers.map((speaker, index) => (
-            <div 
-              key={speaker.id} 
-              className="group/speaker relative flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedSpeakerIndex(index);
-              }}
-              data-testid={`speaker-card-${speaker.id}`}
-            >
-                {isAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-2 right-2 h-5 w-5 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
-                        onClick={(e) => e.stopPropagation()}
-                        data-testid={`button-speaker-menu-${speaker.id}`}
-                      >
-                        <MoreVertical className="h-3.5 w-3.5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingSpeaker(speaker);
-                        }}
-                        data-testid={`button-edit-speaker-${speaker.id}`}
-                      >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeSpeakerMutation.mutate(speaker.id);
-                        }}
-                        disabled={removeSpeakerMutation.isPending}
-                        className="text-destructive"
-                        data-testid={`button-remove-speaker-${speaker.id}`}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-                <div className="flex items-center gap-3">
-                  <img
-                    src={speaker.photo}
-                    alt={speaker.name}
-                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                  />
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium flex items-center gap-1">
-                      {speaker.name}
-                      {speaker.isModerator && (
-                        <Mic2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      )}
-                    </span>
-                    {(speaker.title || speaker.company) && (
-                      <span className="text-xs text-muted-foreground">
-                        {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
-                      </span>
-                    )}
-                  </div>
+        <div className="mt-4">
+          <AnimatePresence mode="wait">
+            {!isExpanded ? (
+              <motion.div
+                key="collapsed"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="flex flex-wrap items-center gap-3"
+              >
+                <div className="flex items-center">
+                  {sortedSpeakers.map((speaker, index) => (
+                    <motion.img
+                      key={speaker.id}
+                      layoutId={`speaker-avatar-${presentation.id}-${speaker.id}`}
+                      src={speaker.photo}
+                      alt={speaker.name}
+                      className="w-7 h-7 rounded-full object-cover border-2 border-background"
+                      style={{ marginLeft: index > 0 ? "-8px" : "0", zIndex: sortedSpeakers.length - index }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSpeakerIndex(index);
+                      }}
+                      data-testid={`speaker-avatar-collapsed-${speaker.id}`}
+                    />
+                  ))}
                 </div>
-                {speaker.bio && (
-                  <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                    {speaker.bio}
-                  </p>
-                )}
-                <div className="flex items-center mt-4 -mx-4 -mb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-6 text-xs flex-1 rounded-none rounded-bl-lg"
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  {sortedSpeakers.map((speaker, index) => (
+                    <motion.div 
+                      key={speaker.id}
+                      layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
+                      className="flex items-center gap-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSpeakerIndex(index);
+                      }}
+                    >
+                      <span className="text-xs font-medium cursor-pointer hover:underline">
+                        {speaker.name}
+                      </span>
+                      {speaker.isModerator && (
+                        <Mic2 className="h-3 w-3 text-primary" />
+                      )}
+                      {index < sortedSpeakers.length - 1 && (
+                        <span className="text-xs text-muted-foreground">,</span>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="expanded"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className={`grid gap-4 ${isFullWidth ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'}`}
+              >
+                {sortedSpeakers.map((speaker, index) => (
+                  <motion.div 
+                    key={speaker.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="group/speaker relative flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSpeakerIndex(index);
                     }}
-                    data-testid={`button-view-more-${speaker.id}`}
-                  >Full Bio</Button>
-                  {speaker.bioUrl && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-xs flex-1 rounded-none rounded-br-lg"
-                      asChild
-                    >
-                      <a
-                        href={speaker.bioUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        data-testid={`link-speaker-url-${speaker.id}`}
-                      >
-                        {speaker.urlText || "Website"}
-                        <ExternalLink className="!h-3 !w-3 ml-1" />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                    data-testid={`speaker-card-${speaker.id}`}
+                  >
+                    {isAdmin && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute top-2 right-2 h-5 w-5 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`button-speaker-menu-${speaker.id}`}
+                          >
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingSpeaker(speaker);
+                            }}
+                            data-testid={`button-edit-speaker-${speaker.id}`}
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeSpeakerMutation.mutate(speaker.id);
+                            }}
+                            disabled={removeSpeakerMutation.isPending}
+                            className="text-destructive"
+                            data-testid={`button-remove-speaker-${speaker.id}`}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <motion.img
+                        layoutId={`speaker-avatar-${presentation.id}-${speaker.id}`}
+                        src={speaker.photo}
+                        alt={speaker.name}
+                        className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                      />
+                      <div className="flex flex-col min-w-0">
+                        <motion.span 
+                          layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
+                          className="text-sm font-medium flex items-center gap-1"
+                        >
+                          {speaker.name}
+                          {speaker.isModerator && (
+                            <Mic2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          )}
+                        </motion.span>
+                        {(speaker.title || speaker.company) && (
+                          <span className="text-xs text-muted-foreground">
+                            {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {speaker.bio && (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                        {speaker.bio}
+                      </p>
+                    )}
+                    <div className="flex items-center mt-4 -mx-4 -mb-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs flex-1 rounded-none rounded-bl-lg"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSpeakerIndex(index);
+                        }}
+                        data-testid={`button-view-more-${speaker.id}`}
+                      >Full Bio</Button>
+                      {speaker.bioUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-6 text-xs flex-1 rounded-none rounded-br-lg"
+                          asChild
+                        >
+                          <a
+                            href={speaker.bioUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`link-speaker-url-${speaker.id}`}
+                          >
+                            {speaker.urlText || "Website"}
+                            <ExternalLink className="!h-3 !w-3 ml-1" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
       <SpeakerModal
         speaker={null}
         isOpen={speakerModalOpen}
