@@ -33,6 +33,7 @@ export function PresentationCard({
   const { toast } = useToast();
   const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
   const [selectedSpeakerIndex, setSelectedSpeakerIndex] = useState<number | null>(null);
+  const [editingSpeaker, setEditingSpeaker] = useState<(Speaker & { isModerator: boolean; displayOrder: number }) | null>(null);
 
   const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
@@ -139,13 +140,27 @@ export function PresentationCard({
             {sortedSpeakers.map((speaker, index) => (
               <div 
                 key={speaker.id} 
-                className="flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors min-w-[200px] max-w-[250px]"
+                className="group/speaker relative flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors min-w-[200px] max-w-[250px]"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedSpeakerIndex(index);
                 }}
                 data-testid={`speaker-card-${speaker.id}`}
               >
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-7 w-7 p-0 opacity-0 group-hover/speaker:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingSpeaker(speaker);
+                    }}
+                    data-testid={`button-edit-speaker-${speaker.id}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <img
                   src={speaker.photo}
                   alt={speaker.name}
@@ -287,6 +302,12 @@ export function PresentationCard({
         isOpen={speakerModalOpen}
         onClose={() => setSpeakerModalOpen(false)}
         onCreated={(speakerId) => addSpeakerMutation.mutate(speakerId)}
+      />
+
+      <SpeakerModal
+        speaker={editingSpeaker}
+        isOpen={!!editingSpeaker}
+        onClose={() => setEditingSpeaker(null)}
       />
 
       <Dialog 
