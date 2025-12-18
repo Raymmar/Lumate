@@ -30,11 +30,11 @@ export function SponsorCard({
       data-testid={`sponsor-card-${sponsor.id}`}
     >
       <div className="flex flex-col h-full w-full max-w-full border border-border rounded-lg p-3">
-        <div className="mb-3 bg-white dark:bg-white p-4 rounded-lg">
+        <div className="mb-3 bg-white dark:bg-white p-4 rounded-lg aspect-square flex items-center justify-center">
           <img
             src={sponsor.logo}
             alt={sponsor.name}
-            className="w-full h-auto object-contain rounded-lg"
+            className="max-w-full max-h-full object-contain rounded-lg"
           />
         </div>
         <div className="text-center">
