@@ -1,12 +1,14 @@
-import { PresentationWithSpeakers } from "@shared/schema";
+import { PresentationWithSpeakers, Speaker } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
 
 interface PresentationCardProps {
   presentation: PresentationWithSpeakers;
@@ -37,6 +39,34 @@ export function PresentationCard({
   isFullWidth = false,
 }: PresentationCardProps) {
   const { toast } = useToast();
+  const [addSpeakerOpen, setAddSpeakerOpen] = useState(false);
+
+  const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
+    queryKey: ["/api/speakers"],
+    enabled: isAdmin,
+  });
+
+  const allSpeakers = speakersData?.speakers || [];
+  const assignedSpeakerIds = new Set(presentation.speakers.map(s => s.id));
+  const availableSpeakers = allSpeakers.filter(s => !assignedSpeakerIds.has(s.id));
+
+  const addSpeakerMutation = useMutation({
+    mutationFn: async (speakerId: number) => {
+      return apiRequest(`/api/presentations/${presentation.id}/speakers`, "POST", {
+        speakerId,
+        isModerator: false,
+        displayOrder: presentation.speakers.length,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      setAddSpeakerOpen(false);
+      toast({ title: "Speaker added" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to add speaker", variant: "destructive" });
+    },
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
@@ -106,31 +136,70 @@ export function PresentationCard({
             </p>
           )}
 
-          {sortedSpeakers.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap">
-              {sortedSpeakers.map((speaker) => (
-                <div 
-                  key={speaker.id} 
-                  className="flex items-center gap-1.5 bg-background border rounded-full px-2 py-1"
-                >
-                  <img
-                    src={speaker.photo}
-                    alt={speaker.name}
-                    className="w-5 h-5 rounded-full object-cover"
-                  />
-                  <span className="text-xs font-medium">
-                    {speaker.name}
-                  </span>
-                  {speaker.isModerator && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                      <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                      Mod
-                    </Badge>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {sortedSpeakers.map((speaker) => (
+              <div 
+                key={speaker.id} 
+                className="flex items-center gap-1.5 bg-background border rounded-full px-2 py-1"
+              >
+                <img
+                  src={speaker.photo}
+                  alt={speaker.name}
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+                <span className="text-xs font-medium">
+                  {speaker.name}
+                </span>
+                {speaker.isModerator && (
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                    <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                    Mod
+                  </Badge>
+                )}
+              </div>
+            ))}
+            {isAdmin && availableSpeakers.length > 0 && (
+              <Popover open={addSpeakerOpen} onOpenChange={setAddSpeakerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 w-7 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`button-add-speaker-quick-${presentation.id}`}
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="start" onClick={(e) => e.stopPropagation()}>
+                  <div className="text-xs font-medium text-muted-foreground mb-2">Add Speaker</div>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {availableSpeakers.map((speaker) => (
+                      <button
+                        key={speaker.id}
+                        className="w-full flex items-center gap-2 p-1.5 rounded hover:bg-muted text-left"
+                        onClick={() => addSpeakerMutation.mutate(speaker.id)}
+                        disabled={addSpeakerMutation.isPending}
+                        data-testid={`button-add-speaker-${speaker.id}`}
+                      >
+                        <img
+                          src={speaker.photo}
+                          alt={speaker.name}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium truncate">{speaker.name}</p>
+                          {speaker.title && (
+                            <p className="text-[10px] text-muted-foreground truncate">{speaker.title}</p>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
         </div>
 
         {isAdmin && (
