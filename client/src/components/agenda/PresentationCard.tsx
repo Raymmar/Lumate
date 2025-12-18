@@ -246,7 +246,7 @@ export function PresentationCard({
                         data-testid={`link-speaker-url-${speaker.id}`}
                       >
                         {speaker.urlText || "Website"}
-                        <ExternalLink className="h-2.5 w-2.5 ml-1" />
+                        <ExternalLink className="h-2 w-2 ml-1" />
                       </a>
                     </Button>
                   )}
