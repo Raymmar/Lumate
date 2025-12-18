@@ -198,9 +198,7 @@ export function PresentationCard({
                         setSelectedSpeakerIndex(index);
                       }}
                       data-testid={`button-view-more-${speaker.id}`}
-                    >
-                      Details
-                    </Button>
+                    >Full Bio</Button>
                     {speaker.bioUrl && (
                       <Button
                         variant="outline"
@@ -315,20 +313,17 @@ export function PresentationCard({
           </DropdownMenu>
         )}
       </div>
-
       <SpeakerModal
         speaker={null}
         isOpen={speakerModalOpen}
         onClose={() => setSpeakerModalOpen(false)}
         onCreated={(speakerId) => addSpeakerMutation.mutate(speakerId)}
       />
-
       <SpeakerModal
         speaker={editingSpeaker}
         isOpen={!!editingSpeaker}
         onClose={() => setEditingSpeaker(null)}
       />
-
       <Dialog 
         open={selectedSpeakerIndex !== null} 
         onOpenChange={(open) => !open && setSelectedSpeakerIndex(null)}
