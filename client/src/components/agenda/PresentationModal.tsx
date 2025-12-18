@@ -759,7 +759,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                             data-testid={`button-toggle-moderator-${speaker.id}`}
                           >
                             <Mic2 className="h-3 w-3 mr-1" />
-                            Mod
+                            Moderator
                           </Button>
                           <Button
                             type="button"

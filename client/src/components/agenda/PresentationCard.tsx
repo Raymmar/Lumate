@@ -161,8 +161,14 @@ export function PresentationCard({
                 }}
                 data-testid={`speaker-card-${speaker.id}`}
               >
+                {speaker.isModerator && (
+                  <Badge variant="secondary" className="absolute top-2 right-2 text-[10px] h-5 px-1.5">
+                    <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                    Moderator
+                  </Badge>
+                )}
                 {isAdmin && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/speaker:opacity-100 transition-opacity">
+                  <div className={`absolute ${speaker.isModerator ? 'top-9' : 'top-2'} right-2 flex items-center gap-1 opacity-0 group-hover/speaker:opacity-100 transition-opacity`}>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -196,17 +202,9 @@ export function PresentationCard({
                   className="w-16 h-16 rounded-full object-cover mb-3"
                 />
                 <div className="flex flex-col">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">
-                      {speaker.name}
-                    </span>
-                    {speaker.isModerator && (
-                      <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                        <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                        Mod
-                      </Badge>
-                    )}
-                  </div>
+                  <span className="text-sm font-medium">
+                    {speaker.name}
+                  </span>
                   {(speaker.title || speaker.company) && (
                     <span className="text-xs text-muted-foreground">
                       {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
@@ -372,7 +370,7 @@ export function PresentationCard({
                       {sortedSpeakers[selectedSpeakerIndex].isModerator && (
                         <Badge variant="secondary" className="text-[10px] h-4 px-1">
                           <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                          Mod
+                          Moderator
                         </Badge>
                       )}
                     </div>
