@@ -152,11 +152,11 @@ export function PresentationCard({
             </p>
           )}
 
-          <div className="flex items-start gap-4 flex-wrap mt-4">
+          <div className={`grid gap-4 mt-4 ${isFullWidth ? 'grid-cols-4' : 'grid-cols-2'}`}>
             {sortedSpeakers.map((speaker, index) => (
               <div 
                 key={speaker.id} 
-                className="group/speaker relative flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors min-w-[200px] max-w-[250px]"
+                className="group/speaker relative flex flex-col bg-background border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedSpeakerIndex(index);
