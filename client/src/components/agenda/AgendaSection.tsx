@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Calendar, List, Clock, Users, Mic2 } from "lucide-react";
-import { PresentationWithSpeakers } from "@shared/schema";
+import { PresentationWithSpeakers, AgendaSessionType, Speaker } from "@shared/schema";
 import { PresentationCard } from "./PresentationCard";
 import { PresentationModal } from "./PresentationModal";
 import { format, parseISO } from "date-fns";
@@ -26,7 +26,20 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     refetchOnWindowFocus: false,
   });
 
+  const { data: sessionTypesData } = useQuery<{ sessionTypes: AgendaSessionType[] }>({
+    queryKey: ["/api/agenda-session-types"],
+    staleTime: 60000,
+  });
+
+  const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
+    queryKey: ["/api/speakers"],
+    staleTime: 60000,
+    enabled: isAdmin,
+  });
+
   const presentations = data?.presentations || [];
+  const sessionTypes = sessionTypesData?.sessionTypes || [];
+  const allSpeakers = speakersData?.speakers || [];
 
   const { groupedByTime, sortedTimeSlots } = useMemo(() => {
     const grouped = presentations.reduce((acc, presentation) => {
@@ -153,6 +166,8 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               onEdit={handleEdit}
               onDuplicate={handleDuplicate}
               onAddAtTime={handleAddAtTime}
+              sessionTypes={sessionTypes}
+              allSpeakers={allSpeakers}
             />
           ) : (
             <TableView
@@ -160,6 +175,8 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               isAdmin={isAdmin}
               onEdit={handleEdit}
               onDuplicate={handleDuplicate}
+              sessionTypes={sessionTypes}
+              allSpeakers={allSpeakers}
             />
           )}
 
@@ -195,9 +212,11 @@ interface CalendarViewProps {
   onEdit: (presentation: PresentationWithSpeakers) => void;
   onDuplicate: (presentation: PresentationWithSpeakers) => void;
   onAddAtTime: (timeSlot: string) => void;
+  sessionTypes: AgendaSessionType[];
+  allSpeakers: Speaker[];
 }
 
-function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate, onAddAtTime }: CalendarViewProps) {
+function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate, onAddAtTime, sessionTypes, allSpeakers }: CalendarViewProps) {
   return (
     <div className="space-y-4">
       {sortedTimeSlots.map((timeSlot) => {
@@ -236,6 +255,8 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
                 onEdit={onEdit}
                 onDuplicate={onDuplicate}
                 isFullWidth
+                sessionTypes={sessionTypes}
+                allSpeakers={allSpeakers}
               />
             ))}
 
@@ -250,6 +271,8 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
                         isAdmin={isAdmin}
                         onEdit={onEdit}
                         onDuplicate={onDuplicate}
+                        sessionTypes={sessionTypes}
+                        allSpeakers={allSpeakers}
                       />
                     ))
                   ) : (
@@ -267,6 +290,8 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
                         isAdmin={isAdmin}
                         onEdit={onEdit}
                         onDuplicate={onDuplicate}
+                        sessionTypes={sessionTypes}
+                        allSpeakers={allSpeakers}
                       />
                     ))
                   ) : (
@@ -289,9 +314,11 @@ interface TableViewProps {
   isAdmin: boolean;
   onEdit: (presentation: PresentationWithSpeakers) => void;
   onDuplicate: (presentation: PresentationWithSpeakers) => void;
+  sessionTypes: AgendaSessionType[];
+  allSpeakers: Speaker[];
 }
 
-function TableView({ presentations, isAdmin, onEdit, onDuplicate }: TableViewProps) {
+function TableView({ presentations, isAdmin, onEdit, onDuplicate, sessionTypes, allSpeakers }: TableViewProps) {
   const sortedPresentations = [...presentations].sort((a, b) => 
     new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
   );

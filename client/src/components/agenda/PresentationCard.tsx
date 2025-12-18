@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,8 @@ interface PresentationCardProps {
   onEdit?: (presentation: PresentationWithSpeakers) => void;
   onDuplicate?: (presentation: PresentationWithSpeakers) => void;
   isFullWidth?: boolean;
+  sessionTypes?: AgendaSessionType[];
+  allSpeakers?: Speaker[];
 }
 
 const TRACK_ICONS: Record<string, JSX.Element> = {
@@ -31,22 +33,14 @@ export function PresentationCard({
   onEdit,
   onDuplicate,
   isFullWidth = false,
+  sessionTypes = [],
+  allSpeakers = [],
 }: PresentationCardProps) {
   const { toast } = useToast();
   const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
   const [selectedSpeakerIndex, setSelectedSpeakerIndex] = useState<number | null>(null);
   const [editingSpeaker, setEditingSpeaker] = useState<(Speaker & { isModerator: boolean; displayOrder: number }) | null>(null);
 
-  const { data: speakersData } = useQuery<{ speakers: Speaker[] }>({
-    queryKey: ["/api/speakers"],
-    enabled: isAdmin,
-  });
-
-  const { data: sessionTypesData } = useQuery<{ sessionTypes: AgendaSessionType[] }>({
-    queryKey: ["/api/agenda-session-types"],
-  });
-
-  const allSpeakers = speakersData?.speakers || [];
   const assignedSpeakerIds = new Set(presentation.speakers.map(s => s.id));
   const availableSpeakers = allSpeakers.filter(s => !assignedSpeakerIds.has(s.id));
 
@@ -107,7 +101,6 @@ export function PresentationCard({
     }
   };
 
-  const sessionTypes = sessionTypesData?.sessionTypes || [];
   const sessionTypeConfig = sessionTypes.find(st => st.slug === presentation.sessionType);
   const sessionTypeColor = sessionTypeConfig?.color || "gray";
   const sessionTypeLabel = sessionTypeConfig?.label || presentation.sessionType;
