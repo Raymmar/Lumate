@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -22,22 +22,28 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
 
   const { data, isLoading } = useQuery<{ presentations: PresentationWithSpeakers[] }>({
     queryKey: ["/api/presentations"],
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const presentations = data?.presentations || [];
 
-  const groupedByTime = presentations.reduce((acc, presentation) => {
-    const startTime = presentation.startTime;
-    if (!acc[startTime]) {
-      acc[startTime] = [];
-    }
-    acc[startTime].push(presentation);
-    return acc;
-  }, {} as Record<string, PresentationWithSpeakers[]>);
+  const { groupedByTime, sortedTimeSlots } = useMemo(() => {
+    const grouped = presentations.reduce((acc, presentation) => {
+      const startTime = presentation.startTime;
+      if (!acc[startTime]) {
+        acc[startTime] = [];
+      }
+      acc[startTime].push(presentation);
+      return acc;
+    }, {} as Record<string, PresentationWithSpeakers[]>);
 
-  const sortedTimeSlots = Object.keys(groupedByTime).sort((a, b) => 
-    new Date(a).getTime() - new Date(b).getTime()
-  );
+    const sorted = Object.keys(grouped).sort((a, b) => 
+      new Date(a).getTime() - new Date(b).getTime()
+    );
+
+    return { groupedByTime: grouped, sortedTimeSlots: sorted };
+  }, [presentations]);
 
   const handleEdit = (presentation: PresentationWithSpeakers) => {
     setEditingPresentation(presentation);
