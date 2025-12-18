@@ -391,7 +391,16 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                   id="startTime"
                   type="datetime-local"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(e) => {
+                    const newStart = e.target.value;
+                    setStartTime(newStart);
+                    if (newStart && !endTime) {
+                      const startDate = new Date(newStart);
+                      startDate.setHours(startDate.getHours() + 1);
+                      setEndTime(formatDateTimeForInput(startDate.toISOString()));
+                    }
+                  }}
+                  step="900"
                   required
                   data-testid="input-presentation-start-time"
                 />
@@ -403,6 +412,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  step="900"
                   required
                   data-testid="input-presentation-end-time"
                 />
