@@ -188,7 +188,7 @@ export function PresentationCard({
                   Speaker
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -238,7 +238,7 @@ export function PresentationCard({
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -358,7 +358,7 @@ export function PresentationCard({
                             <MoreVertical className="h-3.5 w-3.5" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
@@ -468,7 +468,7 @@ export function PresentationCard({
         open={selectedSpeakerIndex !== null} 
         onOpenChange={(open) => !open && setSelectedSpeakerIndex(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg" onClick={(e) => e.stopPropagation()}>
           {selectedSpeakerIndex !== null && sortedSpeakers[selectedSpeakerIndex] && (
             <>
               <DialogHeader>

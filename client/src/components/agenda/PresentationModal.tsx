@@ -353,7 +353,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
           <DialogHeader>
             <DialogTitle>{isEditing ? "Edit Presentation" : "Add Presentation"}</DialogTitle>
             <DialogDescription>

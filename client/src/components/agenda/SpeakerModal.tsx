@@ -145,7 +145,7 @@ export function SpeakerModal({ speaker, isOpen, onClose, onCreated }: SpeakerMod
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Speaker" : "Add Speaker"}</DialogTitle>
           <DialogDescription>
