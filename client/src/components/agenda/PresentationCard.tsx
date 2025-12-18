@@ -135,21 +135,25 @@ export function PresentationCard({
             </p>
           )}
 
-          <div className="flex flex-col gap-3">
+          <div className="flex items-start gap-3 flex-wrap">
             {sortedSpeakers.map((speaker, index) => (
               <div 
                 key={speaker.id} 
-                className="flex gap-4 bg-background border rounded-lg p-4"
+                className="flex gap-3 bg-background border rounded-lg p-3 cursor-pointer hover:bg-muted/50 transition-colors max-w-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedSpeakerIndex(index);
+                }}
                 data-testid={`speaker-card-${speaker.id}`}
               >
                 <img
                   src={speaker.photo}
                   alt={speaker.name}
-                  className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                 />
-                <div className="flex flex-col flex-1 min-w-0">
+                <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium">
+                    <span className="text-sm font-medium">
                       {speaker.name}
                     </span>
                     {speaker.isModerator && (
@@ -160,44 +164,28 @@ export function PresentationCard({
                     )}
                   </div>
                   {(speaker.title || speaker.company) && (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
                     </span>
                   )}
                   {speaker.bio && (
-                    <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                       {speaker.bio}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 mt-2">
-                    {speaker.bio && (
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0 text-xs"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSpeakerIndex(index);
-                        }}
-                        data-testid={`button-view-bio-${speaker.id}`}
-                      >
-                        View full bio
-                      </Button>
-                    )}
-                    {speaker.bioUrl && (
-                      <a
-                        href={speaker.bioUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
-                        onClick={(e) => e.stopPropagation()}
-                        data-testid={`link-speaker-url-${speaker.id}`}
-                      >
-                        {speaker.urlText || "Learn more"}
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
+                  {speaker.bioUrl && (
+                    <a
+                      href={speaker.bioUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary hover:underline flex items-center gap-1 mt-1"
+                      onClick={(e) => e.stopPropagation()}
+                      data-testid={`link-speaker-url-${speaker.id}`}
+                    >
+                      {speaker.urlText || "Learn more"}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
                 </div>
               </div>
             ))}
