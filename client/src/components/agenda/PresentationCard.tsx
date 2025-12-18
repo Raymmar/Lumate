@@ -206,7 +206,7 @@ export function PresentationCard({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2 text-xs"
+                        className="h-7 px-2 text-xs pt-[4px] pb-[4px] pl-[12px] pr-[12px]"
                         asChild
                       >
                         <a
