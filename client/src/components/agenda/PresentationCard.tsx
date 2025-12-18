@@ -202,19 +202,19 @@ export function PresentationCard({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
-                {speaker.isModerator && (
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 w-fit mb-2">
-                    <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                    Moderator
-                  </Badge>
-                )}
-                <div className="flex items-end gap-3">
+                <div className="flex items-start gap-3">
                   <img
                     src={speaker.photo}
                     alt={speaker.name}
                     className="w-12 h-12 rounded-full object-cover flex-shrink-0"
                   />
                   <div className="flex flex-col min-w-0">
+                    {speaker.isModerator && (
+                      <Badge variant="secondary" className="text-[10px] h-5 px-1.5 w-fit mb-1">
+                        <Mic2 className="h-2.5 w-2.5 mr-0.5" />
+                        Moderator
+                      </Badge>
+                    )}
                     <span className="text-sm font-medium">
                       {speaker.name}
                     </span>
