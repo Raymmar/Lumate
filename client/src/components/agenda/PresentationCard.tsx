@@ -198,7 +198,7 @@ export function PresentationCard({
                     </Button>
                   </div>
                 )}
-                <div className="flex items-center gap-3">
+                <div className="flex items-end gap-3">
                   <img
                     src={speaker.photo}
                     alt={speaker.name}
@@ -220,10 +220,11 @@ export function PresentationCard({
                     {speaker.bio}
                   </p>
                 )}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t">
+                <div className="flex items-center gap-2 mt-3">
                   <Button
                     variant="outline"
                     size="sm"
+                    className="h-6 px-2 text-xs"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSpeakerIndex(index);
@@ -234,6 +235,7 @@ export function PresentationCard({
                     <Button
                       variant="outline"
                       size="sm"
+                      className="h-6 px-2 text-xs"
                       asChild
                     >
                       <a
@@ -244,7 +246,7 @@ export function PresentationCard({
                         data-testid={`link-speaker-url-${speaker.id}`}
                       >
                         {speaker.urlText || "Website"}
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3 w-3" />
                       </a>
                     </Button>
                   )}
