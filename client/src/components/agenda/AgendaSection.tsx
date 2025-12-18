@@ -66,6 +66,25 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     setIsModalOpen(true);
   };
 
+  const handleAddAtTime = (timeSlot: string) => {
+    const date = new Date(timeSlot);
+    const endDate = new Date(date.getTime() + 60 * 60 * 1000);
+    const prefilled = {
+      id: 0,
+      title: "",
+      description: null,
+      startTime: date.toISOString(),
+      endTime: endDate.toISOString(),
+      track: "main_stage",
+      sessionType: "talk",
+      isFullWidth: false,
+      displayOrder: 0,
+      speakers: [],
+    } as PresentationWithSpeakers;
+    setEditingPresentation(prefilled);
+    setIsModalOpen(true);
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingPresentation(null);
@@ -133,6 +152,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               isAdmin={isAdmin}
               onEdit={handleEdit}
               onDuplicate={handleDuplicate}
+              onAddAtTime={handleAddAtTime}
             />
           ) : (
             <TableView
@@ -174,9 +194,10 @@ interface CalendarViewProps {
   isAdmin: boolean;
   onEdit: (presentation: PresentationWithSpeakers) => void;
   onDuplicate: (presentation: PresentationWithSpeakers) => void;
+  onAddAtTime: (timeSlot: string) => void;
 }
 
-function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate }: CalendarViewProps) {
+function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate, onAddAtTime }: CalendarViewProps) {
   return (
     <div className="space-y-4">
       {sortedTimeSlots.map((timeSlot) => {
@@ -189,9 +210,22 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
 
         return (
           <div key={timeSlot} className="border rounded-lg overflow-hidden">
-            <div className="bg-muted/50 px-4 py-2 flex items-center gap-2 text-sm font-medium border-b">
-              <Clock className="h-4 w-4" />
-              {format(parseISO(timeSlot), "h:mm a")}
+            <div className="group bg-muted/50 px-4 py-2 flex items-center justify-between text-sm font-medium border-b">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                {format(parseISO(timeSlot), "h:mm a")}
+              </div>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => onAddAtTime(timeSlot)}
+                  data-testid={`button-add-at-time-${timeSlot}`}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {fullWidthPresentations.map((presentation) => (
