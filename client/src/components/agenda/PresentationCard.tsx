@@ -220,11 +220,11 @@ export function PresentationCard({
                     {speaker.bio}
                   </p>
                 )}
-                <div className="flex items-center gap-2 mt-3">
+                <div className="flex items-center gap-2 mt-3 -mx-4 -mb-4">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-6 px-2 text-xs"
+                    className="h-6 text-xs flex-1 rounded-none rounded-bl-lg"
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedSpeakerIndex(index);
@@ -235,7 +235,7 @@ export function PresentationCard({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-6 px-2 text-xs"
+                      className="h-6 text-xs flex-1 rounded-none rounded-br-lg"
                       asChild
                     >
                       <a
