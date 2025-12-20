@@ -372,6 +372,7 @@ function CalendarView({
                   {format(parseISO(timeBlock.startTime), "h:mm a")}
                 </span>
                 {(() => {
+                  if (!timeBlock.title) return null;
                   const autoTitle = `${format(parseISO(timeBlock.startTime), "h:mm a")} – ${format(parseISO(timeBlock.endTime), "h:mm a")}`;
                   const isCustomTitle = timeBlock.title !== autoTitle && 
                     !timeBlock.title.match(/^\d{1,2}:\d{2}\s*(AM|PM)\s*[–-]\s*\d{1,2}:\d{2}\s*(AM|PM)$/i);

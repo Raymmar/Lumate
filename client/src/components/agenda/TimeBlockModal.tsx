@@ -61,7 +61,7 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
   useEffect(() => {
     if (timeBlock) {
-      setTitle(timeBlock.title);
+      setTitle(timeBlock.title || "");
       setDescription(timeBlock.description || "");
       setDate(extractDatePart(timeBlock.startTime));
       setStartTimeValue(extractTimePart(timeBlock.startTime));
@@ -136,16 +136,8 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim()) {
-      toast({
-        title: "Title is required",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const data = {
-      title: title.trim(),
+      title: title.trim() || null,
       description: description.trim() || null,
       startTime: new Date(`${date}T${startTimeValue}`).toISOString(),
       endTime: new Date(`${date}T${endTimeValue}`).toISOString(),
@@ -176,7 +168,7 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">Title (optional)</Label>
               <Input
                 id="title"
                 value={title}

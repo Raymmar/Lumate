@@ -776,7 +776,7 @@ export type InsertAgendaSessionType = z.infer<typeof insertAgendaSessionTypeSche
 // Time Blocks for organizing agenda (contains multiple presentations)
 export const timeBlocks = pgTable("time_blocks", {
   id: serial("id").primaryKey(),
-  title: varchar("title", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }),
   description: text("description"),
   startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
   endTime: timestamp("end_time", { mode: 'string', withTimezone: true }).notNull(),
