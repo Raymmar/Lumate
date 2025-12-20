@@ -436,7 +436,7 @@ function CalendarView({
 
                 {trackPresentations.length > 0 && (
                   <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
-                    <div className="min-h-[80px]">
+                    <div className="min-h-[80px] divide-y">
                       {startupSchool.length > 0 ? (
                         startupSchool.map((presentation) => (
                           <PresentationCard
@@ -457,7 +457,7 @@ function CalendarView({
                         </div>
                       )}
                     </div>
-                    <div className="min-h-[80px]">
+                    <div className="min-h-[80px] divide-y">
                       {mainStage.length > 0 ? (
                         mainStage.map((presentation) => (
                           <PresentationCard
