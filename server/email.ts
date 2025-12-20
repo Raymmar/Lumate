@@ -5,12 +5,13 @@ const mailService = new MailService();
 
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 
-// Always use production domain for email links so users can click them from anywhere
-const PRODUCTION_APP_URL = process.env.APP_URL || 'https://sarasotatech.com';
-
+// Get the base URL for email links - must be set via APP_URL environment variable
 function getEmailBaseUrl(): string {
-  // Always use production URL for emails - users click these from their email clients
-  return PRODUCTION_APP_URL.replace(/\/$/, '');
+  const appUrl = process.env.APP_URL;
+  if (!appUrl) {
+    throw new Error('APP_URL environment variable must be set for email links');
+  }
+  return appUrl.replace(/\/$/, '');
 }
 
 if (process.env.SENDGRID_API_KEY) {
