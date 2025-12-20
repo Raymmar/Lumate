@@ -281,7 +281,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
           )}
 
           {isAdmin && hasContent && (
-            <div className="mt-6 pt-4 border-t flex justify-center gap-2">
+            <div className="mt-4 flex justify-center gap-2">
               <Button 
                 variant="outline" 
                 onClick={handleAddTimeBlock}
