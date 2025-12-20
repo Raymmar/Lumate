@@ -126,7 +126,7 @@ export function PresentationCard({
 
   return (
     <div 
-      className={`group relative p-4 ${isFullWidth ? "bg-muted/30" : ""} hover:bg-muted/50 transition-colors cursor-pointer`}
+      className={`group relative p-4 ${isFullWidth ? "bg-muted/30 border-b" : ""} hover:bg-muted/50 transition-colors cursor-pointer`}
       data-testid={`presentation-card-${presentation.id}`}
       onClick={handleCardClick}
     >
