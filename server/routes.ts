@@ -853,7 +853,50 @@ export async function registerRoutes(app: Express) {
           details: result.error.format() 
         });
       }
-      const presentation = await storage.createPresentation(result.data);
+      
+      let presentationData = result.data;
+      
+      // Auto-create or find time block if not provided
+      if (!presentationData.timeBlockId) {
+        const timeBlocks = await storage.getTimeBlocks();
+        const presStartTime = new Date(presentationData.startTime);
+        const presEndTime = new Date(presentationData.endTime);
+        const presDate = presStartTime.toISOString().split('T')[0];
+        
+        // Find existing time block that covers this presentation's time
+        const matchingBlock = timeBlocks.find(block => {
+          const blockDate = new Date(block.startTime).toISOString().split('T')[0];
+          const blockStart = new Date(block.startTime);
+          const blockEnd = new Date(block.endTime);
+          return blockDate === presDate && 
+                 blockStart <= presStartTime && 
+                 blockEnd >= presEndTime;
+        });
+        
+        if (matchingBlock) {
+          presentationData = { ...presentationData, timeBlockId: matchingBlock.id };
+        } else {
+          // Create a new time block with auto-generated title
+          const formatTime = (date: Date) => {
+            const h = date.getHours();
+            const m = date.getMinutes();
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const h12 = h % 12 || 12;
+            return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+          };
+          
+          const newBlock = await storage.createTimeBlock({
+            title: `${formatTime(presStartTime)} – ${formatTime(presEndTime)}`,
+            description: null,
+            startTime: presentationData.startTime,
+            endTime: presentationData.endTime,
+            displayOrder: 0,
+          });
+          presentationData = { ...presentationData, timeBlockId: newBlock.id };
+        }
+      }
+      
+      const presentation = await storage.createPresentation(presentationData);
       res.json(presentation);
     } catch (error) {
       console.error("Failed to create presentation:", error);
