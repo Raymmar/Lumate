@@ -782,7 +782,18 @@ export async function registerRoutes(app: Express) {
           details: result.error.format() 
         });
       }
-      const timeBlock = await storage.createTimeBlock(result.data);
+      
+      // Auto-compute displayOrder as max + 1
+      const existingBlocks = await storage.getTimeBlocks();
+      const maxDisplayOrder = existingBlocks.reduce((max, block) => 
+        Math.max(max, block.displayOrder || 0), 0);
+      
+      const dataWithOrder = {
+        ...result.data,
+        displayOrder: result.data.displayOrder ?? maxDisplayOrder + 1,
+      };
+      
+      const timeBlock = await storage.createTimeBlock(dataWithOrder);
       res.json(timeBlock);
     } catch (error) {
       console.error("Failed to create time block:", error);
@@ -816,6 +827,93 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to delete time block:", error);
       res.status(500).json({ error: "Failed to delete time block" });
+    }
+  });
+
+  // Backfill time blocks for existing presentations without them
+  app.post("/api/admin/backfill-time-blocks", requireAdmin, async (req, res) => {
+    try {
+      const presentations = await storage.getPresentations();
+      let existingBlocks = await storage.getTimeBlocks();
+      
+      let createdBlocks = 0;
+      let assignedPresentations = 0;
+      let skippedPresentations = 0;
+      
+      // Find presentations without time blocks
+      const unassignedPresentations = presentations.filter(p => !p.timeBlockId);
+      
+      for (const pres of unassignedPresentations) {
+        // Validate that presentation has valid start and end times
+        if (!pres.startTime || !pres.endTime) {
+          console.log(`Skipping presentation ${pres.id} - missing startTime or endTime`);
+          skippedPresentations++;
+          continue;
+        }
+        
+        const presStartTime = new Date(pres.startTime);
+        const presEndTime = new Date(pres.endTime);
+        
+        // Validate the dates are valid
+        if (isNaN(presStartTime.getTime()) || isNaN(presEndTime.getTime())) {
+          console.log(`Skipping presentation ${pres.id} - invalid date format`);
+          skippedPresentations++;
+          continue;
+        }
+        
+        // Check if any existing time block covers this presentation's time range
+        let matchingBlock = existingBlocks.find(block => {
+          const blockStart = new Date(block.startTime);
+          const blockEnd = new Date(block.endTime);
+          return presStartTime >= blockStart && presEndTime <= blockEnd;
+        });
+        
+        if (!matchingBlock) {
+          // Create a new time block for this presentation
+          const formatTime = (date: Date) => {
+            const hours = date.getUTCHours();
+            const minutes = date.getUTCMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            return `${displayHour}:${String(minutes).padStart(2, '0')} ${ampm}`;
+          };
+          
+          const autoTitle = `${formatTime(presStartTime)} – ${formatTime(presEndTime)}`;
+          
+          // Re-fetch blocks to get current max displayOrder (handles concurrent updates)
+          existingBlocks = await storage.getTimeBlocks();
+          const maxDisplayOrder = existingBlocks.reduce((max, block) => 
+            Math.max(max, block.displayOrder || 0), 0);
+          
+          const newBlock = await storage.createTimeBlock({
+            title: autoTitle,
+            description: null,
+            startTime: pres.startTime,
+            endTime: pres.endTime,
+            displayOrder: maxDisplayOrder + 1,
+          });
+          
+          // Refresh the blocks list to include the new block
+          existingBlocks = await storage.getTimeBlocks();
+          createdBlocks++;
+          matchingBlock = newBlock;
+        }
+        
+        // Assign presentation to the block
+        await storage.updatePresentation(pres.id, { timeBlockId: matchingBlock.id });
+        assignedPresentations++;
+      }
+      
+      res.json({ 
+        success: true, 
+        createdBlocks, 
+        assignedPresentations,
+        skippedPresentations,
+        message: `Created ${createdBlocks} time blocks and assigned ${assignedPresentations} presentations${skippedPresentations > 0 ? ` (${skippedPresentations} skipped due to missing times)` : ''}` 
+      });
+    } catch (error) {
+      console.error("Failed to backfill time blocks:", error);
+      res.status(500).json({ error: "Failed to backfill time blocks" });
     }
   });
 

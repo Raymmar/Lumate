@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, List, Clock, Users, Mic2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { Plus, Calendar, List, Clock, Users, Mic2, ChevronDown, ChevronUp, Pencil, RefreshCw, Loader2 } from "lucide-react";
 import { PresentationWithSpeakers, AgendaSessionType, Speaker, TimeBlockWithPresentations, TimeBlock } from "@shared/schema";
 import { PresentationCard } from "./PresentationCard";
 import { PresentationModal } from "./PresentationModal";
 import { TimeBlockModal } from "./TimeBlockModal";
 import { format, parseISO } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AgendaSectionProps {
   isAdmin?: boolean;
@@ -148,6 +150,33 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     setEditingTimeBlock(null);
   };
 
+  const { toast } = useToast();
+  
+  // Count unassigned presentations
+  const unassignedCount = allPresentations.filter(p => !p.timeBlockId).length;
+
+  const backfillMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/backfill-time-blocks") as Response;
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Time blocks created",
+        description: data.message || `Created ${data.createdBlocks} time blocks and assigned ${data.assignedPresentations} presentations`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to create time blocks",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <Card className="w-full">
@@ -253,7 +282,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
           )}
 
           {isAdmin && hasContent && (
-            <div className="mt-6 pt-4 border-t flex justify-center">
+            <div className="mt-6 pt-4 border-t flex justify-center gap-2">
               <Button 
                 variant="outline" 
                 onClick={handleAddTimeBlock}
@@ -263,6 +292,22 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
                 <Plus className="h-4 w-4" />
                 Add Time Block
               </Button>
+              {unassignedCount > 0 && (
+                <Button 
+                  variant="secondary" 
+                  onClick={() => backfillMutation.mutate()}
+                  disabled={backfillMutation.isPending}
+                  className="gap-2"
+                  data-testid="button-backfill-time-blocks"
+                >
+                  {backfillMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  Auto-assign {unassignedCount} Presentations
+                </Button>
+              )}
             </div>
           )}
         </CardContent>
