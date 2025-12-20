@@ -773,9 +773,33 @@ export const insertAgendaSessionTypeSchema = createInsertSchema(agendaSessionTyp
 export type AgendaSessionType = typeof agendaSessionTypes.$inferSelect;
 export type InsertAgendaSessionType = z.infer<typeof insertAgendaSessionTypeSchema>;
 
+// Time Blocks for organizing agenda (contains multiple presentations)
+export const timeBlocks = pgTable("time_blocks", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
+  endTime: timestamp("end_time", { mode: 'string', withTimezone: true }).notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("time_blocks_start_time_idx").on(table.startTime),
+]);
+
+export const insertTimeBlockSchema = createInsertSchema(timeBlocks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TimeBlock = typeof timeBlocks.$inferSelect;
+export type InsertTimeBlock = z.infer<typeof insertTimeBlockSchema>;
+
 // Presentations for summit agenda
 export const presentations = pgTable("presentations", {
   id: serial("id").primaryKey(),
+  timeBlockId: integer("time_block_id").references(() => timeBlocks.id, { onDelete: 'set null' }),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
@@ -789,6 +813,7 @@ export const presentations = pgTable("presentations", {
 }, (table) => [
   index("presentations_start_time_idx").on(table.startTime),
   index("presentations_track_idx").on(table.track),
+  index("presentations_time_block_idx").on(table.timeBlockId),
 ]);
 
 // Speakers for presentations
@@ -849,4 +874,9 @@ export type InsertPresentationSpeaker = z.infer<typeof insertPresentationSpeaker
 // Extended type for presentations with speakers
 export type PresentationWithSpeakers = Presentation & {
   speakers: (Speaker & { isModerator: boolean; displayOrder: number })[];
+};
+
+// Extended type for time blocks with presentations
+export type TimeBlockWithPresentations = TimeBlock & {
+  presentations: PresentationWithSpeakers[];
 };

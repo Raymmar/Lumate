@@ -23,6 +23,8 @@ import {
   Coupon, InsertCoupon,
   AgendaTrack, InsertAgendaTrack,
   AgendaSessionType, InsertAgendaSessionType,
+  TimeBlock, InsertTimeBlock,
+  TimeBlockWithPresentations,
   Presentation, InsertPresentation,
   Speaker, InsertSpeaker,
   PresentationSpeaker, InsertPresentationSpeaker,
@@ -30,7 +32,7 @@ import {
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
   badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons,
-  agendaTracks, agendaSessionTypes, presentations, speakers, presentationSpeakers
+  agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or, isNull } from "drizzle-orm";
@@ -228,6 +230,13 @@ export interface IStorage {
   createAgendaSessionType(data: InsertAgendaSessionType): Promise<AgendaSessionType>;
   updateAgendaSessionType(id: number, data: Partial<AgendaSessionType>): Promise<AgendaSessionType>;
   deleteAgendaSessionType(id: number): Promise<void>;
+
+  // Time Block management
+  getTimeBlocks(): Promise<TimeBlockWithPresentations[]>;
+  getTimeBlockById(id: number): Promise<TimeBlockWithPresentations | null>;
+  createTimeBlock(data: InsertTimeBlock): Promise<TimeBlock>;
+  updateTimeBlock(id: number, data: Partial<TimeBlock>): Promise<TimeBlock>;
+  deleteTimeBlock(id: number): Promise<void>;
 
   // Presentation management (summit agenda)
   getPresentations(): Promise<PresentationWithSpeakers[]>;
@@ -3559,6 +3568,178 @@ export class PostgresStorage implements IStorage {
       await db.delete(agendaSessionTypes).where(eq(agendaSessionTypes.id, id));
     } catch (error) {
       console.error('Failed to delete agenda session type:', error);
+      throw error;
+    }
+  }
+
+  // Time Block management
+  async getTimeBlocks(): Promise<TimeBlockWithPresentations[]> {
+    try {
+      const [allTimeBlocks, allPresentations, allSpeakerLinks] = await Promise.all([
+        db.select()
+          .from(timeBlocks)
+          .orderBy(timeBlocks.startTime, timeBlocks.displayOrder),
+        db.select()
+          .from(presentations)
+          .orderBy(presentations.startTime, presentations.displayOrder),
+        db.select({
+          presentationId: presentationSpeakers.presentationId,
+          speaker: speakers,
+          isModerator: presentationSpeakers.isModerator,
+          displayOrder: presentationSpeakers.displayOrder,
+        })
+          .from(presentationSpeakers)
+          .innerJoin(speakers, eq(presentationSpeakers.speakerId, speakers.id))
+          .orderBy(presentationSpeakers.displayOrder)
+      ]);
+
+      const speakersByPresentationId = new Map<number, Array<{
+        speaker: typeof speakers.$inferSelect;
+        isModerator: boolean;
+        displayOrder: number;
+      }>>();
+      
+      for (const link of allSpeakerLinks) {
+        if (!speakersByPresentationId.has(link.presentationId)) {
+          speakersByPresentationId.set(link.presentationId, []);
+        }
+        speakersByPresentationId.get(link.presentationId)!.push({
+          speaker: link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
+        });
+      }
+
+      const presentationsWithSpeakers: PresentationWithSpeakers[] = allPresentations.map(presentation => ({
+        ...presentation,
+        speakers: (speakersByPresentationId.get(presentation.id) || []).map(link => ({
+          ...link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
+        })),
+      }));
+
+      const presentationsByTimeBlockId = new Map<number, PresentationWithSpeakers[]>();
+      for (const presentation of presentationsWithSpeakers) {
+        if (presentation.timeBlockId) {
+          if (!presentationsByTimeBlockId.has(presentation.timeBlockId)) {
+            presentationsByTimeBlockId.set(presentation.timeBlockId, []);
+          }
+          presentationsByTimeBlockId.get(presentation.timeBlockId)!.push(presentation);
+        }
+      }
+
+      return allTimeBlocks.map(block => ({
+        ...block,
+        presentations: presentationsByTimeBlockId.get(block.id) || [],
+      }));
+    } catch (error) {
+      console.error('Failed to get time blocks:', error);
+      throw error;
+    }
+  }
+
+  async getTimeBlockById(id: number): Promise<TimeBlockWithPresentations | null> {
+    try {
+      const result = await db
+        .select()
+        .from(timeBlocks)
+        .where(eq(timeBlocks.id, id))
+        .limit(1);
+      
+      if (!result[0]) return null;
+
+      const blockPresentations = await db
+        .select()
+        .from(presentations)
+        .where(eq(presentations.timeBlockId, id))
+        .orderBy(presentations.startTime, presentations.displayOrder);
+
+      const speakerLinks = await db.select({
+        presentationId: presentationSpeakers.presentationId,
+        speaker: speakers,
+        isModerator: presentationSpeakers.isModerator,
+        displayOrder: presentationSpeakers.displayOrder,
+      })
+        .from(presentationSpeakers)
+        .innerJoin(speakers, eq(presentationSpeakers.speakerId, speakers.id))
+        .orderBy(presentationSpeakers.displayOrder);
+
+      const speakersByPresentationId = new Map<number, Array<{
+        speaker: typeof speakers.$inferSelect;
+        isModerator: boolean;
+        displayOrder: number;
+      }>>();
+      
+      for (const link of speakerLinks) {
+        if (!speakersByPresentationId.has(link.presentationId)) {
+          speakersByPresentationId.set(link.presentationId, []);
+        }
+        speakersByPresentationId.get(link.presentationId)!.push({
+          speaker: link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
+        });
+      }
+
+      const presentationsWithSpeakers: PresentationWithSpeakers[] = blockPresentations.map(presentation => ({
+        ...presentation,
+        speakers: (speakersByPresentationId.get(presentation.id) || []).map(link => ({
+          ...link.speaker,
+          isModerator: link.isModerator,
+          displayOrder: link.displayOrder,
+        })),
+      }));
+
+      return {
+        ...result[0],
+        presentations: presentationsWithSpeakers,
+      };
+    } catch (error) {
+      console.error('Failed to get time block by id:', error);
+      throw error;
+    }
+  }
+
+  async createTimeBlock(data: InsertTimeBlock): Promise<TimeBlock> {
+    try {
+      const result = await db
+        .insert(timeBlocks)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create time block:', error);
+      throw error;
+    }
+  }
+
+  async updateTimeBlock(id: number, data: Partial<TimeBlock>): Promise<TimeBlock> {
+    try {
+      const result = await db
+        .update(timeBlocks)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(timeBlocks.id, id))
+        .returning();
+
+      if (!result[0]) {
+        throw new Error('Time block not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update time block:', error);
+      throw error;
+    }
+  }
+
+  async deleteTimeBlock(id: number): Promise<void> {
+    try {
+      await db.update(presentations)
+        .set({ timeBlockId: null })
+        .where(eq(presentations.timeBlockId, id));
+      await db.delete(timeBlocks).where(eq(timeBlocks.id, id));
+    } catch (error) {
+      console.error('Failed to delete time block:', error);
       throw error;
     }
   }

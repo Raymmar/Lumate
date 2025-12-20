@@ -39,6 +39,7 @@ import {
   insertPresentationSpeakerSchema,
   insertAgendaTrackSchema,
   insertAgendaSessionTypeSchema,
+  insertTimeBlockSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail } from "./email";
@@ -744,6 +745,77 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to delete agenda session type:", error);
       res.status(500).json({ error: "Failed to delete agenda session type" });
+    }
+  });
+
+  // Time Block routes
+  app.get("/api/time-blocks", async (req, res) => {
+    try {
+      const timeBlocks = await storage.getTimeBlocks();
+      res.json({ timeBlocks });
+    } catch (error) {
+      console.error("Failed to fetch time blocks:", error);
+      res.status(500).json({ error: "Failed to fetch time blocks" });
+    }
+  });
+
+  app.get("/api/time-blocks/:id", async (req, res) => {
+    try {
+      const timeBlockId = parseInt(req.params.id);
+      const timeBlock = await storage.getTimeBlockById(timeBlockId);
+      if (!timeBlock) {
+        return res.status(404).json({ error: "Time block not found" });
+      }
+      res.json({ timeBlock });
+    } catch (error) {
+      console.error("Failed to fetch time block:", error);
+      res.status(500).json({ error: "Failed to fetch time block" });
+    }
+  });
+
+  app.post("/api/time-blocks", requireAdmin, async (req, res) => {
+    try {
+      const result = insertTimeBlockSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid time block data", 
+          details: result.error.format() 
+        });
+      }
+      const timeBlock = await storage.createTimeBlock(result.data);
+      res.json(timeBlock);
+    } catch (error) {
+      console.error("Failed to create time block:", error);
+      res.status(500).json({ error: "Failed to create time block" });
+    }
+  });
+
+  app.patch("/api/time-blocks/:id", requireAdmin, async (req, res) => {
+    try {
+      const timeBlockId = parseInt(req.params.id);
+      const result = insertTimeBlockSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: "Invalid time block data", 
+          details: result.error.format() 
+        });
+      }
+      const timeBlock = await storage.updateTimeBlock(timeBlockId, result.data);
+      res.json(timeBlock);
+    } catch (error) {
+      console.error("Failed to update time block:", error);
+      res.status(500).json({ error: "Failed to update time block" });
+    }
+  });
+
+  app.delete("/api/time-blocks/:id", requireAdmin, async (req, res) => {
+    try {
+      const timeBlockId = parseInt(req.params.id);
+      await storage.deleteTimeBlock(timeBlockId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete time block:", error);
+      res.status(500).json({ error: "Failed to delete time block" });
     }
   });
 
