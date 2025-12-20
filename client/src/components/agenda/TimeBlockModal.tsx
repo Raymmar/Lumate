@@ -33,14 +33,19 @@ interface TimeBlockModalProps {
   onClose: () => void;
 }
 
-function formatDateTimeForInput(dateString: string): string {
+function extractDatePart(dateString: string): string {
   const date = new Date(dateString);
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function extractTimePart(dateString: string): string {
+  const date = new Date(dateString);
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return `${hours}:${minutes}`;
 }
 
 export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalProps) {
@@ -49,24 +54,27 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [date, setDate] = useState("");
+  const [startTimeValue, setStartTimeValue] = useState("");
+  const [endTimeValue, setEndTimeValue] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (timeBlock) {
       setTitle(timeBlock.title);
       setDescription(timeBlock.description || "");
-      setStartTime(formatDateTimeForInput(timeBlock.startTime));
-      setEndTime(formatDateTimeForInput(timeBlock.endTime));
+      setDate(extractDatePart(timeBlock.startTime));
+      setStartTimeValue(extractTimePart(timeBlock.startTime));
+      setEndTimeValue(extractTimePart(timeBlock.endTime));
     } else {
       setTitle("");
       setDescription("");
       const now = new Date();
       now.setMinutes(0, 0, 0);
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-      setStartTime(formatDateTimeForInput(now.toISOString()));
-      setEndTime(formatDateTimeForInput(oneHourLater.toISOString()));
+      setDate(extractDatePart(now.toISOString()));
+      setStartTimeValue(extractTimePart(now.toISOString()));
+      setEndTimeValue(extractTimePart(oneHourLater.toISOString()));
     }
   }, [timeBlock, isOpen]);
 
@@ -141,8 +149,8 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
     const data = {
       title: title.trim(),
       description: description.trim() || null,
-      startTime: new Date(startTime).toISOString(),
-      endTime: new Date(endTime).toISOString(),
+      startTime: new Date(`${date}T${startTimeValue}`).toISOString(),
+      endTime: new Date(`${date}T${endTimeValue}`).toISOString(),
       displayOrder: 0,
     };
 
@@ -192,20 +200,43 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+                data-testid="input-time-block-date"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Start Time</Label>
+                <Label>Start Time *</Label>
                 <TimeInput
-                  value={startTime}
-                  onChange={setStartTime}
+                  value={startTimeValue}
+                  onChange={(time) => {
+                    setStartTimeValue(time);
+                    if (!endTimeValue || endTimeValue <= time) {
+                      const [h, m] = time.split(':').map(Number);
+                      const endMinutes = h * 60 + m + 60;
+                      const endH = Math.floor(endMinutes / 60);
+                      const endM = endMinutes % 60;
+                      setEndTimeValue(`${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`);
+                    }
+                  }}
+                  placeholder="e.g. 9:00 AM"
                   data-testid="input-time-block-start"
                 />
               </div>
               <div className="space-y-2">
-                <Label>End Time</Label>
+                <Label>End Time *</Label>
                 <TimeInput
-                  value={endTime}
-                  onChange={setEndTime}
+                  value={endTimeValue}
+                  onChange={setEndTimeValue}
+                  placeholder="e.g. 10:00 AM"
                   data-testid="input-time-block-end"
                 />
               </div>
