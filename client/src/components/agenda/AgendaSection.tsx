@@ -369,7 +369,7 @@ function CalendarView({
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Clock className="h-4 w-4 flex-shrink-0" />
                 <span className="flex-shrink-0">
-                  {format(parseISO(timeBlock.startTime), "h:mm a")} - {format(parseISO(timeBlock.endTime), "h:mm a")}
+                  {format(parseISO(timeBlock.startTime), "h:mm a")}
                 </span>
                 <span className="truncate font-semibold">
                   {timeBlock.title}
