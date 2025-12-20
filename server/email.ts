@@ -5,6 +5,14 @@ const mailService = new MailService();
 
 const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
 
+// Always use production domain for email links so users can click them from anywhere
+const PRODUCTION_APP_URL = process.env.APP_URL || 'https://sarasotatech.com';
+
+function getEmailBaseUrl(): string {
+  // Always use production URL for emails - users click these from their email clients
+  return PRODUCTION_APP_URL.replace(/\/$/, '');
+}
+
 if (process.env.SENDGRID_API_KEY) {
   mailService.setApiKey(process.env.SENDGRID_API_KEY);
   console.log('SendGrid API key configured successfully');
@@ -185,7 +193,7 @@ export async function sendVerificationEmail(
 ): Promise<boolean> {
   try {
     console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '', 'Stage:', emailStage, 'Has event:', !!eventInfo);
-    const verificationUrl = `${(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/verify?token=${token}`;
+    const verificationUrl = `${getEmailBaseUrl()}/verify?token=${token}`;
 
     // In development, just log the verification URL
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
@@ -450,7 +458,7 @@ export async function sendPasswordResetEmail(
 ): Promise<boolean> {
   try {
     console.log('Starting password reset email process for:', email);
-    const resetUrl = `${(process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '')}/reset-password?token=${token}`;
+    const resetUrl = `${getEmailBaseUrl()}/reset-password?token=${token}`;
 
     // Log configuration details
     console.log('Email configuration:', {
