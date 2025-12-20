@@ -357,11 +357,15 @@ function CalendarView({
     <div className="space-y-4">
       {timeBlocks.map((timeBlock) => {
         const presentations = timeBlock.presentations;
-        const fullWidthPresentations = presentations.filter(p => p.isFullWidth);
+        
+        const sortByStartTime = (a: PresentationWithSpeakers, b: PresentationWithSpeakers) => 
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        
+        const fullWidthPresentations = presentations.filter(p => p.isFullWidth).sort(sortByStartTime);
         const trackPresentations = presentations.filter(p => !p.isFullWidth);
 
-        const startupSchool = trackPresentations.filter(p => p.track === "startup_school");
-        const mainStage = trackPresentations.filter(p => p.track === "main_stage");
+        const startupSchool = trackPresentations.filter(p => p.track === "startup_school").sort(sortByStartTime);
+        const mainStage = trackPresentations.filter(p => p.track === "main_stage").sort(sortByStartTime);
 
         return (
           <div key={timeBlock.id} className="border rounded-lg overflow-hidden" data-testid={`time-block-${timeBlock.id}`}>
