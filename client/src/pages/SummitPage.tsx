@@ -540,14 +540,12 @@ export default function SummitPage() {
           className="w-auto h-auto opacity-80 max-w-none"
         />
       </div>
-
       {/* Navigation Bar */}
       <div className="sticky top-0 w-full bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 shadow-sm">
         <PageContainer className="max-w-[1440px]">
           <NavBar />
         </PageContainer>
       </div>
-
       {/* Split Hero Section */}
       <div className="w-full">
         <div
@@ -646,7 +644,6 @@ export default function SummitPage() {
           </div>
         </div>
       </div>
-
       {/* Agenda Content Blocks */}
       <div className="flex-1">
         <PageContainer className="max-w-7xl py-12">
@@ -696,12 +693,7 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Networking & Afterparty
                 </h3>
-                <p className="text-m text-muted-foreground flex-grow">
-                  Tech Summit is about building meaningful connections and
-                  pushing the city forward. Join us for a night of world class
-                  networking with the regions top thinkers in tech, finance,
-                  business and more.
-                </p>
+                <p className="text-m text-muted-foreground flex-grow">Tech Summit is about building meaningful connections and pushing the city forward. Join us for a day of world class networking with the regions top thinkers in tech, finance, business and more.</p>
               </CardContent>
             </Card>
           </div>
