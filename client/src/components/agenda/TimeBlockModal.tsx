@@ -80,8 +80,7 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/time-blocks", data) as Response;
-      return res.json();
+      return await apiRequest("/api/time-blocks", "POST", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
@@ -99,8 +98,7 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("PATCH", `/api/time-blocks/${timeBlock?.id}`, data) as Response;
-      return res.json();
+      return await apiRequest(`/api/time-blocks/${timeBlock?.id}`, "PATCH", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
@@ -118,7 +116,7 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("DELETE", `/api/time-blocks/${timeBlock?.id}`);
+      await apiRequest(`/api/time-blocks/${timeBlock?.id}`, "DELETE");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });

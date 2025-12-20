@@ -157,8 +157,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
 
   const backfillMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/admin/backfill-time-blocks") as Response;
-      return response.json();
+      return await apiRequest("/api/admin/backfill-time-blocks", "POST");
     },
     onSuccess: (data) => {
       toast({
