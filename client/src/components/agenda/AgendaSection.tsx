@@ -157,7 +157,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
 
   const backfillMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/admin/backfill-time-blocks", "POST");
+      return await apiRequest<{ message: string; createdBlocks: number; assignedPresentations: number }>("/api/admin/backfill-time-blocks", "POST");
     },
     onSuccess: (data) => {
       toast({
@@ -371,9 +371,16 @@ function CalendarView({
                 <span className="flex-shrink-0">
                   {format(parseISO(timeBlock.startTime), "h:mm a")}
                 </span>
-                <span className="truncate font-semibold">
-                  {timeBlock.title}
-                </span>
+                {(() => {
+                  const autoTitle = `${format(parseISO(timeBlock.startTime), "h:mm a")} – ${format(parseISO(timeBlock.endTime), "h:mm a")}`;
+                  const isCustomTitle = timeBlock.title !== autoTitle && 
+                    !timeBlock.title.match(/^\d{1,2}:\d{2}\s*(AM|PM)\s*[–-]\s*\d{1,2}:\d{2}\s*(AM|PM)$/i);
+                  return isCustomTitle && (
+                    <span className="truncate font-semibold">
+                      {timeBlock.title}
+                    </span>
+                  );
+                })()}
               </div>
               {isAdmin && (
                 <div className="flex items-center gap-1">
