@@ -157,9 +157,20 @@ export function PresentationCard({
           <h4 className="font-medium leading-snug mb-1">{presentation.title}</h4>
 
           {presentation.description && (
-            <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-2'}`}>
-              {presentation.description}
-            </p>
+            <motion.div
+              layout
+              initial={false}
+              animate={{ height: "auto" }}
+              transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            >
+              <motion.p 
+                layout
+                className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-2'}`}
+                transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+              >
+                {presentation.description}
+              </motion.p>
+            </motion.div>
           )}
         </div>
 
