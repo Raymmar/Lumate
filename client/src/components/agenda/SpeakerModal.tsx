@@ -77,6 +77,7 @@ export function SpeakerModal({ speaker, isOpen, onClose, onCreated }: SpeakerMod
     onSuccess: (result: Speaker) => {
       queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
       toast({
         title: "Success",
         description: `Speaker ${isEditing ? "updated" : "created"} successfully`,
