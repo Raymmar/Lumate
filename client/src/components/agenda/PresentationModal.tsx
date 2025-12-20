@@ -31,6 +31,7 @@ interface PresentationModalProps {
   presentation: PresentationWithSpeakers | null;
   isOpen: boolean;
   onClose: () => void;
+  defaultTimeBlockId?: number | null;
 }
 
 const COLOR_OPTIONS = [
@@ -64,7 +65,7 @@ export const COLOR_MAP: Record<string, string> = {
 };
 
 
-export function PresentationModal({ presentation, isOpen, onClose }: PresentationModalProps) {
+export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBlockId }: PresentationModalProps) {
   const { toast } = useToast();
   const isEditing = !!presentation && presentation.id > 0;
 
@@ -76,6 +77,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
   const [sessionType, setSessionType] = useState("talk");
   const [isFullWidth, setIsFullWidth] = useState(false);
   const [displayOrder, setDisplayOrder] = useState(0);
+  const [timeBlockId, setTimeBlockId] = useState<number | null>(null);
 
   const [speakerModalOpen, setSpeakerModalOpen] = useState(false);
   const [editingSpeaker, setEditingSpeaker] = useState<Speaker | null>(null);
@@ -120,6 +122,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
       setSessionType(presentation.sessionType);
       setIsFullWidth(presentation.isFullWidth);
       setDisplayOrder(presentation.displayOrder);
+      setTimeBlockId(presentation.timeBlockId || defaultTimeBlockId || null);
     } else {
       setTitle("");
       setDescription("");
@@ -129,8 +132,9 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
       setSessionType("talk");
       setIsFullWidth(false);
       setDisplayOrder(0);
+      setTimeBlockId(defaultTimeBlockId || null);
     }
-  }, [presentation, isOpen]);
+  }, [presentation, isOpen, defaultTimeBlockId]);
 
   function formatDateTimeForInput(isoString: string): string {
     const date = new Date(isoString);
@@ -156,6 +160,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
         sessionType,
         isFullWidth,
         displayOrder,
+        timeBlockId,
       };
 
       if (isEditing) {
@@ -166,6 +171,7 @@ export function PresentationModal({ presentation, isOpen, onClose }: Presentatio
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
       toast({
         title: "Success",
         description: `Presentation ${isEditing ? "updated" : "created"} successfully`,

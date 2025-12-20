@@ -1,13 +1,13 @@
-import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Calendar, List, Clock, Users, Mic2, ChevronDown, ChevronUp } from "lucide-react";
-import { PresentationWithSpeakers, AgendaSessionType, Speaker } from "@shared/schema";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Calendar, List, Clock, Users, Mic2, ChevronDown, ChevronUp, Pencil } from "lucide-react";
+import { PresentationWithSpeakers, AgendaSessionType, Speaker, TimeBlockWithPresentations, TimeBlock } from "@shared/schema";
 import { PresentationCard } from "./PresentationCard";
 import { PresentationModal } from "./PresentationModal";
+import { TimeBlockModal } from "./TimeBlockModal";
 import { format, parseISO } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -19,8 +19,11 @@ const SPEAKERS_EXPANDED_KEY = "agenda-speakers-expanded";
 
 export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
   const [view, setView] = useState<"calendar" | "table">("calendar");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPresentationModalOpen, setIsPresentationModalOpen] = useState(false);
+  const [isTimeBlockModalOpen, setIsTimeBlockModalOpen] = useState(false);
   const [editingPresentation, setEditingPresentation] = useState<PresentationWithSpeakers | null>(null);
+  const [editingTimeBlock, setEditingTimeBlock] = useState<TimeBlock | null>(null);
+  const [addingToTimeBlockId, setAddingToTimeBlockId] = useState<number | null>(null);
   const [globalSpeakersExpanded, setGlobalSpeakersExpanded] = useState(() => {
     const stored = localStorage.getItem(SPEAKERS_EXPANDED_KEY);
     return stored === "true";
@@ -55,7 +58,13 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     return globalSpeakersExpanded;
   };
 
-  const { data, isLoading } = useQuery<{ presentations: PresentationWithSpeakers[] }>({
+  const { data: timeBlocksData, isLoading: timeBlocksLoading } = useQuery<{ timeBlocks: TimeBlockWithPresentations[] }>({
+    queryKey: ["/api/time-blocks"],
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: presentationsData, isLoading: presentationsLoading } = useQuery<{ presentations: PresentationWithSpeakers[] }>({
     queryKey: ["/api/presentations"],
     staleTime: 30000,
     refetchOnWindowFocus: false,
@@ -72,33 +81,20 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     enabled: isAdmin,
   });
 
-  const presentations = data?.presentations || [];
+  const timeBlocks = timeBlocksData?.timeBlocks || [];
+  const allPresentations = presentationsData?.presentations || [];
   const sessionTypes = sessionTypesData?.sessionTypes || [];
   const allSpeakers = speakersData?.speakers || [];
 
-  const { groupedByTime, sortedTimeSlots } = useMemo(() => {
-    const grouped = presentations.reduce((acc, presentation) => {
-      const startTime = presentation.startTime;
-      if (!acc[startTime]) {
-        acc[startTime] = [];
-      }
-      acc[startTime].push(presentation);
-      return acc;
-    }, {} as Record<string, PresentationWithSpeakers[]>);
+  const isLoading = timeBlocksLoading || presentationsLoading;
 
-    const sorted = Object.keys(grouped).sort((a, b) => 
-      new Date(a).getTime() - new Date(b).getTime()
-    );
-
-    return { groupedByTime: grouped, sortedTimeSlots: sorted };
-  }, [presentations]);
-
-  const handleEdit = (presentation: PresentationWithSpeakers) => {
+  const handleEditPresentation = (presentation: PresentationWithSpeakers) => {
     setEditingPresentation(presentation);
-    setIsModalOpen(true);
+    setAddingToTimeBlockId(presentation.timeBlockId || null);
+    setIsPresentationModalOpen(true);
   };
 
-  const handleDuplicate = (presentation: PresentationWithSpeakers) => {
+  const handleDuplicatePresentation = (presentation: PresentationWithSpeakers) => {
     const duplicated = {
       ...presentation,
       id: 0,
@@ -106,36 +102,50 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
       speakers: [],
     } as PresentationWithSpeakers;
     setEditingPresentation(duplicated);
-    setIsModalOpen(true);
+    setAddingToTimeBlockId(presentation.timeBlockId || null);
+    setIsPresentationModalOpen(true);
   };
 
-  const handleAdd = () => {
-    setEditingPresentation(null);
-    setIsModalOpen(true);
-  };
-
-  const handleAddAtTime = (timeSlot: string) => {
-    const date = new Date(timeSlot);
-    const endDate = new Date(date.getTime() + 60 * 60 * 1000);
+  const handleAddPresentationToTimeBlock = (timeBlock: TimeBlockWithPresentations) => {
     const prefilled = {
       id: 0,
       title: "",
       description: null,
-      startTime: date.toISOString(),
-      endTime: endDate.toISOString(),
+      timeBlockId: timeBlock.id,
+      startTime: timeBlock.startTime,
+      endTime: timeBlock.endTime,
       track: "main_stage",
       sessionType: "talk",
       isFullWidth: false,
       displayOrder: 0,
       speakers: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     } as PresentationWithSpeakers;
     setEditingPresentation(prefilled);
-    setIsModalOpen(true);
+    setAddingToTimeBlockId(timeBlock.id);
+    setIsPresentationModalOpen(true);
   };
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const handleAddTimeBlock = () => {
+    setEditingTimeBlock(null);
+    setIsTimeBlockModalOpen(true);
+  };
+
+  const handleEditTimeBlock = (timeBlock: TimeBlock) => {
+    setEditingTimeBlock(timeBlock);
+    setIsTimeBlockModalOpen(true);
+  };
+
+  const handleClosePresentationModal = () => {
+    setIsPresentationModalOpen(false);
     setEditingPresentation(null);
+    setAddingToTimeBlockId(null);
+  };
+
+  const handleCloseTimeBlockModal = () => {
+    setIsTimeBlockModalOpen(false);
+    setEditingTimeBlock(null);
   };
 
   if (isLoading) {
@@ -158,6 +168,8 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
     );
   }
 
+  const hasContent = timeBlocks.length > 0 || allPresentations.length > 0;
+
   return (
     <>
       <Card className="w-full" data-testid="agenda-section">
@@ -168,7 +180,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
               Event Agenda
             </CardTitle>
             <div className="flex items-center gap-2">
-              {view === "calendar" && presentations.length > 0 && (
+              {view === "calendar" && hasContent && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -205,25 +217,25 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {presentations.length === 0 ? (
+          {!hasContent ? (
             <div className="text-center py-12 text-muted-foreground">
               <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No presentations scheduled yet.</p>
+              <p>No agenda items scheduled yet.</p>
               {isAdmin && (
-                <Button variant="outline" className="mt-4" onClick={handleAdd} data-testid="button-add-first-presentation">
+                <Button variant="outline" className="mt-4" onClick={handleAddTimeBlock} data-testid="button-add-first-time-block">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add First Presentation
+                  Add First Time Block
                 </Button>
               )}
             </div>
           ) : view === "calendar" ? (
             <CalendarView
-              sortedTimeSlots={sortedTimeSlots}
-              groupedByTime={groupedByTime}
+              timeBlocks={timeBlocks}
               isAdmin={isAdmin}
-              onEdit={handleEdit}
-              onDuplicate={handleDuplicate}
-              onAddAtTime={handleAddAtTime}
+              onEditPresentation={handleEditPresentation}
+              onDuplicatePresentation={handleDuplicatePresentation}
+              onAddPresentationToTimeBlock={handleAddPresentationToTimeBlock}
+              onEditTimeBlock={handleEditTimeBlock}
               sessionTypes={sessionTypes}
               allSpeakers={allSpeakers}
               isPresentationExpanded={isPresentationExpanded}
@@ -231,25 +243,25 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
             />
           ) : (
             <TableView
-              presentations={presentations}
+              presentations={allPresentations}
               isAdmin={isAdmin}
-              onEdit={handleEdit}
-              onDuplicate={handleDuplicate}
+              onEdit={handleEditPresentation}
+              onDuplicate={handleDuplicatePresentation}
               sessionTypes={sessionTypes}
               allSpeakers={allSpeakers}
             />
           )}
 
-          {isAdmin && presentations.length > 0 && (
+          {isAdmin && hasContent && (
             <div className="mt-6 pt-4 border-t flex justify-center">
               <Button 
                 variant="outline" 
-                onClick={handleAdd}
+                onClick={handleAddTimeBlock}
                 className="gap-2"
-                data-testid="button-add-presentation"
+                data-testid="button-add-time-block"
               >
                 <Plus className="h-4 w-4" />
-                Add Presentation
+                Add Time Block
               </Button>
             </div>
           )}
@@ -258,31 +270,49 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
 
       <PresentationModal
         presentation={editingPresentation}
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        isOpen={isPresentationModalOpen}
+        onClose={handleClosePresentationModal}
+        defaultTimeBlockId={addingToTimeBlockId}
+      />
+
+      <TimeBlockModal
+        timeBlock={editingTimeBlock}
+        isOpen={isTimeBlockModalOpen}
+        onClose={handleCloseTimeBlockModal}
       />
     </>
   );
 }
 
 interface CalendarViewProps {
-  sortedTimeSlots: string[];
-  groupedByTime: Record<string, PresentationWithSpeakers[]>;
+  timeBlocks: TimeBlockWithPresentations[];
   isAdmin: boolean;
-  onEdit: (presentation: PresentationWithSpeakers) => void;
-  onDuplicate: (presentation: PresentationWithSpeakers) => void;
-  onAddAtTime: (timeSlot: string) => void;
+  onEditPresentation: (presentation: PresentationWithSpeakers) => void;
+  onDuplicatePresentation: (presentation: PresentationWithSpeakers) => void;
+  onAddPresentationToTimeBlock: (timeBlock: TimeBlockWithPresentations) => void;
+  onEditTimeBlock: (timeBlock: TimeBlock) => void;
   sessionTypes: AgendaSessionType[];
   allSpeakers: Speaker[];
   isPresentationExpanded: (presentationId: number) => boolean;
   onTogglePresentationExpanded: (presentationId: number) => void;
 }
 
-function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDuplicate, onAddAtTime, sessionTypes, allSpeakers, isPresentationExpanded, onTogglePresentationExpanded }: CalendarViewProps) {
+function CalendarView({ 
+  timeBlocks, 
+  isAdmin, 
+  onEditPresentation, 
+  onDuplicatePresentation, 
+  onAddPresentationToTimeBlock, 
+  onEditTimeBlock,
+  sessionTypes, 
+  allSpeakers, 
+  isPresentationExpanded, 
+  onTogglePresentationExpanded 
+}: CalendarViewProps) {
   return (
     <div className="space-y-4">
-      {sortedTimeSlots.map((timeSlot) => {
-        const presentations = groupedByTime[timeSlot];
+      {timeBlocks.map((timeBlock) => {
+        const presentations = timeBlock.presentations;
         const fullWidthPresentations = presentations.filter(p => p.isFullWidth);
         const trackPresentations = presentations.filter(p => !p.isFullWidth);
 
@@ -290,85 +320,115 @@ function CalendarView({ sortedTimeSlots, groupedByTime, isAdmin, onEdit, onDupli
         const mainStage = trackPresentations.filter(p => p.track === "main_stage");
 
         return (
-          <div key={timeSlot} className="border rounded-lg overflow-hidden">
+          <div key={timeBlock.id} className="border rounded-lg overflow-hidden" data-testid={`time-block-${timeBlock.id}`}>
             <div className="group bg-muted/50 px-4 py-2 flex items-center justify-between text-sm font-medium border-b">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                {format(parseISO(timeSlot), "h:mm a")}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Clock className="h-4 w-4 flex-shrink-0" />
+                <span className="flex-shrink-0">
+                  {format(parseISO(timeBlock.startTime), "h:mm a")} - {format(parseISO(timeBlock.endTime), "h:mm a")}
+                </span>
+                <span className="truncate font-semibold">
+                  {timeBlock.title}
+                </span>
               </div>
               {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => onAddAtTime(timeSlot)}
-                  data-testid={`button-add-at-time-${timeSlot}`}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onEditTimeBlock(timeBlock)}
+                    data-testid={`button-edit-time-block-${timeBlock.id}`}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => onAddPresentationToTimeBlock(timeBlock)}
+                    data-testid={`button-add-presentation-to-block-${timeBlock.id}`}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
 
-            {fullWidthPresentations.map((presentation) => (
-              <PresentationCard
-                key={presentation.id}
-                presentation={presentation}
-                isAdmin={isAdmin}
-                onEdit={onEdit}
-                onDuplicate={onDuplicate}
-                isFullWidth
-                sessionTypes={sessionTypes}
-                allSpeakers={allSpeakers}
-                isExpanded={isPresentationExpanded(presentation.id)}
-                onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
-              />
-            ))}
-
-            {trackPresentations.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
-                <div className="min-h-[80px]">
-                  {startupSchool.length > 0 ? (
-                    startupSchool.map((presentation) => (
-                      <PresentationCard
-                        key={presentation.id}
-                        presentation={presentation}
-                        isAdmin={isAdmin}
-                        onEdit={onEdit}
-                        onDuplicate={onDuplicate}
-                        sessionTypes={sessionTypes}
-                        allSpeakers={allSpeakers}
-                        isExpanded={isPresentationExpanded(presentation.id)}
-                        onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
-                      />
-                    ))
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm p-4">
-                      <span className="opacity-50">Startup School</span>
-                    </div>
-                  )}
-                </div>
-                <div className="min-h-[80px]">
-                  {mainStage.length > 0 ? (
-                    mainStage.map((presentation) => (
-                      <PresentationCard
-                        key={presentation.id}
-                        presentation={presentation}
-                        isAdmin={isAdmin}
-                        onEdit={onEdit}
-                        onDuplicate={onDuplicate}
-                        sessionTypes={sessionTypes}
-                        allSpeakers={allSpeakers}
-                        isExpanded={isPresentationExpanded(presentation.id)}
-                        onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
-                      />
-                    ))
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm p-4">
-                      <span className="opacity-50">Main Stage</span>
-                    </div>
-                  )}
-                </div>
+            {timeBlock.description && (
+              <div className="px-4 py-2 text-sm text-muted-foreground bg-muted/25 border-b">
+                {timeBlock.description}
               </div>
+            )}
+
+            {presentations.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-muted-foreground">
+                No presentations in this time block
+              </div>
+            ) : (
+              <>
+                {fullWidthPresentations.map((presentation) => (
+                  <PresentationCard
+                    key={presentation.id}
+                    presentation={presentation}
+                    isAdmin={isAdmin}
+                    onEdit={onEditPresentation}
+                    onDuplicate={onDuplicatePresentation}
+                    isFullWidth
+                    sessionTypes={sessionTypes}
+                    allSpeakers={allSpeakers}
+                    isExpanded={isPresentationExpanded(presentation.id)}
+                    onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
+                  />
+                ))}
+
+                {trackPresentations.length > 0 && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x">
+                    <div className="min-h-[80px]">
+                      {startupSchool.length > 0 ? (
+                        startupSchool.map((presentation) => (
+                          <PresentationCard
+                            key={presentation.id}
+                            presentation={presentation}
+                            isAdmin={isAdmin}
+                            onEdit={onEditPresentation}
+                            onDuplicate={onDuplicatePresentation}
+                            sessionTypes={sessionTypes}
+                            allSpeakers={allSpeakers}
+                            isExpanded={isPresentationExpanded(presentation.id)}
+                            onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
+                          />
+                        ))
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm p-4">
+                          <span className="opacity-50">Startup School</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-h-[80px]">
+                      {mainStage.length > 0 ? (
+                        mainStage.map((presentation) => (
+                          <PresentationCard
+                            key={presentation.id}
+                            presentation={presentation}
+                            isAdmin={isAdmin}
+                            onEdit={onEditPresentation}
+                            onDuplicate={onDuplicatePresentation}
+                            sessionTypes={sessionTypes}
+                            allSpeakers={allSpeakers}
+                            isExpanded={isPresentationExpanded(presentation.id)}
+                            onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
+                          />
+                        ))
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground text-sm p-4">
+                          <span className="opacity-50">Main Stage</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         );

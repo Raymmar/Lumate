@@ -1,0 +1,278 @@
+import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { TimeInput } from "@/components/ui/time-input";
+import { Loader2, Trash2 } from "lucide-react";
+import { TimeBlock } from "@shared/schema";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+interface TimeBlockModalProps {
+  timeBlock: TimeBlock | null;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+function formatDateTimeForInput(dateString: string): string {
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalProps) {
+  const { toast } = useToast();
+  const isEditing = !!timeBlock && timeBlock.id > 0;
+
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (timeBlock) {
+      setTitle(timeBlock.title);
+      setDescription(timeBlock.description || "");
+      setStartTime(formatDateTimeForInput(timeBlock.startTime));
+      setEndTime(formatDateTimeForInput(timeBlock.endTime));
+    } else {
+      setTitle("");
+      setDescription("");
+      const now = new Date();
+      now.setMinutes(0, 0, 0);
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+      setStartTime(formatDateTimeForInput(now.toISOString()));
+      setEndTime(formatDateTimeForInput(oneHourLater.toISOString()));
+    }
+  }, [timeBlock, isOpen]);
+
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/time-blocks", data) as Response;
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      toast({ title: "Time block created successfully" });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to create time block",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PATCH", `/api/time-blocks/${timeBlock?.id}`, data) as Response;
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      toast({ title: "Time block updated successfully" });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update time block",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/time-blocks/${timeBlock?.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      toast({ title: "Time block deleted successfully" });
+      onClose();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete time block",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!title.trim()) {
+      toast({
+        title: "Title is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const data = {
+      title: title.trim(),
+      description: description.trim() || null,
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      displayOrder: 0,
+    };
+
+    if (isEditing) {
+      updateMutation.mutate(data);
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{isEditing ? "Edit Time Block" : "Add Time Block"}</DialogTitle>
+            <DialogDescription>
+              {isEditing
+                ? "Update the time block details."
+                : "Create a new time block to organize presentations."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g., Morning Check-in & Registration"
+                data-testid="input-time-block-title"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (optional)</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Brief description of this time block..."
+                rows={2}
+                data-testid="input-time-block-description"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <TimeInput
+                  value={startTime}
+                  onChange={setStartTime}
+                  data-testid="input-time-block-start"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <TimeInput
+                  value={endTime}
+                  onChange={setEndTime}
+                  data-testid="input-time-block-end"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-between pt-4">
+              {isEditing ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={deleteMutation.isPending}
+                  data-testid="button-delete-time-block"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isPending}
+                  data-testid="button-cancel-time-block"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  data-testid="button-save-time-block"
+                >
+                  {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {isEditing ? "Update" : "Create"}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Time Block?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the time block. Any presentations in this block will be unassigned but not deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-time-block">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteMutation.mutate()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-time-block"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
