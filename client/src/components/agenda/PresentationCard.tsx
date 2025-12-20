@@ -157,7 +157,7 @@ export function PresentationCard({
           <h4 className="font-medium leading-snug mb-1">{presentation.title}</h4>
 
           {presentation.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
+            <p className={`text-sm text-muted-foreground ${isExpanded ? '' : 'line-clamp-2'}`}>
               {presentation.description}
             </p>
           )}
