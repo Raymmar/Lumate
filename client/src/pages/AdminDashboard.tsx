@@ -75,7 +75,9 @@ export default function AdminDashboard() {
   const { data: memberStats, isLoading: isMemberStatsLoading } = useQuery<MemberStats>({
     queryKey: ["/api/admin/member-stats"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/member-stats");
+      const response = await fetch("/api/admin/member-stats", {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error("Failed to fetch member stats");
       }
