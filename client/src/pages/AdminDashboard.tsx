@@ -322,31 +322,43 @@ export default function AdminDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-3xl font-bold mb-3" data-testid="text-active-members-count">
-                  {isMemberStatsLoading ? '...' : memberStats?.totalActiveMembers || 0}
-                </div>
-                
-                {/* Breakdown */}
-                {memberStats && memberStats.breakdown.length > 0 && (
-                  <div className="space-y-2">
-                    {memberStats.breakdown.map((item) => (
-                      <div 
-                        key={item.source} 
-                        className="flex items-center justify-between text-sm"
-                        data-testid={`breakdown-${item.source}`}
-                      >
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          {getSourceIcon(item.source)}
-                          <span>{item.label}</span>
-                        </div>
-                        <span className="font-medium">{item.count}</span>
-                      </div>
-                    ))}
+                {isMemberStatsLoading ? (
+                  <div className="space-y-3">
+                    <div className="h-9 w-16 bg-muted/50 rounded animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-full bg-muted/30 rounded animate-pulse" />
+                      <div className="h-5 w-full bg-muted/30 rounded animate-pulse" />
+                      <div className="h-5 w-full bg-muted/30 rounded animate-pulse" />
+                    </div>
                   </div>
-                )}
-                
-                {memberStats && memberStats.breakdown.length === 0 && !isMemberStatsLoading && (
-                  <div className="text-sm text-muted-foreground">No active members</div>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold mb-3" data-testid="text-active-members-count">
+                      {memberStats?.totalActiveMembers || 0}
+                    </div>
+                    
+                    {memberStats && memberStats.breakdown.length > 0 && (
+                      <div className="space-y-2">
+                        {memberStats.breakdown.map((item) => (
+                          <div 
+                            key={item.source} 
+                            className="flex items-center justify-between text-sm"
+                            data-testid={`breakdown-${item.source}`}
+                          >
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              {getSourceIcon(item.source)}
+                              <span>{item.label}</span>
+                            </div>
+                            <span className="font-medium">{item.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {memberStats && memberStats.breakdown.length === 0 && (
+                      <div className="text-sm text-muted-foreground">No active members</div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
