@@ -3599,6 +3599,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Comprehensive member stats endpoint with breakdown by source
+  app.get("/api/admin/member-stats", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const memberStats = await storage.getActiveMemberStats();
+      res.json(memberStats);
+    } catch (error) {
+      console.error("Failed to fetch member stats:", error);
+      res.status(500).json({ error: "Failed to fetch member stats" });
+    }
+  });
+
   app.get("/api/events/check-rsvp", async (req, res) => {
     try {
       if (!req.session.userId) {

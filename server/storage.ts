@@ -140,6 +140,19 @@ export interface IStorage {
   setStripeCustomerId(userId: number, customerId: string): Promise<User>;
   getPersonByUsername(username: string): Promise<Person | null>;
   getPaidUsersCount(): Promise<number>;
+  
+  // Comprehensive active member stats (de-duplicated by source)
+  getActiveMemberStats(): Promise<{
+    totalActiveMembers: number;
+    stripeSubscribers: number;
+    ticketBasedMembers: number;
+    manualGrants: number;
+    breakdown: {
+      source: 'stripe' | 'luma' | 'manual';
+      count: number;
+      label: string;
+    }[];
+  }>;
 
   // Add this new method
   updatePost(postId: number, data: Partial<Post>): Promise<Post>;
@@ -769,6 +782,91 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Failed to get paid users count:', error);
       return 0;
+    }
+  }
+
+  async getActiveMemberStats(): Promise<{
+    totalActiveMembers: number;
+    stripeSubscribers: number;
+    ticketBasedMembers: number;
+    manualGrants: number;
+    breakdown: {
+      source: 'stripe' | 'luma' | 'manual';
+      count: number;
+      label: string;
+    }[];
+  }> {
+    try {
+      const now = new Date().toISOString();
+      
+      // Get all users and categorize them by their primary premium source
+      // Priority: Stripe (active subscription) > Luma (ticket-based) > Manual
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        subscriptionStatus: users.subscriptionStatus,
+        premiumSource: users.premiumSource,
+        premiumExpiresAt: users.premiumExpiresAt,
+      }).from(users);
+
+      let stripeSubscribers = 0;
+      let ticketBasedMembers = 0;
+      let manualGrants = 0;
+      const countedUserIds = new Set<number>();
+
+      for (const user of allUsers) {
+        // Check Stripe subscription first (highest priority)
+        if (user.subscriptionStatus === 'active') {
+          stripeSubscribers++;
+          countedUserIds.add(user.id);
+          continue;
+        }
+
+        // Check premium from Luma tickets or manual grants
+        if (user.premiumSource && user.premiumExpiresAt) {
+          const expiresAt = new Date(user.premiumExpiresAt);
+          if (expiresAt > new Date(now)) {
+            if (user.premiumSource === 'luma') {
+              ticketBasedMembers++;
+              countedUserIds.add(user.id);
+            } else if (user.premiumSource === 'manual') {
+              manualGrants++;
+              countedUserIds.add(user.id);
+            }
+          }
+        }
+      }
+
+      const totalActiveMembers = countedUserIds.size;
+
+      const breakdown: { source: 'stripe' | 'luma' | 'manual'; count: number; label: string }[] = [];
+      
+      if (stripeSubscribers > 0) {
+        breakdown.push({ source: 'stripe', count: stripeSubscribers, label: 'Stripe Subscriptions' });
+      }
+      if (ticketBasedMembers > 0) {
+        breakdown.push({ source: 'luma', count: ticketBasedMembers, label: 'Summit Ticket Holders' });
+      }
+      if (manualGrants > 0) {
+        breakdown.push({ source: 'manual', count: manualGrants, label: 'Admin Grants' });
+      }
+
+      return {
+        totalActiveMembers,
+        stripeSubscribers,
+        ticketBasedMembers,
+        manualGrants,
+        breakdown,
+      };
+    } catch (error) {
+      console.error('Failed to get active member stats:', error);
+      return {
+        totalActiveMembers: 0,
+        stripeSubscribers: 0,
+        ticketBasedMembers: 0,
+        manualGrants: 0,
+        breakdown: [],
+      };
     }
   }
 
