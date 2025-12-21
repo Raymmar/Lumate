@@ -237,82 +237,78 @@ export default function AdminDashboard() {
         </div>
       </div>
     }>
-      {/* Main Dashboard Layout */}
-      <div className="grid gap-6 lg:grid-cols-4">
-        {/* Sidebar Stats - Left Column */}
-        <div className="lg:col-span-1 space-y-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Community</h2>
-          
-          {/* Events */}
-          <Card data-testid="card-events">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                  <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold" data-testid="text-events-count">
-                    {isLoading ? '...' : statsData?.events || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Events since Aug 2023</div>
-                </div>
+      {/* Community Stats Row */}
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-3 mb-6">
+        {/* Events */}
+        <Card data-testid="card-events">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <div className="text-2xl font-bold" data-testid="text-events-count">
+                  {isLoading ? '...' : statsData?.events || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">Events since Aug 2023</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Newsletter Subscribers */}
-          <Card data-testid="card-subscribers">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-                  <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold" data-testid="text-subscribers-count">
-                    {isLoading ? '...' : statsData?.uniqueAttendees || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Newsletter subscribers</div>
-                </div>
+        {/* Newsletter Subscribers */}
+        <Card data-testid="card-subscribers">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <div className="text-2xl font-bold" data-testid="text-subscribers-count">
+                  {isLoading ? '...' : statsData?.uniqueAttendees || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">Newsletter subscribers</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Verified Members */}
-          <Card data-testid="card-verified-members">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-                  <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold" data-testid="text-verified-count">
-                    {isLoading ? '...' : statsData?.users || 0}
-                  </div>
-                  <div className="text-xs text-muted-foreground">Verified accounts</div>
-                </div>
+        {/* Verified Members */}
+        <Card data-testid="card-verified-members">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <UserPlus className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-            </CardContent>
-          </Card>
+              <div>
+                <div className="text-2xl font-bold" data-testid="text-verified-count">
+                  {isLoading ? '...' : statsData?.users || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">Verified accounts</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Financial Dashboard - Full Width */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Financial Overview</h2>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => refetchRevenue()}
+            className="flex items-center gap-1 text-xs"
+            data-testid="button-refresh-revenue"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Refresh
+          </Button>
         </div>
 
-        {/* Main Financial Dashboard - Right Column */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Financial Overview</h2>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => refetchRevenue()}
-              className="flex items-center gap-1 text-xs"
-              data-testid="button-refresh-revenue"
-            >
-              <RefreshCw className="h-3 w-3" />
-              Refresh
-            </Button>
-          </div>
-
-          {/* Financial Stats Grid */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
+        {/* Financial Stats Grid */}
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
             {/* Active Members Card - Featured with breakdown */}
             <Card className="md:col-span-2 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" data-testid="card-active-members">
               <CardHeader className="pb-2">
@@ -487,7 +483,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Posts Section */}
       <div className="mt-8">
