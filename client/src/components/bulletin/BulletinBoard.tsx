@@ -293,6 +293,7 @@ export function BulletinBoard() {
               videoUrl: editingPost.videoUrl || "",
               ctaLink: editingPost.ctaLink || "",
               ctaLabel: editingPost.ctaLabel || "",
+              redirectUrl: editingPost.redirectUrl || "",
               isPinned: editingPost.isPinned,
               membersOnly: editingPost.membersOnly,
               tags: editingPost.tags || []
