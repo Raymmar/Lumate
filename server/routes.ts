@@ -419,6 +419,12 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Post not found" });
       }
 
+      // If the post has a redirect URL and client accepts HTML, perform 301 redirect
+      const acceptHeader = req.headers.accept || '';
+      if (post.redirectUrl && acceptHeader.includes('text/html')) {
+        return res.redirect(301, post.redirectUrl);
+      }
+
       // Get creator info
       const creator = await storage.getUser(post.creatorId);
 
@@ -470,6 +476,7 @@ export async function registerRoutes(app: Express) {
           videoUrl: posts.videoUrl,
           ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
+          redirectUrl: posts.redirectUrl,
           creatorId: posts.creatorId,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,

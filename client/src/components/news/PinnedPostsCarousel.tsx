@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import type { Post } from "@shared/schema";
 
@@ -20,6 +20,17 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
   const pinnedPosts = postsData?.posts
     .filter(post => post.isPinned && (!post.membersOnly || user))
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
+
+  const isExternalUrl = (url: string | null | undefined) => {
+    if (!url) return false;
+    if (url.startsWith('/')) return false;
+    try {
+      const urlObj = new URL(url);
+      return !urlObj.hostname.includes('sarasota.tech');
+    } catch {
+      return false;
+    }
+  };
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -70,6 +81,12 @@ export function PinnedPostsCarousel({ onSelect }: PinnedPostsCarouselProps) {
           <Badge variant="secondary" className="text-xs flex items-center gap-1">
             <Lock className="w-3 h-3" />
             Members Only
+          </Badge>
+        )}
+        {isExternalUrl(currentPost.redirectUrl) && (
+          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+            <ExternalLink className="w-3 h-3" />
+            External Link
           </Badge>
         )}
         {currentPost.tags && currentPost.tags.map((tag: string) => (

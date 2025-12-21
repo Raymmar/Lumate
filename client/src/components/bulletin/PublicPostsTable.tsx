@@ -4,7 +4,7 @@ import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageIcon, Plus, MoreVertical, Edit, Trash2, Lock } from "lucide-react";
+import { ImageIcon, Plus, MoreVertical, Edit, Trash2, Lock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -54,6 +54,17 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
   const { data, isLoading, error } = useQuery<{ posts: Post[] }>({
     queryKey: PUBLIC_POSTS_QUERY_KEY,
   });
+
+  const isExternalUrl = (url: string | null | undefined) => {
+    if (!url) return false;
+    if (url.startsWith('/')) return false;
+    try {
+      const urlObj = new URL(url);
+      return !urlObj.hostname.includes('sarasota.tech');
+    } catch {
+      return false;
+    }
+  };
 
   // Filter posts by tags if filterTags is provided
   let filteredPosts = data?.posts || [];
@@ -198,6 +209,12 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
                             <Badge variant="secondary" className="text-xs flex items-center gap-1">
                               <Lock className="w-3 h-3" />
                               Members Only
+                            </Badge>
+                          )}
+                          {isExternalUrl(post.redirectUrl) && (
+                            <Badge variant="outline" className="text-xs flex items-center gap-1">
+                              <ExternalLink className="w-3 h-3" />
+                              External
                             </Badge>
                           )}
                         </div>

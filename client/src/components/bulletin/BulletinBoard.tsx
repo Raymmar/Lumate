@@ -145,12 +145,27 @@ export function BulletinBoard() {
 
   const [, setLocation] = useLocation();
   
+  const isExternalUrl = (url: string) => {
+    if (!url) return false;
+    if (url.startsWith('/')) return false;
+    try {
+      const urlObj = new URL(url);
+      return !urlObj.hostname.includes('sarasota.tech');
+    } catch {
+      return false;
+    }
+  };
+
   const handleSelectPost = (post: Post, isEditing = false) => {
     if (isEditing && (user?.isAdmin || post.creatorId === user?.id)) {
-      // Open modal for editing
       setEditingPost(post);
+    } else if (post.redirectUrl) {
+      if (isExternalUrl(post.redirectUrl)) {
+        window.open(post.redirectUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        setLocation(post.redirectUrl);
+      }
     } else {
-      // For regular viewing, navigate to the article page
       const slug = formatPostTitleForUrl(post.title, post.id.toString());
       setLocation(`/post/${slug}`);
     }

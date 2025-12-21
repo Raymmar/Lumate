@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertPostSchema, insertTagSchema, type InsertPost, type InsertTag } from "@shared/schema";
 import { z } from "zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -12,7 +12,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { UnsplashPicker } from "@/components/ui/unsplash-picker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
-import { X, Check, Loader2 } from "lucide-react";
+import { X, Check, Loader2, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -71,8 +71,9 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
       videoUrl: "",
       ctaLink: "",
       ctaLabel: "",
+      redirectUrl: "",
       isPinned: false,
-      membersOnly: false, // Add default value for membersOnly
+      membersOnly: false,
       ...defaultValues
     }
   });
@@ -317,6 +318,33 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="redirectUrl"
+            render={({ field: { value, ...field } }) => (
+              <FormItem className="space-y-1">
+                <FormLabel className="text-sm text-muted-foreground flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Redirect URL
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="url"
+                    value={value || ""}
+                    placeholder="https://... or /page-path"
+                    className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    data-testid="input-redirect-url"
+                  />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  Optional: Redirect clicks to this URL instead of the article page. External links will open in a new tab.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <div className="space-y-4">
             <FormField

@@ -13,7 +13,7 @@ import { PostForm } from "@/components/admin/PostForm";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function ArticlePage() {
   const { title } = useParams<{ title: string }>();
@@ -51,6 +51,27 @@ export function ArticlePage() {
 
   const posts = postsData?.posts || [];
   const post = postData;
+
+  const isExternalUrl = (url: string) => {
+    if (!url) return false;
+    if (url.startsWith('/')) return false;
+    try {
+      const urlObj = new URL(url);
+      return !urlObj.hostname.includes('sarasota.tech');
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (post?.redirectUrl) {
+      if (isExternalUrl(post.redirectUrl)) {
+        window.location.replace(post.redirectUrl);
+      } else {
+        setLocation(post.redirectUrl);
+      }
+    }
+  }, [post?.redirectUrl, setLocation]);
 
   const handleNavigate = (nextPost: Post) => {
     const slug = formatPostTitleForUrl(nextPost.title, nextPost.id.toString());
@@ -250,6 +271,7 @@ export function ArticlePage() {
               videoUrl: editingPost?.videoUrl || "",
               ctaLink: editingPost?.ctaLink || "",
               ctaLabel: editingPost?.ctaLabel || "",
+              redirectUrl: editingPost?.redirectUrl || "",
               isPinned: editingPost?.isPinned || false,
               membersOnly: editingPost?.membersOnly || false,
               tags: editingPost?.tags || []

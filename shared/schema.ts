@@ -158,6 +158,7 @@ export const posts = pgTable("posts", {
   videoUrl: varchar("video_url", { length: 255 }),
   ctaLink: varchar("cta_link", { length: 255 }),
   ctaLabel: varchar("cta_label", { length: 255 }),
+  redirectUrl: varchar("redirect_url", { length: 500 }),
   isPinned: boolean("is_pinned").notNull().default(false),
   membersOnly: boolean("members_only").notNull().default(false),
   creatorId: serial("creator_id").references(() => users.id).notNull(),
