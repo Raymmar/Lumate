@@ -3145,7 +3145,7 @@ export class PostgresStorage implements IStorage {
       );
       const thisMonthRevenue = thisMonthResult.rows[0]?.total ? Number(thisMonthResult.rows[0].total) / 100 : 0;
 
-      // Get subscription revenue (MRR)
+      // Get subscription revenue
       const subscriptionResult = await db.execute(
         sql`
           SELECT 

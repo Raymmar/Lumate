@@ -392,7 +392,7 @@ export default function AdminDashboard() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <Coins className="h-4 w-4" />
-                  Subscription Revenue (MRR)
+                  Subscription Revenue
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
