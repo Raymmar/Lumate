@@ -874,10 +874,10 @@ export class PostgresStorage implements IStorage {
         breakdown.push({ source: 'stripe', count: stripeSubscribers, label: 'Stripe Subscriptions' });
       }
       if (ticketsActivated > 0) {
-        breakdown.push({ source: 'luma_activated', count: ticketsActivated, label: 'Summit Tickets (Activated)' });
+        breakdown.push({ source: 'luma_activated', count: ticketsActivated, label: 'Summit Tickets (Claimed)' });
       }
       if (ticketsNotActivated > 0) {
-        breakdown.push({ source: 'luma_not_activated', count: ticketsNotActivated, label: 'Summit Tickets (Not Activated)' });
+        breakdown.push({ source: 'luma_not_activated', count: ticketsNotActivated, label: 'Summit Tickets (Not Claimed)' });
       }
       if (manualGrants > 0) {
         breakdown.push({ source: 'manual', count: manualGrants, label: 'Admin Grants' });
