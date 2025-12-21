@@ -145,10 +145,11 @@ export interface IStorage {
   getActiveMemberStats(): Promise<{
     totalActiveMembers: number;
     stripeSubscribers: number;
-    ticketBasedMembers: number;
+    ticketsActivated: number;
+    ticketsNotActivated: number;
     manualGrants: number;
     breakdown: {
-      source: 'stripe' | 'luma' | 'manual';
+      source: 'stripe' | 'luma_activated' | 'luma_not_activated' | 'manual';
       count: number;
       label: string;
     }[];
@@ -788,64 +789,92 @@ export class PostgresStorage implements IStorage {
   async getActiveMemberStats(): Promise<{
     totalActiveMembers: number;
     stripeSubscribers: number;
-    ticketBasedMembers: number;
+    ticketsActivated: number;
+    ticketsNotActivated: number;
     manualGrants: number;
     breakdown: {
-      source: 'stripe' | 'luma' | 'manual';
+      source: 'stripe' | 'luma_activated' | 'luma_not_activated' | 'manual';
       count: number;
       label: string;
     }[];
   }> {
     try {
-      const now = new Date().toISOString();
+      // Query Stripe subscribers directly from stripe.subscriptions table
+      // This gives us the authoritative count that matches the revenue overview
+      const stripeResult = await db.execute(sql`
+        SELECT DISTINCT LOWER(c.email) as email
+        FROM stripe.subscriptions s
+        INNER JOIN stripe.customers c ON c.id = s.customer
+        WHERE s.status = 'active'
+      `);
+      const stripeEmails = new Set(stripeResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean));
+      const stripeSubscribers = stripeEmails.size;
+
+      // Query approved premium ticket holders from attendance table
+      // This counts all approved tickets for events that grant premium access
+      const ticketResult = await db.execute(sql`
+        SELECT DISTINCT LOWER(a.user_email) as email
+        FROM attendance a
+        INNER JOIN events e ON e.api_id = a.event_api_id
+        WHERE e.grants_premium_access = true
+          AND a.approval_status = 'approved'
+          AND a.ticket_type_id IS NOT NULL
+          AND e.premium_ticket_types::text LIKE '%' || a.ticket_type_id || '%'
+      `);
+      const allTicketEmails = ticketResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean);
+
+      // Get all user emails for checking activation status
+      const userResult = await db.select({ email: users.email }).from(users);
+      const userEmails = new Set(userResult.map(u => u.email?.toLowerCase()).filter(Boolean));
+
+      // De-duplicate: ticket holders who DON'T have Stripe subscriptions
+      const ticketOnlyEmails = allTicketEmails.filter(email => !stripeEmails.has(email));
       
-      // Get all users and categorize them by their primary premium source
-      // Priority: Stripe (active subscription) > Luma (ticket-based) > Manual
-      const allUsers = await db.select({
-        id: users.id,
-        email: users.email,
-        subscriptionStatus: users.subscriptionStatus,
-        premiumSource: users.premiumSource,
-        premiumExpiresAt: users.premiumExpiresAt,
-      }).from(users);
-
-      let stripeSubscribers = 0;
-      let ticketBasedMembers = 0;
-      let manualGrants = 0;
-      const countedUserIds = new Set<number>();
-
-      for (const user of allUsers) {
-        // Check Stripe subscription first (highest priority)
-        if (user.subscriptionStatus === 'active') {
-          stripeSubscribers++;
-          countedUserIds.add(user.id);
-          continue;
-        }
-
-        // Check premium from Luma tickets or manual grants
-        if (user.premiumSource && user.premiumExpiresAt) {
-          const expiresAt = new Date(user.premiumExpiresAt);
-          if (expiresAt > new Date(now)) {
-            if (user.premiumSource === 'luma') {
-              ticketBasedMembers++;
-              countedUserIds.add(user.id);
-            } else if (user.premiumSource === 'manual') {
-              manualGrants++;
-              countedUserIds.add(user.id);
-            }
-          }
+      // Split by activation status
+      let ticketsActivated = 0;
+      let ticketsNotActivated = 0;
+      
+      for (const email of ticketOnlyEmails) {
+        if (userEmails.has(email)) {
+          ticketsActivated++;
+        } else {
+          ticketsNotActivated++;
         }
       }
 
-      const totalActiveMembers = countedUserIds.size;
+      // Get manual grants (users with premium_source = 'manual' who don't have Stripe or tickets)
+      const now = new Date().toISOString();
+      const manualResult = await db.select({
+        email: users.email,
+      }).from(users).where(
+        and(
+          eq(users.premiumSource, 'manual'),
+          sql`${users.premiumExpiresAt} > ${now}`
+        )
+      );
+      
+      // Only count manual grants that aren't already counted as Stripe or ticket holders
+      const allTicketEmailsSet = new Set(allTicketEmails);
+      let manualGrants = 0;
+      for (const user of manualResult) {
+        const email = user.email?.toLowerCase();
+        if (email && !stripeEmails.has(email) && !allTicketEmailsSet.has(email)) {
+          manualGrants++;
+        }
+      }
 
-      const breakdown: { source: 'stripe' | 'luma' | 'manual'; count: number; label: string }[] = [];
+      const totalActiveMembers = stripeSubscribers + ticketsActivated + ticketsNotActivated + manualGrants;
+
+      const breakdown: { source: 'stripe' | 'luma_activated' | 'luma_not_activated' | 'manual'; count: number; label: string }[] = [];
       
       if (stripeSubscribers > 0) {
         breakdown.push({ source: 'stripe', count: stripeSubscribers, label: 'Stripe Subscriptions' });
       }
-      if (ticketBasedMembers > 0) {
-        breakdown.push({ source: 'luma', count: ticketBasedMembers, label: 'Summit Ticket Holders' });
+      if (ticketsActivated > 0) {
+        breakdown.push({ source: 'luma_activated', count: ticketsActivated, label: 'Summit Tickets (Activated)' });
+      }
+      if (ticketsNotActivated > 0) {
+        breakdown.push({ source: 'luma_not_activated', count: ticketsNotActivated, label: 'Summit Tickets (Not Activated)' });
       }
       if (manualGrants > 0) {
         breakdown.push({ source: 'manual', count: manualGrants, label: 'Admin Grants' });
@@ -854,7 +883,8 @@ export class PostgresStorage implements IStorage {
       return {
         totalActiveMembers,
         stripeSubscribers,
-        ticketBasedMembers,
+        ticketsActivated,
+        ticketsNotActivated,
         manualGrants,
         breakdown,
       };
@@ -863,7 +893,8 @@ export class PostgresStorage implements IStorage {
       return {
         totalActiveMembers: 0,
         stripeSubscribers: 0,
-        ticketBasedMembers: 0,
+        ticketsActivated: 0,
+        ticketsNotActivated: 0,
         manualGrants: 0,
         breakdown: [],
       };

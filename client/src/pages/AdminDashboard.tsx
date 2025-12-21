@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield } from "lucide-react";
+import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield, UserCheck, UserX } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,10 +48,11 @@ interface CustomerRevenue {
 interface MemberStats {
   totalActiveMembers: number;
   stripeSubscribers: number;
-  ticketBasedMembers: number;
+  ticketsActivated: number;
+  ticketsNotActivated: number;
   manualGrants: number;
   breakdown: {
-    source: 'stripe' | 'luma' | 'manual';
+    source: 'stripe' | 'luma_activated' | 'luma_not_activated' | 'manual';
     count: number;
     label: string;
   }[];
@@ -190,7 +191,8 @@ export default function AdminDashboard() {
   const getSourceIcon = (source: string) => {
     switch (source) {
       case 'stripe': return <CreditCard className="h-3 w-3" />;
-      case 'luma': return <Ticket className="h-3 w-3" />;
+      case 'luma_activated': return <UserCheck className="h-3 w-3 text-green-600" />;
+      case 'luma_not_activated': return <UserX className="h-3 w-3 text-amber-500" />;
       case 'manual': return <Shield className="h-3 w-3" />;
       default: return <Users className="h-3 w-3" />;
     }
