@@ -809,6 +809,7 @@ export class PostgresStorage implements IStorage {
       `);
       const stripeEmails = new Set(stripeResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean));
       const stripeSubscribers = stripeEmails.size;
+      console.log('[MemberStats] Stripe subscribers:', stripeSubscribers);
 
       // Query approved premium ticket holders from attendance table
       // This counts all approved tickets for events that grant premium access
@@ -822,6 +823,7 @@ export class PostgresStorage implements IStorage {
           AND e.premium_ticket_types::text LIKE '%' || a.ticket_type_id || '%'
       `);
       const allTicketEmails = ticketResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean);
+      console.log('[MemberStats] Ticket holders (total):', allTicketEmails.length);
 
       // Get all user emails for checking activation status
       const userResult = await db.select({ email: users.email }).from(users);
@@ -864,6 +866,7 @@ export class PostgresStorage implements IStorage {
       }
 
       const totalActiveMembers = stripeSubscribers + ticketsActivated + ticketsNotActivated + manualGrants;
+      console.log('[MemberStats] Final counts:', { stripeSubscribers, ticketsActivated, ticketsNotActivated, manualGrants, totalActiveMembers });
 
       const breakdown: { source: 'stripe' | 'luma_activated' | 'luma_not_activated' | 'manual'; count: number; label: string }[] = [];
       
