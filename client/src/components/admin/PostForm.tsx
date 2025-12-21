@@ -331,7 +331,7 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
                 <FormControl>
                   <Input
                     {...field}
-                    type="url"
+                    type="text"
                     value={value || ""}
                     placeholder="https://... or /page-path"
                     className="border-0 bg-muted/50 focus-visible:ring-0 focus-visible:ring-offset-0"

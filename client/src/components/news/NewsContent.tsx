@@ -86,14 +86,21 @@ export function NewsContent() {
     }
   };
 
+  const isRelativePath = (url: string) => {
+    return url.startsWith('/');
+  };
+
   const handleSelectPost = (post: Post, isEditing = false) => {
     if (isEditing && (user?.isAdmin || post.creatorId === user?.id)) {
       setEditingPost(post);
     } else if (post.redirectUrl) {
       if (isExternalUrl(post.redirectUrl)) {
         window.open(post.redirectUrl, '_blank', 'noopener,noreferrer');
-      } else {
+      } else if (isRelativePath(post.redirectUrl)) {
         setLocation(post.redirectUrl);
+      } else {
+        // Internal full URL (e.g., https://sarasota.tech/summit) - navigate via browser
+        window.location.href = post.redirectUrl;
       }
     } else {
       const slug = formatPostTitleForUrl(post.title, post.id.toString());
