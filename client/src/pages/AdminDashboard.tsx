@@ -31,6 +31,7 @@ interface RevenueOverview {
   thisMonthRevenue: number;
   subscriptionRevenue: number;
   sponsorRevenue: number;
+  ticketRevenue: number;
   activeSubscriptions: number;
   totalCharges: number;
   totalCustomers: number;
@@ -441,6 +442,20 @@ export default function AdminDashboard() {
                         <span className="font-medium">
                           {revenueOverview?.sponsorRevenue 
                             ? `$${revenueOverview.sponsorRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+                            : '$0'}
+                        </span>
+                      </div>
+                      <div 
+                        className="flex items-center justify-between text-sm"
+                        data-testid="breakdown-ticket-revenue"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Ticket className="h-4 w-4" />
+                          <span>Ticket Revenue</span>
+                        </div>
+                        <span className="font-medium">
+                          {revenueOverview?.ticketRevenue 
+                            ? `$${revenueOverview.ticketRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
                             : '$0'}
                         </span>
                       </div>
