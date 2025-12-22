@@ -3242,16 +3242,31 @@ export class PostgresStorage implements IStorage {
       const activeSubscriptions = Number(subscriptionResult.rows[0]?.active_subscriptions || 0);
 
       // Get sponsor revenue from the Sarasota Tech Summit Sponsor product
+      // Captures both invoice-based payments and checkout session payments
       const sponsorRevenueResult = await db.execute(
         sql`
-          SELECT COALESCE(SUM(ch.amount), 0) as total
-          FROM stripe.charges ch
-          JOIN stripe.checkout_sessions cs ON ch.payment_intent = cs.payment_intent
-          JOIN stripe.checkout_session_line_items csli ON csli.checkout_session = cs.id
-          JOIN stripe.prices pr ON csli.price = pr.id
-          JOIN stripe.products prod ON pr.product = prod.id
-          WHERE ch.status = 'succeeded'
-          AND prod.id = 'prod_RNjmWu49ebdUpL'
+          WITH invoice_sponsor AS (
+            SELECT ch.id, ch.amount
+            FROM stripe.charges ch
+            JOIN stripe.invoices inv ON ch.invoice = inv.id
+            WHERE ch.status = 'succeeded'
+            AND inv.lines::text LIKE '%prod_RNjmWu49ebdUpL%'
+          ),
+          checkout_sponsor AS (
+            SELECT ch.id, ch.amount
+            FROM stripe.charges ch
+            JOIN stripe.checkout_sessions cs ON ch.payment_intent = cs.payment_intent
+            JOIN stripe.checkout_session_line_items csli ON csli.checkout_session = cs.id
+            JOIN stripe.prices pr ON csli.price = pr.id
+            WHERE ch.status = 'succeeded'
+            AND pr.product = 'prod_RNjmWu49ebdUpL'
+          )
+          SELECT COALESCE(SUM(amount), 0) as total
+          FROM (
+            SELECT id, amount FROM invoice_sponsor
+            UNION
+            SELECT id, amount FROM checkout_sponsor
+          ) combined
         `
       );
       const sponsorRevenue = sponsorRevenueResult.rows[0]?.total ? Number(sponsorRevenueResult.rows[0].total) / 100 : 0;
