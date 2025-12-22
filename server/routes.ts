@@ -1249,7 +1249,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Check if the event is private before allowing RSVP
+      // Get the event to return the registration page URL
       const event = await storage.getEventByApiId(event_api_id);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
@@ -1259,40 +1259,27 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Cannot RSVP to private events" });
       }
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user || !user.personId) {
-        return res.status(401).json({ error: "User not found" });
-      }
-
-      const person = await storage.getPerson(user.personId);
-      if (!person) {
-        return res.status(401).json({ error: "Associated person not found" });
-      }
-
-      const response = await lumaApiRequest("event/add-guests", undefined, {
-        method: "POST",
-        body: JSON.stringify({
-          guests: [{ email: user.email }],
-          event_api_id,
-        }),
-      });
-
-      await storage.upsertRsvpStatus({
-        userApiId: person.api_id,
-        eventApiId: event_api_id,
-        status: "approved",
-      });
-
-      console.log("Successfully RSVP'd to event:", {
+      // Instead of directly adding users via Luma API (which bypasses ticket purchases),
+      // redirect users to the Luma event page to register/purchase tickets there
+      console.log("Redirecting user to Luma event page for RSVP:", {
         eventId: event_api_id,
-        userEmail: user.email,
+        eventUrl: event.url,
       });
 
-      res.json({ message: "Successfully RSVP'd to event" });
+      res.json({ 
+        message: "Please register on the event page",
+        redirect: true,
+        eventUrl: event.url,
+        event: {
+          title: event.title,
+          startTime: event.startTime,
+          url: event.url,
+        },
+      });
     } catch (error) {
-      console.error("Failed to RSVP to event:", error);
+      console.error("Failed to process RSVP request:", error);
       res.status(500).json({
-        error: "Failed to RSVP to event",
+        error: "Failed to process RSVP request",
         message: error instanceof Error ? error.message : String(error),
       });
     }
@@ -2721,6 +2708,8 @@ export async function registerRoutes(app: Express) {
       }
 
       if (!person) {
+        // Instead of auto-inviting via Luma API (which bypasses ticket purchases),
+        // just return the next event URL so users can register there
         try {
           const events = await storage.getEvents();
           const nextEvent = events.find(
@@ -2728,24 +2717,15 @@ export async function registerRoutes(app: Express) {
           );
 
           if (nextEvent) {
-            await lumaApiRequest("event/add-guests", undefined, {
-              method: "POST",
-              body: JSON.stringify({
-                guests: [
-                  {
-                    email: normalizedEmail,
-                    message:
-                      "Someone tried to claim your profile in our system. We couldn't find your record, but we've invited you to our next event. Once you attend, you'll be able to claim your profile!",
-                  },
-                ],
-                event_api_id: nextEvent.api_id,
-              }),
+            console.log("Profile not found, returning event link (not sending Luma invite):", {
+              email: normalizedEmail,
+              eventUrl: nextEvent.url,
             });
 
             return res.json({
-              status: "invited",
+              status: "not_found",
               message:
-                "We couldn't find your profile, but we've invited you to our next event. Once you attend, you'll be able to claim your profile!",
+                "We couldn't find your profile. Check out our next event and register to join our community!",
               nextEvent: {
                 title: nextEvent.title,
                 startTime: nextEvent.startTime,
@@ -2754,7 +2734,7 @@ export async function registerRoutes(app: Express) {
             });
           }
         } catch (error) {
-          console.error("Failed to send event invite:", error);
+          console.error("Failed to fetch next event:", error);
         }
 
         return res.status(404).json({
@@ -4284,33 +4264,33 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing email or event_api_id" });
       }
 
-      console.log("Sending invite for event:", {
+      // Get the event to return the registration page URL
+      const event = await storage.getEventByApiId(event_api_id);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      console.log("Returning event registration link (not sending Luma invite):", {
         eventId: event_api_id,
         userEmail: email,
+        eventUrl: event.url,
       });
 
-      const response = await lumaApiRequest("event/send-invites", undefined, {
-        method: "POST",
-        body: JSON.stringify({
-          guests: [{ email }],
-          event_api_id,
-        }),
-      });
-
-      console.log("Invite sent successfully:", {
-        eventId: event_api_id,
-        userEmail: email,
-        response,
-      });
-
+      // Return the event URL so the user can register/buy tickets on Luma directly
+      // We no longer send Luma invites as that bypasses ticket purchases
       res.json({
-        message: "Invite sent successfully. Please check your email.",
-        details: response,
+        message: "Check out the event and register!",
+        eventUrl: event.url,
+        event: {
+          title: event.title,
+          startTime: event.startTime,
+          url: event.url,
+        },
       });
     } catch (error) {
-      console.error("Failed to send invite:", error);
+      console.error("Failed to get event info:", error);
       res.status(500).json({
-        error: "Failed to send invite",
+        error: "Failed to get event info",
         message: error instanceof Error ? error.message : String(error),
       });
     }
