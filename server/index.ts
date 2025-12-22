@@ -278,7 +278,7 @@ app.use(
 
   // Store interval IDs for cleanup
   let badgeAssignmentInterval: NodeJS.Timeout | null = null;
-  let eventSyncIntervals: { recentSyncInterval: NodeJS.Timeout, futureSyncInterval: NodeJS.Timeout } | null = null;
+  let eventSyncIntervals: { recentSyncInterval: NodeJS.Timeout | null, futureSyncInterval: NodeJS.Timeout | null } | null = null;
 
   // Schedule daily badge assignment (run async after server starts)
   setTimeout(async () => {
@@ -361,8 +361,12 @@ app.use(
     }
 
     if (eventSyncIntervals) {
-      clearInterval(eventSyncIntervals.recentSyncInterval);
-      clearInterval(eventSyncIntervals.futureSyncInterval);
+      if (eventSyncIntervals.recentSyncInterval) {
+        clearInterval(eventSyncIntervals.recentSyncInterval);
+      }
+      if (eventSyncIntervals.futureSyncInterval) {
+        clearInterval(eventSyncIntervals.futureSyncInterval);
+      }
       console.log('[Server] Cleared event sync intervals');
     }
     

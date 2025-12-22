@@ -189,7 +189,15 @@ async function syncFutureEvents() {
   }
 }
 
-export async function startEventSyncService(immediate: boolean = false): Promise<{ recentSyncInterval: NodeJS.Timeout, futureSyncInterval: NodeJS.Timeout }> {
+export async function startEventSyncService(immediate: boolean = false): Promise<{ recentSyncInterval: NodeJS.Timeout | null, futureSyncInterval: NodeJS.Timeout | null }> {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Skip all syncing in development - data only needs to sync in production
+  if (!isProduction) {
+    console.log('[EventSync] Skipping event sync in development environment');
+    return { recentSyncInterval: null, futureSyncInterval: null };
+  }
+
   // Run every hour for recently ended events
   const RECENT_SYNC_INTERVAL = 60 * 60 * 1000;
 
@@ -231,7 +239,7 @@ export async function startEventSyncService(immediate: boolean = false): Promise
     await syncFutureEvents();
   }
 
-  // Initial sync of future events when service starts
+  // Initial sync of future events when service starts (production only)
   syncFutureEvents().catch((error) => {
     console.error("Failed initial sync of future events:", error);
   });

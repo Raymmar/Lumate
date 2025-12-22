@@ -6,6 +6,16 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### December 22, 2025 - Environment-Aware Event Sync
+- **Issue**: Heavy Luma event sync was running on every server restart, slowing down development
+- **Solution**: Added environment check to skip all event syncing in development mode
+- **Changes Made**:
+  - `startEventSyncService()` now checks `NODE_ENV` and returns null intervals in development
+  - Production environment maintains startup sync + scheduled intervals (hourly for recent events, 6-hour for future events)
+  - Updated interval types to allow null values for proper cleanup handling
+- **Impact**: Development restarts are now much faster - no more waiting for Luma sync to complete
+- **Production Behavior**: Unchanged - full sync on deployment + scheduled intervals
+
 ### December 18, 2025 - Interactive Event Agenda System for Summit 2026
 - **Feature**: Built a comprehensive agenda management system for the Sarasota Tech Summit 2026
 - **Database Schema**:
