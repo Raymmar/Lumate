@@ -673,13 +673,13 @@ export default function SummitPage() {
             >
               <CardContent className="p-3 md:p-4 flex flex-col h-full">
                 <h3 className="text-xl font-bold mb-3 text-foreground">
-                  Main Stage
+                  Quick Pitch
                 </h3>
                 <p className="text-m text-muted-foreground flex-grow">
-                  Hear from local & regional business leaders about succeeding
-                  in a smaller market, reaching beyond the borders of our metro
-                  area and how to build a global scale business from right here
-                  in Sarasota.
+                  Are you looking for financing or feedback on your startup?
+                  Sign up for our Quick Pitch to put your concepts to the test
+                  in a fast paced competition with real time feedback from a
+                  panel of experienced investors.
                 </p>
               </CardContent>
             </Card>
@@ -691,9 +691,14 @@ export default function SummitPage() {
             >
               <CardContent className="p-3 md:p-4 flex flex-col h-full">
                 <h3 className="text-xl font-bold mb-3 text-foreground">
-                  Networking & Afterparty
+                  Demo Stations
                 </h3>
-                <p className="text-m text-muted-foreground flex-grow">Tech Summit is about building meaningful connections and pushing the city forward. Join us for a day of world class networking with the regions top thinkers in tech, finance, business and more.</p>
+                <p className="text-m text-muted-foreground flex-grow">
+                  Are you working on something interesting and want to show it
+                  off? A robotics project, new softwre, game, 3D print or
+                  hardware? Fill out the form below and we might invite you to
+                  demo it live at the Summit.
+                </p>
               </CardContent>
             </Card>
           </div>
