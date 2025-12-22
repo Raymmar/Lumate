@@ -3246,9 +3246,9 @@ export class PostgresStorage implements IStorage {
         sql`
           SELECT COALESCE(SUM(ch.amount), 0) as total
           FROM stripe.charges ch
-          JOIN stripe.invoices inv ON ch.invoice = inv.id
-          JOIN stripe.invoice_line_items ili ON ili.invoice = inv.id
-          JOIN stripe.prices pr ON ili.price = pr.id
+          JOIN stripe.checkout_sessions cs ON ch.payment_intent = cs.payment_intent
+          JOIN stripe.checkout_session_line_items csli ON csli.checkout_session = cs.id
+          JOIN stripe.prices pr ON csli.price = pr.id
           JOIN stripe.products prod ON pr.product = prod.id
           WHERE ch.status = 'succeeded'
           AND prod.id = 'prod_RNjmWu49ebdUpL'
