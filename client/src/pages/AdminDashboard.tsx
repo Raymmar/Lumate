@@ -413,9 +413,6 @@ export default function AdminDashboard() {
                             <span className="text-xs text-muted-foreground ml-1">/yr</span>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          From {memberStats?.stripeSubscribers || revenueOverview.activeSubscriptions || 0} annual memberships
-                        </p>
                       </div>
                     )}
                   </>
