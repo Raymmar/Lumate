@@ -394,6 +394,30 @@ export default function AdminDashboard() {
                     {memberStats && memberStats.breakdown.length === 0 && (
                       <div className="text-sm text-muted-foreground">No active members</div>
                     )}
+                    
+                    {/* Annual Recurring Revenue Highlight */}
+                    {revenueOverview?.subscriptionRevenue && revenueOverview.subscriptionRevenue > 0 && (
+                      <div 
+                        className="mt-4 pt-4 border-t border-primary/20"
+                        data-testid="arr-highlight"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                            <TrendingUp className="h-4 w-4 text-green-600" />
+                            <span>Annual Recurring Revenue</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xl font-bold text-green-600 dark:text-green-400" data-testid="text-arr-value">
+                              ${revenueOverview.subscriptionRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                            <span className="text-xs text-muted-foreground ml-1">/yr</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          From {memberStats?.stripeSubscribers || revenueOverview.activeSubscriptions || 0} annual memberships
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
               </CardContent>
