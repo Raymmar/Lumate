@@ -328,6 +328,7 @@ router.get("/revenue-overview", async (req, res) => {
     // Parse range parameter to determine date filter
     const range = req.query.range as string || 'lifetime';
     let startTimestamp: number | undefined;
+    let endTimestamp: number | undefined;
     
     if (range === 'year') {
       // Year to date - from January 1st of current year
@@ -335,18 +336,21 @@ router.get("/revenue-overview", async (req, res) => {
       yearStart.setMonth(0, 1);
       yearStart.setHours(0, 0, 0, 0);
       startTimestamp = Math.floor(yearStart.getTime() / 1000);
-    } else if (range === 'quarter') {
-      // Current quarter - from first day of current quarter
-      const now = new Date();
-      const quarterStart = new Date();
-      const currentQuarter = Math.floor(now.getMonth() / 3);
-      quarterStart.setMonth(currentQuarter * 3, 1);
-      quarterStart.setHours(0, 0, 0, 0);
-      startTimestamp = Math.floor(quarterStart.getTime() / 1000);
+    } else if (range === 'custom') {
+      // Custom date range - from/to query params (unix timestamps)
+      const fromParam = req.query.from as string;
+      const toParam = req.query.to as string;
+      if (fromParam) {
+        startTimestamp = parseInt(fromParam, 10);
+      }
+      if (toParam) {
+        // Add a day to make the end date inclusive
+        endTimestamp = parseInt(toParam, 10) + 86400;
+      }
     }
     // For 'lifetime', startTimestamp remains undefined
 
-    const overview = await storage.getStripeRevenueOverview(startTimestamp);
+    const overview = await storage.getStripeRevenueOverview(startTimestamp, endTimestamp);
     return res.json(overview);
   } catch (error: any) {
     console.error("Error fetching revenue overview:", error);

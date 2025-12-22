@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield, UserCheck, UserX, Handshake } from "lucide-react";
+import { Users, Calendar as CalendarIcon, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield, UserCheck, UserX, Handshake } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +50,7 @@ interface CustomerRevenue {
   status: string;
 }
 
-type TimeRange = 'lifetime' | 'year' | 'quarter';
+type TimeRange = 'lifetime' | 'year' | 'custom';
 
 interface MemberStats {
   totalActiveMembers: number;
@@ -64,7 +67,13 @@ interface MemberStats {
 
 export default function AdminDashboard() {
   const [_, navigate] = useLocation();
-  const [revenueTimeRange, setRevenueTimeRange] = useState<TimeRange>('lifetime');
+  const [revenueTimeRange, setRevenueTimeRange] = useState<TimeRange>('year');
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined
+  });
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const currentYear = new Date().getFullYear();
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
     queryFn: async () => {
@@ -107,9 +116,16 @@ export default function AdminDashboard() {
 
   // Fetch comprehensive revenue overview with date range
   const { data: revenueOverview, isLoading: isOverviewLoading, refetch: refetchRevenue } = useQuery<RevenueOverview>({
-    queryKey: ["/api/stripe/revenue-overview", revenueTimeRange],
+    queryKey: ["/api/stripe/revenue-overview", revenueTimeRange, customDateRange.from?.getTime(), customDateRange.to?.getTime()],
     queryFn: async () => {
-      const response = await fetch(`/api/stripe/revenue-overview?range=${revenueTimeRange}`);
+      let url = `/api/stripe/revenue-overview?range=${revenueTimeRange}`;
+      if (revenueTimeRange === 'custom' && customDateRange.from) {
+        url += `&from=${Math.floor(customDateRange.from.getTime() / 1000)}`;
+        if (customDateRange.to) {
+          url += `&to=${Math.floor(customDateRange.to.getTime() / 1000)}`;
+        }
+      }
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error("Failed to fetch revenue overview");
       }
@@ -120,11 +136,17 @@ export default function AdminDashboard() {
 
   const revenueCardTitle = useMemo(() => {
     switch (revenueTimeRange) {
-      case 'year': return 'Year to Date Revenue';
-      case 'quarter': return 'This Quarter Revenue';
-      default: return 'Lifetime Revenue';
+      case 'year': return `${currentYear} Revenue`;
+      case 'custom': 
+        if (customDateRange.from && customDateRange.to) {
+          return `${format(customDateRange.from, 'MMM d')} - ${format(customDateRange.to, 'MMM d, yyyy')}`;
+        } else if (customDateRange.from) {
+          return `From ${format(customDateRange.from, 'MMM d, yyyy')}`;
+        }
+        return 'Custom Date Range';
+      default: return 'All Time Revenue';
     }
-  }, [revenueTimeRange]);
+  }, [revenueTimeRange, customDateRange, currentYear]);
 
   // Fetch customer revenue data
   const { data: customerRevenue, isLoading: isCustomerLoading } = useQuery<CustomerRevenue[]>({
@@ -386,20 +408,59 @@ export default function AdminDashboard() {
                     {revenueCardTitle}
                   </CardTitle>
                   <div className="flex rounded-md border border-border/50 overflow-hidden text-xs" data-testid="toggle-revenue-timerange">
-                    {(['lifetime', 'year', 'quarter'] as TimeRange[]).map((range) => (
-                      <button
-                        key={range}
-                        onClick={() => setRevenueTimeRange(range)}
-                        className={`px-2 py-1 transition-colors ${
-                          revenueTimeRange === range 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-background hover:bg-muted'
-                        }`}
-                        data-testid={`button-range-${range}`}
-                      >
-                        {range === 'lifetime' ? 'All' : range === 'year' ? 'YTD' : 'Q'}
-                      </button>
-                    ))}
+                    <button
+                      onClick={() => setRevenueTimeRange('lifetime')}
+                      className={`px-2 py-1 transition-colors ${
+                        revenueTimeRange === 'lifetime' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-background hover:bg-muted'
+                      }`}
+                      data-testid="button-range-lifetime"
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setRevenueTimeRange('year')}
+                      className={`px-2 py-1 transition-colors ${
+                        revenueTimeRange === 'year' 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-background hover:bg-muted'
+                      }`}
+                      data-testid="button-range-year"
+                    >
+                      {currentYear}
+                    </button>
+                    <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={`px-2 py-1 transition-colors ${
+                            revenueTimeRange === 'custom' 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'bg-background hover:bg-muted'
+                          }`}
+                          data-testid="button-range-custom"
+                        >
+                          <CalendarIcon className="h-3 w-3" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <Calendar
+                          mode="range"
+                          selected={{ from: customDateRange.from, to: customDateRange.to }}
+                          onSelect={(range) => {
+                            setCustomDateRange({ from: range?.from, to: range?.to });
+                            if (range?.from) {
+                              setRevenueTimeRange('custom');
+                            }
+                            if (range?.from && range?.to) {
+                              setIsCalendarOpen(false);
+                            }
+                          }}
+                          numberOfMonths={2}
+                          data-testid="calendar-date-range"
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               </CardHeader>
