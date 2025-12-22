@@ -715,12 +715,7 @@ export default function SummitPage() {
                 </div>
               </div>
 
-              <p className="text-lg text-muted-foreground mb-8">
-                Join us for the second annual Sarasota Tech Summit featuring a
-                startup school, investor panels, networking opportunities, and
-                insights into how we're building the future of Sarasota's tech
-                ecosystem.
-              </p>
+              <p className="text-lg text-muted-foreground mb-8">Join us for the second annual Sarasota Tech Summit featuring a startup school, investor quick pitch event, demo stations, hands on workshops, networking opportunities, and insights into how we're building the future of Sarasota's tech ecosystem.</p>
 
               <div>
                 <a
