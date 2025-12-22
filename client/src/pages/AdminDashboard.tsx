@@ -364,81 +364,74 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Total Revenue */}
-            <Card data-testid="card-total-revenue">
+            {/* Revenue Card - Featured with breakdown */}
+            <Card className="md:col-span-2 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" data-testid="card-revenue">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium flex items-center gap-2">
                   <DollarSign className="h-4 w-4" />
-                  Total Revenue
+                  Lifetime Revenue
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="text-2xl font-bold" data-testid="text-total-revenue">
-                  {isOverviewLoading ? '...' : revenueOverview?.totalRevenue 
-                    ? `$${revenueOverview.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
-                    : '$0'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {revenueOverview?.totalCharges || 0} charges
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* This Month */}
-            <Card data-testid="card-this-month">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
-                  This Month
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold" data-testid="text-this-month-revenue">
-                  {isOverviewLoading ? '...' : revenueOverview?.thisMonthRevenue 
-                    ? `$${revenueOverview.thisMonthRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
-                    : '$0'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Month-to-date
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Membership Revenue */}
-            <Card className="md:col-span-2" data-testid="card-membership-revenue">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <Coins className="h-4 w-4" />
-                  Subscription Revenue
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold" data-testid="text-subscription-revenue">
-                  {isOverviewLoading ? '...' : revenueOverview?.subscriptionRevenue 
-                    ? `$${revenueOverview.subscriptionRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
-                    : '$0'}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {revenueOverview?.activeSubscriptions || 0} active Stripe subscriptions
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Total Customers */}
-            <Card className="md:col-span-2" data-testid="card-total-customers">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" />
-                  Stripe Customers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold" data-testid="text-total-customers">
-                  {isOverviewLoading ? '...' : revenueOverview?.totalCustomers || 0}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Total customers in Stripe
-                </div>
+                {isOverviewLoading ? (
+                  <div className="space-y-3">
+                    <div className="h-9 w-24 bg-muted/50 rounded animate-pulse" />
+                    <div className="space-y-2">
+                      <div className="h-5 w-full bg-muted/30 rounded animate-pulse" />
+                      <div className="h-5 w-full bg-muted/30 rounded animate-pulse" />
+                      <div className="h-5 w-full bg-muted/30 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold mb-3" data-testid="text-total-revenue">
+                      {revenueOverview?.totalRevenue 
+                        ? `$${revenueOverview.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+                        : '$0'}
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div 
+                        className="flex items-center justify-between text-sm"
+                        data-testid="breakdown-customers"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <CreditCard className="h-4 w-4" />
+                          <span>Total Stripe Customers</span>
+                        </div>
+                        <span className="font-medium">{revenueOverview?.totalCustomers || 0}</span>
+                      </div>
+                      <div 
+                        className="flex items-center justify-between text-sm"
+                        data-testid="breakdown-month-to-date"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <TrendingUp className="h-4 w-4" />
+                          <span>Month to Date Revenue</span>
+                        </div>
+                        <span className="font-medium">
+                          {revenueOverview?.thisMonthRevenue 
+                            ? `$${revenueOverview.thisMonthRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+                            : '$0'}
+                        </span>
+                      </div>
+                      <div 
+                        className="flex items-center justify-between text-sm"
+                        data-testid="breakdown-subscription-revenue"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Coins className="h-4 w-4" />
+                          <span>Subscription Revenue</span>
+                        </div>
+                        <span className="font-medium">
+                          {revenueOverview?.subscriptionRevenue 
+                            ? `$${revenueOverview.subscriptionRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+                            : '$0'}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
