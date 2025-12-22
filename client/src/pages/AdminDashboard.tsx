@@ -574,10 +574,7 @@ export default function AdminDashboard() {
                     customerRevenue.slice(0, 15).map((customer) => (
                       <tr key={customer.customerId} className="border-t" data-testid={`row-customer-${customer.customerId}`}>
                         <td className="px-4 py-3">
-                          <div>
-                            <div className="font-medium">{customer.name || 'Unknown'}</div>
-                            <div className="text-xs text-muted-foreground">{customer.email}</div>
-                          </div>
+                          <div className="font-medium">{customer.name || 'Unknown'}</div>
                         </td>
                         <td className="px-4 py-3 text-right font-semibold whitespace-nowrap">
                           ${customer.totalPaid.toFixed(2)}
