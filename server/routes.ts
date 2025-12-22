@@ -3007,17 +3007,23 @@ export async function registerRoutes(app: Express) {
       }
 
       let api_id = null;
+      let displayName = user.displayName;
+      
       if (user.personId) {
         const person = await storage.getPerson(user.personId);
         if (person) {
           api_id = person.api_id;
+          // Use person's userName as fallback if user displayName is not set
+          if (!displayName && person.userName) {
+            displayName = person.userName;
+          }
         }
       }
 
       return res.json({
         id: user.id,
         email: user.email,
-        displayName: user.displayName,
+        displayName,
         isVerified: user.isVerified,
         isAdmin: user.isAdmin,
         personId: user.personId,
@@ -3075,12 +3081,21 @@ export async function registerRoutes(app: Express) {
         });
       });
 
+      // Get display name with fallback to linked person's userName
+      let displayName = user.displayName;
+      if (!displayName && user.personId) {
+        const person = await storage.getPerson(user.personId);
+        if (person?.userName) {
+          displayName = person.userName;
+        }
+      }
+
       return res.json({
         message: "Logged in successfully",
         user: {
           id: user.id,
           email: user.email,
-          displayName: user.displayName,
+          displayName,
           isVerified: user.isVerified,
           isAdmin: user.isAdmin,
           personId: user.personId,
