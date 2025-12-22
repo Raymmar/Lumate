@@ -1249,7 +1249,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Check if the event is private before allowing RSVP
       const event = await storage.getEventByApiId(event_api_id);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
@@ -1259,40 +1258,15 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Cannot RSVP to private events" });
       }
 
-      const user = await storage.getUser(req.session.userId);
-      if (!user || !user.personId) {
-        return res.status(401).json({ error: "User not found" });
-      }
-
-      const person = await storage.getPerson(user.personId);
-      if (!person) {
-        return res.status(401).json({ error: "Associated person not found" });
-      }
-
-      const response = await lumaApiRequest("event/add-guests", undefined, {
-        method: "POST",
-        body: JSON.stringify({
-          guests: [{ email: user.email }],
-          event_api_id,
-        }),
+      // Redirect users to Luma event page to register/purchase tickets
+      res.json({ 
+        redirect: true,
+        eventUrl: event.url,
       });
-
-      await storage.upsertRsvpStatus({
-        userApiId: person.api_id,
-        eventApiId: event_api_id,
-        status: "approved",
-      });
-
-      console.log("Successfully RSVP'd to event:", {
-        eventId: event_api_id,
-        userEmail: user.email,
-      });
-
-      res.json({ message: "Successfully RSVP'd to event" });
     } catch (error) {
-      console.error("Failed to RSVP to event:", error);
+      console.error("Failed to process RSVP request:", error);
       res.status(500).json({
-        error: "Failed to RSVP to event",
+        error: "Failed to process RSVP request",
         message: error instanceof Error ? error.message : String(error),
       });
     }

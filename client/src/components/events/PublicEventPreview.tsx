@@ -167,13 +167,17 @@ export function PublicEventPreview({
 
       return response.json();
     },
-    onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "You've successfully RSVP'd to this event.",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
-      queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
+    onSuccess: (data) => {
+      if (data.redirect && data.eventUrl) {
+        window.open(data.eventUrl, '_blank');
+      } else {
+        toast({
+          title: "Success!",
+          description: "You've successfully RSVP'd to this event.",
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
+        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
+      }
     },
     onError: (error: Error) => {
       toast({
