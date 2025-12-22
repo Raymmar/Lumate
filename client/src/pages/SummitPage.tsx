@@ -695,9 +695,7 @@ export default function SummitPage() {
             <div className="w-full max-w-xl">
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">Sarasota Tech Summit</h1>
 
-              <p className="text-xl md:text-2xl font-semibold mb-4 text-foreground">
-                Tech Summit & Startup Fair
-              </p>
+              <p className="text-xl md:text-2xl font-semibold mb-4 text-foreground">One Day Mini-Conf & Startup Fair</p>
 
               <div className="space-y-3 mb-8 text-muted-foreground">
                 <div className="flex items-center gap-3">
