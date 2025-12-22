@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield, UserCheck, UserX } from "lucide-react";
+import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield, UserCheck, UserX, Handshake } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,7 @@ interface RevenueOverview {
   totalRevenue: number;
   thisMonthRevenue: number;
   subscriptionRevenue: number;
+  sponsorRevenue: number;
   activeSubscriptions: number;
   totalCharges: number;
   totalCustomers: number;
@@ -426,6 +427,20 @@ export default function AdminDashboard() {
                         <span className="font-medium">
                           {revenueOverview?.subscriptionRevenue 
                             ? `$${revenueOverview.subscriptionRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
+                            : '$0'}
+                        </span>
+                      </div>
+                      <div 
+                        className="flex items-center justify-between text-sm"
+                        data-testid="breakdown-sponsor-revenue"
+                      >
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Handshake className="h-4 w-4" />
+                          <span>Sponsor Revenue</span>
+                        </div>
+                        <span className="font-medium">
+                          {revenueOverview?.sponsorRevenue 
+                            ? `$${revenueOverview.sponsorRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` 
                             : '$0'}
                         </span>
                       </div>

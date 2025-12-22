@@ -3194,6 +3194,7 @@ export class PostgresStorage implements IStorage {
     totalRevenue: number;
     thisMonthRevenue: number;
     subscriptionRevenue: number;
+    sponsorRevenue: number;
     activeSubscriptions: number;
     totalCharges: number;
     totalCustomers: number;
@@ -3240,6 +3241,21 @@ export class PostgresStorage implements IStorage {
       const subscriptionRevenue = subscriptionResult.rows[0]?.subscription_revenue ? Number(subscriptionResult.rows[0].subscription_revenue) / 100 : 0;
       const activeSubscriptions = Number(subscriptionResult.rows[0]?.active_subscriptions || 0);
 
+      // Get sponsor revenue from the Sarasota Tech Summit Sponsor product
+      const sponsorRevenueResult = await db.execute(
+        sql`
+          SELECT COALESCE(SUM(ch.amount), 0) as total
+          FROM stripe.charges ch
+          JOIN stripe.invoices inv ON ch.invoice = inv.id
+          JOIN stripe.invoice_line_items ili ON ili.invoice = inv.id
+          JOIN stripe.prices pr ON ili.price = pr.id
+          JOIN stripe.products prod ON pr.product = prod.id
+          WHERE ch.status = 'succeeded'
+          AND prod.id = 'prod_RNjmWu49ebdUpL'
+        `
+      );
+      const sponsorRevenue = sponsorRevenueResult.rows[0]?.total ? Number(sponsorRevenueResult.rows[0].total) / 100 : 0;
+
       // Get total charges and customers
       const chargesResult = await db.execute(
         sql`SELECT COUNT(*) as total FROM stripe.charges`
@@ -3255,6 +3271,7 @@ export class PostgresStorage implements IStorage {
         totalRevenue,
         thisMonthRevenue,
         subscriptionRevenue,
+        sponsorRevenue,
         activeSubscriptions,
         totalCharges,
         totalCustomers,
@@ -3265,6 +3282,7 @@ export class PostgresStorage implements IStorage {
         totalRevenue: 0,
         thisMonthRevenue: 0,
         subscriptionRevenue: 0,
+        sponsorRevenue: 0,
         activeSubscriptions: 0,
         totalCharges: 0,
         totalCustomers: 0,
