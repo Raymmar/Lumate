@@ -1318,28 +1318,33 @@ export class PostgresStorage implements IStorage {
         
         // Check if the cached member is still valid (less than 24 hours old)
         if (now.getTime() - updatedAt.getTime() < EXPIRATION_TIME) {
-          // Verify if the cached member still has a verified user account
-          const verifiedUser = await db
+          // Verify if the cached member still has a verified user account AND a claimed company profile
+          const verifiedUserWithCompany = await db
             .select({ count: sql<number>`count(*)` })
             .from(people)
             .innerJoin(users, eq(users.email, people.email))
+            .innerJoin(companyMembers, eq(companyMembers.userId, users.id))
+            .innerJoin(companies, eq(companies.id, companyMembers.companyId))
             .where(and(
               eq(people.id, cachedMember.personId),
-              eq(users.isVerified, true)
+              eq(users.isVerified, true),
+              sql`companies.name IS NOT NULL AND companies.name != ''`,
+              sql`(companies.bio IS NOT NULL AND companies.bio != '') OR (companies.description IS NOT NULL AND companies.description != '')`
             ));
           
-          if (verifiedUser[0].count > 0) {
+          if (verifiedUserWithCompany[0].count > 0) {
             personId = cachedMember.personId;
             console.log('Using cached featured member:', personId);
           } else {
-            console.log('Cached featured member is no longer verified, selecting new one');
+            console.log('Cached featured member is no longer verified or missing company profile, selecting new one');
           }
         }
       }
       
       // If we don't have a valid cached member, select a random one from verified attendees with at least 10 events
+      // AND who have a claimed company profile (connected to a company with at least name and bio filled out)
       if (!personId) {
-        // First try to get only verified attendees with 10+ events
+        // First try to get only verified attendees with 10+ events AND a claimed company profile
         const query = db
           .select({
             id: people.id,
@@ -1347,45 +1352,51 @@ export class PostgresStorage implements IStorage {
           })
           .from(people)
           .innerJoin(users, eq(users.email, people.email))
+          .innerJoin(companyMembers, eq(companyMembers.userId, users.id))
+          .innerJoin(companies, eq(companies.id, companyMembers.companyId))
           .where(and(
-            sql`(stats->>'totalEventsAttended')::int >= 10`,
-            eq(users.isVerified, true)
+            sql`(people.stats->>'totalEventsAttended')::int >= 10`,
+            eq(users.isVerified, true),
+            // Require company to have at least name and bio/description filled out
+            sql`companies.name IS NOT NULL AND companies.name != ''`,
+            sql`(companies.bio IS NOT NULL AND companies.bio != '') OR (companies.description IS NOT NULL AND companies.description != '')`
           ))
           .orderBy(sql`RANDOM()`)
           .limit(10);
         
         let eligibleMembers = await query;
         
-        // If we don't have any with 10+ events, fall back to verified top attendees
+        // If we don't have any with 10+ events and company profile, fall back to verified members with company profiles
         if (eligibleMembers.length === 0) {
-          console.log('No verified members with 10+ events found, falling back to verified top attendees');
-          const allTopAttendees = await this.getTopAttendees(20); // Get more to filter
-
-          // Filter to only verified members
-          const verifiedTopAttendees = [];
-          for (const attendee of allTopAttendees) {
-            const verifiedCheck = await db
-              .select({ count: sql<number>`count(*)` })
-              .from(users)
-              .where(and(
-                eq(users.email, attendee.email),
-                eq(users.isVerified, true)
-              ));
-              
-            if (verifiedCheck[0].count > 0) {
-              verifiedTopAttendees.push(attendee);
-              if (verifiedTopAttendees.length >= 10) break; // Stop once we have enough
-            }
-          }
+          console.log('No verified members with 10+ events and company profile found, falling back to verified members with company profiles');
           
-          if (verifiedTopAttendees.length === 0) {
+          // Get verified members who have a claimed company profile
+          const membersWithCompany = await db
+            .select({
+              id: people.id,
+              email: people.email
+            })
+            .from(people)
+            .innerJoin(users, eq(users.email, people.email))
+            .innerJoin(companyMembers, eq(companyMembers.userId, users.id))
+            .innerJoin(companies, eq(companies.id, companyMembers.companyId))
+            .where(and(
+              eq(users.isVerified, true),
+              sql`companies.name IS NOT NULL AND companies.name != ''`,
+              sql`(companies.bio IS NOT NULL AND companies.bio != '') OR (companies.description IS NOT NULL AND companies.description != '')`
+            ))
+            .orderBy(sql`RANDOM()`)
+            .limit(10);
+          
+          if (membersWithCompany.length === 0) {
+            console.log('No verified members with company profiles found');
             return null;
           }
           
-          eligibleMembers = verifiedTopAttendees;
-          console.log(`Found ${eligibleMembers.length} verified top attendees`);
+          eligibleMembers = membersWithCompany;
+          console.log(`Found ${eligibleMembers.length} verified members with company profiles`);
         } else {
-          console.log(`Found ${eligibleMembers.length} verified members with 10+ events`);
+          console.log(`Found ${eligibleMembers.length} verified members with 10+ events and company profiles`);
         }
         
         // Select a random member from the eligible pool
