@@ -1,10 +1,10 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Post, type InsertPost } from "@shared/schema";
 import { ArticleContent } from "@/components/news/ArticleContent";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Edit, Plus, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import NotFound from "./not-found";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,22 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export function ArticlePage() {
   const { title } = useParams<{ title: string }>();
@@ -24,8 +40,8 @@ export function ArticlePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Fetch the specific post by slug
   const { data: postData, isLoading: isPostLoading, error: postError } = useQuery<Post>({
     queryKey: ["/api/posts/by-title", title],
     queryFn: async () => {
@@ -44,9 +60,30 @@ export function ArticlePage() {
     }
   });
 
-  // Fetch all posts for navigation
   const { data: postsData, isLoading: isPostsLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (postId: number) => {
+      await apiRequest(`/api/posts/${postId}`, 'DELETE');
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Post deleted successfully"
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+      setShowDeleteConfirm(false);
+      setLocation("/news");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive"
+      });
+    }
   });
 
   const posts = postsData?.posts || [];
@@ -82,14 +119,12 @@ export function ArticlePage() {
     setLocation("/news");
   };
 
-  // Check if user can create posts (admin or has publish_content permission)
   const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
 
-  // Check if user can edit a specific post
   const canEditPost = (post: Post) => {
     return Boolean(
-      user?.isAdmin || // Admin can edit any post
-      (post.creatorId === user?.id) // Post creator can edit their own posts
+      user?.isAdmin ||
+      (post.creatorId === user?.id)
     );
   };
 
@@ -107,6 +142,12 @@ export function ArticlePage() {
     }
   };
 
+  const handleDeletePost = () => {
+    if (post) {
+      setShowDeleteConfirm(true);
+    }
+  };
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setIsEditing(false);
@@ -119,28 +160,21 @@ export function ArticlePage() {
     setIsSubmitting(true);
     try {
       if (isEditing && editingPost) {
-        // Update existing post
         await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', data);
         toast({
           title: "Success",
           description: "Post updated successfully"
         });
         
-        // Invalidate queries to refresh data
         await queryClient.invalidateQueries({ queryKey: ["/api/posts/by-title", title] });
         await queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
       } else {
-        // Create new post
         await apiRequest('/api/admin/posts', 'POST', data);
         toast({
           title: "Success",
           description: "Post created successfully"
         });
         
-        // Navigate to the new post
-        const slug = formatPostTitleForUrl(data.title, '');
-        // We'll let the backend handle the redirect since we don't have the ID yet
-        // For now, just close the modal and refresh
         await queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
       }
       
@@ -160,12 +194,10 @@ export function ArticlePage() {
     return (
       <DashboardLayout>
         <div className="max-w-4xl mx-auto">
-          {/* Back button skeleton */}
           <div className="mb-6">
             <Skeleton className="h-10 w-32" />
           </div>
           
-          {/* Title skeleton */}
           <div className="space-y-4">
             <Skeleton className="h-12 w-3/4" />
             <Skeleton className="h-6 w-1/2" />
@@ -173,12 +205,10 @@ export function ArticlePage() {
             <Skeleton className="h-4 w-2/3" />
           </div>
           
-          {/* Featured image skeleton */}
           <div className="mt-8">
             <Skeleton className="w-full aspect-video" />
           </div>
           
-          {/* Content skeleton */}
           <div className="mt-8 space-y-3">
             {[...Array(8)].map((_, i) => (
               <Skeleton key={i} className="h-4 w-full" />
@@ -196,7 +226,6 @@ export function ArticlePage() {
   return (
     <DashboardLayout>
       <div className="max-w-4xl mx-auto">
-        {/* Header with Back button and Edit/New Post buttons */}
         <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
@@ -210,15 +239,35 @@ export function ArticlePage() {
           
           <div className="flex items-center gap-2">
             {post && canEditPost(post) && (
-              <Button
-                variant="outline"
-                onClick={handleEditPost}
-                className="gap-2"
-                data-testid="button-edit-post"
-              >
-                <Edit className="w-4 h-4" />
-                Edit Post
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    data-testid="button-post-actions"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                    Actions
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={handleEditPost}
+                    data-testid="menu-edit-post"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Post
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={handleDeletePost}
+                    className="text-red-600 focus:text-red-600"
+                    data-testid="menu-delete-post"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete Post
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             {canCreatePosts && (
               <Button
@@ -234,7 +283,6 @@ export function ArticlePage() {
           </div>
         </div>
 
-        {/* Article Content */}
         <ArticleContent
           post={post}
           posts={posts}
@@ -243,7 +291,6 @@ export function ArticlePage() {
           showMembersOnlyOverlay={true}
         />
         
-        {/* Post Modal */}
         <PostModal
           open={isModalOpen}
           onOpenChange={(open) => {
@@ -279,6 +326,27 @@ export function ArticlePage() {
             isEditing={isEditing}
           />
         </PostModal>
+
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Post</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{post?.title}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => post && deleteMutation.mutate(post.id)}
+                className="bg-red-600 hover:bg-red-700"
+                data-testid="button-confirm-delete-article"
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

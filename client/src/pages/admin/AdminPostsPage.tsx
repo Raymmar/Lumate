@@ -15,6 +15,7 @@ export default function AdminPostsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const createFormRef = useRef<PostFormRef>(null);
   const editFormRef = useRef<PostFormRef>(null);
@@ -113,6 +114,29 @@ export default function AdminPostsPage() {
     }
   };
 
+  const handleDeletePost = async () => {
+    if (!editingPost || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      await apiRequest(`/api/posts/${editingPost.id}`, 'DELETE');
+      setEditingPost(null);
+      toast({
+        title: "Success",
+        description: "Post deleted successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
+      await queryClient.invalidateQueries({ queryKey: ['/api/public/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <AdminLayout title={
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -163,15 +187,19 @@ export default function AdminPostsPage() {
             setEditingPost(null);
             setIsSubmitting(false);
             setIsSavingDraft(false);
+            setIsDeleting(false);
           }
         }}
         title="Edit Post"
         mode="edit"
         onSubmit={() => {}}
         onSaveDraft={handleSaveDraft}
+        onDelete={handleDeletePost}
         isSubmitting={isSubmitting}
         isSavingDraft={isSavingDraft}
+        isDeleting={isDeleting}
         currentStatus={(editingPost?.status as 'draft' | 'published') || 'published'}
+        postTitle={editingPost?.title || ''}
       >
         {editingPost && (
           <PostForm 
