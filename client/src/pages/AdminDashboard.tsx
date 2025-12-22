@@ -508,16 +508,16 @@ export default function AdminDashboard() {
                               className="text-xs"
                               data-testid="button-preset-last-year"
                               onClick={() => {
-                                const now = new Date();
+                                const lastYear = new Date().getFullYear() - 1;
                                 setCustomDateRange({
-                                  from: startOfDay(subYears(now, 1)),
-                                  to: endOfDay(now)
+                                  from: new Date(lastYear, 0, 1),
+                                  to: new Date(lastYear, 11, 31, 23, 59, 59, 999)
                                 });
                                 setRevenueTimeRange('custom');
                                 setIsCalendarOpen(false);
                               }}
                             >
-                              Last Year
+                              {new Date().getFullYear() - 1}
                             </Button>
                           </div>
                           
