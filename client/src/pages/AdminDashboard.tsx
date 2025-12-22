@@ -7,14 +7,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useMemo } from "react";
-import { PostsTable } from "@/components/admin/PostsTable";
-import { PostModal } from "@/components/admin/PostModal";
-import { PostForm } from "@/components/admin/PostForm";
 import { Plus } from "lucide-react";
-import type { Post, InsertPost } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/api";
-import { queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 
 interface RevenueData {
@@ -161,11 +154,6 @@ export default function AdminDashboard() {
     retry: 1
   });
 
-  // Posts management state
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
   
   // Navigation functions
   const handleNewMember = () => {
@@ -176,54 +164,6 @@ export default function AdminDashboard() {
     navigate("/admin/companies?action=new");
   };
 
-  // Fetch all posts for navigation
-  const { data: postsData } = useQuery<{ posts: Post[] }>({
-    queryKey: ["/api/admin/posts"]
-  });
-
-  const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await apiRequest('/api/admin/posts', 'POST', data);
-      setIsCreating(false);
-      toast({
-        title: "Success",
-        description: "Post created successfully"
-      });
-      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create post",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdatePost = async (data: InsertPost & { tags?: string[] }) => {
-    if (!editingPost || isSubmitting) return;
-    setIsSubmitting(true);
-    try {
-      await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', data);
-      setEditingPost(null);
-      toast({
-        title: "Success",
-        description: "Post updated successfully"
-      });
-      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update post",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   // Helper to get icon for member source
   const getSourceIcon = (source: string) => {
@@ -249,14 +189,6 @@ export default function AdminDashboard() {
           >
             <ExternalLink className="mr-2 h-4 w-4" />
             Calendar
-          </Button>
-          <Button 
-            className="bg-primary hover:bg-primary/90 text-sm"
-            onClick={() => setIsCreating(true)}
-            data-testid="button-new-post"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Post
           </Button>
           <Button 
             className="bg-primary hover:bg-primary/90 text-sm"
@@ -756,67 +688,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-      {/* Posts Section */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Posts</h2>
-        <div className="overflow-x-auto -mx-4 sm:mx-0">
-          <div className="min-w-full inline-block align-middle">
-            <PostsTable onSelect={setEditingPost} />
-          </div>
-        </div>
-      </div>
-      {/* Create Post Modal */}
-      <PostModal 
-        open={isCreating} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setIsCreating(false);
-            setIsSubmitting(false);
-          }
-        }}
-        title="Create New Post"
-        mode="create"
-        onSubmit={() => {}}
-        isSubmitting={isSubmitting}
-      >
-        <PostForm 
-          onSubmit={handleCreatePost}
-          isEditing={false}
-        />
-      </PostModal>
-      {/* Edit Post Modal */}
-      <PostModal 
-        open={!!editingPost} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditingPost(null);
-            setIsSubmitting(false);
-          }
-        }}
-        title="Edit Post"
-        mode="edit"
-        onSubmit={() => {}}
-        isSubmitting={isSubmitting}
-      >
-        {editingPost && (
-          <PostForm 
-            onSubmit={handleUpdatePost}
-            defaultValues={{
-              title: editingPost.title,
-              summary: editingPost.summary || "",
-              body: editingPost.body || "",
-              featuredImage: editingPost.featuredImage || "",
-              videoUrl: editingPost.videoUrl || "",
-              ctaLink: editingPost.ctaLink || "",
-              ctaLabel: editingPost.ctaLabel || "",
-              isPinned: editingPost.isPinned,
-              membersOnly: editingPost.membersOnly,
-              tags: editingPost.tags || []
-            }}
-            isEditing={true}
-          />
-        )}
-      </PostModal>
     </AdminLayout>
   );
 }

@@ -6,6 +6,7 @@ const ADMIN_TABS = [
   { id: "overview", label: "Dashboard", path: "/admin" },
   { id: "members", label: "Members", path: "/admin/members" },
   { id: "events", label: "Events", path: "/admin/events" },
+  { id: "posts", label: "Posts", path: "/admin/posts" },
   { id: "coupons", label: "Coupons", path: "/admin/coupons" },
   { id: "people", label: "People", path: "/admin/people" },
   { id: "companies", label: "Companies", path: "/admin/companies" },
