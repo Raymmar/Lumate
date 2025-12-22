@@ -167,22 +167,13 @@ export function PublicEventPreview({
 
       return response.json();
     },
-    onSuccess: (data) => {
-      // Check if we need to redirect to the event page
-      if (data.redirect && data.eventUrl) {
-        window.open(data.eventUrl, '_blank');
-        toast({
-          title: "Register on the event page",
-          description: "We've opened the registration page for you.",
-        });
-      } else {
-        toast({
-          title: "Success!",
-          description: "You've successfully RSVP'd to this event.",
-        });
-        queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
-        queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
-      }
+    onSuccess: () => {
+      toast({
+        title: "Success!",
+        description: "You've successfully RSVP'd to this event.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/check-rsvp', event.api_id] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${event.api_id}/attendees`] });
     },
     onError: (error: Error) => {
       toast({
@@ -212,28 +203,19 @@ export function PublicEventPreview({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to get event info');
+        throw new Error(data.error || data.message || 'Failed to send invite');
       }
 
-      // Open the event registration page
-      if (data.eventUrl) {
-        window.open(data.eventUrl, '_blank');
-        toast({
-          title: "Register for the event!",
-          description: "We've opened the registration page for you.",
-        });
-      } else {
-        toast({
-          title: "Thanks!",
-          description: "Visit our events page to register.",
-        });
-      }
+      toast({
+        title: "Success!",
+        description: "Please check your email for the invitation.",
+      });
 
       setIsSubmitted(true);
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to get event info",
+        description: error instanceof Error ? error.message : "Failed to send invite",
         variant: "destructive",
       });
     } finally {
@@ -375,9 +357,12 @@ export function PublicEventPreview({
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">Welcome to Sarasota Tech</h3>
                   <p className="text-sm text-muted-foreground">
-                    Thanks for your interest! Complete your registration on the event page we opened for you.
-                    Once registered, you can claim your profile to track your attendance and
+                    Thanks for joining! We've sent an invite to your email for our next event.
+                    Once you receive it, you can claim your profile to track your attendance and
                     stay connected with the community.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Be sure to check your inbox (or spam folder) for the invitation email.
                   </p>
                 </CardContent>
               </Card>

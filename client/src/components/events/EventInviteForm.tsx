@@ -33,29 +33,20 @@ export default function EventInviteForm({ eventId }: EventInviteFormProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || 'Failed to get event info');
+        throw new Error(data.error || data.message || 'Failed to send invite');
       }
 
-      // Open the event registration page
-      if (data.eventUrl) {
-        window.open(data.eventUrl, '_blank');
-        toast({
-          title: "Register for the event!",
-          description: "We've opened the registration page for you.",
-        });
-      } else {
-        toast({
-          title: "Thanks!",
-          description: "Visit our events page to register.",
-        });
-      }
+      toast({
+        title: "Invite Sent!",
+        description: "Please check your email for the invitation.",
+      });
 
       // Clear the form
       setEmail("");
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to get event info",
+        description: error instanceof Error ? error.message : "Failed to send invite",
         variant: "destructive",
       });
     } finally {
