@@ -102,10 +102,19 @@ function AgendaUpdatesAlert() {
           throw new Error(data.error || data.message || "Failed to send invite");
         }
 
-        toast({
-          title: "You're signed up!",
-          description: "Check your email for updates about the Summit.",
-        });
+        // Open the event registration page in a new tab
+        if (data.eventUrl) {
+          window.open(data.eventUrl, '_blank');
+          toast({
+            title: "Check out the Summit!",
+            description: "We've opened the registration page for you. Register there to join!",
+          });
+        } else {
+          toast({
+            title: "Thanks for your interest!",
+            description: "Visit our events page to register for upcoming events.",
+          });
+        }
       }
 
       setIsSubmitted(true);

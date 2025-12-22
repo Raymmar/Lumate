@@ -72,9 +72,9 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
           });
         }
       } else {
-        console.log("No existing profile, sending event invite");
+        console.log("No existing profile, getting event link");
 
-        // Send event invite for new users
+        // Get event link for new users
         const response = await fetch("/api/events/send-invite", {
           method: "POST",
           headers: {
@@ -90,14 +90,23 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
 
         if (!response.ok) {
           throw new Error(
-            data.error || data.message || "Failed to send invite",
+            data.error || data.message || "Failed to get event info",
           );
         }
 
-        toast({
-          title: "Welcome!",
-          description: "Check your email for an invitation to our next event.",
-        });
+        // Open the event registration page
+        if (data.eventUrl) {
+          window.open(data.eventUrl, '_blank');
+          toast({
+            title: "Welcome!",
+            description: "We've opened the event page for you. Register there to join our community!",
+          });
+        } else {
+          toast({
+            title: "Welcome!",
+            description: "Visit our events page to find upcoming events.",
+          });
+        }
       }
 
       setIsSubmitted(true);
@@ -137,11 +146,13 @@ export function JoinUsCard({ showHeader = true }: JoinUsCardProps) {
             <p className="text-sm text-muted-foreground">
               {profileStatus.exists
                 ? "We found your existing profile! Check your email for instructions to claim it and log in."
-                : "Thanks for joining! We've sent you an invite to our next event."}
+                : "Thanks for your interest! Complete your registration on the event page we opened for you."}
             </p>
-            <p className="text-sm text-muted-foreground">
-              Be sure to check your inbox (or spam folder) for our email.
-            </p>
+            {profileStatus.exists && (
+              <p className="text-sm text-muted-foreground">
+                Be sure to check your inbox (or spam folder) for our email.
+              </p>
+            )}
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">

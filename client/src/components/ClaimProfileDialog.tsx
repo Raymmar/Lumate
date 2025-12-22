@@ -20,7 +20,7 @@ interface ClaimProfileDialogProps {
 }
 
 interface ClaimProfileResponse {
-  status?: 'invited';
+  status?: 'invited' | 'not_found';
   message: string;
   nextEvent?: {
     title: string;
@@ -49,10 +49,14 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       return responseData as ClaimProfileResponse;
     },
     onSuccess: (data) => {
-      // Handle successful profile claim
-      if (data.status === 'invited') {
+      // Handle profile not found - redirect to event page
+      if (data.status === 'not_found' || data.status === 'invited') {
+        // Open the event page if available
+        if (data.nextEvent?.url) {
+          window.open(data.nextEvent.url, '_blank');
+        }
         toast({
-          title: "Invitation Sent",
+          title: "Check out our event!",
           description: (
             <>
               {data.message}
