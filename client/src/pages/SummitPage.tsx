@@ -663,6 +663,16 @@ export default function SummitPage() {
                   finance + more will be on site running small group breakouts
                   and interactive workshops.
                 </p>
+                <a
+                  href="https://airtable.com/applDXoTdj4LPUUVc/pag3NvdulUOPTQ5SX/form"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4"
+                >
+                  <Button variant="outline" size="sm" className="w-full" data-testid="cta-startup-school">
+                    Sign Up for Startup School
+                  </Button>
+                </a>
               </CardContent>
             </Card>
 
@@ -681,6 +691,16 @@ export default function SummitPage() {
                   in a fast paced competition with real time feedback from a
                   panel of experienced investors.
                 </p>
+                <a
+                  href="https://airtable.com/applDXoTdj4LPUUVc/pag3NvdulUOPTQ5SX/form"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4"
+                >
+                  <Button variant="outline" size="sm" className="w-full" data-testid="cta-quick-pitch">
+                    Apply for Quick Pitch
+                  </Button>
+                </a>
               </CardContent>
             </Card>
 
@@ -699,6 +719,16 @@ export default function SummitPage() {
                   hardware? Fill out the form below and we might invite you to
                   demo it live at the Summit.
                 </p>
+                <a
+                  href="https://airtable.com/applDXoTdj4LPUUVc/pag3NvdulUOPTQ5SX/form"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4"
+                >
+                  <Button variant="outline" size="sm" className="w-full" data-testid="cta-demo-stations">
+                    Show off your demo
+                  </Button>
+                </a>
               </CardContent>
             </Card>
           </div>
