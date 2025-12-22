@@ -3,7 +3,6 @@ import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, ExternalLink, Building2, Loader2, Bell } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -122,9 +121,9 @@ function AgendaUpdatesAlert() {
   };
 
   return (
-    <Alert className="mb-8 border-primary/20 bg-primary/5" data-testid="alert-agenda-updates">
-      <Bell className="h-4 w-4 text-primary" />
-      <AlertDescription className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
+    <div className="mb-8 flex items-center gap-4 rounded-lg border border-primary/20 bg-primary/5 p-4" data-testid="alert-agenda-updates">
+      <Bell className="h-8 w-8 text-primary flex-shrink-0" />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
         <div className="flex-1">
           <p className="font-medium text-foreground">Agenda Still Being Finalized</p>
           <p className="text-sm text-muted-foreground">
@@ -159,8 +158,8 @@ function AgendaUpdatesAlert() {
             </Button>
           </form>
         )}
-      </AlertDescription>
-    </Alert>
+      </div>
+    </div>
   );
 }
 
