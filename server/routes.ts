@@ -1249,7 +1249,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing event_api_id" });
       }
 
-      // Get the event to return the registration page URL
+      // Check if the event is private before allowing RSVP
       const event = await storage.getEventByApiId(event_api_id);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
@@ -1259,27 +1259,40 @@ export async function registerRoutes(app: Express) {
         return res.status(403).json({ error: "Cannot RSVP to private events" });
       }
 
-      // Instead of directly adding users via Luma API (which bypasses ticket purchases),
-      // redirect users to the Luma event page to register/purchase tickets there
-      console.log("Redirecting user to Luma event page for RSVP:", {
-        eventId: event_api_id,
-        eventUrl: event.url,
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !user.personId) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      const person = await storage.getPerson(user.personId);
+      if (!person) {
+        return res.status(401).json({ error: "Associated person not found" });
+      }
+
+      const response = await lumaApiRequest("event/add-guests", undefined, {
+        method: "POST",
+        body: JSON.stringify({
+          guests: [{ email: user.email }],
+          event_api_id,
+        }),
       });
 
-      res.json({ 
-        message: "Please register on the event page",
-        redirect: true,
-        eventUrl: event.url,
-        event: {
-          title: event.title,
-          startTime: event.startTime,
-          url: event.url,
-        },
+      await storage.upsertRsvpStatus({
+        userApiId: person.api_id,
+        eventApiId: event_api_id,
+        status: "approved",
       });
+
+      console.log("Successfully RSVP'd to event:", {
+        eventId: event_api_id,
+        userEmail: user.email,
+      });
+
+      res.json({ message: "Successfully RSVP'd to event" });
     } catch (error) {
-      console.error("Failed to process RSVP request:", error);
+      console.error("Failed to RSVP to event:", error);
       res.status(500).json({
-        error: "Failed to process RSVP request",
+        error: "Failed to RSVP to event",
         message: error instanceof Error ? error.message : String(error),
       });
     }
