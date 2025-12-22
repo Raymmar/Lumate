@@ -325,7 +325,28 @@ router.get("/revenue-overview", async (req, res) => {
       return res.status(403).json({ error: "Admin access required" });
     }
 
-    const overview = await storage.getStripeRevenueOverview();
+    // Parse range parameter to determine date filter
+    const range = req.query.range as string || 'lifetime';
+    let startTimestamp: number | undefined;
+    
+    if (range === 'year') {
+      // Year to date - from January 1st of current year
+      const yearStart = new Date();
+      yearStart.setMonth(0, 1);
+      yearStart.setHours(0, 0, 0, 0);
+      startTimestamp = Math.floor(yearStart.getTime() / 1000);
+    } else if (range === 'quarter') {
+      // Current quarter - from first day of current quarter
+      const now = new Date();
+      const quarterStart = new Date();
+      const currentQuarter = Math.floor(now.getMonth() / 3);
+      quarterStart.setMonth(currentQuarter * 3, 1);
+      quarterStart.setHours(0, 0, 0, 0);
+      startTimestamp = Math.floor(quarterStart.getTime() / 1000);
+    }
+    // For 'lifetime', startTimestamp remains undefined
+
+    const overview = await storage.getStripeRevenueOverview(startTimestamp);
     return res.json(overview);
   } catch (error: any) {
     console.error("Error fetching revenue overview:", error);

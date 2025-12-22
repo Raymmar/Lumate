@@ -3,7 +3,7 @@ import { Users, Calendar, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, 
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
@@ -47,6 +47,8 @@ interface CustomerRevenue {
   status: string;
 }
 
+type TimeRange = 'lifetime' | 'year' | 'quarter';
+
 interface MemberStats {
   totalActiveMembers: number;
   stripeSubscribers: number;
@@ -62,6 +64,7 @@ interface MemberStats {
 
 export default function AdminDashboard() {
   const [_, navigate] = useLocation();
+  const [revenueTimeRange, setRevenueTimeRange] = useState<TimeRange>('lifetime');
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
     queryFn: async () => {
@@ -102,11 +105,11 @@ export default function AdminDashboard() {
     retry: 1
   });
 
-  // Fetch comprehensive revenue overview
+  // Fetch comprehensive revenue overview with date range
   const { data: revenueOverview, isLoading: isOverviewLoading, refetch: refetchRevenue } = useQuery<RevenueOverview>({
-    queryKey: ["/api/stripe/revenue-overview"],
+    queryKey: ["/api/stripe/revenue-overview", revenueTimeRange],
     queryFn: async () => {
-      const response = await fetch("/api/stripe/revenue-overview");
+      const response = await fetch(`/api/stripe/revenue-overview?range=${revenueTimeRange}`);
       if (!response.ok) {
         throw new Error("Failed to fetch revenue overview");
       }
@@ -114,6 +117,14 @@ export default function AdminDashboard() {
     },
     retry: 1
   });
+
+  const revenueCardTitle = useMemo(() => {
+    switch (revenueTimeRange) {
+      case 'year': return 'Year to Date Revenue';
+      case 'quarter': return 'This Quarter Revenue';
+      default: return 'Lifetime Revenue';
+    }
+  }, [revenueTimeRange]);
 
   // Fetch customer revenue data
   const { data: customerRevenue, isLoading: isCustomerLoading } = useQuery<CustomerRevenue[]>({
@@ -369,10 +380,28 @@ export default function AdminDashboard() {
             {/* Revenue Card - Featured with breakdown */}
             <Card className="md:col-span-2 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20" data-testid="card-revenue">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Lifetime Revenue
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    {revenueCardTitle}
+                  </CardTitle>
+                  <div className="flex rounded-md border border-border/50 overflow-hidden text-xs" data-testid="toggle-revenue-timerange">
+                    {(['lifetime', 'year', 'quarter'] as TimeRange[]).map((range) => (
+                      <button
+                        key={range}
+                        onClick={() => setRevenueTimeRange(range)}
+                        className={`px-2 py-1 transition-colors ${
+                          revenueTimeRange === range 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-background hover:bg-muted'
+                        }`}
+                        data-testid={`button-range-${range}`}
+                      >
+                        {range === 'lifetime' ? 'All' : range === 'year' ? 'YTD' : 'Q'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-0">
                 {isOverviewLoading ? (

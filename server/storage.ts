@@ -3189,8 +3189,8 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  // Get comprehensive Stripe revenue data
-  async getStripeRevenueOverview(): Promise<{
+  // Get comprehensive Stripe revenue data with optional date filter
+  async getStripeRevenueOverview(startTimestamp?: number): Promise<{
     totalRevenue: number;
     thisMonthRevenue: number;
     subscriptionRevenue: number;
@@ -3201,17 +3201,26 @@ export class PostgresStorage implements IStorage {
     totalCustomers: number;
   }> {
     try {
-      // Get total revenue from all successful charges
-      const totalRevenueResult = await db.execute(
-        sql`
-          SELECT SUM(amount) as total 
-          FROM stripe.charges 
-          WHERE status = 'succeeded'
-        `
-      );
+      // Get total revenue from all successful charges (filtered by date if provided)
+      const totalRevenueResult = startTimestamp 
+        ? await db.execute(
+            sql`
+              SELECT SUM(amount) as total 
+              FROM stripe.charges 
+              WHERE status = 'succeeded'
+              AND created >= ${startTimestamp}
+            `
+          )
+        : await db.execute(
+            sql`
+              SELECT SUM(amount) as total 
+              FROM stripe.charges 
+              WHERE status = 'succeeded'
+            `
+          );
       const totalRevenue = totalRevenueResult.rows[0]?.total ? Number(totalRevenueResult.rows[0].total) / 100 : 0;
 
-      // Get this month's revenue
+      // Get this month's revenue (always uses current month)
       const thisMonthStart = new Date();
       thisMonthStart.setDate(1);
       thisMonthStart.setHours(0, 0, 0, 0);
@@ -3227,7 +3236,7 @@ export class PostgresStorage implements IStorage {
       );
       const thisMonthRevenue = thisMonthResult.rows[0]?.total ? Number(thisMonthResult.rows[0].total) / 100 : 0;
 
-      // Get subscription revenue
+      // Get subscription revenue (active subscriptions are always current state)
       const subscriptionResult = await db.execute(
         sql`
           SELECT 
@@ -3242,49 +3251,88 @@ export class PostgresStorage implements IStorage {
       const subscriptionRevenue = subscriptionResult.rows[0]?.subscription_revenue ? Number(subscriptionResult.rows[0].subscription_revenue) / 100 : 0;
       const activeSubscriptions = Number(subscriptionResult.rows[0]?.active_subscriptions || 0);
 
-      // Get sponsor revenue from the Sarasota Tech Summit Sponsor product
-      // Captures both invoice-based payments and checkout session payments
-      const sponsorRevenueResult = await db.execute(
-        sql`
-          WITH invoice_sponsor AS (
-            SELECT ch.id, ch.amount
-            FROM stripe.charges ch
-            JOIN stripe.invoices inv ON ch.invoice = inv.id
-            WHERE ch.status = 'succeeded'
-            AND inv.lines::text LIKE '%prod_RNjmWu49ebdUpL%'
-          ),
-          checkout_sponsor AS (
-            SELECT ch.id, ch.amount
-            FROM stripe.charges ch
-            JOIN stripe.checkout_sessions cs ON ch.payment_intent = cs.payment_intent
-            JOIN stripe.checkout_session_line_items csli ON csli.checkout_session = cs.id
-            JOIN stripe.prices pr ON csli.price = pr.id
-            WHERE ch.status = 'succeeded'
-            AND pr.product = 'prod_RNjmWu49ebdUpL'
+      // Get sponsor revenue from the Sarasota Tech Summit Sponsor product (filtered by date if provided)
+      const sponsorRevenueResult = startTimestamp
+        ? await db.execute(
+            sql`
+              WITH invoice_sponsor AS (
+                SELECT ch.id, ch.amount
+                FROM stripe.charges ch
+                JOIN stripe.invoices inv ON ch.invoice = inv.id
+                WHERE ch.status = 'succeeded'
+                AND ch.created >= ${startTimestamp}
+                AND inv.lines::text LIKE '%prod_RNjmWu49ebdUpL%'
+              ),
+              checkout_sponsor AS (
+                SELECT ch.id, ch.amount
+                FROM stripe.charges ch
+                JOIN stripe.checkout_sessions cs ON ch.payment_intent = cs.payment_intent
+                JOIN stripe.checkout_session_line_items csli ON csli.checkout_session = cs.id
+                JOIN stripe.prices pr ON csli.price = pr.id
+                WHERE ch.status = 'succeeded'
+                AND ch.created >= ${startTimestamp}
+                AND pr.product = 'prod_RNjmWu49ebdUpL'
+              )
+              SELECT COALESCE(SUM(amount), 0) as total
+              FROM (
+                SELECT id, amount FROM invoice_sponsor
+                UNION
+                SELECT id, amount FROM checkout_sponsor
+              ) combined
+            `
           )
-          SELECT COALESCE(SUM(amount), 0) as total
-          FROM (
-            SELECT id, amount FROM invoice_sponsor
-            UNION
-            SELECT id, amount FROM checkout_sponsor
-          ) combined
-        `
-      );
+        : await db.execute(
+            sql`
+              WITH invoice_sponsor AS (
+                SELECT ch.id, ch.amount
+                FROM stripe.charges ch
+                JOIN stripe.invoices inv ON ch.invoice = inv.id
+                WHERE ch.status = 'succeeded'
+                AND inv.lines::text LIKE '%prod_RNjmWu49ebdUpL%'
+              ),
+              checkout_sponsor AS (
+                SELECT ch.id, ch.amount
+                FROM stripe.charges ch
+                JOIN stripe.checkout_sessions cs ON ch.payment_intent = cs.payment_intent
+                JOIN stripe.checkout_session_line_items csli ON csli.checkout_session = cs.id
+                JOIN stripe.prices pr ON csli.price = pr.id
+                WHERE ch.status = 'succeeded'
+                AND pr.product = 'prod_RNjmWu49ebdUpL'
+              )
+              SELECT COALESCE(SUM(amount), 0) as total
+              FROM (
+                SELECT id, amount FROM invoice_sponsor
+                UNION
+                SELECT id, amount FROM checkout_sponsor
+              ) combined
+            `
+          );
       const sponsorRevenue = sponsorRevenueResult.rows[0]?.total ? Number(sponsorRevenueResult.rows[0].total) / 100 : 0;
 
-      // Get ticket revenue (summit ticket sales - not sponsors)
-      const ticketRevenueResult = await db.execute(
-        sql`
-          SELECT COALESCE(SUM(amount), 0) as total
-          FROM stripe.charges
-          WHERE status = 'succeeded'
-          AND description ILIKE '%summit%'
-          AND description NOT ILIKE '%sponsor%'
-        `
-      );
+      // Get ticket revenue (summit ticket sales - not sponsors, filtered by date if provided)
+      const ticketRevenueResult = startTimestamp
+        ? await db.execute(
+            sql`
+              SELECT COALESCE(SUM(amount), 0) as total
+              FROM stripe.charges
+              WHERE status = 'succeeded'
+              AND created >= ${startTimestamp}
+              AND description ILIKE '%summit%'
+              AND description NOT ILIKE '%sponsor%'
+            `
+          )
+        : await db.execute(
+            sql`
+              SELECT COALESCE(SUM(amount), 0) as total
+              FROM stripe.charges
+              WHERE status = 'succeeded'
+              AND description ILIKE '%summit%'
+              AND description NOT ILIKE '%sponsor%'
+            `
+          );
       const ticketRevenue = ticketRevenueResult.rows[0]?.total ? Number(ticketRevenueResult.rows[0].total) / 100 : 0;
 
-      // Get total charges and customers
+      // Get total charges and customers (always global counts)
       const chargesResult = await db.execute(
         sql`SELECT COUNT(*) as total FROM stripe.charges`
       );
