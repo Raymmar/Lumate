@@ -330,7 +330,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-
       {/* Financial Dashboard - Full Width */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -404,7 +403,7 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-muted-foreground text-sm">
                             <TrendingUp className="h-4 w-4 text-green-600" />
-                            <span>Annual Recurring Revenue</span>
+                            <span>Membership Revenue</span>
                           </div>
                           <div className="text-right">
                             <span className="text-xl font-bold text-green-600 dark:text-green-400" data-testid="text-arr-value">
@@ -757,7 +756,6 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
-
       {/* Posts Section */}
       <div className="mt-8">
         <h2 className="text-xl font-semibold mb-4">Posts</h2>
@@ -767,7 +765,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
-
       {/* Create Post Modal */}
       <PostModal 
         open={isCreating} 
@@ -787,7 +784,6 @@ export default function AdminDashboard() {
           isEditing={false}
         />
       </PostModal>
-
       {/* Edit Post Modal */}
       <PostModal 
         open={!!editingPost} 
