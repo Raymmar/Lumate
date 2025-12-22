@@ -35,6 +35,11 @@ export function PostsTable({ onSelect }: PostsTableProps) {
       header: "Status",
       cell: (row: Post) => (
         <div className="flex items-center gap-2">
+          {row.status === 'draft' ? (
+            <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">Draft</Badge>
+          ) : (
+            <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">Published</Badge>
+          )}
           {row.isPinned && (
             <Badge variant="secondary">Featured</Badge>
           )}

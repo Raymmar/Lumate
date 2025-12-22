@@ -14,9 +14,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
 import { X, Check, Loader2, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+
+export interface PostFormRef {
+  getFormData: () => (InsertPost & { tags?: string[] }) | null;
+}
 
 interface PostFormProps {
   onSubmit: (data: InsertPost & { tags?: string[] }) => Promise<void>;
@@ -24,7 +28,7 @@ interface PostFormProps {
   isEditing?: boolean;
 }
 
-export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFormProps) {
+export const PostForm = forwardRef<PostFormRef, PostFormProps>(function PostForm({ onSubmit, defaultValues, isEditing = false }, ref) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tags, setTags] = useState<string[]>([]);
@@ -77,6 +81,13 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
       ...defaultValues
     }
   });
+
+  useImperativeHandle(ref, () => ({
+    getFormData: () => {
+      const values = form.getValues();
+      return { ...values, tags };
+    }
+  }));
 
   const handleSubmit = async (data: InsertPost) => {
     // Simply call the parent's onSubmit handler with the data and tags
@@ -394,4 +405,4 @@ export function PostForm({ onSubmit, defaultValues, isEditing = false }: PostFor
       </form>
     </Form>
   );
-}
+});

@@ -1,9 +1,8 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostModal } from "@/components/admin/PostModal";
-import { PostForm } from "@/components/admin/PostForm";
+import { PostForm, PostFormRef } from "@/components/admin/PostForm";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
@@ -15,23 +14,26 @@ export default function AdminPostsPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const { toast } = useToast();
+  const createFormRef = useRef<PostFormRef>(null);
+  const editFormRef = useRef<PostFormRef>(null);
 
   const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiRequest('/api/admin/posts', 'POST', data);
+      await apiRequest('/api/admin/posts', 'POST', { ...data, status: 'published' });
       setIsCreating(false);
       toast({
         title: "Success",
-        description: "Post created successfully"
+        description: "Post published successfully"
       });
       await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to create post",
+        description: "Failed to publish post",
         variant: "destructive"
       });
     } finally {
@@ -39,11 +41,36 @@ export default function AdminPostsPage() {
     }
   };
 
+  const handleCreateDraft = async () => {
+    if (isSavingDraft) return;
+    const formData = createFormRef.current?.getFormData();
+    if (!formData) return;
+    
+    setIsSavingDraft(true);
+    try {
+      await apiRequest('/api/admin/posts', 'POST', { ...formData, status: 'draft' });
+      setIsCreating(false);
+      toast({
+        title: "Success",
+        description: "Draft saved successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save draft",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
   const handleUpdatePost = async (data: InsertPost & { tags?: string[] }) => {
     if (!editingPost || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', data);
+      await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', { ...data, status: 'published' });
       setEditingPost(null);
       toast({
         title: "Success",
@@ -58,6 +85,31 @@ export default function AdminPostsPage() {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!editingPost || isSavingDraft) return;
+    const formData = editFormRef.current?.getFormData();
+    if (!formData) return;
+    
+    setIsSavingDraft(true);
+    try {
+      await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', { ...formData, status: 'draft' });
+      setEditingPost(null);
+      toast({
+        title: "Success",
+        description: "Draft saved successfully"
+      });
+      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save draft",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSavingDraft(false);
     }
   };
 
@@ -87,14 +139,18 @@ export default function AdminPostsPage() {
           if (!open) {
             setIsCreating(false);
             setIsSubmitting(false);
+            setIsSavingDraft(false);
           }
         }}
         title="Create New Post"
         mode="create"
         onSubmit={() => {}}
+        onSaveDraft={handleCreateDraft}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
       >
         <PostForm 
+          ref={createFormRef}
           onSubmit={handleCreatePost}
           isEditing={false}
         />
@@ -106,15 +162,20 @@ export default function AdminPostsPage() {
           if (!open) {
             setEditingPost(null);
             setIsSubmitting(false);
+            setIsSavingDraft(false);
           }
         }}
         title="Edit Post"
         mode="edit"
         onSubmit={() => {}}
+        onSaveDraft={handleSaveDraft}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
+        currentStatus={(editingPost?.status as 'draft' | 'published') || 'published'}
       >
         {editingPost && (
           <PostForm 
+            ref={editFormRef}
             onSubmit={handleUpdatePost}
             defaultValues={{
               title: editingPost.title,

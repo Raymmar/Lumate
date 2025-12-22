@@ -407,10 +407,11 @@ export async function registerRoutes(app: Express) {
     try {
       const slug = req.params.slug;
       
-      // First get all posts to find the one with matching slug
+      // First get all published posts to find the one with matching slug
       const allPosts = await db
         .select()
-        .from(posts);
+        .from(posts)
+        .where(sql`${posts.status} = 'published' OR ${posts.status} IS NULL`);
       
       // Find post by matching slug
       const post = allPosts.find(p => formatPostTitleForUrl(p.title, p.id.toString()) === slug);
@@ -462,8 +463,8 @@ export async function registerRoutes(app: Express) {
     try {
       console.log("Fetching public posts...");
 
-      // Fetch all posts from database
-      console.log("Fetching all posts from database...");
+      // Fetch all published posts from database (exclude drafts)
+      console.log("Fetching all published posts from database...");
       const allPosts = await db
         .select({
           id: posts.id,
@@ -482,6 +483,7 @@ export async function registerRoutes(app: Express) {
           updatedAt: posts.updatedAt,
         })
         .from(posts)
+        .where(sql`${posts.status} = 'published' OR ${posts.status} IS NULL`)
         .orderBy(sql`created_at DESC`);
 
       // Fetch creators for all posts
@@ -4754,6 +4756,8 @@ export async function registerRoutes(app: Express) {
           ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           isPinned: posts.isPinned,
+          membersOnly: posts.membersOnly,
+          status: posts.status,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
           creatorId: posts.creatorId,

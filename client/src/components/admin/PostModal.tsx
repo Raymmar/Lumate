@@ -10,7 +10,10 @@ interface PostModalProps {
   title?: string;
   mode: 'create' | 'edit';
   onSubmit: () => void;
+  onSaveDraft?: () => void;
   isSubmitting?: boolean;
+  isSavingDraft?: boolean;
+  currentStatus?: 'draft' | 'published';
 }
 
 export function PostModal({ 
@@ -20,7 +23,10 @@ export function PostModal({
   title,
   mode,
   onSubmit,
-  isSubmitting = false
+  onSaveDraft,
+  isSubmitting = false,
+  isSavingDraft = false,
+  currentStatus = 'published'
 }: PostModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -53,9 +59,26 @@ export function PostModal({
             {/* Actions on the right */}
             <div className="flex items-center gap-2">
               <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isSubmitting || isSavingDraft}
+                onClick={onSaveDraft}
+                data-testid="button-save-draft"
+              >
+                {isSavingDraft ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Draft'
+                )}
+              </Button>
+              <Button
                 type="submit"
                 form="post-form"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSavingDraft}
                 size="sm"
                 data-testid={mode === 'create' ? 'button-publish-post' : 'button-save-changes'}
               >
@@ -65,7 +88,7 @@ export function PostModal({
                     {mode === 'create' ? 'Publishing...' : 'Saving...'}
                   </>
                 ) : (
-                  mode === 'create' ? 'Publish Post' : 'Save Changes'
+                  mode === 'create' ? 'Publish Post' : (currentStatus === 'draft' ? 'Publish' : 'Save Changes')
                 )}
               </Button>
             </div>

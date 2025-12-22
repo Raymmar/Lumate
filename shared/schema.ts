@@ -161,6 +161,7 @@ export const posts = pgTable("posts", {
   redirectUrl: varchar("redirect_url", { length: 500 }),
   isPinned: boolean("is_pinned").notNull().default(false),
   membersOnly: boolean("members_only").notNull().default(false),
+  status: varchar("status", { length: 20 }).notNull().default('published'),
   creatorId: serial("creator_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
