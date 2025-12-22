@@ -693,9 +693,7 @@ export default function SummitPage() {
           {/* Right Side - Event Information */}
           <div className="bg-background flex items-center p-8 lg:p-12">
             <div className="w-full max-w-xl">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">
-                STARTUP SARASOTA
-              </h1>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6">Sarasota Tech Summit</h1>
 
               <p className="text-xl md:text-2xl font-semibold mb-4 text-foreground">
                 Tech Summit & Startup Fair
