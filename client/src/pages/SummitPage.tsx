@@ -782,7 +782,7 @@ export default function SummitPage() {
                   rel="noopener noreferrer"
                   className="mt-4"
                 >
-                  <Button variant="outline" size="sm" className="w-full" data-testid="cta-startup-school">
+                  <Button size="sm" className="w-full" data-testid="cta-startup-school">
                     Sign Up for Startup School
                   </Button>
                 </a>
@@ -810,7 +810,7 @@ export default function SummitPage() {
                   rel="noopener noreferrer"
                   className="mt-4"
                 >
-                  <Button variant="outline" size="sm" className="w-full" data-testid="cta-quick-pitch">
+                  <Button size="sm" className="w-full" data-testid="cta-quick-pitch">
                     Apply for Quick Pitch
                   </Button>
                 </a>
@@ -838,7 +838,7 @@ export default function SummitPage() {
                   rel="noopener noreferrer"
                   className="mt-4"
                 >
-                  <Button variant="outline" size="sm" className="w-full" data-testid="cta-demo-stations">
+                  <Button size="sm" className="w-full" data-testid="cta-demo-stations">
                     Show off your demo
                   </Button>
                 </a>
