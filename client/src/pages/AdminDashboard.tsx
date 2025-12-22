@@ -83,7 +83,8 @@ export default function AdminDashboard() {
       }
       return response.json();
     },
-    retry: 1
+    retry: 1,
+    refetchInterval: 60000, // Refresh every minute
   });
   
   // Fetch subscription revenue data (for membership revenue)

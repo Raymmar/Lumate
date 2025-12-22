@@ -272,6 +272,35 @@ export interface IStorage {
   updatePresentationSpeaker(presentationId: number, speakerId: number, data: Partial<PresentationSpeaker>): Promise<PresentationSpeaker>;
 }
 
+// Cache for member stats to ensure consistent results during sync
+let memberStatsCache: {
+  data: {
+    totalActiveMembers: number;
+    stripeSubscribers: number;
+    ticketsActivated: number;
+    ticketsNotActivated: number;
+    manualGrants: number;
+    breakdown: { source: 'stripe' | 'luma_activated' | 'luma_not_activated' | 'manual'; count: number; label: string }[];
+  } | null;
+  timestamp: number;
+  isSyncing: boolean;
+} = { data: null, timestamp: 0, isSyncing: false };
+
+// Export function to mark sync status - call this from eventSyncService
+export function setMemberStatsSyncing(syncing: boolean): void {
+  memberStatsCache.isSyncing = syncing;
+  if (!syncing) {
+    // Invalidate cache when sync completes so next request gets fresh data
+    memberStatsCache.timestamp = 0;
+  }
+  console.log(`[MemberStats] Sync status: ${syncing ? 'STARTED' : 'COMPLETED'}`);
+}
+
+// Export function to check if member stats sync is in progress
+export function isMemberStatsSyncing(): boolean {
+  return memberStatsCache.isSyncing;
+}
+
 export class PostgresStorage implements IStorage {
   async getEvents(): Promise<Event[]> {
     console.log('Fetching public events from database...');
@@ -798,7 +827,17 @@ export class PostgresStorage implements IStorage {
       label: string;
     }[];
   }> {
+    const CACHE_TTL_MS = 30 * 1000; // 30 second cache (fast queries, no need for long cache)
+    const now = Date.now();
+    
+    // If cache is fresh, return cached data
+    if (memberStatsCache.data && (now - memberStatsCache.timestamp) < CACHE_TTL_MS) {
+      console.log('[MemberStats] Returning cached data (age: ' + Math.round((now - memberStatsCache.timestamp) / 1000) + 's)');
+      return memberStatsCache.data;
+    }
+    
     try {
+      console.log('[MemberStats] Fetching fresh data...');
       // Query Stripe subscribers directly from stripe.subscriptions table
       // This gives us the authoritative count that matches the revenue overview
       const stripeResult = await db.execute(sql`
@@ -883,7 +922,7 @@ export class PostgresStorage implements IStorage {
         breakdown.push({ source: 'manual', count: manualGrants, label: 'Admin Grants' });
       }
 
-      return {
+      const result = {
         totalActiveMembers,
         stripeSubscribers,
         ticketsActivated,
@@ -891,6 +930,13 @@ export class PostgresStorage implements IStorage {
         manualGrants,
         breakdown,
       };
+      
+      // Cache the result
+      memberStatsCache.data = result;
+      memberStatsCache.timestamp = Date.now();
+      console.log('[MemberStats] Cached fresh data');
+      
+      return result;
     } catch (error) {
       console.error('Failed to get active member stats:', error);
       return {
