@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Users, Calendar as CalendarIcon, UserPlus, DollarSign, ExternalLink, Coins, RefreshCw, TrendingUp, CreditCard, Ticket, Shield, UserCheck, UserX, Handshake } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, subWeeks, subMonths, subYears, startOfDay, endOfDay } from "date-fns";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -464,22 +464,148 @@ export default function AdminDashboard() {
                           <CalendarIcon className="h-3 w-3" />
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <Calendar
-                          mode="range"
-                          selected={{ from: customDateRange.from, to: customDateRange.to }}
-                          onSelect={(range) => {
-                            setCustomDateRange({ from: range?.from, to: range?.to });
-                            if (range?.from) {
-                              setRevenueTimeRange('custom');
-                            }
-                            if (range?.from && range?.to) {
-                              setIsCalendarOpen(false);
-                            }
-                          }}
-                          numberOfMonths={2}
-                          data-testid="calendar-date-range"
-                        />
+                      <PopoverContent className="w-80 p-3" align="end">
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium">Quick Select</div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              data-testid="button-preset-last-week"
+                              onClick={() => {
+                                const now = new Date();
+                                setCustomDateRange({
+                                  from: startOfDay(subWeeks(now, 1)),
+                                  to: endOfDay(now)
+                                });
+                                setRevenueTimeRange('custom');
+                                setIsCalendarOpen(false);
+                              }}
+                            >
+                              Last Week
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              data-testid="button-preset-last-month"
+                              onClick={() => {
+                                const now = new Date();
+                                setCustomDateRange({
+                                  from: startOfDay(subMonths(now, 1)),
+                                  to: endOfDay(now)
+                                });
+                                setRevenueTimeRange('custom');
+                                setIsCalendarOpen(false);
+                              }}
+                            >
+                              Last Month
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              data-testid="button-preset-last-year"
+                              onClick={() => {
+                                const now = new Date();
+                                setCustomDateRange({
+                                  from: startOfDay(subYears(now, 1)),
+                                  to: endOfDay(now)
+                                });
+                                setRevenueTimeRange('custom');
+                                setIsCalendarOpen(false);
+                              }}
+                            >
+                              Last Year
+                            </Button>
+                          </div>
+                          
+                          <div className="border-t pt-3">
+                            <div className="text-sm font-medium mb-2">Custom Range</div>
+                            <div className="flex gap-2 items-center mb-2">
+                              <div className="flex-1">
+                                <label className="text-xs text-muted-foreground mb-1 block">Start Date</label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full justify-start text-left font-normal text-xs"
+                                      data-testid="button-start-date"
+                                    >
+                                      <CalendarIcon className="mr-2 h-3 w-3" />
+                                      {customDateRange.from ? format(customDateRange.from, 'MMM d, yyyy') : 'Pick a date'}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={customDateRange.from}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          const newFrom = startOfDay(date);
+                                          setCustomDateRange(prev => ({
+                                            from: newFrom,
+                                            to: prev.to && prev.to < newFrom ? endOfDay(newFrom) : prev.to
+                                          }));
+                                          setRevenueTimeRange('custom');
+                                        }
+                                      }}
+                                      data-testid="calendar-start-date"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <span className="text-muted-foreground mt-5">to</span>
+                              <div className="flex-1">
+                                <label className="text-xs text-muted-foreground mb-1 block">End Date</label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full justify-start text-left font-normal text-xs"
+                                      data-testid="button-end-date"
+                                    >
+                                      <CalendarIcon className="mr-2 h-3 w-3" />
+                                      {customDateRange.to ? format(customDateRange.to, 'MMM d, yyyy') : 'Pick a date'}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0" align="end">
+                                    <Calendar
+                                      mode="single"
+                                      selected={customDateRange.to}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          setCustomDateRange(prev => ({
+                                            ...prev,
+                                            to: endOfDay(date)
+                                          }));
+                                          setRevenueTimeRange('custom');
+                                        }
+                                      }}
+                                      disabled={(date) => 
+                                        customDateRange.from ? date < customDateRange.from : false
+                                      }
+                                      data-testid="calendar-end-date"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                            </div>
+                            {customDateRange.from && customDateRange.to && (
+                              <Button
+                                size="sm"
+                                className="w-full text-xs"
+                                data-testid="button-apply-custom-range"
+                                onClick={() => setIsCalendarOpen(false)}
+                              >
+                                Apply
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </PopoverContent>
                     </Popover>
                   </div>
