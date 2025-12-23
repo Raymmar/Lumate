@@ -2139,7 +2139,9 @@ export class PostgresStorage implements IStorage {
             sql`LOWER(user_name) = LOWER(${searchUsername})`,
             // Try with the original hyphenated version
             eq(people.userName, username),
-            sql`LOWER(user_name) = LOWER(${username})`
+            sql`LOWER(user_name) = LOWER(${username})`,
+            // Try matching after stripping punctuation (commas, etc.) from the database value
+            sql`LOWER(REGEXP_REPLACE(user_name, '[^a-zA-Z0-9 ]', '', 'g')) = LOWER(${searchUsername})`
           )
         )
         .orderBy(people.createdAt)
