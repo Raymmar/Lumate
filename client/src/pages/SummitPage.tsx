@@ -789,7 +789,7 @@ export default function SummitPage() {
                 <h3 className="text-xl font-bold mb-3 text-foreground">
                   Quick Pitch
                 </h3>
-                <p className="text-m text-muted-foreground flex-grow">Are you looking for financing or feedback on your startup? Sign up for our Quick Pitch to put your concepts to the test in a fast paced feedback session with real time input from a panel of experienced investors.</p>
+                <p className="text-m text-muted-foreground flex-grow">Are you looking for financing or feedback on your startup? Sign up for our Quick Pitch to practice your pitch in a fast paced feedback session with real time input from a panel of experienced investors.</p>
                 <a
                   href="https://airtable.com/applDXoTdj4LPUUVc/pag3NvdulUOPTQ5SX/form"
                   target="_blank"
