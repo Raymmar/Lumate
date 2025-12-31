@@ -1,10 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Download, Upload, Loader2, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const OVERLAY_URL = "https://file-upload.replit.app/api/storage/images%2F1767191519304-Speaker-card-overlay.png";
+const OVERLAY_URL =
+  "https://file-upload.replit.app/api/storage/images%2F1767194323312-Speaker-card-overlay5.png";
 const CANVAS_SIZE = 1080;
 const USER_IMAGE_SIZE = CANVAS_SIZE * 0.6;
 const USER_IMAGE_OFFSET = (CANVAS_SIZE - USER_IMAGE_SIZE) / 2;
@@ -24,12 +31,12 @@ interface CardCreatorProps {
   mode?: "speaker" | "upload";
 }
 
-export function CardCreator({ 
-  imageUrl, 
+export function CardCreator({
+  imageUrl,
   speakerName,
-  isOpen, 
+  isOpen,
   onClose,
-  mode = "speaker"
+  mode = "speaker",
 }: CardCreatorProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,12 +64,20 @@ export function CardCreator({
   }, []);
 
   const drawCanvas = useCallback(async () => {
-    console.log("drawCanvas called, currentImageUrl:", currentImageUrl?.substring(0, 80));
+    console.log(
+      "drawCanvas called, currentImageUrl:",
+      currentImageUrl?.substring(0, 80),
+    );
     if (!canvasRef.current || !currentImageUrl) {
-      console.log("Early return - canvas:", !!canvasRef.current, "url:", !!currentImageUrl);
+      console.log(
+        "Early return - canvas:",
+        !!canvasRef.current,
+        "url:",
+        !!currentImageUrl,
+      );
       return;
     }
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -78,7 +93,7 @@ export function CardCreator({
     try {
       const [userImage, overlayImage] = await Promise.all([
         loadImage(userProxyUrl),
-        loadImage(overlayProxyUrl)
+        loadImage(overlayProxyUrl),
       ]);
 
       canvas.width = CANVAS_SIZE;
@@ -88,7 +103,10 @@ export function CardCreator({
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
       const aspectRatio = userImage.width / userImage.height;
-      let drawWidth: number, drawHeight: number, offsetX: number, offsetY: number;
+      let drawWidth: number,
+        drawHeight: number,
+        offsetX: number,
+        offsetY: number;
 
       if (aspectRatio > 1) {
         drawHeight = USER_IMAGE_SIZE;
@@ -104,7 +122,12 @@ export function CardCreator({
 
       ctx.save();
       ctx.beginPath();
-      ctx.rect(USER_IMAGE_OFFSET, USER_IMAGE_OFFSET, USER_IMAGE_SIZE, USER_IMAGE_SIZE);
+      ctx.rect(
+        USER_IMAGE_OFFSET,
+        USER_IMAGE_OFFSET,
+        USER_IMAGE_SIZE,
+        USER_IMAGE_SIZE,
+      );
       ctx.clip();
       ctx.drawImage(userImage, offsetX, offsetY, drawWidth, drawHeight);
       ctx.restore();
@@ -131,12 +154,12 @@ export function CardCreator({
 
   const handleDownload = () => {
     if (!canvasRef.current) return;
-    
+
     const link = document.createElement("a");
-    const filename = speakerName 
+    const filename = speakerName
       ? `${speakerName.replace(/\s+/g, "-").toLowerCase()}-speaker-card.jpg`
       : "promo-card.jpg";
-    
+
     link.download = filename;
     link.href = canvasRef.current.toDataURL("image/jpeg", 0.95);
     link.click();
@@ -194,10 +217,12 @@ export function CardCreator({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {mode === "speaker" ? "Download Speaker Card" : "Create Your Promo Card"}
+            {mode === "speaker"
+              ? "Download Speaker Card"
+              : "Create Your Promo Card"}
           </DialogTitle>
           <DialogDescription>
-            {mode === "speaker" 
+            {mode === "speaker"
               ? "Download your personalized speaker card to share on social media."
               : "Upload your photo to create a promotional card for the event."}
           </DialogDescription>
@@ -226,7 +251,11 @@ export function CardCreator({
                 ) : (
                   <Upload className="h-4 w-4 mr-2" />
                 )}
-                {isUploading ? "Uploading..." : uploadedImage ? "Change Photo" : "Upload Your Photo"}
+                {isUploading
+                  ? "Uploading..."
+                  : uploadedImage
+                    ? "Change Photo"
+                    : "Upload Your Photo"}
               </Button>
             </div>
           )}
@@ -237,7 +266,7 @@ export function CardCreator({
               className="w-full h-full object-contain"
               style={{ display: currentImageUrl ? "block" : "none" }}
             />
-            
+
             {!currentImageUrl && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                 <ImageIcon className="h-12 w-12 mb-2" />
@@ -284,7 +313,7 @@ export function CardCreatorButton({
   speakerName,
   variant = "outline",
   size = "sm",
-  className
+  className,
 }: CardCreatorButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
 
