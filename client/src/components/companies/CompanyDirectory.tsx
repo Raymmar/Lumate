@@ -262,8 +262,8 @@ export default function CompanyDirectory() {
       
       {activeFilter === "sponsors" ? (
         <SponsorGrid 
-          year={2025}
-          title="2025 Annual Sponsors"
+          year={new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()}
+          title={`${new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()} Annual Sponsors`}
           showBecomeSponsorCTA={true}
         />
       ) : (
