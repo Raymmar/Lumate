@@ -105,10 +105,10 @@ export default function SpeakersPage() {
               Meet the thought leaders and innovators speaking at our events.
             </p>
             <div className="w-full max-w-lg mx-auto relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
               <Input
                 placeholder="Search speakers..."
-                className="w-full bg-white/90 border-0 focus-visible:ring-primary/70 pl-10"
+                className="w-full bg-white border-0 focus-visible:ring-primary/70 pl-10 text-gray-900 placeholder:text-gray-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 data-testid="input-search-speakers"

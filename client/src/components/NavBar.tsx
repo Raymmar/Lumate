@@ -77,11 +77,6 @@ export function NavBar() {
             Summit
           </Button>
         </Link>
-        <Link href="/speakers" className="no-underline hover:no-underline">
-          <Button variant="ghost" size="sm" data-testid="nav-speakers">
-            Speakers
-          </Button>
-        </Link>
       </div>
       <div className="md:hidden ml-2">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -141,16 +136,6 @@ export function NavBar() {
                     data-testid="mobile-nav-summit"
                   >
                     Summit
-                  </Button>
-                </Link>
-                <Link href="/speakers" className="no-underline hover:no-underline">
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-base"
-                    onClick={() => setIsOpen(false)}
-                    data-testid="mobile-nav-speakers"
-                  >
-                    Speakers
                   </Button>
                 </Link>
               </nav>
