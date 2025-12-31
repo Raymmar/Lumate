@@ -1085,7 +1085,7 @@ export default function AdminCouponsPage() {
                                 const couponLink = getCouponLink(coupon);
                                 return (
                                   <TableRow key={coupon.id}>
-                                    <TableCell className="font-mono font-medium">
+                                    <TableCell className="font-mono font-medium whitespace-nowrap max-w-[150px]" title={coupon.code}>
                                       <button
                                         onClick={() => copyToClipboard(coupon.code)}
                                         className="flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer"
@@ -1093,20 +1093,20 @@ export default function AdminCouponsPage() {
                                       >
                                         {copiedCode === coupon.code ? (
                                           <>
-                                            <Check className="h-3.5 w-3.5 text-green-500" />
-                                            <span className="text-green-600">{coupon.code}</span>
+                                            <Check className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                                            <span className="text-green-600 truncate">{coupon.code}</span>
                                           </>
                                         ) : (
                                           <>
-                                            <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                                            <span>{coupon.code}</span>
+                                            <Copy className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                                            <span className="truncate">{coupon.code}</span>
                                           </>
                                         )}
                                       </button>
                                     </TableCell>
-                                    <TableCell className="whitespace-nowrap truncate max-w-[200px]" title={coupon.recipientEmail ?? undefined}>
+                                    <TableCell className="whitespace-nowrap max-w-[200px]" title={coupon.recipientEmail ?? undefined}>
                                       {coupon.recipientEmail ? (
-                                        coupon.recipientEmail
+                                        <span className="block truncate">{coupon.recipientEmail}</span>
                                       ) : (coupon as any).couponType === 'general' ? (
                                         <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">General Use</Badge>
                                       ) : (
