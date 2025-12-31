@@ -140,7 +140,7 @@ export function CardCreator({
 
       // Draw speaker name (top left) - 16px equivalent from top
       const textPadding = 60;
-      const nameY = 48; // 16px from top of card
+      const nameY = 60;
 
       // Speaker name - bold, larger text
       ctx.font =
@@ -442,9 +442,9 @@ export function SpeakerCardPreview({
 
       ctx.drawImage(overlayImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      // Draw speaker name (top left) - 16px equivalent from top
+      // Draw speaker name (top left) - 60px from top for more room
       const textPadding = 60;
-      const nameY = 16;
+      const nameY = 60;
 
       ctx.font =
         "bold 56px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
