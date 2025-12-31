@@ -44,15 +44,24 @@ export function CardCreator({
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+      img.onload = () => {
+        console.log("Image loaded successfully:", src.substring(0, 100));
+        resolve(img);
+      };
+      img.onerror = (e) => {
+        console.error("Image load failed:", src.substring(0, 100), e);
+        reject(new Error(`Failed to load image: ${src}`));
+      };
       img.src = src;
     });
   }, []);
 
   const drawCanvas = useCallback(async () => {
-    if (!canvasRef.current || !currentImageUrl) return;
+    console.log("drawCanvas called, currentImageUrl:", currentImageUrl?.substring(0, 80));
+    if (!canvasRef.current || !currentImageUrl) {
+      console.log("Early return - canvas:", !!canvasRef.current, "url:", !!currentImageUrl);
+      return;
+    }
     
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -61,10 +70,15 @@ export function CardCreator({
     setIsLoading(true);
     setError(null);
 
+    const userProxyUrl = getProxiedUrl(currentImageUrl);
+    const overlayProxyUrl = getProxiedUrl(OVERLAY_URL);
+    console.log("Loading user image from:", userProxyUrl.substring(0, 100));
+    console.log("Loading overlay from:", overlayProxyUrl.substring(0, 100));
+
     try {
       const [userImage, overlayImage] = await Promise.all([
-        loadImage(getProxiedUrl(currentImageUrl)),
-        loadImage(getProxiedUrl(OVERLAY_URL))
+        loadImage(userProxyUrl),
+        loadImage(overlayProxyUrl)
       ]);
 
       canvas.width = CANVAS_SIZE;
@@ -107,7 +121,11 @@ export function CardCreator({
 
   useEffect(() => {
     if (isOpen && currentImageUrl) {
-      drawCanvas();
+      // Small delay to ensure canvas is mounted and rendered
+      const timer = setTimeout(() => {
+        drawCanvas();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isOpen, currentImageUrl, drawCanvas]);
 
