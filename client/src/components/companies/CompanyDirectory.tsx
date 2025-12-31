@@ -240,26 +240,16 @@ export default function CompanyDirectory() {
             Sponsors {/* ({filters.sponsors.count}) */}
           </Badge>
           
-          {/* All Companies Tag (after sponsors) */}
-          <Badge
-            variant={activeFilter === "all" ? "default" : "outline"}
-            className="cursor-pointer px-3 py-1 text-xs whitespace-nowrap"
-            onClick={() => handleFilterClick("all")}
-            data-testid="filter-all"
-          >
-            All
-          </Badge>
-          
           {/* Industry Tags (sorted by popularity) */}
           {filters.industries.map((industry: { name: string; count: number }) => (
             <Badge
-              key={industry.name}
+              key={industry.name || "all"}
               variant={activeFilter === industry.name ? "default" : "outline"}
               className="cursor-pointer px-3 py-1 text-xs whitespace-nowrap"
               onClick={() => handleFilterClick(industry.name)}
-              data-testid={`filter-industry-${industry.name.toLowerCase().replace(/\s+/g, "-")}`}
+              data-testid={industry.name ? `filter-industry-${industry.name.toLowerCase().replace(/\s+/g, "-")}` : "filter-all"}
             >
-              {industry.name} {/* ({industry.count}) */}
+              {industry.name || "All Companies"}
             </Badge>
           ))}
         </div>
