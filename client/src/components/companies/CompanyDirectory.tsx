@@ -240,6 +240,16 @@ export default function CompanyDirectory() {
             Sponsors {/* ({filters.sponsors.count}) */}
           </Badge>
           
+          {/* All Companies Tag (after sponsors) */}
+          <Badge
+            variant={activeFilter === "all" ? "default" : "outline"}
+            className="cursor-pointer px-3 py-1 text-xs whitespace-nowrap"
+            onClick={() => handleFilterClick("all")}
+            data-testid="filter-all"
+          >
+            All
+          </Badge>
+          
           {/* Industry Tags (sorted by popularity) */}
           {filters.industries.map((industry: { name: string; count: number }) => (
             <Badge
