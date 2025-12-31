@@ -182,7 +182,7 @@ export default function CompanyDirectory() {
             <div className="w-full max-w-lg mx-auto">
               <Input
                 placeholder="Search companies..."
-                className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
+                className="w-full bg-white border-0 focus-visible:ring-primary/70 text-gray-900 placeholder:text-gray-500"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -218,7 +218,7 @@ export default function CompanyDirectory() {
           <div className="w-full max-w-lg mx-auto">
             <Input
               placeholder="Search companies..."
-              className="w-full bg-white/90 border-0 focus-visible:ring-primary/70"
+              className="w-full bg-white border-0 focus-visible:ring-primary/70 text-gray-900 placeholder:text-gray-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               data-testid="input-search-companies"
