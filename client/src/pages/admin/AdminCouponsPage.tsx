@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users } from "lucide-react";
+import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users, Infinity } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -658,16 +658,34 @@ export default function AdminCouponsPage() {
 
                           <div className="space-y-2">
                             <Label htmlFor="maxUses">Number of Uses</Label>
-                            <Input
-                              id="maxUses"
-                              type="number"
-                              min={1}
-                              value={maxUses}
-                              onChange={(e) => setMaxUses(Math.max(1, parseInt(e.target.value) || 1))}
-                              data-testid="input-max-uses"
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id="maxUses"
+                                type="number"
+                                min={1}
+                                value={maxUses === 1000000 ? '' : maxUses}
+                                placeholder={maxUses === 1000000 ? 'Unlimited' : undefined}
+                                onChange={(e) => setMaxUses(Math.max(1, parseInt(e.target.value) || 1))}
+                                disabled={maxUses === 1000000}
+                                className={maxUses === 1000000 ? 'bg-muted' : ''}
+                                data-testid="input-max-uses"
+                              />
+                              <Button
+                                type="button"
+                                variant={maxUses === 1000000 ? 'default' : 'outline'}
+                                size="icon"
+                                onClick={() => setMaxUses(maxUses === 1000000 ? 10 : 1000000)}
+                                title={maxUses === 1000000 ? 'Set limited uses' : 'Set unlimited uses'}
+                                data-testid="button-unlimited-uses"
+                              >
+                                <Infinity className="h-4 w-4" />
+                              </Button>
+                            </div>
                             <p className="text-xs text-muted-foreground">
-                              How many times this coupon can be redeemed
+                              {maxUses === 1000000 
+                                ? 'Unlimited uses - click the infinity button to set a specific limit'
+                                : 'How many times this coupon can be redeemed'
+                              }
                             </p>
                           </div>
                         </>
@@ -1014,7 +1032,9 @@ export default function AdminCouponsPage() {
                                     <TableCell className="whitespace-nowrap">{getStatusBadge(coupon.status)}</TableCell>
                                     <TableCell className="whitespace-nowrap">
                                       {coupon.remainingCount !== null && coupon.remainingCount !== undefined 
-                                        ? <span className={coupon.remainingCount === 0 ? "text-muted-foreground" : "font-medium"}>{coupon.remainingCount}</span>
+                                        ? coupon.remainingCount >= 1000000 
+                                          ? <span className="flex items-center gap-1 font-medium text-primary"><Infinity className="h-4 w-4" /></span>
+                                          : <span className={coupon.remainingCount === 0 ? "text-muted-foreground" : "font-medium"}>{coupon.remainingCount}</span>
                                         : <span className="text-muted-foreground">—</span>
                                       }
                                     </TableCell>

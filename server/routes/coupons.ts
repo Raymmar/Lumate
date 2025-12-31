@@ -41,7 +41,7 @@ const generateCouponsSchema = z.object({
   targetGroup: z.enum(['activePremium']).optional(),
   recipientIds: z.array(z.number()).optional(),
   customCode: z.string().min(3).max(50).optional(),
-  maxUses: z.number().min(1).max(10000).optional(),
+  maxUses: z.number().min(1).max(1000000).optional(),
   enableAutoCoupon: z.boolean().optional().default(false),
 }).refine(data => {
   if (data.discountType === 'percent') {
@@ -122,9 +122,10 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
 
     const isGeneralCoupon = validatedData.couponType === 'general';
     const discountType = validatedData.discountType || 'percent';
-    const centsOff = discountType === 'dollars' && validatedData.dollarOff 
-      ? Math.round(validatedData.dollarOff * 100) 
+    const dollarsOff = discountType === 'dollars' && validatedData.dollarOff 
+      ? validatedData.dollarOff 
       : null;
+    const centsOff = dollarsOff ? Math.round(dollarsOff * 100) : null;
     const discountPercent = discountType === 'percent' ? validatedData.discountPercent : null;
     const maxUses = validatedData.maxUses || 1;
 
@@ -154,17 +155,19 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
         });
       }
 
+      const discount: any = discountType === 'percent' 
+        ? { discount_type: "percent", percent_off: discountPercent }
+        : { discount_type: "cents", cents_off: centsOff };
+      
       const lumaPayload: any = {
         code: couponCode,
         event_api_id: validatedData.eventApiId,
         remaining_count: maxUses,
-        discount: discountType === 'percent' 
-          ? { discount_type: "percent", percent_off: discountPercent }
-          : { discount_type: "cents", cents_off: centsOff },
+        discount,
       };
       
       if (validatedData.ticketTypeId) {
-        lumaPayload.discount.ticket_api_ids = [validatedData.ticketTypeId];
+        lumaPayload.ticket_api_ids = [validatedData.ticketTypeId];
       }
       if (validatedData.validStartAt) {
         lumaPayload.valid_start_at = validatedData.validStartAt;
@@ -301,17 +304,19 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       try {
         const couponCode = generateCouponCode(eventPrefix, recipient.id);
         
+        const discount: any = discountType === 'percent'
+          ? { discount_type: "percent", percent_off: discountPercent }
+          : { discount_type: "cents", cents_off: centsOff };
+        
         const lumaPayload: any = {
           code: couponCode,
           event_api_id: validatedData.eventApiId,
           remaining_count: 1,
-          discount: discountType === 'percent'
-            ? { discount_type: "percent", percent_off: discountPercent }
-            : { discount_type: "cents", cents_off: centsOff },
+          discount,
         };
         
         if (validatedData.ticketTypeId) {
-          lumaPayload.discount.ticket_api_ids = [validatedData.ticketTypeId];
+          lumaPayload.ticket_api_ids = [validatedData.ticketTypeId];
         }
         
         if (validatedData.validStartAt) {
