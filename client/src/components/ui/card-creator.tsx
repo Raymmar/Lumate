@@ -411,7 +411,10 @@ export function SpeakerCardPreview({
       ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
       const aspectRatio = userImage.width / userImage.height;
-      let drawWidth: number, drawHeight: number, offsetX: number, offsetY: number;
+      let drawWidth: number,
+        drawHeight: number,
+        offsetX: number,
+        offsetY: number;
 
       if (aspectRatio > 1) {
         drawHeight = USER_IMAGE_SIZE;
@@ -427,7 +430,12 @@ export function SpeakerCardPreview({
 
       ctx.save();
       ctx.beginPath();
-      ctx.rect(USER_IMAGE_OFFSET, USER_IMAGE_OFFSET, USER_IMAGE_SIZE, USER_IMAGE_SIZE);
+      ctx.rect(
+        USER_IMAGE_OFFSET,
+        USER_IMAGE_OFFSET,
+        USER_IMAGE_SIZE,
+        USER_IMAGE_SIZE,
+      );
       ctx.clip();
       ctx.drawImage(userImage, offsetX, offsetY, drawWidth, drawHeight);
       ctx.restore();
@@ -437,8 +445,9 @@ export function SpeakerCardPreview({
       // Draw speaker name (top left) - 16px equivalent from top
       const textPadding = 60;
       const nameY = 16;
-      
-      ctx.font = "bold 56px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
+
+      ctx.font =
+        "bold 56px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
       ctx.fillStyle = "#1a1a1a";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -446,18 +455,19 @@ export function SpeakerCardPreview({
       ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 1;
       ctx.shadowOffsetY = 1;
-      
+
       ctx.fillText(speakerName, textPadding, nameY);
-      
-      ctx.font = "500 36px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
+
+      ctx.font =
+        "500 36px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
       ctx.fillStyle = "#1a1a1a";
       ctx.fillText(speakerTitle, textPadding, nameY + 65);
-      
+
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
-      
+
       // Draw badge label (bottom right)
       ctx.font = "italic bold 72px 'Georgia', 'Times New Roman', serif";
       ctx.fillStyle = "#1a1a1a";
@@ -467,9 +477,9 @@ export function SpeakerCardPreview({
       ctx.shadowBlur = 2;
       ctx.shadowOffsetX = 1;
       ctx.shadowOffsetY = 1;
-      
+
       ctx.fillText(badgeLabel, CANVAS_SIZE - textPadding, CANVAS_SIZE - 60);
-      
+
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
@@ -515,7 +525,9 @@ export function SpeakerCardPreview({
           </div>
         )}
       </div>
-      {error && <p className="text-sm text-destructive text-center mt-2">{error}</p>}
+      {error && (
+        <p className="text-sm text-destructive text-center mt-2">{error}</p>
+      )}
       {showDownloadButton && (
         <Button
           onClick={handleDownload}
