@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users, Infinity } from "lucide-react";
+import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users, Infinity, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { SearchInput } from "@/components/admin/SearchInput";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,10 @@ export default function AdminCouponsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [remainingFilter, setRemainingFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
+  const [sortField, setSortField] = useState<'code' | 'recipient' | 'discount' | 'status' | 'remaining' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: Coupon[]; stats: CouponStats[] }>({
     queryKey: ["/api/admin/coupons"],
@@ -392,15 +397,68 @@ export default function AdminCouponsPage() {
       if (remainingFilter === "has_remaining" && (coupon.remainingCount ?? 0) <= 0) return false;
       if (remainingFilter === "fully_redeemed" && (coupon.remainingCount ?? 0) > 0) return false;
       if (sourceFilter !== "all" && coupon.source !== sourceFilter) return false;
+      if (debouncedSearchQuery) {
+        const searchLower = debouncedSearchQuery.toLowerCase();
+        const codeMatch = coupon.code.toLowerCase().includes(searchLower);
+        const recipientMatch = coupon.recipientEmail?.toLowerCase().includes(searchLower);
+        if (!codeMatch && !recipientMatch) return false;
+      }
       return true;
     });
-  }, [couponsData?.coupons, statusFilter, remainingFilter, sourceFilter]);
+  }, [couponsData?.coupons, statusFilter, remainingFilter, sourceFilter, debouncedSearchQuery]);
+
+  const handleSort = (field: 'code' | 'recipient' | 'discount' | 'status' | 'remaining') => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return <ArrowUpDown className="h-3.5 w-3.5 ml-1 text-muted-foreground" />;
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3.5 w-3.5 ml-1" /> 
+      : <ArrowDown className="h-3.5 w-3.5 ml-1" />;
+  };
+
+  const sortCoupons = (coupons: Coupon[]) => {
+    if (!sortField) return coupons;
+    
+    return [...coupons].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'code':
+          comparison = a.code.localeCompare(b.code);
+          break;
+        case 'recipient':
+          comparison = (a.recipientEmail || '').localeCompare(b.recipientEmail || '');
+          break;
+        case 'discount':
+          const discountA = a.discountPercent || (a.centsOff ? a.centsOff / 100 : 0);
+          const discountB = b.discountPercent || (b.centsOff ? b.centsOff / 100 : 0);
+          comparison = discountA - discountB;
+          break;
+        case 'status':
+          comparison = a.status.localeCompare(b.status);
+          break;
+        case 'remaining':
+          comparison = (a.remainingCount ?? 0) - (b.remainingCount ?? 0);
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  };
 
   const couponsByEvent = useMemo(() => {
     if (!couponsData?.stats) return [];
     
     return couponsData.stats.map(stat => {
       const eventCoupons = filteredCoupons.filter(c => c.eventApiId === stat.eventApiId);
+      const sortedCoupons = sortCoupons(eventCoupons);
       return {
         eventApiId: stat.eventApiId,
         eventTitle: stat.eventTitle,
@@ -408,17 +466,18 @@ export default function AdminCouponsPage() {
         issued: eventCoupons.filter(c => c.status === 'issued').length,
         redeemed: eventCoupons.filter(c => c.status === 'redeemed').length,
         expired: eventCoupons.filter(c => c.status === 'expired').length,
-        coupons: eventCoupons
+        coupons: sortedCoupons
       };
     }).filter(group => group.coupons.length > 0);
-  }, [couponsData?.stats, filteredCoupons]);
+  }, [couponsData?.stats, filteredCoupons, sortField, sortDirection]);
 
-  const hasActiveFilters = statusFilter !== "all" || remainingFilter !== "all" || sourceFilter !== "all";
+  const hasActiveFilters = statusFilter !== "all" || remainingFilter !== "all" || sourceFilter !== "all" || searchQuery !== "";
 
   const clearFilters = () => {
     setStatusFilter("all");
     setRemainingFilter("all");
     setSourceFilter("all");
+    setSearchQuery("");
   };
 
   return (
@@ -851,6 +910,12 @@ export default function AdminCouponsPage() {
           <Card>
             <CardContent className="pt-4 pb-4">
               <div className="flex flex-wrap items-center gap-4">
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search coupons..."
+                  isLoading={isLoadingCoupons}
+                />
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">Filters:</span>
@@ -962,12 +1027,57 @@ export default function AdminCouponsPage() {
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead>Code</TableHead>
-                                <TableHead>Recipient</TableHead>
-                                <TableHead>Discount</TableHead>
+                                <TableHead>
+                                  <button
+                                    onClick={() => handleSort('code')}
+                                    className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                                    data-testid="sort-code"
+                                  >
+                                    Code
+                                    {getSortIcon('code')}
+                                  </button>
+                                </TableHead>
+                                <TableHead>
+                                  <button
+                                    onClick={() => handleSort('recipient')}
+                                    className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                                    data-testid="sort-recipient"
+                                  >
+                                    Recipient
+                                    {getSortIcon('recipient')}
+                                  </button>
+                                </TableHead>
+                                <TableHead>
+                                  <button
+                                    onClick={() => handleSort('discount')}
+                                    className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                                    data-testid="sort-discount"
+                                  >
+                                    Discount
+                                    {getSortIcon('discount')}
+                                  </button>
+                                </TableHead>
                                 <TableHead>Link</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Remaining</TableHead>
+                                <TableHead>
+                                  <button
+                                    onClick={() => handleSort('status')}
+                                    className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                                    data-testid="sort-status"
+                                  >
+                                    Status
+                                    {getSortIcon('status')}
+                                  </button>
+                                </TableHead>
+                                <TableHead>
+                                  <button
+                                    onClick={() => handleSort('remaining')}
+                                    className="flex items-center hover:text-foreground transition-colors cursor-pointer"
+                                    data-testid="sort-remaining"
+                                  >
+                                    Remaining
+                                    {getSortIcon('remaining')}
+                                  </button>
+                                </TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
