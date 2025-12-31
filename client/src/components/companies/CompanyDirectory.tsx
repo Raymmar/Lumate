@@ -240,8 +240,12 @@ export default function CompanyDirectory() {
             Sponsors {/* ({filters.sponsors.count}) */}
           </Badge>
           
-          {/* Industry Tags (sorted by popularity) */}
-          {filters.industries.map((industry: { name: string; count: number }) => (
+          {/* Industry Tags (All Companies first, then sorted by popularity) */}
+          {[...filters.industries].sort((a: { name: string }, b: { name: string }) => {
+            if (a.name === "") return -1;
+            if (b.name === "") return 1;
+            return 0;
+          }).map((industry: { name: string; count: number }) => (
             <Badge
               key={industry.name || "all"}
               variant={activeFilter === industry.name ? "default" : "outline"}
