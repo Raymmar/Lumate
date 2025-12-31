@@ -520,26 +520,18 @@ export default function AdminCouponsPage() {
                       </div>
 
                       {recipientMode === 'allPremium' && (
-                        <div className="p-3 rounded-lg border bg-blue-50/50 border-blue-100 space-y-2">
-                          <div className="flex items-start space-x-3">
-                            <input
-                              type="checkbox"
-                              id="enableAutoCoupon"
-                              checked={enableAutoCoupon}
-                              onChange={(e) => setEnableAutoCoupon(e.target.checked)}
-                              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                              data-testid="checkbox-enable-auto-coupon"
-                            />
-                            <div className="flex-1">
-                              <Label htmlFor="enableAutoCoupon" className="font-medium cursor-pointer flex items-center gap-2">
-                                <Users className="h-4 w-4 text-blue-600" />
-                                Also invite future members
-                              </Label>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                When enabled, anyone who becomes a premium member in the future will automatically receive a coupon for this event (with the same discount settings).
-                              </p>
-                            </div>
-                          </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="enableAutoCoupon"
+                            checked={enableAutoCoupon}
+                            onChange={(e) => setEnableAutoCoupon(e.target.checked)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            data-testid="checkbox-enable-auto-coupon"
+                          />
+                          <Label htmlFor="enableAutoCoupon" className="cursor-pointer text-sm">
+                            Also invite future premium members
+                          </Label>
                         </div>
                       )}
 
