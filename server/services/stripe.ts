@@ -1,6 +1,7 @@
 import { storage } from "../storage";
 import { getUncachableStripeClient } from "../stripeClient";
 import Stripe from "stripe";
+import { AutoCouponService } from "./autoCoupon";
 
 export class StripeService {
   static async getPriceDetails(priceId: string) {
@@ -116,11 +117,21 @@ export class StripeService {
             session.customer,
           );
           if (user) {
+            const previousStatus = user.subscriptionStatus;
             await storage.updateUserSubscription(
               user.id,
               subscription.id,
               subscription.status,
             );
+
+            if (subscription.status === 'active' && previousStatus !== 'active') {
+              try {
+                console.log(`[StripeService] New active subscription for user ${user.id}, generating auto-coupons...`);
+                await AutoCouponService.generateCouponsForNewSubscriber(user.id, user.email);
+              } catch (autoCouponError) {
+                console.error('[StripeService] Error generating auto-coupons:', autoCouponError);
+              }
+            }
           }
         }
 
@@ -414,6 +425,13 @@ export class StripeService {
             
             if (needsStatusFix && status === 'active') {
               await storage.updateUserSubscription(user.id, subscriptionId, 'active');
+
+              try {
+                console.log(`[Startup Reconciliation] Generating auto-coupons for newly activated user ${user.id}...`);
+                await AutoCouponService.generateCouponsForNewSubscriber(user.id, user.email);
+              } catch (autoCouponError) {
+                console.error('[Startup Reconciliation] Error generating auto-coupons:', autoCouponError);
+              }
             }
             
             reconciledCount++;

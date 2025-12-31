@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter } from "lucide-react";
+import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,6 +90,7 @@ export default function AdminCouponsPage() {
   const debouncedPeopleSearch = useDebounce(peopleSearchQuery, 300);
   const [customCode, setCustomCode] = useState<string>("");
   const [maxUses, setMaxUses] = useState<number>(10);
+  const [enableAutoCoupon, setEnableAutoCoupon] = useState<boolean>(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [remainingFilter, setRemainingFilter] = useState<string>("all");
@@ -199,6 +200,7 @@ export default function AdminCouponsPage() {
       recipientIds?: number[];
       customCode?: string;
       maxUses?: number;
+      enableAutoCoupon?: boolean;
     }) => {
       return apiRequest("/api/admin/coupons/generate", "POST", data);
     },
@@ -207,9 +209,12 @@ export default function AdminCouponsPage() {
       const skippedMessage = data.results?.skipped > 0 
         ? ` (${data.results.skipped} skipped - already had coupons)`
         : '';
+      const autoCouponMessage = data.autoCouponEnabled 
+        ? ' Future subscribers will also receive coupons.' 
+        : '';
       toast({
         title: "Coupons Generated",
-        description: `Successfully created ${data.results?.created || 0} coupons${skippedMessage}`,
+        description: `Successfully created ${data.results?.created || 0} coupons${skippedMessage}.${autoCouponMessage}`,
       });
       setIsCreateOpen(false);
       setSelectedEventId("");
@@ -222,6 +227,7 @@ export default function AdminCouponsPage() {
       setPeopleSearchQuery("");
       setCustomCode("");
       setMaxUses(10);
+      setEnableAutoCoupon(false);
     },
     onError: (error: Error) => {
       toast({
@@ -277,6 +283,7 @@ export default function AdminCouponsPage() {
       recipientIds?: number[];
       customCode?: string;
       maxUses?: number;
+      enableAutoCoupon?: boolean;
     } = {
       eventApiId: selectedEventId,
       ticketTypeId: actualTicketTypeId,
@@ -297,6 +304,9 @@ export default function AdminCouponsPage() {
     } else {
       if (recipientMode === 'allPremium') {
         mutationData.targetGroup = 'activePremium';
+        if (enableAutoCoupon) {
+          mutationData.enableAutoCoupon = true;
+        }
       } else {
         mutationData.recipientIds = selectedPeople.map(p => p.id);
       }
@@ -508,6 +518,30 @@ export default function AdminCouponsPage() {
                             : 'Send individual coupons to specific recipients via email'}
                         </p>
                       </div>
+
+                      {recipientMode === 'allPremium' && (
+                        <div className="p-3 rounded-lg border bg-blue-50/50 border-blue-100 space-y-2">
+                          <div className="flex items-start space-x-3">
+                            <input
+                              type="checkbox"
+                              id="enableAutoCoupon"
+                              checked={enableAutoCoupon}
+                              onChange={(e) => setEnableAutoCoupon(e.target.checked)}
+                              className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                              data-testid="checkbox-enable-auto-coupon"
+                            />
+                            <div className="flex-1">
+                              <Label htmlFor="enableAutoCoupon" className="font-medium cursor-pointer flex items-center gap-2">
+                                <Users className="h-4 w-4 text-blue-600" />
+                                Also invite future members
+                              </Label>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                When enabled, anyone who becomes a premium member in the future will automatically receive a coupon for this event (with the same discount settings).
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">

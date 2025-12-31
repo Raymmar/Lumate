@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { storage } from "../storage";
 import { db } from "../db";
-import { events, users, coupons, people } from "@shared/schema";
+import { events, users, coupons, people, autoCouponEvents } from "@shared/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, requireAuth } from "./middleware";
 import { lumaApiRequest } from "../routes";
@@ -42,6 +42,7 @@ const generateCouponsSchema = z.object({
   recipientIds: z.array(z.number()).optional(),
   customCode: z.string().min(3).max(50).optional(),
   maxUses: z.number().min(1).max(10000).optional(),
+  enableAutoCoupon: z.boolean().optional().default(false),
 }).refine(data => {
   if (data.discountType === 'percent') {
     return data.discountPercent !== undefined && data.discountPercent >= 1 && data.discountPercent <= 100;
@@ -399,11 +400,51 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
       }
     }
     
+    // Handle auto-coupon setting for future subscribers
+    if (validatedData.enableAutoCoupon && validatedData.targetGroup === 'activePremium') {
+      try {
+        const existingAutoCoupon = await storage.getAutoCouponEventByEventApiId(validatedData.eventApiId);
+        
+        if (existingAutoCoupon) {
+          // Update existing settings
+          await storage.updateAutoCouponEvent(existingAutoCoupon.id, {
+            isActive: true,
+            ticketTypeId: validatedData.ticketTypeId || null,
+            ticketTypeName: validatedData.ticketTypeName || null,
+            discountType: discountType,
+            discountPercent: discountPercent,
+            centsOff: centsOff,
+          });
+          console.log(`Updated auto-coupon settings for event ${validatedData.eventApiId}`);
+        } else {
+          // Create new auto-coupon event
+          await storage.createAutoCouponEvent({
+            eventApiId: validatedData.eventApiId,
+            eventTitle: eventData.title,
+            eventUrl: eventData.url || null,
+            eventStartTime: eventData.startTime,
+            ticketTypeId: validatedData.ticketTypeId || null,
+            ticketTypeName: validatedData.ticketTypeName || null,
+            discountType: discountType,
+            discountPercent: discountPercent,
+            centsOff: centsOff,
+            isActive: true,
+            createdByUserId: adminUserId,
+          });
+          console.log(`Created auto-coupon settings for event ${validatedData.eventApiId}`);
+        }
+      } catch (autoCouponError) {
+        console.error('Failed to save auto-coupon settings:', autoCouponError);
+        // Don't fail the main request if auto-coupon settings fail to save
+      }
+    }
+
     res.json({
       success: true,
       message: `Generated ${results.created} coupons for ${eventData.title}`,
       results,
       coupons: createdCoupons,
+      autoCouponEnabled: validatedData.enableAutoCoupon,
     });
     
   } catch (error) {
@@ -581,6 +622,48 @@ router.post("/api/admin/coupons/preview", requireAdmin, async (req, res) => {
     console.error("Failed to preview coupons:", error);
     res.status(500).json({
       error: "Failed to preview coupon recipients",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// Auto-coupon events management endpoints
+router.get("/api/admin/auto-coupons", requireAdmin, async (req, res) => {
+  try {
+    const activeEvents = await storage.getActiveAutoCouponEvents();
+    res.json({ events: activeEvents });
+  } catch (error) {
+    console.error("Failed to fetch auto-coupon events:", error);
+    res.status(500).json({
+      error: "Failed to fetch auto-coupon events",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.get("/api/admin/auto-coupons/:eventApiId", requireAdmin, async (req, res) => {
+  try {
+    const { eventApiId } = req.params;
+    const autoCouponEvent = await storage.getAutoCouponEventByEventApiId(eventApiId);
+    res.json({ autoCouponEvent });
+  } catch (error) {
+    console.error("Failed to fetch auto-coupon event:", error);
+    res.status(500).json({
+      error: "Failed to fetch auto-coupon event",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.delete("/api/admin/auto-coupons/:eventApiId", requireAdmin, async (req, res) => {
+  try {
+    const { eventApiId } = req.params;
+    await storage.disableAutoCouponEvent(eventApiId);
+    res.json({ success: true, message: "Auto-coupon disabled for event" });
+  } catch (error) {
+    console.error("Failed to disable auto-coupon:", error);
+    res.status(500).json({
+      error: "Failed to disable auto-coupon",
       message: error instanceof Error ? error.message : String(error),
     });
   }
