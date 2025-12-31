@@ -83,11 +83,26 @@ router.post("/create-checkout-session", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // Create a new customer if one doesn't exist
+    // Check for existing customer and prevent duplicate creation
     if (!user.stripeCustomerId || user.stripeCustomerId === "NULL") {
-      const customer = await StripeService.createCustomer(user.email, user.id);
-      await storage.setStripeCustomerId(user.id, customer.id);
-      user.stripeCustomerId = customer.id;
+      // First, check if a customer already exists in synced Stripe data
+      const existingCustomer = await storage.getStripeCustomerByEmail(user.email);
+      
+      if (existingCustomer) {
+        console.log("📌 Found existing Stripe customer for email:", {
+          email: user.email,
+          existingCustomerId: existingCustomer.id,
+        });
+        // Use existing customer instead of creating a new one
+        await storage.setStripeCustomerId(user.id, existingCustomer.id);
+        user.stripeCustomerId = existingCustomer.id;
+      } else {
+        // No existing customer found, create a new one
+        console.log("🆕 Creating new Stripe customer for:", user.email);
+        const customer = await StripeService.createCustomer(user.email, user.id);
+        await storage.setStripeCustomerId(user.id, customer.id);
+        user.stripeCustomerId = customer.id;
+      }
     }
 
     const session = await StripeService.createCheckoutSession(
@@ -261,23 +276,61 @@ router.get("/subscription-status", async (req, res) => {
       return res.json({ status: "active" });
     }
 
-    if (!user.stripeCustomerId || user.stripeCustomerId === "NULL") {
-      return res.json({ status: "inactive" });
+    // First, try checking with stored customer ID
+    if (user.stripeCustomerId && user.stripeCustomerId !== "NULL") {
+      try {
+        const subscriptionStatus = await StripeService.getSubscriptionStatus(
+          user.stripeCustomerId,
+        );
+        if (subscriptionStatus.status === "active") {
+          return res.json(subscriptionStatus);
+        }
+      } catch (error: any) {
+        // If customer not found, continue to email fallback
+        if (error?.raw?.code !== "resource_missing") {
+          console.error("Error checking subscription with stored customer ID:", error);
+        }
+      }
     }
 
-    try {
-      const subscriptionStatus = await StripeService.getSubscriptionStatus(
-        user.stripeCustomerId,
-      );
-      return res.json(subscriptionStatus);
-    } catch (error: any) {
-      // If customer not found, return inactive status instead of error
-      if (error?.raw?.code === "resource_missing") {
-        console.log("Customer not found, returning inactive status");
-        return res.json({ status: "inactive" });
+    // Fallback: Look up subscription by email in synced Stripe data
+    // This handles cases where customer ID mismatch occurred
+    console.log("🔍 Checking subscription by email fallback for:", user.email);
+    const subscriptionByEmail = await storage.getActiveSubscriptionByEmail(user.email);
+    
+    if (subscriptionByEmail) {
+      console.log("✅ Found active subscription via email lookup:", {
+        userId: user.id,
+        email: user.email,
+        subscriptionId: subscriptionByEmail.subscriptionId,
+        customerId: subscriptionByEmail.customerId,
+        storedCustomerId: user.stripeCustomerId,
+      });
+
+      // Auto-reconcile: Update user's customer ID if there's a mismatch
+      if (user.stripeCustomerId !== subscriptionByEmail.customerId) {
+        console.log("🔄 Auto-reconciling customer ID mismatch:", {
+          userId: user.id,
+          oldCustomerId: user.stripeCustomerId,
+          newCustomerId: subscriptionByEmail.customerId,
+        });
+        await storage.setStripeCustomerId(user.id, subscriptionByEmail.customerId);
+        await storage.updateUserSubscription(
+          user.id,
+          subscriptionByEmail.subscriptionId,
+          subscriptionByEmail.status,
+        );
       }
-      throw error; // Re-throw other errors to be caught by outer catch block
+
+      return res.json({
+        status: subscriptionByEmail.status,
+        currentPeriodEnd: subscriptionByEmail.currentPeriodEnd,
+        subscriptionId: subscriptionByEmail.subscriptionId,
+      });
     }
+
+    // No subscription found
+    return res.json({ status: "inactive" });
   } catch (error: any) {
     console.error("Error checking subscription status:", error);
     return res.status(500).json({

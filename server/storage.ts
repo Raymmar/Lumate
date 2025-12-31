@@ -140,6 +140,13 @@ export interface IStorage {
   setStripeCustomerId(userId: number, customerId: string): Promise<User>;
   getPersonByUsername(username: string): Promise<Person | null>;
   getPaidUsersCount(): Promise<number>;
+  getActiveSubscriptionByEmail(email: string): Promise<{
+    subscriptionId: string;
+    customerId: string;
+    status: string;
+    currentPeriodEnd: number;
+  } | null>;
+  getStripeCustomerByEmail(email: string): Promise<{ id: string; email: string } | null>;
   
   // Comprehensive active member stats (de-duplicated by source)
   getActiveMemberStats(): Promise<{
@@ -3145,6 +3152,70 @@ export class PostgresStorage implements IStorage {
       sql`SELECT * FROM stripe.subscriptions WHERE id = ${subscriptionId}`
     );
     return result.rows[0] || null;
+  }
+
+  async getActiveSubscriptionByEmail(email: string): Promise<{
+    subscriptionId: string;
+    customerId: string;
+    status: string;
+    currentPeriodEnd: number;
+  } | null> {
+    try {
+      const result = await db.execute(
+        sql`
+          SELECT 
+            s.id as subscription_id,
+            s.customer as customer_id,
+            s.status,
+            s.current_period_end
+          FROM stripe.subscriptions s
+          INNER JOIN stripe.customers c ON c.id = s.customer
+          WHERE LOWER(c.email) = LOWER(${email})
+            AND s.status = 'active'
+          ORDER BY s.created DESC
+          LIMIT 1
+        `
+      );
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      const row = result.rows[0] as any;
+      return {
+        subscriptionId: row.subscription_id,
+        customerId: row.customer_id,
+        status: row.status,
+        currentPeriodEnd: row.current_period_end,
+      };
+    } catch (error) {
+      console.error('Error fetching subscription by email:', error);
+      return null;
+    }
+  }
+
+  async getStripeCustomerByEmail(email: string): Promise<{ id: string; email: string } | null> {
+    try {
+      const result = await db.execute(
+        sql`
+          SELECT id, email
+          FROM stripe.customers
+          WHERE LOWER(email) = LOWER(${email})
+          ORDER BY _updated_at DESC
+          LIMIT 1
+        `
+      );
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      const row = result.rows[0] as any;
+      return { id: row.id, email: row.email };
+    } catch (error) {
+      console.error('Error fetching Stripe customer by email:', error);
+      return null;
+    }
   }
 
   async getStripeSubscriptionRevenue(): Promise<{

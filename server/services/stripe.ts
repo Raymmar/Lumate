@@ -257,6 +257,7 @@ export class StripeService {
       let calculatedTotalRevenue = 0;
       
       // Get all active subscriptions
+      const stripe = await getUncachableStripeClient();
       const subscriptions = await stripe.subscriptions.list({
         status: 'active',
         limit: 100,
