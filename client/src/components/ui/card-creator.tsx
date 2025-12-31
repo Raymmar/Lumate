@@ -138,9 +138,9 @@ export function CardCreator({
 
       ctx.drawImage(overlayImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-      // Draw speaker name (top left)
+      // Draw speaker name (top left) - 16px equivalent from top
       const textPadding = 60;
-      const nameY = 120;
+      const nameY = 16; // 16px from top of card
       
       // Speaker name - bold, larger text
       ctx.font = "bold 56px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
@@ -156,9 +156,9 @@ export function CardCreator({
       
       ctx.fillText(speakerName, textPadding, nameY);
       
-      // Speaker title - smaller, lighter text
+      // Speaker title - smaller text, black
       ctx.font = "500 36px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
-      ctx.fillStyle = "#E88A3C";
+      ctx.fillStyle = "#1a1a1a";
       ctx.fillText(speakerTitle, textPadding, nameY + 65);
       
       // Reset shadow

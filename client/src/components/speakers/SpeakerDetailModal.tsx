@@ -87,6 +87,7 @@ export function SpeakerDetailModal({
               <CardCreatorButton
                 imageUrl={speaker.photo}
                 speakerName={speaker.name}
+                speakerTitle={[speaker.title, speaker.company].filter(Boolean).join(", ")}
                 variant="default"
                 size="default"
                 className="w-full"
