@@ -34,6 +34,7 @@ import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
 import SubscriptionCancelPage from "@/pages/subscription/CancelPage";
 import { ArticlePage } from "@/pages/ArticlePage";
 import { EventPage } from "@/pages/EventPage";
+import SpeakersPage from "@/pages/SpeakersPage";
 
 function Router() {
   return (
@@ -53,6 +54,7 @@ function Router() {
           <Route path="/company-profile" component={CompanyProfilePage} />
           <Route path="/companies" component={CompaniesPage} />
           <Route path="/companies/:companySlug" component={CompanyPublicProfilePage} />
+          <Route path="/speakers" component={SpeakersPage} />
           <Route path="/people/:username" component={PersonProfilePage} />
           <Route path="/memberships" component={MembershipsPage} />
           <Route path="/verify" component={VerifyPage} />
