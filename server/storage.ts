@@ -615,7 +615,7 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .select()
         .from(users)
-        .where(eq(users.email, email))
+        .where(sql`LOWER(${users.email}) = LOWER(${email})`)
         .limit(1);
       
       return result.length > 0 ? result[0] : null;
