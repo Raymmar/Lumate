@@ -737,6 +737,36 @@ export type DiscountType = z.infer<typeof discountTypeEnum>;
 export type Coupon = typeof coupons.$inferSelect;
 export type InsertCoupon = z.infer<typeof insertCouponSchema>;
 
+// Auto-coupon events - tracks which events should auto-issue coupons to new subscribers
+export const autoCouponEvents = pgTable("auto_coupon_events", {
+  id: serial("id").primaryKey(),
+  eventApiId: varchar("event_api_id", { length: 255 }).notNull().unique(),
+  eventTitle: varchar("event_title", { length: 255 }),
+  eventUrl: varchar("event_url", { length: 255 }),
+  eventStartTime: timestamp("event_start_time", { mode: 'string', withTimezone: true }),
+  ticketTypeId: varchar("ticket_type_id", { length: 255 }),
+  ticketTypeName: varchar("ticket_type_name", { length: 255 }),
+  discountType: varchar("discount_type", { length: 20 }).notNull().default('percent'),
+  discountPercent: integer("discount_percent"),
+  centsOff: integer("cents_off"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdByUserId: integer("created_by_user_id").references(() => users.id),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("auto_coupon_events_active_idx").on(table.isActive),
+  index("auto_coupon_events_start_time_idx").on(table.eventStartTime),
+]);
+
+export const insertAutoCouponEventSchema = createInsertSchema(autoCouponEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AutoCouponEvent = typeof autoCouponEvents.$inferSelect;
+export type InsertAutoCouponEvent = z.infer<typeof insertAutoCouponEventSchema>;
+
 // Agenda Tracks (e.g., "Startup School", "Main Stage")
 export const agendaTracks = pgTable("agenda_tracks", {
   id: serial("id").primaryKey(),

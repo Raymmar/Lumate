@@ -21,6 +21,7 @@ import {
   EmailInvitation, InsertEmailInvitation,
   TimelineEvent, InsertTimelineEvent,
   Coupon, InsertCoupon,
+  AutoCouponEvent, InsertAutoCouponEvent,
   AgendaTrack, InsertAgendaTrack,
   AgendaSessionType, InsertAgendaSessionType,
   TimeBlock, InsertTimeBlock,
@@ -31,7 +32,7 @@ import {
   PresentationWithSpeakers,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons,
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons, autoCouponEvents,
   agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers
 } from "@shared/schema";
 import { db } from "./db";
@@ -243,6 +244,14 @@ export interface IStorage {
   updateCouponStatus(id: number, status: string, redeemedAt?: string): Promise<Coupon>;
   getActivePremiumMembers(): Promise<User[]>;
   getUnredeemedCouponsByEventAndEmail(eventApiId: string, email: string): Promise<Coupon[]>;
+
+  // Auto-coupon events management
+  getActiveAutoCouponEvents(): Promise<AutoCouponEvent[]>;
+  getAutoCouponEventByEventApiId(eventApiId: string): Promise<AutoCouponEvent | null>;
+  createAutoCouponEvent(data: InsertAutoCouponEvent): Promise<AutoCouponEvent>;
+  updateAutoCouponEvent(id: number, data: Partial<AutoCouponEvent>): Promise<AutoCouponEvent>;
+  deleteAutoCouponEvent(id: number): Promise<void>;
+  disableAutoCouponEvent(eventApiId: string): Promise<void>;
 
   // Agenda tracks management
   getAgendaTracks(): Promise<AgendaTrack[]>;
@@ -3872,6 +3881,89 @@ export class PostgresStorage implements IStorage {
       return result;
     } catch (error) {
       console.error('Failed to get unredeemed coupons:', error);
+      throw error;
+    }
+  }
+
+  // Auto-coupon events management
+  async getActiveAutoCouponEvents(): Promise<AutoCouponEvent[]> {
+    try {
+      const now = new Date();
+      const result = await db
+        .select()
+        .from(autoCouponEvents)
+        .where(and(
+          eq(autoCouponEvents.isActive, true),
+          sql`${autoCouponEvents.eventStartTime} > ${now.toISOString()}`
+        ));
+      return result;
+    } catch (error) {
+      console.error('Failed to get active auto-coupon events:', error);
+      throw error;
+    }
+  }
+
+  async getAutoCouponEventByEventApiId(eventApiId: string): Promise<AutoCouponEvent | null> {
+    try {
+      const result = await db
+        .select()
+        .from(autoCouponEvents)
+        .where(eq(autoCouponEvents.eventApiId, eventApiId))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      console.error('Failed to get auto-coupon event by event API ID:', error);
+      throw error;
+    }
+  }
+
+  async createAutoCouponEvent(data: InsertAutoCouponEvent): Promise<AutoCouponEvent> {
+    try {
+      const result = await db
+        .insert(autoCouponEvents)
+        .values(data)
+        .returning();
+      return result[0];
+    } catch (error) {
+      console.error('Failed to create auto-coupon event:', error);
+      throw error;
+    }
+  }
+
+  async updateAutoCouponEvent(id: number, data: Partial<AutoCouponEvent>): Promise<AutoCouponEvent> {
+    try {
+      const result = await db
+        .update(autoCouponEvents)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(autoCouponEvents.id, id))
+        .returning();
+      if (!result[0]) {
+        throw new Error('Auto-coupon event not found');
+      }
+      return result[0];
+    } catch (error) {
+      console.error('Failed to update auto-coupon event:', error);
+      throw error;
+    }
+  }
+
+  async deleteAutoCouponEvent(id: number): Promise<void> {
+    try {
+      await db.delete(autoCouponEvents).where(eq(autoCouponEvents.id, id));
+    } catch (error) {
+      console.error('Failed to delete auto-coupon event:', error);
+      throw error;
+    }
+  }
+
+  async disableAutoCouponEvent(eventApiId: string): Promise<void> {
+    try {
+      await db
+        .update(autoCouponEvents)
+        .set({ isActive: false, updatedAt: new Date().toISOString() })
+        .where(eq(autoCouponEvents.eventApiId, eventApiId));
+    } catch (error) {
+      console.error('Failed to disable auto-coupon event:', error);
       throw error;
     }
   }
