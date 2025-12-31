@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Download, Upload, Loader2, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const OVERLAY_URL = "https://file-upload.replit.app/api/storage/images%2F1767193304236-Speaker-card-overlay2.png";
+const OVERLAY_URL = "https://file-upload.replit.app/api/storage/images%2F1767191519304-Speaker-card-overlay.png";
 const CANVAS_SIZE = 1080;
 const USER_IMAGE_SIZE = CANVAS_SIZE * 0.6;
 const USER_IMAGE_OFFSET = (CANVAS_SIZE - USER_IMAGE_SIZE) / 2;
