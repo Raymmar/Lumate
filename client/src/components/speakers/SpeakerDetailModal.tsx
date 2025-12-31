@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Mic2, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CardCreatorButton } from "@/components/ui/card-creator";
 
 export interface SpeakerWithPresentation extends Speaker {
   isModerator?: boolean;
@@ -79,6 +80,18 @@ export function SpeakerDetailModal({
               {speaker.urlText || "Learn more"}
               <ExternalLink className="h-4 w-4" />
             </a>
+          )}
+          
+          {speaker.photo && (
+            <div className="mt-4 pt-4 border-t">
+              <CardCreatorButton
+                imageUrl={speaker.photo}
+                speakerName={speaker.name}
+                variant="default"
+                size="default"
+                className="w-full"
+              />
+            </div>
           )}
         </div>
 

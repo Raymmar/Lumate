@@ -583,6 +583,65 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Image proxy for CORS - allows canvas operations on remote images
+  const ALLOWED_IMAGE_HOSTS = [
+    "file-upload.replit.app",
+    "cdn.lu.ma",
+    "images.lumacdn.com",
+    "avatars.githubusercontent.com",
+    "lh3.googleusercontent.com",
+    "pbs.twimg.com",
+    "media.licdn.com",
+  ];
+
+  app.get("/api/image-proxy", async (req, res) => {
+    try {
+      const imageUrl = req.query.url as string;
+      if (!imageUrl) {
+        return res.status(400).json({ error: "Missing url parameter" });
+      }
+
+      // Validate URL
+      let parsedUrl: URL;
+      try {
+        parsedUrl = new URL(imageUrl);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL" });
+      }
+
+      // Only allow http/https protocols
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        return res.status(400).json({ error: "Invalid protocol" });
+      }
+
+      // Security: Only allow whitelisted hosts to prevent SSRF
+      if (!ALLOWED_IMAGE_HOSTS.includes(parsedUrl.hostname)) {
+        console.warn(`Image proxy blocked request to: ${parsedUrl.hostname}`);
+        return res.status(403).json({ error: "Host not allowed" });
+      }
+
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch image" });
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.startsWith("image/")) {
+        return res.status(400).json({ error: "URL does not point to an image" });
+      }
+
+      const buffer = await response.arrayBuffer();
+      
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error("Image proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy image" });
+    }
+  });
+
   // Timeline routes
   app.get("/api/timeline", async (req, res) => {
     try {

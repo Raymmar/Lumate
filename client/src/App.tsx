@@ -35,6 +35,7 @@ import SubscriptionCancelPage from "@/pages/subscription/CancelPage";
 import { ArticlePage } from "@/pages/ArticlePage";
 import { EventPage } from "@/pages/EventPage";
 import SpeakersPage from "@/pages/SpeakersPage";
+import CardCreatorPage from "@/pages/CardCreatorPage";
 
 function Router() {
   return (
@@ -55,6 +56,7 @@ function Router() {
           <Route path="/companies" component={CompaniesPage} />
           <Route path="/companies/:companySlug" component={CompanyPublicProfilePage} />
           <Route path="/speakers" component={SpeakersPage} />
+          <Route path="/card-creator" component={CardCreatorPage} />
           <Route path="/people/:username" component={PersonProfilePage} />
           <Route path="/memberships" component={MembershipsPage} />
           <Route path="/verify" component={VerifyPage} />
