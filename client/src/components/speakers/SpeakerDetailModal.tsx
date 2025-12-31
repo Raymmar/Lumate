@@ -41,7 +41,7 @@ export function SpeakerDetailModal({
           <DialogDescription>Speaker details for {speaker.name}</DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {speaker.photo && (
             <div>
               <SpeakerCardPreview
@@ -54,14 +54,14 @@ export function SpeakerDetailModal({
             </div>
           )}
 
-          <div className="flex flex-col">
-            <div className="flex items-start gap-4 mb-4">
+          <div className="flex flex-col text-left">
+            <div className="flex items-start gap-4 mb-6">
               <img
                 src={speaker.photo}
                 alt={speaker.name}
                 className="w-16 h-16 rounded-full object-cover flex-shrink-0"
               />
-              <div>
+              <div className="text-left">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                   {speaker.name}
                   {speaker.isModerator && (
@@ -77,7 +77,7 @@ export function SpeakerDetailModal({
             </div>
 
             {speaker.bio && (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap flex-grow">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap flex-grow text-left">
                 {speaker.bio}
               </p>
             )}
@@ -87,7 +87,7 @@ export function SpeakerDetailModal({
                 href={speaker.bioUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4"
+                className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-6"
                 data-testid={`link-speaker-bio-url-${speaker.id}`}
               >
                 {speaker.urlText || "Learn more"}

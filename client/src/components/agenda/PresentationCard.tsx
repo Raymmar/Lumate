@@ -1,8 +1,7 @@
 import { PresentationWithSpeakers, Speaker, AgendaSessionType } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, Mic2, GraduationCap, Presentation, Plus, UserPlus, ExternalLink, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -12,6 +11,7 @@ import { useState } from "react";
 import { SpeakerModal } from "./SpeakerModal";
 import { COLOR_MAP } from "./PresentationModal";
 import { motion, AnimatePresence } from "framer-motion";
+import { SpeakerDetailModal, SpeakerWithPresentation } from "@/components/speakers/SpeakerDetailModal";
 
 interface PresentationCardProps {
   presentation: PresentationWithSpeakers;
@@ -478,94 +478,19 @@ export function PresentationCard({
         isOpen={!!editingSpeaker}
         onClose={() => setEditingSpeaker(null)}
       />
-      <Dialog 
-        open={selectedSpeakerIndex !== null} 
-        onOpenChange={(open) => !open && setSelectedSpeakerIndex(null)}
-      >
-        <DialogContent className="max-w-lg" onClick={(e) => e.stopPropagation()}>
-          {selectedSpeakerIndex !== null && sortedSpeakers[selectedSpeakerIndex] && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-4">
-                  <img
-                    src={sortedSpeakers[selectedSpeakerIndex].photo}
-                    alt={sortedSpeakers[selectedSpeakerIndex].name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      {sortedSpeakers[selectedSpeakerIndex].name}
-                      {sortedSpeakers[selectedSpeakerIndex].isModerator && (
-                        <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                          <Mic2 className="h-2.5 w-2.5 mr-0.5" />
-                          Moderator
-                        </Badge>
-                      )}
-                    </div>
-                    {(sortedSpeakers[selectedSpeakerIndex].title || sortedSpeakers[selectedSpeakerIndex].company) && (
-                      <p className="text-sm text-muted-foreground font-normal">
-                        {sortedSpeakers[selectedSpeakerIndex].title}
-                        {sortedSpeakers[selectedSpeakerIndex].title && sortedSpeakers[selectedSpeakerIndex].company ? ", " : ""}
-                        {sortedSpeakers[selectedSpeakerIndex].company}
-                      </p>
-                    )}
-                  </div>
-                </DialogTitle>
-              </DialogHeader>
-              
-              <div className="mt-4">
-                {sortedSpeakers[selectedSpeakerIndex].bio && (
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {sortedSpeakers[selectedSpeakerIndex].bio}
-                  </p>
-                )}
-                
-                {sortedSpeakers[selectedSpeakerIndex].bioUrl && (
-                  <a
-                    href={sortedSpeakers[selectedSpeakerIndex].bioUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4"
-                  >
-                    {sortedSpeakers[selectedSpeakerIndex].urlText || "Learn more"}
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-              </div>
-
-              {sortedSpeakers.length > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-4 border-t">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSpeakerIndex(
-                      selectedSpeakerIndex === 0 ? sortedSpeakers.length - 1 : selectedSpeakerIndex - 1
-                    )}
-                    data-testid="button-prev-speaker"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {selectedSpeakerIndex + 1} of {sortedSpeakers.length}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedSpeakerIndex(
-                      selectedSpeakerIndex === sortedSpeakers.length - 1 ? 0 : selectedSpeakerIndex + 1
-                    )}
-                    data-testid="button-next-speaker"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <SpeakerDetailModal
+        speaker={selectedSpeakerIndex !== null ? sortedSpeakers[selectedSpeakerIndex] as SpeakerWithPresentation : null}
+        isOpen={selectedSpeakerIndex !== null}
+        onClose={() => setSelectedSpeakerIndex(null)}
+        onPrevious={() => setSelectedSpeakerIndex(
+          selectedSpeakerIndex === 0 ? sortedSpeakers.length - 1 : (selectedSpeakerIndex ?? 0) - 1
+        )}
+        onNext={() => setSelectedSpeakerIndex(
+          selectedSpeakerIndex === sortedSpeakers.length - 1 ? 0 : (selectedSpeakerIndex ?? 0) + 1
+        )}
+        hasPrevious={sortedSpeakers.length > 1}
+        hasNext={sortedSpeakers.length > 1}
+      />
     </div>
   );
 }
