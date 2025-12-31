@@ -26,6 +26,8 @@ function getProxiedUrl(url: string): string {
 interface CardCreatorProps {
   imageUrl?: string;
   speakerName?: string;
+  speakerTitle?: string;
+  badgeLabel?: string;
   isOpen: boolean;
   onClose: () => void;
   mode?: "speaker" | "upload";
@@ -33,7 +35,9 @@ interface CardCreatorProps {
 
 export function CardCreator({
   imageUrl,
-  speakerName,
+  speakerName = "Speaker Name",
+  speakerTitle = "Title, Company",
+  badgeLabel = "Speaker",
   isOpen,
   onClose,
   mode = "speaker",
@@ -134,13 +138,62 @@ export function CardCreator({
 
       ctx.drawImage(overlayImage, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
+      // Draw speaker name (top left)
+      const textPadding = 60;
+      const nameY = 120;
+      
+      // Speaker name - bold, larger text
+      ctx.font = "bold 56px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
+      ctx.fillStyle = "#1a1a1a";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      
+      // Add text shadow for better readability
+      ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      
+      ctx.fillText(speakerName, textPadding, nameY);
+      
+      // Speaker title - smaller, lighter text
+      ctx.font = "500 36px 'Arial Rounded MT Bold', 'Helvetica Neue', Arial, sans-serif";
+      ctx.fillStyle = "#E88A3C";
+      ctx.fillText(speakerTitle, textPadding, nameY + 65);
+      
+      // Reset shadow
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      // Draw badge label (bottom right) - "Speaker"
+      ctx.font = "italic bold 72px 'Georgia', 'Times New Roman', serif";
+      ctx.fillStyle = "#1a1a1a";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      
+      // Add slight shadow for depth
+      ctx.shadowColor = "rgba(255, 255, 255, 0.3)";
+      ctx.shadowBlur = 2;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      
+      ctx.fillText(badgeLabel, CANVAS_SIZE - textPadding, CANVAS_SIZE - 60);
+      
+      // Reset shadow
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+
       setIsLoading(false);
     } catch (err) {
       console.error("Error drawing canvas:", err);
       setError("Failed to generate card. Please try again.");
       setIsLoading(false);
     }
-  }, [currentImageUrl, loadImage]);
+  }, [currentImageUrl, loadImage, speakerName, speakerTitle, badgeLabel]);
 
   useEffect(() => {
     if (isOpen && currentImageUrl) {
@@ -303,6 +356,8 @@ export function CardCreator({
 interface CardCreatorButtonProps {
   imageUrl: string;
   speakerName?: string;
+  speakerTitle?: string;
+  badgeLabel?: string;
   variant?: "default" | "outline" | "ghost" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
@@ -311,6 +366,8 @@ interface CardCreatorButtonProps {
 export function CardCreatorButton({
   imageUrl,
   speakerName,
+  speakerTitle,
+  badgeLabel = "Speaker",
   variant = "outline",
   size = "sm",
   className,
@@ -335,6 +392,8 @@ export function CardCreatorButton({
       <CardCreator
         imageUrl={imageUrl}
         speakerName={speakerName}
+        speakerTitle={speakerTitle}
+        badgeLabel={badgeLabel}
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         mode="speaker"
