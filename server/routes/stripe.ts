@@ -276,61 +276,15 @@ router.get("/subscription-status", async (req, res) => {
       return res.json({ status: "active" });
     }
 
-    // First, try checking with stored customer ID
-    if (user.stripeCustomerId && user.stripeCustomerId !== "NULL") {
-      try {
-        const subscriptionStatus = await StripeService.getSubscriptionStatus(
-          user.stripeCustomerId,
-        );
-        if (subscriptionStatus.status === "active") {
-          return res.json(subscriptionStatus);
-        }
-      } catch (error: any) {
-        // If customer not found, continue to email fallback
-        if (error?.raw?.code !== "resource_missing") {
-          console.error("Error checking subscription with stored customer ID:", error);
-        }
-      }
-    }
+    // Check subscription status using synced Stripe data
+    // This method checks by customer ID first, then falls back to email lookup
+    // and auto-reconciles any customer ID mismatches
+    const subscriptionStatus = await StripeService.getSubscriptionStatus(
+      user.stripeCustomerId || "",
+      user.email
+    );
 
-    // Fallback: Look up subscription by email in synced Stripe data
-    // This handles cases where customer ID mismatch occurred
-    console.log("🔍 Checking subscription by email fallback for:", user.email);
-    const subscriptionByEmail = await storage.getActiveSubscriptionByEmail(user.email);
-    
-    if (subscriptionByEmail) {
-      console.log("✅ Found active subscription via email lookup:", {
-        userId: user.id,
-        email: user.email,
-        subscriptionId: subscriptionByEmail.subscriptionId,
-        customerId: subscriptionByEmail.customerId,
-        storedCustomerId: user.stripeCustomerId,
-      });
-
-      // Auto-reconcile: Update user's customer ID if there's a mismatch
-      if (user.stripeCustomerId !== subscriptionByEmail.customerId) {
-        console.log("🔄 Auto-reconciling customer ID mismatch:", {
-          userId: user.id,
-          oldCustomerId: user.stripeCustomerId,
-          newCustomerId: subscriptionByEmail.customerId,
-        });
-        await storage.setStripeCustomerId(user.id, subscriptionByEmail.customerId);
-        await storage.updateUserSubscription(
-          user.id,
-          subscriptionByEmail.subscriptionId,
-          subscriptionByEmail.status,
-        );
-      }
-
-      return res.json({
-        status: subscriptionByEmail.status,
-        currentPeriodEnd: subscriptionByEmail.currentPeriodEnd,
-        subscriptionId: subscriptionByEmail.subscriptionId,
-      });
-    }
-
-    // No subscription found
-    return res.json({ status: "inactive" });
+    return res.json(subscriptionStatus);
   } catch (error: any) {
     console.error("Error checking subscription status:", error);
     return res.status(500).json({

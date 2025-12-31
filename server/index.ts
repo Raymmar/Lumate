@@ -155,8 +155,16 @@ app.use(
 
       console.log('[Stripe] Starting background sync of Stripe data...');
       stripeSync.syncBackfill()
-        .then(() => {
+        .then(async () => {
           console.log('[Stripe] Stripe data synced successfully');
+          
+          // Run subscription reconciliation after sync completes
+          try {
+            const { StripeService } = await import('./services/stripe');
+            await StripeService.reconcileAllSubscriptions();
+          } catch (reconcileError) {
+            console.error('[Stripe] Error during subscription reconciliation:', reconcileError);
+          }
         })
         .catch((err: any) => {
           console.error('[Stripe] Error syncing Stripe data:', err);

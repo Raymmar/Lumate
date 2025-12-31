@@ -146,7 +146,13 @@ export interface IStorage {
     status: string;
     currentPeriodEnd: number;
   } | null>;
+  getActiveSubscriptionByCustomerId(customerId: string): Promise<{
+    subscriptionId: string;
+    status: string;
+    currentPeriodEnd: number;
+  } | null>;
   getStripeCustomerByEmail(email: string): Promise<{ id: string; email: string } | null>;
+  getActiveStripeSubscriptionsWithCustomers(): Promise<Array<{ customerId: string; email: string; subscriptionId: string; status: string }>>;
   
   // Comprehensive active member stats (de-duplicated by source)
   getActiveMemberStats(): Promise<{
@@ -3194,6 +3200,42 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async getActiveSubscriptionByCustomerId(customerId: string): Promise<{
+    subscriptionId: string;
+    status: string;
+    currentPeriodEnd: number;
+  } | null> {
+    try {
+      const result = await db.execute(
+        sql`
+          SELECT 
+            s.id as subscription_id,
+            s.status,
+            s.current_period_end
+          FROM stripe.subscriptions s
+          WHERE s.customer = ${customerId}
+            AND s.status = 'active'
+          ORDER BY s.created DESC
+          LIMIT 1
+        `
+      );
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      const row = result.rows[0] as any;
+      return {
+        subscriptionId: row.subscription_id,
+        status: row.status,
+        currentPeriodEnd: row.current_period_end,
+      };
+    } catch (error) {
+      console.error('Error fetching subscription by customer ID:', error);
+      return null;
+    }
+  }
+
   async getStripeCustomerByEmail(email: string): Promise<{ id: string; email: string } | null> {
     try {
       const result = await db.execute(
@@ -3215,6 +3257,34 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching Stripe customer by email:', error);
       return null;
+    }
+  }
+
+  async getActiveStripeSubscriptionsWithCustomers(): Promise<Array<{ customerId: string; email: string; subscriptionId: string; status: string }>> {
+    try {
+      const result = await db.execute(
+        sql`
+          SELECT 
+            s.id as subscription_id,
+            s.customer as customer_id,
+            s.status,
+            c.email
+          FROM stripe.subscriptions s
+          INNER JOIN stripe.customers c ON c.id = s.customer
+          WHERE s.status = 'active'
+          ORDER BY s.created DESC
+        `
+      );
+      
+      return result.rows.map((row: any) => ({
+        customerId: row.customer_id,
+        email: row.email,
+        subscriptionId: row.subscription_id,
+        status: row.status,
+      }));
+    } catch (error) {
+      console.error('Error fetching active Stripe subscriptions with customers:', error);
+      return [];
     }
   }
 

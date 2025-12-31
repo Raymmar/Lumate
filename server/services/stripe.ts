@@ -177,41 +177,58 @@ export class StripeService {
       throw error;
     }
   }
-  static async getSubscriptionStatus(customerId: string) {
+  static async getSubscriptionStatus(customerId: string, userEmail?: string) {
     try {
-      if (!customerId) {
-        throw new Error("Customer ID is required");
+      console.log("🔍 Checking subscription status for customer:", customerId, userEmail ? `(email: ${userEmail})` : '');
+
+      // First, try to find subscription in synced Stripe data by customer ID
+      if (customerId) {
+        const syncedSubscription = await storage.getActiveSubscriptionByCustomerId(customerId);
+        if (syncedSubscription) {
+          console.log("✅ Found subscription in synced data by customer ID:", {
+            id: syncedSubscription.subscriptionId,
+            status: syncedSubscription.status,
+            currentPeriodEnd: syncedSubscription.currentPeriodEnd,
+          });
+          return {
+            status: syncedSubscription.status,
+            currentPeriodEnd: syncedSubscription.currentPeriodEnd,
+            subscriptionId: syncedSubscription.subscriptionId,
+          };
+        }
       }
 
-      console.log("🔍 Checking subscription status for customer:", customerId);
-
-      const stripe = await getUncachableStripeClient();
-      const subscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        limit: 1,
-        status: "active",
-      });
-
-      if (subscriptions.data.length === 0) {
-        console.log(
-          "❌ No active subscription found for customer:",
-          customerId,
-        );
-        return { status: "inactive" };
+      // Fallback: Try to find subscription by email in synced data
+      if (userEmail) {
+        const subscriptionByEmail = await storage.getActiveSubscriptionByEmail(userEmail);
+        if (subscriptionByEmail) {
+          console.log("✅ Found subscription in synced data via email fallback:", {
+            id: subscriptionByEmail.subscriptionId,
+            status: subscriptionByEmail.status,
+            customerId: subscriptionByEmail.customerId,
+            currentPeriodEnd: subscriptionByEmail.currentPeriodEnd,
+          });
+          
+          // Auto-reconcile: Update user's stripe customer ID if it differs
+          if (subscriptionByEmail.customerId && subscriptionByEmail.customerId !== customerId) {
+            console.log(`🔧 Auto-reconciling customer ID: ${customerId} -> ${subscriptionByEmail.customerId}`);
+            const user = await storage.getUserByEmail(userEmail);
+            if (user) {
+              await storage.setStripeCustomerId(user.id, subscriptionByEmail.customerId);
+              await storage.updateUserSubscription(user.id, subscriptionByEmail.subscriptionId, subscriptionByEmail.status);
+            }
+          }
+          
+          return {
+            status: subscriptionByEmail.status,
+            currentPeriodEnd: subscriptionByEmail.currentPeriodEnd,
+            subscriptionId: subscriptionByEmail.subscriptionId,
+          };
+        }
       }
 
-      const subscription = subscriptions.data[0];
-      console.log("✅ Found subscription:", {
-        id: subscription.id,
-        status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end,
-      });
-
-      return {
-        status: subscription.status,
-        currentPeriodEnd: subscription.current_period_end,
-        subscriptionId: subscription.id,
-      };
+      console.log("❌ No active subscription found in synced data for customer:", customerId);
+      return { status: "inactive" };
     } catch (error) {
       console.error("❌ Error checking subscription status:", error);
       throw error;
@@ -338,6 +355,80 @@ export class StripeService {
       };
     } catch (error) {
       console.error("❌ Error fetching subscription revenue:", error);
+      throw error;
+    }
+  }
+
+  static async reconcileAllSubscriptions() {
+    console.log("🔄 [Startup Reconciliation] Starting subscription reconciliation for all users...");
+    
+    try {
+      const activeSubscriptions = await storage.getActiveStripeSubscriptionsWithCustomers();
+      
+      if (!activeSubscriptions || activeSubscriptions.length === 0) {
+        console.log("✅ [Startup Reconciliation] No active subscriptions found in synced data");
+        return { reconciled: 0, errors: 0 };
+      }
+      
+      console.log(`📊 [Startup Reconciliation] Found ${activeSubscriptions.length} active subscriptions to check`);
+      
+      let reconciledCount = 0;
+      let errorCount = 0;
+      
+      for (const sub of activeSubscriptions) {
+        try {
+          const { customerId, email, subscriptionId, status } = sub;
+          
+          if (!email) {
+            continue;
+          }
+          
+          const user = await storage.getUserByEmail(email);
+          
+          if (!user) {
+            continue;
+          }
+          
+          const needsCustomerIdFix = 
+            !user.stripeCustomerId || 
+            user.stripeCustomerId === "NULL" || 
+            user.stripeCustomerId !== customerId;
+          
+          const needsStatusFix = 
+            status === 'active' && user.subscriptionStatus !== 'active';
+          
+          if (needsCustomerIdFix || needsStatusFix) {
+            console.log(`🔧 [Startup Reconciliation] Fixing user ${user.id} (${email}):`, {
+              oldCustomerId: user.stripeCustomerId,
+              newCustomerId: customerId,
+              oldStatus: user.subscriptionStatus,
+              newStatus: status,
+              subscriptionId,
+              fixingCustomerId: needsCustomerIdFix,
+              fixingStatus: needsStatusFix
+            });
+            
+            if (needsCustomerIdFix) {
+              await storage.setStripeCustomerId(user.id, customerId);
+            }
+            
+            if (needsStatusFix && status === 'active') {
+              await storage.updateUserSubscription(user.id, subscriptionId, 'active');
+            }
+            
+            reconciledCount++;
+          }
+        } catch (error) {
+          console.error(`❌ [Startup Reconciliation] Error processing subscription:`, error);
+          errorCount++;
+        }
+      }
+      
+      console.log(`✅ [Startup Reconciliation] Complete: ${reconciledCount} users reconciled, ${errorCount} errors`);
+      
+      return { reconciled: reconciledCount, errors: errorCount };
+    } catch (error) {
+      console.error("❌ [Startup Reconciliation] Failed:", error);
       throw error;
     }
   }
