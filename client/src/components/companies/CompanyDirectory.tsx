@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { Building, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
+import { SponsorGrid } from "@/components/sponsors";
 
 // Helper function as fallback only if slug isn't available
 const generateSlug = (name: string): string => {
@@ -259,21 +260,29 @@ export default function CompanyDirectory() {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCompanies.map((company: Company) => (
-          <CompanyCard
-            key={company.id}
-            id={company.id}
-            name={company.name}
-            logoUrl={company.logoUrl}
-            featuredImageUrl={company.featuredImageUrl}
-            industry={company.industry}
-            bio={company.bio}
-            tags={company.tags}
-            slug={company.slug}
-          />
-        ))}
-      </div>
+      {activeFilter === "sponsors" ? (
+        <SponsorGrid 
+          year={2025}
+          title="2025 Annual Sponsors"
+          showBecomeSponsorCTA={true}
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCompanies.map((company: Company) => (
+            <CompanyCard
+              key={company.id}
+              id={company.id}
+              name={company.name}
+              logoUrl={company.logoUrl}
+              featuredImageUrl={company.featuredImageUrl}
+              industry={company.industry}
+              bio={company.bio}
+              tags={company.tags}
+              slug={company.slug}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
