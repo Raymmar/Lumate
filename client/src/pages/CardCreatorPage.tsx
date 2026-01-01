@@ -5,6 +5,13 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -46,9 +53,14 @@ function getProxiedUrl(url: string): string {
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
 }
 
+const ALL_BADGE_OPTIONS = ["Attendee", "Speaker", "Volunteer", "Sponsor", "Organizer"] as const;
+const USER_BADGE_OPTIONS = ["Attendee", "Volunteer"] as const;
+type BadgeOption = typeof ALL_BADGE_OPTIONS[number];
+
 export default function CardCreatorPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isAdmin = user?.isAdmin === true;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,8 +74,9 @@ export default function CardCreatorPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(initialPhoto);
   const [selectedName, setSelectedName] = useState(initialName);
   const [selectedTitle, setSelectedTitle] = useState(initialTitle);
-  const [badgeLabel, setBadgeLabel] = useState(initialPhoto ? "Speaker" : "Attendee");
+  const [badgeLabel, setBadgeLabel] = useState<BadgeOption>(initialPhoto ? "Speaker" : "Attendee");
   const [stickers, setStickers] = useState<CanvasSticker[]>([]);
+  const [isPresetSelected, setIsPresetSelected] = useState(!!initialPhoto);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -259,6 +272,10 @@ export default function CardCreatorPage() {
 
       const data = await response.json();
       setSelectedImage(data.url);
+      setIsPresetSelected(false);
+      setBadgeLabel("Attendee");
+      setSelectedName("Your Name");
+      setSelectedTitle("Your Title");
       toast({
         title: "Image uploaded",
         description: "Your photo was uploaded successfully",
@@ -279,6 +296,7 @@ export default function CardCreatorPage() {
     setSelectedName(speaker.name);
     setSelectedTitle(speaker.title && speaker.company ? `${speaker.title}, ${speaker.company}` : speaker.title || speaker.company || "");
     setBadgeLabel("Speaker");
+    setIsPresetSelected(true);
   };
 
   const addSponsorSticker = (sponsor: Sponsor) => {
@@ -307,6 +325,7 @@ export default function CardCreatorPage() {
     setStickers([]);
     setSelectedOverlay(getDefaultOverlay());
     setSelectedStickerId(null);
+    setIsPresetSelected(false);
   };
 
   const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -463,6 +482,11 @@ export default function CardCreatorPage() {
 
             <div className="bg-card border rounded-lg p-4">
               <h3 className="font-semibold mb-3">Card Text</h3>
+              {isPresetSelected && (
+                <p className="text-xs text-muted-foreground mb-3">
+                  Speaker cards are read-only. Upload your own photo to customize.
+                </p>
+              )}
               <div className="space-y-3">
                 <div>
                   <label className="text-xs text-muted-foreground">Name</label>
@@ -470,6 +494,7 @@ export default function CardCreatorPage() {
                     value={selectedName}
                     onChange={(e) => setSelectedName(e.target.value)}
                     placeholder="Enter name"
+                    disabled={isPresetSelected || !user}
                     data-testid="input-card-name"
                   />
                 </div>
@@ -479,17 +504,35 @@ export default function CardCreatorPage() {
                     value={selectedTitle}
                     onChange={(e) => setSelectedTitle(e.target.value)}
                     placeholder="Enter title"
+                    disabled={isPresetSelected || !user}
                     data-testid="input-card-title"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Badge</label>
-                  <Input
-                    value={badgeLabel}
-                    onChange={(e) => setBadgeLabel(e.target.value)}
-                    placeholder="e.g., Speaker, Attendee"
-                    data-testid="input-card-badge"
-                  />
+                  {isPresetSelected || !user ? (
+                    <Input
+                      value={badgeLabel}
+                      disabled
+                      data-testid="input-card-badge-readonly"
+                    />
+                  ) : (
+                    <Select
+                      value={badgeLabel}
+                      onValueChange={(value) => setBadgeLabel(value as BadgeOption)}
+                    >
+                      <SelectTrigger data-testid="select-card-badge">
+                        <SelectValue placeholder="Select badge type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(isAdmin ? ALL_BADGE_OPTIONS : USER_BADGE_OPTIONS).map((option) => (
+                          <SelectItem key={option} value={option} data-testid={`badge-option-${option.toLowerCase()}`}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>
