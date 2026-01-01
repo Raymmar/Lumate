@@ -40,6 +40,7 @@ interface CanvasSticker {
   id: string;
   type: "sponsor" | "badge";
   imageUrl: string;
+  cachedProxyUrl: string;
   x: number;
   y: number;
   width: number;
@@ -217,7 +218,7 @@ export default function CardCreatorPage() {
       const stickersToRender = (isDragging || isResizing) ? stickersRef.current : stickers;
       for (const sticker of stickersToRender) {
         try {
-          const stickerImage = await loadImage(getProxiedUrl(sticker.imageUrl));
+          const stickerImage = await loadImage(sticker.cachedProxyUrl);
           const padding = 12;
           const borderRadius = 12;
           const bgX = sticker.x - padding;
@@ -418,10 +419,19 @@ export default function CardCreatorPage() {
 
   const addSponsorSticker = async (sponsor: Sponsor) => {
     try {
-      const proxyUrl = getProxiedUrl(sponsor.logo);
-      imageCache.current.delete(proxyUrl);
+      const cacheBuster = `${sponsor.logo.includes('?') ? '&' : '?'}cb=${Date.now()}`;
+      const freshUrl = sponsor.logo + cacheBuster;
+      const proxyUrl = getProxiedUrl(freshUrl);
       
-      const img = await loadImage(proxyUrl);
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error("Failed to load image"));
+        img.src = proxyUrl;
+      });
+      
       const aspectRatio = img.naturalWidth / img.naturalHeight;
       const baseWidth = 300;
       const width = baseWidth;
@@ -431,6 +441,7 @@ export default function CardCreatorPage() {
         id: `sticker-${Date.now()}`,
         type: "sponsor",
         imageUrl: sponsor.logo,
+        cachedProxyUrl: proxyUrl,
         x: 100 + Math.random() * 200,
         y: 100 + Math.random() * 200,
         width,
