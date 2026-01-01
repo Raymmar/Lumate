@@ -225,7 +225,7 @@ export function ArticlePage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto pl-[16px] pr-[16px] pt-[16px] pb-[16px]">
         <div className="mb-6 flex items-center justify-between">
           <Button
             variant="ghost"
