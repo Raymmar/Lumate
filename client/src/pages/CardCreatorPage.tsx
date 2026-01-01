@@ -412,12 +412,16 @@ export default function CardCreatorPage() {
             <Sparkles className="h-4 w-4 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Create and download shareable summit cards</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/summit" className="text-sm text-primary hover:underline" data-testid="link-summit">
-              Summit
+          <div className="flex items-center gap-2">
+            <Link href="/speakers">
+              <Button variant="outline" size="sm" data-testid="button-explore-speakers">
+                Explore Speakers
+              </Button>
             </Link>
-            <Link href="/summit#speakers" className="text-sm text-primary hover:underline" data-testid="link-explore-speakers">
-              Explore Speakers
+            <Link href="/summit">
+              <Button size="sm" data-testid="button-summit-tickets">
+                Get Summit Tickets
+              </Button>
             </Link>
           </div>
         </div>
