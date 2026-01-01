@@ -418,7 +418,10 @@ export default function CardCreatorPage() {
 
   const addSponsorSticker = async (sponsor: Sponsor) => {
     try {
-      const img = await loadImage(getProxiedUrl(sponsor.logo));
+      const proxyUrl = getProxiedUrl(sponsor.logo);
+      imageCache.current.delete(proxyUrl);
+      
+      const img = await loadImage(proxyUrl);
       const aspectRatio = img.naturalWidth / img.naturalHeight;
       const baseWidth = 300;
       const width = baseWidth;

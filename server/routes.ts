@@ -633,7 +633,7 @@ export async function registerRoutes(app: Express) {
       const buffer = await response.arrayBuffer();
       
       res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=86400");
+      res.setHeader("Cache-Control", "no-store, must-revalidate");
       res.setHeader("Access-Control-Allow-Origin", "*");
       res.send(Buffer.from(buffer));
     } catch (error) {
