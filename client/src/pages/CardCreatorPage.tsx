@@ -670,7 +670,7 @@ export default function CardCreatorPage() {
 
   return (
     <DashboardLayout hideSidebar>
-      <div className="max-w-7xl mx-auto py-6 px-4">
+      <div className="max-w-7xl mx-auto py-6 px-4 pt-[16px] pb-[16px]">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-muted-foreground" />
