@@ -204,7 +204,7 @@ export default function CompanyDirectory() {
 
   // Render companies grid
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pl-[16px] pr-[16px] pt-[16px] pb-[16px]">
       <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 
         backgroundImage: "url('https://file-upload.replit.app/api/storage/images%2F1740978938458-STS_Jan%2725-89%20compressed.jpeg')"
       }}>
@@ -227,7 +227,6 @@ export default function CompanyDirectory() {
           </div>
         </div>
       </div>
-      
       {/* Tag Filter Bar */}
       <div className="overflow-x-auto mb-6 scrollbar-hide">
         <div className="flex flex-nowrap gap-1.5 min-w-max pb-1">
@@ -259,7 +258,6 @@ export default function CompanyDirectory() {
           ))}
         </div>
       </div>
-      
       {activeFilter === "sponsors" ? (
         <SponsorGrid 
           year={new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()}
