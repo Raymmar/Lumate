@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -406,9 +407,19 @@ export default function CardCreatorPage() {
   return (
     <DashboardLayout hideSidebar>
       <div className="max-w-7xl mx-auto py-6 px-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Create and download shareable summit cards</p>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Create and download shareable summit cards</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link href="/summit" className="text-sm text-primary hover:underline" data-testid="link-summit">
+              Summit
+            </Link>
+            <Link href="/summit#speakers" className="text-sm text-primary hover:underline" data-testid="link-explore-speakers">
+              Explore Speakers
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
