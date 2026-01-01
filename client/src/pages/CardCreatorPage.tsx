@@ -428,10 +428,9 @@ export default function CardCreatorPage() {
   };
 
   const addSponsorSticker = async (sponsor: Sponsor) => {
+    const baseSize = getStickerSizeByTier(sponsor.tier);
     const img = new Image();
     img.crossOrigin = "anonymous";
-    img.src = getProxiedUrl(sponsor.logo);
-    const baseSize = getStickerSizeByTier(sponsor.tier);
     
     img.onload = () => {
       const aspectRatio = img.width / img.height;
@@ -466,6 +465,8 @@ export default function CardCreatorPage() {
       };
       setStickers((prev) => [...prev, newSticker]);
     };
+    
+    img.src = getProxiedUrl(sponsor.logo);
   };
 
   const removeSticker = (stickerId: string) => {
