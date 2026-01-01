@@ -6,9 +6,10 @@ import { PageContainer } from "./PageContainer";
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  hideSidebar?: boolean;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, hideSidebar = false }: DashboardLayoutProps) {
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -42,19 +43,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <PageContainer>
         <div className="flex">
-          {/* Sidebar - hidden below lg, visible on lg and up */}
-          <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">
-            <SidebarContent />
-          </aside>
+          {!hideSidebar && (
+            <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">
+              <SidebarContent />
+            </aside>
+          )}
 
-          {/* Main content area */}
           <main className="flex-1 overflow-y-auto">
-            {/* Mobile Events List - only visible when sidebar is hidden */}
-            <div className="lg:hidden">
-              <div className="bg-background p-4">
-                <EventList compact />
+            {!hideSidebar && (
+              <div className="lg:hidden">
+                <div className="bg-background p-4">
+                  <EventList compact />
+                </div>
               </div>
-            </div>
+            )}
             <div className="p-4 min-h-[calc(100vh-57px)] !shadow-none !border-none">
               {children}
             </div>

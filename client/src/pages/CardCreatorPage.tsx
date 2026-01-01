@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { NavBar } from "@/components/NavBar";
-import { PageContainer } from "@/components/layout/PageContainer";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -405,20 +404,9 @@ export default function CardCreatorPage() {
   };
 
   return (
-    <div className="min-h-screen relative">
-      <div className="sticky top-0 w-full bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
-        <PageContainer>
-          <div className="flex items-center justify-between w-full border-b">
-            <div className="flex-1">
-              <NavBar />
-            </div>
-          </div>
-        </PageContainer>
-      </div>
-      
-      <PageContainer>
-        <div className="max-w-7xl mx-auto py-6 px-4">
-          <div className="text-center mb-6">
+    <DashboardLayout hideSidebar>
+      <div className="max-w-7xl mx-auto py-6 px-4">
+        <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
             <Sparkles className="h-6 w-6 text-primary" />
           </div>
@@ -698,9 +686,8 @@ export default function CardCreatorPage() {
               )}
             </div>
           </div>
-          </div>
         </div>
-      </PageContainer>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
