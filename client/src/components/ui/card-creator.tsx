@@ -9,9 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { Download, Upload, Loader2, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CARD_OVERLAYS, getDefaultOverlay, type CardOverlay } from "@/config/cardOverlays";
 
-const OVERLAY_URL =
-  "https://file-upload.replit.app/api/storage/images%2F1767194323312-Speaker-card-overlay5.png";
 const CANVAS_SIZE = 1080;
 const USER_IMAGE_SIZE = CANVAS_SIZE * 0.6;
 const USER_IMAGE_OFFSET = (CANVAS_SIZE - USER_IMAGE_SIZE) / 2;
@@ -47,6 +46,7 @@ export function CardCreator({
   const [error, setError] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedOverlay, setSelectedOverlay] = useState<CardOverlay>(getDefaultOverlay());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -90,7 +90,7 @@ export function CardCreator({
     setError(null);
 
     const userProxyUrl = getProxiedUrl(currentImageUrl);
-    const overlayProxyUrl = getProxiedUrl(OVERLAY_URL);
+    const overlayProxyUrl = getProxiedUrl(selectedOverlay.url);
     console.log("Loading user image from:", userProxyUrl.substring(0, 100));
     console.log("Loading overlay from:", overlayProxyUrl.substring(0, 100));
 
@@ -195,7 +195,7 @@ export function CardCreator({
       setError("Failed to generate card. Please try again.");
       setIsLoading(false);
     }
-  }, [currentImageUrl, loadImage, speakerName, speakerTitle, badgeLabel]);
+  }, [currentImageUrl, loadImage, speakerName, speakerTitle, badgeLabel, selectedOverlay]);
 
   useEffect(() => {
     if (isOpen && currentImageUrl) {
@@ -315,6 +315,27 @@ export function CardCreator({
             </div>
           )}
 
+          <div className="flex gap-2 justify-center" data-testid="dialog-overlay-toggle">
+            {CARD_OVERLAYS.map((overlay) => (
+              <button
+                key={overlay.id}
+                onClick={() => setSelectedOverlay(overlay)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md border transition-all ${
+                  selectedOverlay.id === overlay.id
+                    ? "border-primary bg-primary/10"
+                    : "border-border hover:border-primary/50"
+                }`}
+                data-testid={`dialog-overlay-option-${overlay.id}`}
+              >
+                <div
+                  className="w-4 h-4 rounded-full"
+                  style={{ backgroundColor: overlay.color }}
+                />
+                <span className="text-sm font-medium">{overlay.label}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="relative aspect-square w-full bg-muted rounded-lg overflow-hidden">
             <canvas
               ref={canvasRef}
@@ -361,6 +382,7 @@ interface SpeakerCardPreviewProps {
   speakerTitle?: string;
   badgeLabel?: string;
   showDownloadButton?: boolean;
+  showOverlayToggle?: boolean;
   className?: string;
 }
 
@@ -370,11 +392,13 @@ export function SpeakerCardPreview({
   speakerTitle = "Title, Company",
   badgeLabel = "Speaker",
   showDownloadButton = true,
+  showOverlayToggle = false,
   className,
 }: SpeakerCardPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedOverlay, setSelectedOverlay] = useState<CardOverlay>(getDefaultOverlay());
 
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -396,7 +420,7 @@ export function SpeakerCardPreview({
     setError(null);
 
     const userProxyUrl = getProxiedUrl(imageUrl);
-    const overlayProxyUrl = getProxiedUrl(OVERLAY_URL);
+    const overlayProxyUrl = getProxiedUrl(selectedOverlay.url);
 
     try {
       const [userImage, overlayImage] = await Promise.all([
@@ -491,7 +515,7 @@ export function SpeakerCardPreview({
       setError("Failed to generate card.");
       setIsLoading(false);
     }
-  }, [imageUrl, loadImage, speakerName, speakerTitle, badgeLabel]);
+  }, [imageUrl, loadImage, speakerName, speakerTitle, badgeLabel, selectedOverlay]);
 
   useEffect(() => {
     if (imageUrl) {
@@ -513,6 +537,28 @@ export function SpeakerCardPreview({
 
   return (
     <div className={className}>
+      {showOverlayToggle && (
+        <div className="flex gap-2 mb-3" data-testid="overlay-toggle">
+          {CARD_OVERLAYS.map((overlay) => (
+            <button
+              key={overlay.id}
+              onClick={() => setSelectedOverlay(overlay)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-md border transition-all ${
+                selectedOverlay.id === overlay.id
+                  ? "border-primary bg-primary/10"
+                  : "border-border hover:border-primary/50"
+              }`}
+              data-testid={`overlay-option-${overlay.id}`}
+            >
+              <div
+                className="w-4 h-4 rounded-full"
+                style={{ backgroundColor: overlay.color }}
+              />
+              <span className="text-sm font-medium">{overlay.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <div className="relative aspect-square w-full bg-muted rounded-lg overflow-hidden">
         <canvas
           ref={canvasRef}

@@ -1,9 +1,10 @@
 import { Speaker } from "@shared/schema";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SpeakerCardPreview } from "@/components/ui/card-creator";
+import { Link } from "wouter";
 
 export interface SpeakerWithPresentation extends Speaker {
   isModerator?: boolean;
@@ -43,14 +44,21 @@ export function SpeakerDetailModal({
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {speaker.photo && (
-            <div>
+            <div className="space-y-3">
               <SpeakerCardPreview
                 imageUrl={speaker.photo}
                 speakerName={speaker.name}
                 speakerTitle={speakerTitle}
                 badgeLabel="Speaker"
                 showDownloadButton={true}
+                showOverlayToggle={true}
               />
+              <Button variant="outline" size="sm" className="w-full" asChild>
+                <Link href="/card-creator" data-testid="link-customize-card">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Customize in Card Creator
+                </Link>
+              </Button>
             </div>
           )}
 
