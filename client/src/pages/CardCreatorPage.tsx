@@ -406,14 +406,9 @@ export default function CardCreatorPage() {
   return (
     <DashboardLayout hideSidebar>
       <div className="max-w-7xl mx-auto py-6 px-4">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-3">
-            <Sparkles className="h-6 w-6 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold mb-1">Card Creator</h1>
-          <p className="text-muted-foreground text-sm max-w-md mx-auto">
-            Create shareable promotional cards for the summit. Pick a speaker, add sponsor logos, and download!
-          </p>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-4 w-4 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Create and download shareable summit cards</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
