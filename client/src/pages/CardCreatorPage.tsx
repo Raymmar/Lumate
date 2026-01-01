@@ -417,15 +417,12 @@ export default function CardCreatorPage() {
   };
 
   const addSponsorSticker = async (sponsor: Sponsor) => {
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = getProxiedUrl(sponsor.logo);
-    
-    img.onload = () => {
-      const aspectRatio = img.width / img.height;
-      const baseSize = 300;
-      const width = aspectRatio >= 1 ? baseSize : baseSize * aspectRatio;
-      const height = aspectRatio >= 1 ? baseSize / aspectRatio : baseSize;
+    try {
+      const img = await loadImage(getProxiedUrl(sponsor.logo));
+      const aspectRatio = img.naturalWidth / img.naturalHeight;
+      const baseWidth = 300;
+      const width = baseWidth;
+      const height = baseWidth / aspectRatio;
       
       const newSticker: CanvasSticker = {
         id: `sticker-${Date.now()}`,
@@ -439,22 +436,13 @@ export default function CardCreatorPage() {
         aspectRatio,
       };
       setStickers((prev) => [...prev, newSticker]);
-    };
-    
-    img.onerror = () => {
-      const newSticker: CanvasSticker = {
-        id: `sticker-${Date.now()}`,
-        type: "sponsor",
-        imageUrl: sponsor.logo,
-        x: 100 + Math.random() * 200,
-        y: 100 + Math.random() * 200,
-        width: 300,
-        height: 300,
-        name: sponsor.name,
-        aspectRatio: 1,
-      };
-      setStickers((prev) => [...prev, newSticker]);
-    };
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: `Failed to load ${sponsor.name} logo`,
+        variant: "destructive",
+      });
+    }
   };
 
   const removeSticker = (stickerId: string) => {
