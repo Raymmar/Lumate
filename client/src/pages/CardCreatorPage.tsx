@@ -693,10 +693,6 @@ export default function CardCreatorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-card border rounded-lg p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Palette className="h-4 w-4" />
-                Background
-              </h3>
               <div className="flex flex-wrap gap-2">
                 {CARD_OVERLAYS.map((overlay) => (
                   <button
@@ -720,7 +716,6 @@ export default function CardCreatorPage() {
             </div>
 
             <div className="bg-card border rounded-lg p-4">
-              <h3 className="font-semibold mb-3">Card Text</h3>
               {isPresetSelected && !isAdmin && (
                 <p className="text-xs text-muted-foreground mb-3">
                   Speaker cards are read-only. Upload your own photo to customize.
