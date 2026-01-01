@@ -482,7 +482,7 @@ export default function CardCreatorPage() {
 
             <div className="bg-card border rounded-lg p-4">
               <h3 className="font-semibold mb-3">Card Text</h3>
-              {isPresetSelected && (
+              {isPresetSelected && !isAdmin && (
                 <p className="text-xs text-muted-foreground mb-3">
                   Speaker cards are read-only. Upload your own photo to customize.
                 </p>
@@ -494,7 +494,7 @@ export default function CardCreatorPage() {
                     value={selectedName}
                     onChange={(e) => setSelectedName(e.target.value)}
                     placeholder="Enter name"
-                    disabled={isPresetSelected || !user}
+                    disabled={(isPresetSelected && !isAdmin) || !user}
                     data-testid="input-card-name"
                   />
                 </div>
@@ -504,13 +504,13 @@ export default function CardCreatorPage() {
                     value={selectedTitle}
                     onChange={(e) => setSelectedTitle(e.target.value)}
                     placeholder="Enter title"
-                    disabled={isPresetSelected || !user}
+                    disabled={(isPresetSelected && !isAdmin) || !user}
                     data-testid="input-card-title"
                   />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Badge</label>
-                  {isPresetSelected || !user ? (
+                  {(isPresetSelected && !isAdmin) || !user ? (
                     <Input
                       value={badgeLabel}
                       disabled
