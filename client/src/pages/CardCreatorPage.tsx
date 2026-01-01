@@ -29,6 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CARD_OVERLAYS, getDefaultOverlay, type CardOverlay } from "@/config/cardOverlays";
+import { SPONSOR_TIERS } from "@/components/sponsors/sponsorConfig";
 import type { Speaker, Sponsor } from "@shared/schema";
 
 const CANVAS_SIZE = 1080;
@@ -44,6 +45,7 @@ interface CanvasSticker {
   width: number;
   height: number;
   name: string;
+  aspectRatio: number;
 }
 
 function getProxiedUrl(url: string): string {
@@ -82,7 +84,10 @@ export default function CardCreatorPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const RESIZE_HANDLE_SIZE = 24;
+  const DELETE_BUTTON_SIZE = 32;
 
   const { data: speakersData, isLoading: loadingSpeakers } = useQuery<{ speakers: Speaker[] }>({
     queryKey: ["/api/speakers"],
@@ -115,14 +120,14 @@ export default function CardCreatorPage() {
     });
   }, []);
 
-  const drawCanvas = useCallback(async () => {
+  const drawCanvas = useCallback(async (exportMode: boolean = false) => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const shouldShowLoading = !isDragging;
+    const shouldShowLoading = !isDragging && !exportMode;
     if (shouldShowLoading) {
       setIsLoading(true);
     }
@@ -201,14 +206,75 @@ export default function CardCreatorPage() {
       for (const sticker of stickers) {
         try {
           const stickerImage = await loadImage(getProxiedUrl(sticker.imageUrl));
+          const padding = 12;
+          const borderRadius = 12;
+          const bgX = sticker.x - padding;
+          const bgY = sticker.y - padding;
+          const bgWidth = sticker.width + padding * 2;
+          const bgHeight = sticker.height + padding * 2;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(bgX + borderRadius, bgY);
+          ctx.lineTo(bgX + bgWidth - borderRadius, bgY);
+          ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + borderRadius);
+          ctx.lineTo(bgX + bgWidth, bgY + bgHeight - borderRadius);
+          ctx.quadraticCurveTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - borderRadius, bgY + bgHeight);
+          ctx.lineTo(bgX + borderRadius, bgY + bgHeight);
+          ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - borderRadius);
+          ctx.lineTo(bgX, bgY + borderRadius);
+          ctx.quadraticCurveTo(bgX, bgY, bgX + borderRadius, bgY);
+          ctx.closePath();
+          
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fill();
+          
+          const isSelected = sticker.id === selectedStickerId && !exportMode;
+          if (isSelected) {
+            ctx.strokeStyle = "#3B82F6";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+          } else {
+            ctx.strokeStyle = "rgba(0,0,0,0.1)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+          ctx.restore();
+
           ctx.drawImage(stickerImage, sticker.x, sticker.y, sticker.width, sticker.height);
           
-          if (sticker.id === selectedStickerId) {
-            ctx.strokeStyle = "#3B82F6";
-            ctx.lineWidth = 4;
-            ctx.setLineDash([10, 5]);
-            ctx.strokeRect(sticker.x - 2, sticker.y - 2, sticker.width + 4, sticker.height + 4);
-            ctx.setLineDash([]);
+          if (isSelected) {
+            const handleSize = RESIZE_HANDLE_SIZE;
+            const handleX = bgX + bgWidth - handleSize / 2;
+            const handleY = bgY + bgHeight - handleSize / 2;
+            ctx.fillStyle = "#3B82F6";
+            ctx.beginPath();
+            ctx.arc(handleX, handleY, handleSize / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#FFFFFF";
+            ctx.beginPath();
+            ctx.moveTo(handleX - 4, handleY + 2);
+            ctx.lineTo(handleX + 4, handleY - 6);
+            ctx.lineTo(handleX + 6, handleY - 4);
+            ctx.lineTo(handleX - 2, handleY + 4);
+            ctx.closePath();
+            ctx.fill();
+
+            const deleteX = bgX + bgWidth - DELETE_BUTTON_SIZE / 2 + 4;
+            const deleteY = bgY - DELETE_BUTTON_SIZE / 2 + 8;
+            ctx.fillStyle = "#EF4444";
+            ctx.beginPath();
+            ctx.arc(deleteX, deleteY, DELETE_BUTTON_SIZE / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 3;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(deleteX - 6, deleteY - 6);
+            ctx.lineTo(deleteX + 6, deleteY + 6);
+            ctx.moveTo(deleteX + 6, deleteY - 6);
+            ctx.lineTo(deleteX - 6, deleteY + 6);
+            ctx.stroke();
           }
         } catch (err) {
           console.error("Failed to load sticker:", sticker.name);
@@ -224,20 +290,26 @@ export default function CardCreatorPage() {
         setIsLoading(false);
       }
     }
-  }, [selectedImage, selectedOverlay, selectedName, selectedTitle, badgeLabel, stickers, selectedStickerId, isDragging, loadImage]);
+  }, [selectedImage, selectedOverlay, selectedName, selectedTitle, badgeLabel, stickers, selectedStickerId, isDragging, isResizing, loadImage, RESIZE_HANDLE_SIZE, DELETE_BUTTON_SIZE]);
 
   useEffect(() => {
     const timer = setTimeout(() => drawCanvas(), 100);
     return () => clearTimeout(timer);
   }, [drawCanvas]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!canvasRef.current) return;
+    
+    await drawCanvas(true);
+    
     const link = document.createElement("a");
     const filename = `${selectedName.replace(/\s+/g, "-").toLowerCase()}-promo-card.jpg`;
     link.download = filename;
     link.href = canvasRef.current.toDataURL("image/jpeg", 0.95);
     link.click();
+    
+    await drawCanvas(false);
+    
     toast({
       title: "Card Downloaded",
       description: "Your promotional card has been saved!",
@@ -299,18 +371,45 @@ export default function CardCreatorPage() {
     setIsPresetSelected(true);
   };
 
-  const addSponsorSticker = (sponsor: Sponsor) => {
-    const newSticker: CanvasSticker = {
-      id: `sticker-${Date.now()}`,
-      type: "sponsor",
-      imageUrl: sponsor.logo,
-      x: 100 + Math.random() * 200,
-      y: 100 + Math.random() * 200,
-      width: 150,
-      height: 150,
-      name: sponsor.name,
+  const addSponsorSticker = async (sponsor: Sponsor) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = getProxiedUrl(sponsor.logo);
+    
+    img.onload = () => {
+      const aspectRatio = img.width / img.height;
+      const baseSize = 150;
+      const width = aspectRatio >= 1 ? baseSize : baseSize * aspectRatio;
+      const height = aspectRatio >= 1 ? baseSize / aspectRatio : baseSize;
+      
+      const newSticker: CanvasSticker = {
+        id: `sticker-${Date.now()}`,
+        type: "sponsor",
+        imageUrl: sponsor.logo,
+        x: 100 + Math.random() * 200,
+        y: 100 + Math.random() * 200,
+        width,
+        height,
+        name: sponsor.name,
+        aspectRatio,
+      };
+      setStickers((prev) => [...prev, newSticker]);
     };
-    setStickers((prev) => [...prev, newSticker]);
+    
+    img.onerror = () => {
+      const newSticker: CanvasSticker = {
+        id: `sticker-${Date.now()}`,
+        type: "sponsor",
+        imageUrl: sponsor.logo,
+        x: 100 + Math.random() * 200,
+        y: 100 + Math.random() * 200,
+        width: 150,
+        height: 150,
+        name: sponsor.name,
+        aspectRatio: 1,
+      };
+      setStickers((prev) => [...prev, newSticker]);
+    };
   };
 
   const removeSticker = (stickerId: string) => {
@@ -351,24 +450,64 @@ export default function CardCreatorPage() {
     };
   };
 
-  const findStickerAtPosition = (x: number, y: number): CanvasSticker | null => {
-    for (let i = stickers.length - 1; i >= 0; i--) {
-      const sticker = stickers[i];
-      if (
-        x >= sticker.x &&
-        x <= sticker.x + sticker.width &&
-        y >= sticker.y &&
-        y <= sticker.y + sticker.height
-      ) {
-        return sticker;
+  const getHitTarget = (x: number, y: number): { sticker: CanvasSticker | null; action: "drag" | "resize" | "delete" | null } => {
+    const padding = 12;
+    
+    if (selectedStickerId) {
+      const selectedSticker = stickers.find(s => s.id === selectedStickerId);
+      if (selectedSticker) {
+        const bgX = selectedSticker.x - padding;
+        const bgY = selectedSticker.y - padding;
+        const bgWidth = selectedSticker.width + padding * 2;
+        const bgHeight = selectedSticker.height + padding * 2;
+
+        const deleteX = bgX + bgWidth - DELETE_BUTTON_SIZE / 2 + 4;
+        const deleteY = bgY - DELETE_BUTTON_SIZE / 2 + 8;
+        const deleteDistance = Math.sqrt((x - deleteX) ** 2 + (y - deleteY) ** 2);
+        if (deleteDistance <= DELETE_BUTTON_SIZE / 2 + 5) {
+          return { sticker: selectedSticker, action: "delete" };
+        }
+
+        const handleX = bgX + bgWidth - RESIZE_HANDLE_SIZE / 2;
+        const handleY = bgY + bgHeight - RESIZE_HANDLE_SIZE / 2;
+        const resizeDistance = Math.sqrt((x - handleX) ** 2 + (y - handleY) ** 2);
+        if (resizeDistance <= RESIZE_HANDLE_SIZE / 2 + 5) {
+          return { sticker: selectedSticker, action: "resize" };
+        }
       }
     }
-    return null;
+
+    for (let i = stickers.length - 1; i >= 0; i--) {
+      const sticker = stickers[i];
+      const bgX = sticker.x - padding;
+      const bgY = sticker.y - padding;
+      const bgWidth = sticker.width + padding * 2;
+      const bgHeight = sticker.height + padding * 2;
+      
+      if (x >= bgX && x <= bgX + bgWidth && y >= bgY && y <= bgY + bgHeight) {
+        return { sticker, action: "drag" };
+      }
+    }
+    return { sticker: null, action: null };
   };
 
   const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getCanvasCoordinates(e);
-    const sticker = findStickerAtPosition(x, y);
+    const { sticker, action } = getHitTarget(x, y);
+    
+    if (action === "delete" && sticker) {
+      removeSticker(sticker.id);
+      setSelectedStickerId(null);
+      e.preventDefault();
+      return;
+    }
+    
+    if (action === "resize" && sticker) {
+      setIsResizing(true);
+      setSelectedStickerId(sticker.id);
+      e.preventDefault();
+      return;
+    }
     
     if (sticker) {
       setSelectedStickerId(sticker.id);
@@ -381,10 +520,23 @@ export default function CardCreatorPage() {
   };
 
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDragging || !selectedStickerId) return;
-
     const { x, y } = getCanvasCoordinates(e);
     
+    if (isResizing && selectedStickerId) {
+      setStickers((prev) =>
+        prev.map((s) => {
+          if (s.id !== selectedStickerId) return s;
+          const padding = 12;
+          const newWidth = Math.max(50, x - s.x + padding);
+          const newHeight = newWidth / s.aspectRatio;
+          return { ...s, width: newWidth, height: newHeight };
+        })
+      );
+      return;
+    }
+    
+    if (!isDragging || !selectedStickerId) return;
+
     setStickers((prev) =>
       prev.map((s) =>
         s.id === selectedStickerId
@@ -396,11 +548,26 @@ export default function CardCreatorPage() {
 
   const handleCanvasMouseUp = () => {
     setIsDragging(false);
+    setIsResizing(false);
   };
 
   const handleCanvasTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     const { x, y } = getCanvasCoordinates(e);
-    const sticker = findStickerAtPosition(x, y);
+    const { sticker, action } = getHitTarget(x, y);
+    
+    if (action === "delete" && sticker) {
+      removeSticker(sticker.id);
+      setSelectedStickerId(null);
+      e.preventDefault();
+      return;
+    }
+    
+    if (action === "resize" && sticker) {
+      setIsResizing(true);
+      setSelectedStickerId(sticker.id);
+      e.preventDefault();
+      return;
+    }
     
     if (sticker) {
       setSelectedStickerId(sticker.id);
@@ -411,10 +578,24 @@ export default function CardCreatorPage() {
   };
 
   const handleCanvasTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (!isDragging || !selectedStickerId) return;
-
     const { x, y } = getCanvasCoordinates(e);
     
+    if (isResizing && selectedStickerId) {
+      setStickers((prev) =>
+        prev.map((s) => {
+          if (s.id !== selectedStickerId) return s;
+          const padding = 12;
+          const newWidth = Math.max(50, x - s.x + padding);
+          const newHeight = newWidth / s.aspectRatio;
+          return { ...s, width: newWidth, height: newHeight };
+        })
+      );
+      e.preventDefault();
+      return;
+    }
+    
+    if (!isDragging || !selectedStickerId) return;
+
     setStickers((prev) =>
       prev.map((s) =>
         s.id === selectedStickerId
@@ -427,6 +608,7 @@ export default function CardCreatorPage() {
 
   const handleCanvasTouchEnd = () => {
     setIsDragging(false);
+    setIsResizing(false);
   };
 
   return (
@@ -605,27 +787,38 @@ export default function CardCreatorPage() {
                     ) : filteredSponsors.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No sponsors found</p>
                     ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        {filteredSponsors.map((sponsor) => (
-                          <button
-                            key={sponsor.id}
-                            onClick={() => addSponsorSticker(sponsor)}
-                            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-muted transition-colors"
-                            title={`Add ${sponsor.name} logo as sticker`}
-                            data-testid={`sponsor-sticker-${sponsor.id}`}
-                          >
-                            <div className="w-12 h-12 flex items-center justify-center bg-white rounded p-1">
-                              <img
-                                src={sponsor.logo}
-                                alt={sponsor.name}
-                                className="max-w-full max-h-full object-contain"
-                              />
+                      <div className="space-y-4">
+                        {SPONSOR_TIERS.map((tier) => {
+                          const tierSponsors = filteredSponsors.filter((s) => s.tier === tier.key);
+                          if (tierSponsors.length === 0) return null;
+                          return (
+                            <div key={tier.key}>
+                              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wide">{tier.name}</h4>
+                              <div className="grid grid-cols-3 gap-2">
+                                {tierSponsors.map((sponsor) => (
+                                  <button
+                                    key={sponsor.id}
+                                    onClick={() => addSponsorSticker(sponsor)}
+                                    className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-muted transition-colors"
+                                    title={`Add ${sponsor.name} logo as sticker`}
+                                    data-testid={`sponsor-sticker-${sponsor.id}`}
+                                  >
+                                    <div className="w-12 h-12 flex items-center justify-center bg-white rounded p-1">
+                                      <img
+                                        src={sponsor.logo}
+                                        alt={sponsor.name}
+                                        className="max-w-full max-h-full object-contain"
+                                      />
+                                    </div>
+                                    <span className="text-xs text-muted-foreground truncate w-full text-center">
+                                      {sponsor.name}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
                             </div>
-                            <span className="text-xs text-muted-foreground truncate w-full text-center">
-                              {sponsor.name}
-                            </span>
-                          </button>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </ScrollArea>
@@ -634,32 +827,10 @@ export default function CardCreatorPage() {
             </Tabs>
 
             {stickers.length > 0 && (
-              <div className="bg-card border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Added Stickers</h3>
-                <p className="text-xs text-muted-foreground mb-3">Click and drag stickers on the canvas to reposition</p>
-                <div className="space-y-2">
-                  {stickers.map((sticker) => (
-                    <div
-                      key={sticker.id}
-                      className={`flex items-center justify-between p-2 rounded-md transition-colors ${
-                        selectedStickerId === sticker.id
-                          ? "bg-primary/10 border border-primary"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <span className="text-sm truncate">{sticker.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => removeSticker(sticker.id)}
-                        data-testid={`remove-sticker-${sticker.id}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+              <div className="bg-muted/50 border rounded-lg p-3">
+                <p className="text-xs text-muted-foreground text-center">
+                  {stickers.length} sticker{stickers.length > 1 ? "s" : ""} added. Click to select, drag to move, use corner handle to resize.
+                </p>
               </div>
             )}
           </div>
@@ -705,7 +876,11 @@ export default function CardCreatorPage() {
               <div className="relative aspect-square w-full max-w-lg mx-auto bg-muted rounded-lg overflow-hidden">
                 <canvas
                   ref={canvasRef}
-                  className={`w-full h-full object-contain ${stickers.length > 0 ? "cursor-move" : ""}`}
+                  className={`w-full h-full object-contain ${
+                    isResizing ? "cursor-nwse-resize" : 
+                    isDragging ? "cursor-grabbing" : 
+                    stickers.length > 0 ? "cursor-grab" : ""
+                  }`}
                   onMouseDown={handleCanvasMouseDown}
                   onMouseMove={handleCanvasMouseMove}
                   onMouseUp={handleCanvasMouseUp}
