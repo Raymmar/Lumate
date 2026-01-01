@@ -267,20 +267,25 @@ export default function CardCreatorPage() {
             ctx.strokeStyle = "#FFFFFF";
             ctx.lineWidth = 2;
             ctx.lineCap = "round";
+            ctx.lineJoin = "round";
             
             ctx.beginPath();
-            ctx.moveTo(handleX - 5, handleY + 5);
-            ctx.lineTo(handleX + 5, handleY - 5);
+            ctx.moveTo(handleX - 5, handleY - 5);
+            ctx.lineTo(handleX + 5, handleY + 5);
             ctx.stroke();
             
             ctx.beginPath();
-            ctx.moveTo(handleX - 2, handleY + 5);
-            ctx.lineTo(handleX + 5, handleY - 2);
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.moveTo(handleX + 1, handleY + 5);
+            ctx.moveTo(handleX + 5, handleY + 5);
+            ctx.lineTo(handleX + 1, handleY + 5);
+            ctx.moveTo(handleX + 5, handleY + 5);
             ctx.lineTo(handleX + 5, handleY + 1);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(handleX - 5, handleY - 5);
+            ctx.lineTo(handleX - 1, handleY - 5);
+            ctx.moveTo(handleX - 5, handleY - 5);
+            ctx.lineTo(handleX - 5, handleY - 1);
             ctx.stroke();
 
             const deleteX = bgX + bgWidth - DELETE_BUTTON_SIZE / 2 + 4;
