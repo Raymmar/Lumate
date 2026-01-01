@@ -416,14 +416,25 @@ export default function CardCreatorPage() {
     setIsPresetSelected(true);
   };
 
+  const getStickerSizeByTier = (tier: string): number => {
+    switch (tier) {
+      case "Series A": return 450;
+      case "Seed": return 375;
+      case "Angel": return 300;
+      case "Friends & Family": return 250;
+      case "501c3/.edu": return 200;
+      default: return 300;
+    }
+  };
+
   const addSponsorSticker = async (sponsor: Sponsor) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.src = getProxiedUrl(sponsor.logo);
+    const baseSize = getStickerSizeByTier(sponsor.tier);
     
     img.onload = () => {
       const aspectRatio = img.width / img.height;
-      const baseSize = 300;
       const width = aspectRatio >= 1 ? baseSize : baseSize * aspectRatio;
       const height = aspectRatio >= 1 ? baseSize / aspectRatio : baseSize;
       
@@ -448,8 +459,8 @@ export default function CardCreatorPage() {
         imageUrl: sponsor.logo,
         x: 100 + Math.random() * 200,
         y: 100 + Math.random() * 200,
-        width: 300,
-        height: 300,
+        width: baseSize,
+        height: baseSize,
         name: sponsor.name,
         aspectRatio: 1,
       };
