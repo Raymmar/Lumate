@@ -52,11 +52,17 @@ export default function CardCreatorPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Read URL params for pre-filling
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialPhoto = urlParams.get("photo");
+  const initialName = urlParams.get("name") || "Your Name";
+  const initialTitle = urlParams.get("title") || "Your Title";
+
   const [selectedOverlay, setSelectedOverlay] = useState<CardOverlay>(getDefaultOverlay());
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedName, setSelectedName] = useState("Your Name");
-  const [selectedTitle, setSelectedTitle] = useState("Your Title");
-  const [badgeLabel, setBadgeLabel] = useState("Attendee");
+  const [selectedImage, setSelectedImage] = useState<string | null>(initialPhoto);
+  const [selectedName, setSelectedName] = useState(initialName);
+  const [selectedTitle, setSelectedTitle] = useState(initialTitle);
+  const [badgeLabel, setBadgeLabel] = useState(initialPhoto ? "Speaker" : "Attendee");
   const [stickers, setStickers] = useState<CanvasSticker[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

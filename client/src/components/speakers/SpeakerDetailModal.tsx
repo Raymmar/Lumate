@@ -54,7 +54,10 @@ export function SpeakerDetailModal({
                 showOverlayToggle={true}
               />
               <Button variant="outline" size="sm" className="w-full" asChild>
-                <Link href="/card-creator" data-testid="link-customize-card">
+                <Link 
+                  href={`/card-creator?photo=${encodeURIComponent(speaker.photo)}&name=${encodeURIComponent(speaker.name)}&title=${encodeURIComponent(speakerTitle)}`}
+                  data-testid="link-customize-card"
+                >
                   <Sparkles className="h-4 w-4 mr-2" />
                   Customize in Card Creator
                 </Link>
