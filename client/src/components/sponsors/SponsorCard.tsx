@@ -37,7 +37,7 @@ export function SponsorCard({
           <img
             src={sponsor.logo}
             alt={sponsor.name}
-            className="max-w-full max-h-full object-contain rounded-lg"
+            className="max-w-full max-h-full object-contain"
           />
         </div>
         <div className="text-center">
