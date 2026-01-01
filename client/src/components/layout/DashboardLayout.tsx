@@ -57,7 +57,7 @@ export default function DashboardLayout({ children, hideSidebar = false }: Dashb
                 </div>
               </div>
             )}
-            <div className="p-4 min-h-[calc(100vh-57px)] !shadow-none !border-none pl-[0px] pr-[0px] pt-[0px] pb-[0px]">
+            <div className="p-4 min-h-[calc(100vh-57px)]">
               {children}
             </div>
           </main>
