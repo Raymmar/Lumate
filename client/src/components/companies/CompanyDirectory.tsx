@@ -204,7 +204,7 @@ export default function CompanyDirectory() {
 
   // Render companies grid
   return (
-    <div className="space-y-4 pl-[16px] pr-[16px] pt-[16px] pb-[16px]">
+    <div className="space-y-4 pl-[0px] pr-[0px] pt-[0px] pb-[0px]">
       <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 
         backgroundImage: "url('https://file-upload.replit.app/api/storage/images%2F1740978938458-STS_Jan%2725-89%20compressed.jpeg')"
       }}>
