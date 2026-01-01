@@ -263,14 +263,25 @@ export default function CardCreatorPage() {
             ctx.beginPath();
             ctx.arc(handleX, handleY, handleSize / 2, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = "#FFFFFF";
+            
+            ctx.strokeStyle = "#FFFFFF";
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            
             ctx.beginPath();
-            ctx.moveTo(handleX - 4, handleY + 2);
-            ctx.lineTo(handleX + 4, handleY - 6);
-            ctx.lineTo(handleX + 6, handleY - 4);
-            ctx.lineTo(handleX - 2, handleY + 4);
-            ctx.closePath();
-            ctx.fill();
+            ctx.moveTo(handleX - 5, handleY + 5);
+            ctx.lineTo(handleX + 5, handleY - 5);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(handleX - 2, handleY + 5);
+            ctx.lineTo(handleX + 5, handleY - 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(handleX + 1, handleY + 5);
+            ctx.lineTo(handleX + 5, handleY + 1);
+            ctx.stroke();
 
             const deleteX = bgX + bgWidth - DELETE_BUTTON_SIZE / 2 + 4;
             const deleteY = bgY - DELETE_BUTTON_SIZE / 2 + 8;
@@ -432,8 +443,8 @@ export default function CardCreatorPage() {
         imageUrl: sponsor.logo,
         x: 100 + Math.random() * 200,
         y: 100 + Math.random() * 200,
-        width: 150,
-        height: 150,
+        width: 450,
+        height: 450,
         name: sponsor.name,
         aspectRatio: 1,
       };
@@ -935,8 +946,8 @@ export default function CardCreatorPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 )}
-                {!selectedImage && !isLoading && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none">
+                {!selectedImage && !isLoading && stickers.length === 0 && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none z-0">
                     <ImageIcon className="h-12 w-12 mb-2 opacity-50" />
                     <p className="text-sm">Select a speaker or upload a photo</p>
                   </div>
