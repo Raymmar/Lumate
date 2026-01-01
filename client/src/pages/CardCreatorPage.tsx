@@ -1,28 +1,20 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import {
   Download,
   Upload,
   Loader2,
-  Users,
-  Building2,
   Palette,
-  Search,
   RotateCcw,
   Sparkles,
   ImageIcon,
-  Trash2,
 } from "lucide-react";
 import { CARD_OVERLAYS, getDefaultOverlay, type CardOverlay } from "@/config/cardOverlays";
-import type { Speaker, Sponsor } from "@shared/schema";
 
 const CANVAS_SIZE = 1080;
 const USER_IMAGE_SIZE = CANVAS_SIZE * 0.6;
@@ -60,37 +52,15 @@ export default function CardCreatorPage() {
 
   const [selectedOverlay, setSelectedOverlay] = useState<CardOverlay>(getDefaultOverlay());
   const [selectedImage, setSelectedImage] = useState<string | null>(initialPhoto);
-  const [selectedName, setSelectedName] = useState(initialName);
+  const [selectedName, setSelectedName] = useState(user ? (user.displayName || "Your Name") : initialName);
   const [selectedTitle, setSelectedTitle] = useState(initialTitle);
-  const [badgeLabel, setBadgeLabel] = useState(initialPhoto ? "Speaker" : "Attendee");
+  const [badgeLabel, setBadgeLabel] = useState("Attendee");
   const [stickers, setStickers] = useState<CanvasSticker[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedStickerId, setSelectedStickerId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  const { data: speakersData, isLoading: loadingSpeakers } = useQuery<{ speakers: Speaker[] }>({
-    queryKey: ["/api/speakers"],
-  });
-
-  const { data: sponsorsData, isLoading: loadingSponsors } = useQuery<{ sponsors: Sponsor[] }>({
-    queryKey: ["/api/sponsors"],
-  });
-
-  const speakers = speakersData?.speakers || [];
-  const sponsors = sponsorsData?.sponsors || [];
-
-  const filteredSpeakers = speakers.filter(
-    (s) =>
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.company?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredSponsors = sponsors.filter((s) =>
-    s.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
     return new Promise((resolve, reject) => {
@@ -274,34 +244,9 @@ export default function CardCreatorPage() {
     }
   };
 
-  const selectSpeaker = (speaker: Speaker) => {
-    setSelectedImage(speaker.photo);
-    setSelectedName(speaker.name);
-    setSelectedTitle(speaker.title && speaker.company ? `${speaker.title}, ${speaker.company}` : speaker.title || speaker.company || "");
-    setBadgeLabel("Speaker");
-  };
-
-  const addSponsorSticker = (sponsor: Sponsor) => {
-    const newSticker: CanvasSticker = {
-      id: `sticker-${Date.now()}`,
-      type: "sponsor",
-      imageUrl: sponsor.logo,
-      x: 100 + Math.random() * 200,
-      y: 100 + Math.random() * 200,
-      width: 150,
-      height: 150,
-      name: sponsor.name,
-    };
-    setStickers((prev) => [...prev, newSticker]);
-  };
-
-  const removeSticker = (stickerId: string) => {
-    setStickers((prev) => prev.filter((s) => s.id !== stickerId));
-  };
-
   const handleReset = () => {
     setSelectedImage(null);
-    setSelectedName("Your Name");
+    setSelectedName(user?.displayName || "Your Name");
     setSelectedTitle("Your Title");
     setBadgeLabel("Attendee");
     setStickers([]);
@@ -461,162 +406,59 @@ export default function CardCreatorPage() {
               </div>
             </div>
 
-            <div className="bg-card border rounded-lg p-4">
-              <h3 className="font-semibold mb-3">Card Text</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-muted-foreground">Name</label>
-                  <Input
-                    value={selectedName}
-                    onChange={(e) => setSelectedName(e.target.value)}
-                    placeholder="Enter name"
-                    data-testid="input-card-name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Title</label>
-                  <Input
-                    value={selectedTitle}
-                    onChange={(e) => setSelectedTitle(e.target.value)}
-                    placeholder="Enter title"
-                    data-testid="input-card-title"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Badge</label>
-                  <Input
-                    value={badgeLabel}
-                    onChange={(e) => setBadgeLabel(e.target.value)}
-                    placeholder="e.g., Speaker, Attendee"
-                    data-testid="input-card-badge"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Tabs defaultValue="speakers" className="bg-card border rounded-lg">
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="speakers" className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  Speakers
-                </TabsTrigger>
-                <TabsTrigger value="sponsors" className="flex items-center gap-1">
-                  <Building2 className="h-4 w-4" />
-                  Sponsors
-                </TabsTrigger>
-              </TabsList>
-
-              <div className="p-3">
-                <div className="relative mb-3">
-                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                    data-testid="input-asset-search"
-                  />
-                </div>
-
-                <TabsContent value="speakers" className="mt-0">
-                  <ScrollArea className="h-[300px]">
-                    {loadingSpeakers ? (
-                      <div className="flex items-center justify-center h-20">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      </div>
-                    ) : filteredSpeakers.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">No speakers found</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {filteredSpeakers.map((speaker) => (
-                          <button
-                            key={speaker.id}
-                            onClick={() => selectSpeaker(speaker)}
-                            className="w-full flex items-center gap-3 p-2 rounded-md hover:bg-muted transition-colors text-left"
-                            data-testid={`speaker-select-${speaker.id}`}
-                          >
-                            <img
-                              src={speaker.photo}
-                              alt={speaker.name}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{speaker.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {speaker.company || speaker.title}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="sponsors" className="mt-0">
-                  <ScrollArea className="h-[300px]">
-                    {loadingSponsors ? (
-                      <div className="flex items-center justify-center h-20">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      </div>
-                    ) : filteredSponsors.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">No sponsors found</p>
-                    ) : (
-                      <div className="grid grid-cols-3 gap-2">
-                        {filteredSponsors.map((sponsor) => (
-                          <button
-                            key={sponsor.id}
-                            onClick={() => addSponsorSticker(sponsor)}
-                            className="flex flex-col items-center gap-1 p-2 rounded-md hover:bg-muted transition-colors"
-                            title={`Add ${sponsor.name} logo as sticker`}
-                            data-testid={`sponsor-sticker-${sponsor.id}`}
-                          >
-                            <div className="w-12 h-12 flex items-center justify-center bg-white rounded p-1">
-                              <img
-                                src={sponsor.logo}
-                                alt={sponsor.name}
-                                className="max-w-full max-h-full object-contain"
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground truncate w-full text-center">
-                              {sponsor.name}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </TabsContent>
-              </div>
-            </Tabs>
-
-            {stickers.length > 0 && (
+            {user ? (
               <div className="bg-card border rounded-lg p-4">
-                <h3 className="font-semibold mb-2">Added Stickers</h3>
-                <p className="text-xs text-muted-foreground mb-3">Click and drag stickers on the canvas to reposition</p>
-                <div className="space-y-2">
-                  {stickers.map((sticker) => (
-                    <div
-                      key={sticker.id}
-                      className={`flex items-center justify-between p-2 rounded-md transition-colors ${
-                        selectedStickerId === sticker.id
-                          ? "bg-primary/10 border border-primary"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <span className="text-sm truncate">{sticker.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => removeSticker(sticker.id)}
-                        data-testid={`remove-sticker-${sticker.id}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
+                <h3 className="font-semibold mb-3">Your Attendee Card</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Create your personal attendee badge card to share on social media.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Your Name</label>
+                    <Input
+                      value={selectedName}
+                      onChange={(e) => setSelectedName(e.target.value)}
+                      placeholder="Enter your name"
+                      data-testid="input-card-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Your Title</label>
+                    <Input
+                      value={selectedTitle}
+                      onChange={(e) => setSelectedTitle(e.target.value)}
+                      placeholder="Enter your title"
+                      data-testid="input-card-title"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Badge</label>
+                    <Input
+                      value={badgeLabel}
+                      disabled
+                      className="bg-muted"
+                      data-testid="input-card-badge"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Badge type is set to Attendee
+                    </p>
+                  </div>
                 </div>
+              </div>
+            ) : (
+              <div className="bg-card border rounded-lg p-4">
+                <h3 className="font-semibold mb-3">Create Your Card</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Log in to create your own personalized attendee badge card.
+                </p>
+                <Link href="/login">
+                  <Button className="w-full" data-testid="button-login-to-create">
+                    Log In to Create Your Card
+                  </Button>
+                </Link>
+                <p className="text-xs text-muted-foreground text-center mt-3">
+                  View the preview below to see how cards look
+                </p>
               </div>
             )}
           </div>
@@ -679,7 +521,7 @@ export default function CardCreatorPage() {
                 {!selectedImage && !isLoading && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground pointer-events-none">
                     <ImageIcon className="h-12 w-12 mb-2 opacity-50" />
-                    <p className="text-sm">Select a speaker or upload a photo</p>
+                    <p className="text-sm">{user ? "Upload your photo to get started" : "Log in to create your attendee card"}</p>
                   </div>
                 )}
               </div>
