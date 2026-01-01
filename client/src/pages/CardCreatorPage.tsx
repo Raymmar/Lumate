@@ -65,6 +65,9 @@ export default function CardCreatorPage() {
   const isAdmin = user?.isAdmin === true;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageCache = useRef<Map<string, HTMLImageElement>>(new Map());
+  const stickersRef = useRef<CanvasSticker[]>([]);
+  const animationFrameRef = useRef<number | null>(null);
 
   // Read URL params for pre-filling
   const urlParams = new URLSearchParams(window.location.search);
@@ -111,10 +114,18 @@ export default function CardCreatorPage() {
   );
 
   const loadImage = useCallback((src: string): Promise<HTMLImageElement> => {
+    const cached = imageCache.current.get(src);
+    if (cached && cached.complete) {
+      return Promise.resolve(cached);
+    }
+    
     return new Promise((resolve, reject) => {
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.onload = () => resolve(img);
+      img.onload = () => {
+        imageCache.current.set(src, img);
+        resolve(img);
+      };
       img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
       img.src = src;
     });
@@ -203,7 +214,8 @@ export default function CardCreatorPage() {
       ctx.shadowColor = "transparent";
       ctx.shadowBlur = 0;
 
-      for (const sticker of stickers) {
+      const stickersToRender = (isDragging || isResizing) ? stickersRef.current : stickers;
+      for (const sticker of stickersToRender) {
         try {
           const stickerImage = await loadImage(getProxiedUrl(sticker.imageUrl));
           const padding = 12;
@@ -293,9 +305,26 @@ export default function CardCreatorPage() {
   }, [selectedImage, selectedOverlay, selectedName, selectedTitle, badgeLabel, stickers, selectedStickerId, isDragging, isResizing, loadImage, RESIZE_HANDLE_SIZE, DELETE_BUTTON_SIZE]);
 
   useEffect(() => {
-    const timer = setTimeout(() => drawCanvas(), 100);
-    return () => clearTimeout(timer);
-  }, [drawCanvas]);
+    stickersRef.current = stickers;
+  }, [stickers]);
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    drawCanvas();
+  }, [selectedImage, selectedOverlay, selectedName, selectedTitle, badgeLabel, selectedStickerId]);
+  
+  useEffect(() => {
+    if (!isDragging && !isResizing) {
+      drawCanvas();
+    }
+  }, [stickers, isDragging, isResizing]);
 
   const handleDownload = async () => {
     if (!canvasRef.current) return;
@@ -378,7 +407,7 @@ export default function CardCreatorPage() {
     
     img.onload = () => {
       const aspectRatio = img.width / img.height;
-      const baseSize = 150;
+      const baseSize = 450;
       const width = aspectRatio >= 1 ? baseSize : baseSize * aspectRatio;
       const height = aspectRatio >= 1 ? baseSize / aspectRatio : baseSize;
       
@@ -519,34 +548,45 @@ export default function CardCreatorPage() {
     }
   };
 
+  const scheduleRedraw = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    animationFrameRef.current = requestAnimationFrame(() => {
+      drawCanvas();
+      animationFrameRef.current = null;
+    });
+  }, [drawCanvas]);
+
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const { x, y } = getCanvasCoordinates(e);
     
     if (isResizing && selectedStickerId) {
-      setStickers((prev) =>
-        prev.map((s) => {
-          if (s.id !== selectedStickerId) return s;
-          const padding = 12;
-          const newWidth = Math.max(50, x - s.x + padding);
-          const newHeight = newWidth / s.aspectRatio;
-          return { ...s, width: newWidth, height: newHeight };
-        })
-      );
+      stickersRef.current = stickersRef.current.map((s) => {
+        if (s.id !== selectedStickerId) return s;
+        const padding = 12;
+        const newWidth = Math.max(50, x - s.x + padding);
+        const newHeight = newWidth / s.aspectRatio;
+        return { ...s, width: newWidth, height: newHeight };
+      });
+      scheduleRedraw();
       return;
     }
     
     if (!isDragging || !selectedStickerId) return;
 
-    setStickers((prev) =>
-      prev.map((s) =>
-        s.id === selectedStickerId
-          ? { ...s, x: x - dragOffset.x, y: y - dragOffset.y }
-          : s
-      )
+    stickersRef.current = stickersRef.current.map((s) =>
+      s.id === selectedStickerId
+        ? { ...s, x: x - dragOffset.x, y: y - dragOffset.y }
+        : s
     );
+    scheduleRedraw();
   };
 
   const handleCanvasMouseUp = () => {
+    if (isDragging || isResizing) {
+      setStickers([...stickersRef.current]);
+    }
     setIsDragging(false);
     setIsResizing(false);
   };
@@ -581,32 +621,33 @@ export default function CardCreatorPage() {
     const { x, y } = getCanvasCoordinates(e);
     
     if (isResizing && selectedStickerId) {
-      setStickers((prev) =>
-        prev.map((s) => {
-          if (s.id !== selectedStickerId) return s;
-          const padding = 12;
-          const newWidth = Math.max(50, x - s.x + padding);
-          const newHeight = newWidth / s.aspectRatio;
-          return { ...s, width: newWidth, height: newHeight };
-        })
-      );
+      stickersRef.current = stickersRef.current.map((s) => {
+        if (s.id !== selectedStickerId) return s;
+        const padding = 12;
+        const newWidth = Math.max(50, x - s.x + padding);
+        const newHeight = newWidth / s.aspectRatio;
+        return { ...s, width: newWidth, height: newHeight };
+      });
+      scheduleRedraw();
       e.preventDefault();
       return;
     }
     
     if (!isDragging || !selectedStickerId) return;
 
-    setStickers((prev) =>
-      prev.map((s) =>
-        s.id === selectedStickerId
-          ? { ...s, x: x - dragOffset.x, y: y - dragOffset.y }
-          : s
-      )
+    stickersRef.current = stickersRef.current.map((s) =>
+      s.id === selectedStickerId
+        ? { ...s, x: x - dragOffset.x, y: y - dragOffset.y }
+        : s
     );
+    scheduleRedraw();
     e.preventDefault();
   };
 
   const handleCanvasTouchEnd = () => {
+    if (isDragging || isResizing) {
+      setStickers([...stickersRef.current]);
+    }
     setIsDragging(false);
     setIsResizing(false);
   };
