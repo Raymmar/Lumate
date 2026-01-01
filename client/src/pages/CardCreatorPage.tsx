@@ -40,7 +40,6 @@ interface CanvasSticker {
   id: string;
   type: "sponsor" | "badge";
   imageUrl: string;
-  cachedProxyUrl: string;
   x: number;
   y: number;
   width: number;
@@ -218,7 +217,7 @@ export default function CardCreatorPage() {
       const stickersToRender = (isDragging || isResizing) ? stickersRef.current : stickers;
       for (const sticker of stickersToRender) {
         try {
-          const stickerImage = await loadImage(sticker.cachedProxyUrl);
+          const stickerImage = await loadImage(getProxiedUrl(sticker.imageUrl));
           const padding = 12;
           const borderRadius = 12;
           const bgX = sticker.x - padding;
@@ -418,30 +417,20 @@ export default function CardCreatorPage() {
   };
 
   const addSponsorSticker = async (sponsor: Sponsor) => {
-    try {
-      const cacheBuster = `${sponsor.logo.includes('?') ? '&' : '?'}cb=${Date.now()}`;
-      const freshUrl = sponsor.logo + cacheBuster;
-      const proxyUrl = getProxiedUrl(freshUrl);
-      
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      
-      await new Promise<void>((resolve, reject) => {
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error("Failed to load image"));
-        img.src = proxyUrl;
-      });
-      
-      const aspectRatio = img.naturalWidth / img.naturalHeight;
-      const baseWidth = 300;
-      const width = baseWidth;
-      const height = baseWidth / aspectRatio;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = getProxiedUrl(sponsor.logo);
+    
+    img.onload = () => {
+      const aspectRatio = img.width / img.height;
+      const baseSize = 300;
+      const width = aspectRatio >= 1 ? baseSize : baseSize * aspectRatio;
+      const height = aspectRatio >= 1 ? baseSize / aspectRatio : baseSize;
       
       const newSticker: CanvasSticker = {
         id: `sticker-${Date.now()}`,
         type: "sponsor",
         imageUrl: sponsor.logo,
-        cachedProxyUrl: proxyUrl,
         x: 100 + Math.random() * 200,
         y: 100 + Math.random() * 200,
         width,
@@ -450,13 +439,22 @@ export default function CardCreatorPage() {
         aspectRatio,
       };
       setStickers((prev) => [...prev, newSticker]);
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: `Failed to load ${sponsor.name} logo`,
-        variant: "destructive",
-      });
-    }
+    };
+    
+    img.onerror = () => {
+      const newSticker: CanvasSticker = {
+        id: `sticker-${Date.now()}`,
+        type: "sponsor",
+        imageUrl: sponsor.logo,
+        x: 100 + Math.random() * 200,
+        y: 100 + Math.random() * 200,
+        width: 300,
+        height: 300,
+        name: sponsor.name,
+        aspectRatio: 1,
+      };
+      setStickers((prev) => [...prev, newSticker]);
+    };
   };
 
   const removeSticker = (stickerId: string) => {
