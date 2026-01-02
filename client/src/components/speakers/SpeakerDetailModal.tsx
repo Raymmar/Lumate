@@ -109,7 +109,7 @@ export function SpeakerDetailModal({
         </div>
 
         {(hasPrevious || hasNext) && (
-          <div className="flex justify-between pt-4 border-t mt-4 sticky bottom-0 bg-background pb-1">
+          <div className="flex justify-between pt-4 border-t mt-4 sticky bottom-0 bg-background p-4 sm:p-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6">
             <Button
               variant="outline"
               size="sm"
