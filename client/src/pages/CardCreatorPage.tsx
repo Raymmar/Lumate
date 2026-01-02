@@ -691,7 +691,7 @@ export default function CardCreatorPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-1 space-y-3 sm:space-y-4">
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4 order-2 lg:order-1">
             <div className="bg-card border rounded-lg p-3 sm:p-4">
               <div className="flex flex-wrap gap-2">
                 {CARD_OVERLAYS.map((overlay) => (
@@ -887,14 +887,14 @@ export default function CardCreatorPage() {
             )}
           </div>
 
-          <div className="lg:col-span-2">
-            <div className="bg-card border rounded-lg p-4 sticky top-4">
-              <div className="flex items-center justify-between mb-4">
+          <div className="lg:col-span-2 order-1 lg:order-2">
+            <div className="bg-card border rounded-lg p-3 sm:p-4 sticky top-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-4">
                 <h3 className="font-semibold">Preview</h3>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleReset} data-testid="button-reset">
-                    <RotateCcw className="h-4 w-4 mr-1" />
-                    Reset
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleReset} className="text-xs sm:text-sm" data-testid="button-reset">
+                    <RotateCcw className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Reset</span>
                   </Button>
                   {user && (
                     <>
@@ -911,14 +911,16 @@ export default function CardCreatorPage() {
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
+                        className="text-xs sm:text-sm"
                         data-testid="button-upload-image"
                       >
                         {isUploading ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                          <Loader2 className="h-4 w-4 sm:mr-1 animate-spin" />
                         ) : (
-                          <Upload className="h-4 w-4 mr-1" />
+                          <Upload className="h-4 w-4 sm:mr-1" />
                         )}
-                        Upload Photo
+                        <span className="hidden sm:inline">Upload Photo</span>
+                        <span className="sm:hidden">Upload</span>
                       </Button>
                     </>
                   )}
