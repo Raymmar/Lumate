@@ -36,15 +36,15 @@ export function SpeakerDetailModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl p-4 sm:p-6 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)]" onClick={(e) => e.stopPropagation()}>
+      <DialogContent className="max-w-4xl p-4 sm:p-6 w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] overflow-x-hidden" onClick={(e) => e.stopPropagation()}>
         <DialogHeader className="sr-only">
           <DialogTitle>{speaker.name}</DialogTitle>
           <DialogDescription>Speaker details for {speaker.name}</DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-6 pt-2">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 gap-4 sm:gap-6 pt-2 overflow-hidden">
           {speaker.photo && (
-            <div className="space-y-3">
+            <div className="space-y-3 min-w-0">
               <SpeakerCardPreview
                 imageUrl={speaker.photo}
                 speakerName={speaker.name}
@@ -65,18 +65,18 @@ export function SpeakerDetailModal({
             </div>
           )}
 
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0 overflow-hidden">
             <div className="flex items-start gap-3 sm:gap-4 mb-4">
               <img
                 src={speaker.photo}
                 alt={speaker.name}
                 className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
               />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h2 className="text-lg sm:text-xl font-semibold flex flex-wrap items-center gap-2">
-                  {speaker.name}
+                  <span className="break-words">{speaker.name}</span>
                   {speaker.isModerator && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs flex-shrink-0">
                       Moderator
                     </Badge>
                   )}
@@ -88,7 +88,7 @@ export function SpeakerDetailModal({
             </div>
 
             {speaker.bio && (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
                 {speaker.bio}
               </p>
             )}

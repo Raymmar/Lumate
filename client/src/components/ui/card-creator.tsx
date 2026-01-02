@@ -536,14 +536,14 @@ export function SpeakerCardPreview({
   };
 
   return (
-    <div className={className}>
+    <div className={`${className} overflow-hidden max-w-full`}>
       {showOverlayToggle && (
-        <div className="flex gap-2 mb-3" data-testid="overlay-toggle">
+        <div className="flex flex-wrap gap-2 mb-3" data-testid="overlay-toggle">
           {CARD_OVERLAYS.map((overlay) => (
             <button
               key={overlay.id}
               onClick={() => setSelectedOverlay(overlay)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md border transition-all ${
+              className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-md border transition-all ${
                 selectedOverlay.id === overlay.id
                   ? "border-primary bg-primary/10"
                   : "border-border hover:border-primary/50"
@@ -551,15 +551,15 @@ export function SpeakerCardPreview({
               data-testid={`overlay-option-${overlay.id}`}
             >
               <div
-                className="w-4 h-4 rounded-full"
+                className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                 style={{ backgroundColor: overlay.color }}
               />
-              <span className="text-sm font-medium">{overlay.label}</span>
+              <span className="text-xs sm:text-sm font-medium">{overlay.label}</span>
             </button>
           ))}
         </div>
       )}
-      <div className="relative aspect-square w-full bg-muted rounded-lg overflow-hidden">
+      <div className="relative aspect-square w-full bg-muted rounded-lg overflow-hidden max-w-full">
         <canvas
           ref={canvasRef}
           className="w-full h-full object-contain"
