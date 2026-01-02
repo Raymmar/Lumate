@@ -670,29 +670,29 @@ export default function CardCreatorPage() {
 
   return (
     <DashboardLayout hideSidebar>
-      <div className="max-w-7xl mx-auto py-6 px-4 pt-[16px] pb-[16px]">
-        <div className="flex items-center justify-between mb-4">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6 px-0 sm:px-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-muted-foreground" />
+            <Sparkles className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <p className="text-sm text-muted-foreground">Create and download shareable summit cards</p>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/speakers">
-              <Button variant="outline" size="sm" data-testid="button-explore-speakers">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" data-testid="button-explore-speakers">
                 Explore Speakers
               </Button>
             </Link>
             <Link href="/summit">
-              <Button size="sm" data-testid="button-summit-tickets">
+              <Button size="sm" className="text-xs sm:text-sm" data-testid="button-summit-tickets">
                 Get Summit Tickets
               </Button>
             </Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-card border rounded-lg p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4">
+            <div className="bg-card border rounded-lg p-3 sm:p-4">
               <div className="flex flex-wrap gap-2">
                 {CARD_OVERLAYS.map((overlay) => (
                   <button

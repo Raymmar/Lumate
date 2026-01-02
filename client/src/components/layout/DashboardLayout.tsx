@@ -52,12 +52,12 @@ export default function DashboardLayout({ children, hideSidebar = false }: Dashb
           <main className="flex-1 overflow-y-auto">
             {!hideSidebar && (
               <div className="lg:hidden">
-                <div className="bg-background p-4">
+                <div className="bg-background p-2 sm:p-4">
                   <EventList compact />
                 </div>
               </div>
             )}
-            <div className="p-4 min-h-[calc(100vh-57px)]">
+            <div className="p-2 sm:p-4 min-h-[calc(100vh-57px)]">
               {children}
             </div>
           </main>
