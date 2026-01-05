@@ -19,7 +19,7 @@ export const SPONSOR_TIERS: SponsorTier[] = [
   {
     name: "Angel",
     key: "Angel",
-    cols: 3,
+    cols: 4,
   },
   {
     name: "Friends & Family",
