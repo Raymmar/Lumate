@@ -408,17 +408,17 @@ export function PresentationCard({
                       />
                       <motion.div 
                         layoutId={`speaker-name-${presentation.id}-${speaker.id}`}
-                        className="flex flex-col min-w-0"
+                        className="flex flex-col min-w-0 flex-1"
                         transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
                       >
-                        <span className="text-sm font-medium flex items-center gap-1">
-                          {speaker.name}
+                        <span className="text-sm font-medium flex items-center gap-1 truncate">
+                          <span className="truncate">{speaker.name}</span>
                           {speaker.isModerator && (
                             <Mic2 className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                           )}
                         </span>
                         {(speaker.title || speaker.company) && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-muted-foreground truncate">
                             {speaker.title}{speaker.title && speaker.company ? ", " : ""}{speaker.company}
                           </span>
                         )}
