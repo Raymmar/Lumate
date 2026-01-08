@@ -1227,11 +1227,30 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (!user.subscriptionId) {
-        return res.json({ status: "inactive" });
+      // Check for active Stripe subscription
+      if (user.subscriptionId && user.subscriptionStatus === "active") {
+        return res.json({ 
+          status: "active",
+          source: "stripe",
+          currentPeriodEnd: user.subscriptionCurrentPeriodEnd
+        });
       }
 
-      return res.json({ status: user.subscriptionStatus });
+      // Check for Luma or manual premium access
+      if (user.premiumSource && user.premiumExpiresAt) {
+        const expirationDate = new Date(user.premiumExpiresAt);
+        const now = new Date();
+        
+        if (expirationDate > now) {
+          return res.json({ 
+            status: "active",
+            source: user.premiumSource,
+            expiresAt: user.premiumExpiresAt
+          });
+        }
+      }
+
+      return res.json({ status: "inactive" });
     } catch (error) {
       console.error("Failed to fetch subscription status:", error);
       res.status(500).json({ error: "Failed to fetch subscription status" });
