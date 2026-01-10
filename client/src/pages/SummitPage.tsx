@@ -126,9 +126,7 @@ function AgendaUpdatesAlert() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 w-full">
         <div className="flex-1">
           <p className="font-medium text-foreground">Drop your email for community updates!</p>
-          <p className="text-sm text-muted-foreground">
-            We're still adding speakers, sessions, and activities. Sign up for updates so you don't miss anything!
-          </p>
+          <p className="text-sm text-muted-foreground">You'll get an invite to our next event and updates about our growing community.</p>
         </div>
         {isSubmitted ? (
           <p className="text-sm text-primary font-medium whitespace-nowrap">Thanks for signing up!</p>
