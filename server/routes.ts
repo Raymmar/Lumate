@@ -2773,8 +2773,7 @@ export async function registerRoutes(app: Express) {
       }
 
       if (!person) {
-        // Instead of auto-inviting via Luma API (which bypasses ticket purchases),
-        // just return the next event URL so users can register there
+        // Profile not found - add them to Luma and send an event invite email
         try {
           const events = await storage.getEvents();
           const nextEvent = events.find(
@@ -2782,15 +2781,48 @@ export async function registerRoutes(app: Express) {
           );
 
           if (nextEvent) {
-            console.log("Profile not found, returning event link (not sending Luma invite):", {
+            console.log("Profile not found, adding to Luma and sending event invite:", {
               email: normalizedEmail,
+              eventTitle: nextEvent.title,
               eventUrl: nextEvent.url,
             });
 
+            // Step 1: Add guest to Luma (so they sync to our system when Luma sync runs)
+            try {
+              const lumaResponse = await lumaApiRequest("event/send-invites", undefined, {
+                method: "POST",
+                body: JSON.stringify({
+                  guests: [{ email: normalizedEmail }],
+                  event_api_id: nextEvent.api_id,
+                }),
+              });
+              console.log("Added guest to Luma successfully:", {
+                email: normalizedEmail,
+                eventId: nextEvent.api_id,
+                response: lumaResponse,
+              });
+            } catch (lumaError) {
+              console.error("Failed to add guest to Luma (continuing anyway):", lumaError);
+              // Continue even if Luma fails - we still want to send them the email
+            }
+
+            // Step 2: Send them an email with the event link
+            const emailSent = await sendEventInviteEmail(normalizedEmail, {
+              title: nextEvent.title,
+              url: nextEvent.url || '',
+              startTime: nextEvent.startTime,
+            });
+
+            if (emailSent) {
+              console.log("Successfully sent event invite email to new subscriber:", normalizedEmail);
+            } else {
+              console.error("Failed to send event invite email to:", normalizedEmail);
+            }
+
             return res.json({
-              status: "not_found",
+              status: "invited",
               message:
-                "We couldn't find your profile. Check out our next event and register to join our community!",
+                "We've sent you an email with details about our next event. Check your inbox!",
               nextEvent: {
                 title: nextEvent.title,
                 startTime: nextEvent.startTime,
@@ -2799,7 +2831,7 @@ export async function registerRoutes(app: Express) {
             });
           }
         } catch (error) {
-          console.error("Failed to fetch next event:", error);
+          console.error("Failed to process new subscriber:", error);
         }
 
         return res.status(404).json({
