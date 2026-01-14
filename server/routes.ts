@@ -42,7 +42,7 @@ import {
   insertTimeBlockSchema,
 } from "@shared/schema";
 import { z } from "zod";
-import { sendVerificationEmail } from "./email";
+import { sendVerificationEmail, sendEventInviteEmail } from "./email";
 import { comparePasswords } from "./auth";
 import { ZodError } from "zod";
 import session from "express-session";
@@ -4344,22 +4344,63 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Missing email or event_api_id" });
       }
 
-      // Get the event to return the registration page URL
+      const normalizedEmail = email.toLowerCase();
+
+      // Get the event to include in the email
       const event = await storage.getEventByApiId(event_api_id);
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
 
-      console.log("Returning event registration link (not sending Luma invite):", {
+      console.log("Processing new subscriber:", {
         eventId: event_api_id,
-        userEmail: email,
+        userEmail: normalizedEmail,
+        eventTitle: event.title,
         eventUrl: event.url,
       });
 
-      // Return the event URL so the user can register/buy tickets on Luma directly
-      // We no longer send Luma invites as that bypasses ticket purchases
+      // Step 1: Add guest to Luma (so they sync to our system when Luma sync runs)
+      try {
+        const lumaResponse = await lumaApiRequest("event/send-invites", undefined, {
+          method: "POST",
+          body: JSON.stringify({
+            guests: [{ email: normalizedEmail }],
+            event_api_id,
+          }),
+        });
+        console.log("Added guest to Luma successfully:", {
+          email: normalizedEmail,
+          eventId: event_api_id,
+          response: lumaResponse,
+        });
+      } catch (lumaError) {
+        console.error("Failed to add guest to Luma (continuing anyway):", lumaError);
+        // Continue even if Luma fails - we still want to send them the email
+      }
+
+      // Step 2: Send them an email with the event link (our own email, not Luma's invite)
+      const emailSent = await sendEventInviteEmail(normalizedEmail, {
+        title: event.title,
+        url: event.url || '',
+        startTime: event.startTime,
+      });
+
+      if (!emailSent) {
+        console.error("Failed to send event invite email to:", normalizedEmail);
+        return res.status(500).json({
+          error: "Failed to send event invite email",
+          message: "The email could not be sent. Please try again later.",
+        });
+      }
+
+      console.log("Successfully processed new subscriber:", {
+        email: normalizedEmail,
+        eventTitle: event.title,
+        eventUrl: event.url,
+      });
+
       res.json({
-        message: "Check out the event and register!",
+        message: "You're signed up! Check your email for event details.",
         eventUrl: event.url,
         event: {
           title: event.title,
@@ -4368,9 +4409,9 @@ export async function registerRoutes(app: Express) {
         },
       });
     } catch (error) {
-      console.error("Failed to get event info:", error);
+      console.error("Failed to process invite:", error);
       res.status(500).json({
-        error: "Failed to get event info",
+        error: "Failed to process invite",
         message: error instanceof Error ? error.message : String(error),
       });
     }
