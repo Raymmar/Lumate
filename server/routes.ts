@@ -2787,23 +2787,20 @@ export async function registerRoutes(app: Express) {
               eventUrl: nextEvent.url,
             });
 
-            // Step 1: Add guest to Luma (for syncing) but skip Luma's invite email
+            // Step 1: Add person to Luma calendar (for syncing) - no email sent
             try {
-              const lumaResponse = await lumaApiRequest("event/send-invites", undefined, {
+              const lumaResponse = await lumaApiRequest("calendar/import-people", undefined, {
                 method: "POST",
                 body: JSON.stringify({
-                  guests: [{ email: normalizedEmail }],
-                  event_api_id: nextEvent.api_id,
-                  skip_email_invite: true, // Suppress Luma's invite email
+                  infos: [{ email: normalizedEmail }],
                 }),
               });
-              console.log("Added guest to Luma successfully (email suppressed):", {
+              console.log("Added person to Luma calendar:", {
                 email: normalizedEmail,
-                eventId: nextEvent.api_id,
                 response: lumaResponse,
               });
             } catch (lumaError) {
-              console.error("Failed to add guest to Luma (continuing anyway):", lumaError);
+              console.error("Failed to add person to Luma (continuing anyway):", lumaError);
               // Continue even if Luma fails - we still want to send them our email
             }
 
@@ -4392,23 +4389,20 @@ export async function registerRoutes(app: Express) {
         eventUrl: event.url,
       });
 
-      // Step 1: Add guest to Luma (for syncing) but skip Luma's invite email
+      // Step 1: Add person to Luma calendar (for syncing) - no email sent
       try {
-        const lumaResponse = await lumaApiRequest("event/send-invites", undefined, {
+        const lumaResponse = await lumaApiRequest("calendar/import-people", undefined, {
           method: "POST",
           body: JSON.stringify({
-            guests: [{ email: normalizedEmail }],
-            event_api_id,
-            skip_email_invite: true, // Suppress Luma's invite email
+            infos: [{ email: normalizedEmail }],
           }),
         });
-        console.log("Added guest to Luma successfully (email suppressed):", {
+        console.log("Added person to Luma calendar:", {
           email: normalizedEmail,
-          eventId: event_api_id,
           response: lumaResponse,
         });
       } catch (lumaError) {
-        console.error("Failed to add guest to Luma (continuing anyway):", lumaError);
+        console.error("Failed to add person to Luma (continuing anyway):", lumaError);
         // Continue even if Luma fails - we still want to send them our email
       }
 
