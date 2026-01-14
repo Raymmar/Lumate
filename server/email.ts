@@ -453,6 +453,121 @@ You can also access this coupon anytime by logging into your Sarasota Tech accou
   }
 }
 
+export async function sendEventInviteEmail(
+  email: string,
+  eventInfo: { title: string; url: string; startTime: string }
+): Promise<boolean> {
+  try {
+    console.log('Sending event invite email to:', email, 'for event:', eventInfo.title);
+
+    if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+      console.log('Development mode - Event invite email would have been sent with:', {
+        to: email,
+        eventInfo
+      });
+      return true;
+    }
+
+    console.log('Email configuration:', {
+      hasApiKey: !!process.env.SENDGRID_API_KEY,
+      fromEmail: FROM_EMAIL,
+      isDevelopment,
+      eventTitle: eventInfo.title
+    });
+
+    const eventDate = new Date(eventInfo.startTime).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      timeZone: 'America/New_York',
+      timeZoneName: 'short'
+    });
+
+    const subject = `You're invited to ${eventInfo.title}`;
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">Welcome to Sarasota Tech!</h2>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+          Thanks for signing up! We're excited to have you join our growing tech community.
+        </p>
+
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+          You've been added to our community and will receive updates about upcoming events and opportunities.
+        </p>
+        
+        <div style="background: linear-gradient(to right, #eff6ff, #dbeafe); border: 1px solid #3b82f6; border-radius: 8px; padding: 20px; margin: 20px 0;">
+          <h3 style="margin: 0 0 10px 0; color: #1e40af; font-size: 18px;">Join us at our next event!</h3>
+          <p style="margin: 5px 0; color: #1e3a8a; font-weight: 600; font-size: 20px;">${eventInfo.title}</p>
+          <p style="margin: 10px 0 0 0; color: #3730a3;">${eventDate}</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${eventInfo.url}" 
+             style="display: inline-block; padding: 16px 32px; background-color: #0070f3; color: white; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold;">
+            View Event & Register
+          </a>
+        </div>
+
+        <p style="font-size: 14px; color: #666; line-height: 1.6;">
+          Click the button above to see the full event details and register. We look forward to seeing you there!
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+
+        <p style="font-size: 12px; color: #9ca3af;">
+          If the button above doesn't work, copy and paste this link into your browser:<br>
+          <a href="${eventInfo.url}" style="color: #0070f3; word-break: break-all;">${eventInfo.url}</a>
+        </p>
+      </div>
+    `;
+
+    const textContent = `Welcome to Sarasota Tech!
+
+Thanks for signing up! We're excited to have you join our growing tech community.
+
+You've been added to our community and will receive updates about upcoming events and opportunities.
+
+Join us at our next event: ${eventInfo.title}
+Date: ${eventDate}
+
+View event and register: ${eventInfo.url}
+
+We look forward to seeing you there!`;
+
+    console.log('Attempting to send event invite email with message:', {
+      to: email,
+      from: FROM_EMAIL,
+      subject
+    });
+
+    await mailService.send({
+      to: email,
+      from: FROM_EMAIL,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    console.log('Event invite email sent successfully to:', email);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send event invite email:', error);
+    if (error.response) {
+      console.error('SendGrid API Error:', {
+        statusCode: error.response.statusCode,
+        body: error.response.body,
+        headers: error.response.headers,
+      });
+    }
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   token: string
