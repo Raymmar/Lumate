@@ -367,8 +367,6 @@ export default function UserSettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="px-6">
-            <Form {...form}>
-              <form onSubmit={onSubmit} className="space-y-3">
             <TooltipProvider>
               {/* Profile Details & Linked Luma Profiles */}
               <Card className="mb-6 overflow-hidden">
@@ -454,70 +452,6 @@ export default function UserSettingsPage() {
                         <span className="truncate">{user.email}</span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Bio Field */}
-                  <div className="border-t pt-3">
-                    <FormField
-                      control={form.control}
-                      name="bio"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <div className="flex items-center justify-between mb-1">
-                            <FormLabel className="text-sm text-muted-foreground">
-                              {!isSubscriptionLoading && !hasActiveSubscription && user ? (
-                                <span>
-                                  Add a short bio to your public profile <span className="text-muted-foreground italic text-xs">(upgrade to add company details)</span>
-                                </span>
-                              ) : (
-                                <span>Add a short bio to your public profile</span>
-                              )}
-                            </FormLabel>
-                            {!isSubscriptionLoading && (
-                              hasActiveSubscription ? (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                                  Premium
-                                </span>
-                              ) : (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                                  Free
-                                </span>
-                              )
-                            )}
-                          </div>
-                          <FormControl>
-                            <div className="relative">
-                              <Textarea
-                                {...field}
-                                value={field.value || ""}
-                                placeholder="Add your custom greeting here (max 140 characters)"
-                                className="resize-none h-20 min-h-[80px] border bg-muted/50 text-base focus-visible:ring-0 focus-visible:ring-offset-0 text-inherit"
-                                maxLength={140}
-                              />
-                              <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                                {field.value?.length || 0}/140
-                              </div>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full mt-3"
-                      disabled={updateProfileMutation.isPending}
-                      size="sm"
-                    >
-                      {updateProfileMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        "Save Changes"
-                      )}
-                    </Button>
                   </div>
 
                   {/* Linked Luma Profiles */}
