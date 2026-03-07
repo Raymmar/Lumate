@@ -455,7 +455,7 @@ export default function UserSettingsPage() {
                   </div>
 
                   {/* Bio Form */}
-                  <div className="border-t pt-3">
+                  <div className="pt-3">
                     <Form {...form}>
                       <form onSubmit={onSubmit} className="space-y-3">
                         <div className="space-y-2">
