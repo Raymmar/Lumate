@@ -59,10 +59,8 @@ export default function UserSettingsPage() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [linkEmail, setLinkEmail] = useState("");
 
-  const { data: linkedProfiles, isLoading: isLoadingProfiles } = useQuery<LinkedPerson[]>({
-    queryKey: ["/api/users/linked-profiles"],
-    enabled: !!user,
-  });
+  const linkedProfiles: LinkedPerson[] = (user as any)?.linkedProfiles || [];
+  const isLoadingProfiles = false;
 
   const linkMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -79,7 +77,7 @@ export default function UserSettingsPage() {
     onSuccess: () => {
       toast({ title: "Profile linked successfully" });
       setLinkEmail("");
-      queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -98,7 +96,7 @@ export default function UserSettingsPage() {
     },
     onSuccess: () => {
       toast({ title: "Profile unlinked" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -117,7 +115,7 @@ export default function UserSettingsPage() {
     },
     onSuccess: () => {
       toast({ title: "Primary profile updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -223,7 +221,11 @@ export default function UserSettingsPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(["/api/auth/me"], data);
+      queryClient.setQueryData(["/api/auth/me"], (old: any) => ({
+        ...old,
+        ...data,
+        linkedProfiles: data.linkedProfiles || old?.linkedProfiles || [],
+      }));
       toast({
         title: "Success",
         description: "Profile updated successfully",

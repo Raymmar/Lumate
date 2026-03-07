@@ -3085,11 +3085,18 @@ export async function registerRoutes(app: Express) {
         const person = await storage.getPerson(user.personId);
         if (person) {
           api_id = person.api_id;
-          // Use person's userName as fallback if user displayName is not set
           if (!displayName && person.userName) {
             displayName = person.userName;
           }
         }
+      }
+
+      let linkedProfiles: Array<{id: number; fullName: string | null; email: string; isPrimary: boolean; linkedAt: string}> = [];
+      try {
+        const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+        linkedProfiles = await LumaMembershipService.getLinkedPeople(req.session.userId);
+      } catch (e) {
+        console.error("[auth/me] Failed to load linked profiles:", e);
       }
 
       return res.json({
@@ -3100,7 +3107,6 @@ export async function registerRoutes(app: Express) {
         isAdmin: user.isAdmin,
         personId: user.personId,
         api_id,
-        // Add all profile fields
         bio: user.bio,
         featuredImageUrl: user.featuredImageUrl,
         companyName: user.companyName,
@@ -3112,6 +3118,7 @@ export async function registerRoutes(app: Express) {
         ctaText: user.ctaText,
         customLinks: user.customLinks || [],
         tags: user.tags || [],
+        linkedProfiles,
       });
     } catch (error) {
       console.error("Failed to get user info:", error);
@@ -6160,13 +6167,10 @@ export async function registerRoutes(app: Express) {
   app.get("/api/users/linked-profiles", async (req, res) => {
     try {
       if (!req.session?.userId) {
-        console.log("[linked-profiles] No session userId, returning 401");
         return res.status(401).json({ error: "Not authenticated" });
       }
-      console.log("[linked-profiles] Fetching for userId:", req.session.userId);
       const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
       const linkedPeople = await LumaMembershipService.getLinkedPeople(req.session.userId);
-      console.log("[linked-profiles] Result:", JSON.stringify(linkedPeople.map(p => ({ id: p.id, email: p.email, isPrimary: p.isPrimary }))));
       res.json(linkedPeople);
     } catch (error) {
       console.error("Failed to get linked profiles:", error);
