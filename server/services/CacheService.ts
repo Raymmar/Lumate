@@ -2,8 +2,10 @@ import { lumaApiRequest } from '../routes';
 import { storage } from '../storage';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
-import { users } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { users, userPeopleLinks } from '@shared/schema';
 import { EventEmitter } from 'events';
+import { LumaMembershipService } from './LumaMembershipService';
 
 export class CacheService extends EventEmitter {
   private static instance: CacheService;
@@ -537,6 +539,18 @@ export class CacheService extends EventEmitter {
             const result = await tx.execute(query);
             const insertedPerson = result.rows[0];
 
+            // Sync Luma membership data if present
+            if (person.membership) {
+              try {
+                await LumaMembershipService.syncMembershipFromLuma({
+                  email: person.email,
+                  membership: person.membership,
+                });
+              } catch (membershipError) {
+                this.logSync(`Failed to sync membership for ${person.email}:`, membershipError);
+              }
+            }
+
             // Find any user with matching email and update the relationship
             const matchingUser = existingUsers.find(user => 
               user.email.toLowerCase() === person.email.toLowerCase()
@@ -548,6 +562,12 @@ export class CacheService extends EventEmitter {
                 UPDATE users 
                 SET person_id = ${insertedPerson.id} 
                 WHERE id = ${matchingUser.id}
+              `);
+              // Also maintain junction table link
+              await tx.execute(sql`
+                INSERT INTO user_people_links (user_id, person_id, is_primary, linked_at)
+                VALUES (${matchingUser.id}, ${insertedPerson.id}, true, NOW())
+                ON CONFLICT (user_id, person_id) DO NOTHING
               `);
             }
           } catch (error) {

@@ -592,26 +592,21 @@ export class PostgresStorage implements IStorage {
     try {
       console.log('Creating new user with email:', userData.email);
       
-      // First get the person by email to ensure we have the latest data
       const person = await this.getPersonByEmail(userData.email);
-      
-      if (!person) {
-        throw new Error(`No matching person found for email: ${userData.email}`);
-      }
       
       const [newUser] = await db
         .insert(users)
         .values({
           ...userData,
           email: userData.email.toLowerCase(), 
-          personId: person.id,
+          personId: person?.id || userData.personId || null,
           isVerified: false, 
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
         .returning();
       
-      console.log('Successfully created user:', newUser.id, 'linked to person:', person.id);
+      console.log('Successfully created user:', newUser.id, person ? `linked to person: ${person.id}` : 'no Luma profile found');
       return newUser;
     } catch (error) {
       console.error('Failed to create user:', error);

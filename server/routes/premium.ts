@@ -5,6 +5,7 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin } from "./middleware";
 import { hasActivePremium } from "../utils/premiumCheck";
 import { lumaApiRequest } from "../routes";
+import { LumaMembershipService } from "../services/LumaMembershipService";
 
 const router = Router();
 
@@ -251,6 +252,15 @@ router.patch("/api/admin/members/:memberId/premium", requireAdmin, async (req, r
         })
         .where(eq(users.id, userId));
 
+      const grantedUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (grantedUser.length > 0) {
+        try {
+          await LumaMembershipService.addMemberToLumaTier(grantedUser[0].email);
+        } catch (lumaError) {
+          console.error("Failed to sync premium grant to Luma:", lumaError);
+        }
+      }
+
       res.json({
         message: "Premium access granted successfully",
         userId,
@@ -276,6 +286,12 @@ router.patch("/api/admin/members/:memberId/premium", requireAdmin, async (req, r
             lumaTicketId: null,
           })
           .where(eq(users.id, userId));
+
+        try {
+          await LumaMembershipService.removeMemberFromLumaTier(user[0].email);
+        } catch (lumaError) {
+          console.error("Failed to sync premium revoke to Luma:", lumaError);
+        }
 
         res.json({
           message: "Manual premium access revoked successfully",
@@ -318,6 +334,15 @@ router.patch("/api/admin/users/:userId/premium", requireAdmin, async (req, res) 
         })
         .where(eq(users.id, userId));
 
+      const grantedUser2 = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (grantedUser2.length > 0) {
+        try {
+          await LumaMembershipService.addMemberToLumaTier(grantedUser2[0].email);
+        } catch (lumaError) {
+          console.error("Failed to sync premium grant to Luma:", lumaError);
+        }
+      }
+
       res.json({
         message: "Premium access granted successfully",
         userId,
@@ -342,6 +367,12 @@ router.patch("/api/admin/users/:userId/premium", requireAdmin, async (req, res) 
             lumaTicketId: null,
           })
           .where(eq(users.id, userId));
+
+        try {
+          await LumaMembershipService.removeMemberFromLumaTier(user[0].email);
+        } catch (lumaError) {
+          console.error("Failed to sync premium revoke to Luma:", lumaError);
+        }
 
         res.json({
           message: "Manual premium access revoked successfully",

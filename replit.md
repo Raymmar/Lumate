@@ -6,6 +6,32 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 7, 2026 - Luma Membership Sync & Decoupled Account Creation
+- **Feature**: Unified membership system between internal platform and Luma
+- **Database Changes**:
+  - Added `user_people_links` junction table for many-to-many user-to-Luma-profile mapping (`userId`, `personId`, `isPrimary`, `linkedAt`) with unique constraint on `(userId, personId)`
+  - Added `luma_membership_status` and `luma_membership_tier_id` columns to `people` table
+  - Changed `users.person_id` from `serial` to `integer` (nullable) — no longer auto-increments
+  - Migrated 580 existing user-person relationships into junction table with `isPrimary = true`
+- **New Service**: `server/services/LumaMembershipService.ts`
+  - `addMemberToLumaTier(email)` — pushes membership to Luma via `POST /v1/memberships/members/add` with `skip_payment: true`
+  - `removeMemberFromLumaTier(email)` — removes via `POST /v1/memberships/members/update-status` with `status: "declined"`
+  - `syncMembershipFromLuma(person)` — reconciles Luma membership data during inbound sync
+  - `autoLinkByEmail(userId, email)` — auto-links Luma people records to user accounts
+  - `linkPersonToUser/unlinkPerson/setPrimaryPerson` — junction table management
+  - `getLinkedPeople(userId)` — returns all linked Luma profiles for a user
+- **Outbound Sync (Stripe → Luma)**: When subscription activates or admin grants premium, pushes to Luma tier. When cancelled or revoked, removes from Luma tier.
+  - Integrated into: `server/services/stripe.ts` (verifySession, reconcileAllSubscriptions), `server/routes/stripe.ts` (cancel-subscription), `server/routes/premium.ts` (grant/revoke premium)
+- **Inbound Sync (Luma → Our System)**: During hourly people sync in `CacheService.ts`, captures `membership.status` and `membership.calendar_membership_tier_id` from Luma data, stores on `people` table, and reconciles premium access
+- **Account Creation Decoupled**: Users no longer need a Luma profile to sign up. `createUser()` in `server/storage.ts` allows null `personId`. Auto-linking happens during verification.
+- **Profile Linking API**: New endpoints for managing linked profiles:
+  - `GET /api/users/linked-profiles` — list linked Luma profiles
+  - `POST /api/users/link-profile` — link by email
+  - `DELETE /api/users/unlink-profile/:personId` — unlink
+  - `POST /api/users/set-primary-profile/:personId` — set primary
+- **Frontend**: Updated `ClaimProfileDialog.tsx` to reflect new flow; added `LinkedProfilesSection` component to `UserSettingsPage`
+- **Environment Variable**: `LUMA_MEMBERSHIP_TIER_ID` — the Luma membership tier ID for syncing (required for outbound sync)
+
 ### December 22, 2025 - Environment-Aware Event Sync
 - **Issue**: Heavy Luma event sync was running on every server restart, slowing down development
 - **Solution**: Added environment check to skip all event syncing in development mode
@@ -141,6 +167,7 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 - **Key Tables**: 
   - Users and authentication (users, verification_tokens, password_reset_tokens)
   - Community data (people, events, attendance, posts, tags)
+  - User-Luma profile linking (user_people_links — junction table for many-to-many user↔people mapping)
   - Company information (companies, company_members, company_tags, industries)
   - Permissions system (roles, permissions, role_permissions, user_roles)
   - Badge system (badges, user_badges)

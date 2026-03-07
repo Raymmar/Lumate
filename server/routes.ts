@@ -2773,73 +2773,25 @@ export async function registerRoutes(app: Express) {
       }
 
       if (!person) {
-        // Profile not found - add them to Luma and send an event invite email
+        // No Luma profile found - still allow account creation
+        // Import them to Luma calendar in the background
         try {
-          const events = await storage.getEvents();
-          const nextEvent = events.find(
-            (e) => new Date(e.startTime) > new Date(),
-          );
-
-          if (nextEvent) {
-            console.log("Profile not found, adding to Luma and sending event invite:", {
-              email: normalizedEmail,
-              eventTitle: nextEvent.title,
-              eventUrl: nextEvent.url,
-            });
-
-            // Step 1: Add person to Luma calendar (for syncing) - no email sent
-            try {
-              const lumaResponse = await lumaApiRequest("calendar/import-people", undefined, {
-                method: "POST",
-                body: JSON.stringify({
-                  infos: [{ email: normalizedEmail }],
-                }),
-              });
-              console.log("Added person to Luma calendar:", {
-                email: normalizedEmail,
-                response: lumaResponse,
-              });
-            } catch (lumaError) {
-              console.error("Failed to add person to Luma (continuing anyway):", lumaError);
-              // Continue even if Luma fails - we still want to send them our email
-            }
-
-            // Step 2: Send them an email with the event link
-            const emailSent = await sendEventInviteEmail(normalizedEmail, {
-              title: nextEvent.title,
-              url: nextEvent.url || '',
-              startTime: nextEvent.startTime,
-            });
-
-            if (emailSent) {
-              console.log("Successfully sent event invite email to new subscriber:", normalizedEmail);
-            } else {
-              console.error("Failed to send event invite email to:", normalizedEmail);
-            }
-
-            return res.json({
-              status: "invited",
-              message:
-                "We've sent you an email with details about our next event. Check your inbox!",
-              nextEvent: {
-                title: nextEvent.title,
-                startTime: nextEvent.startTime,
-                url: nextEvent.url,
-              },
-            });
-          }
-        } catch (error) {
-          console.error("Failed to process new subscriber:", error);
+          const lumaResponse = await lumaApiRequest("calendar/import-people", undefined, {
+            method: "POST",
+            body: JSON.stringify({
+              infos: [{ email: normalizedEmail }],
+            }),
+          });
+          console.log("Added person to Luma calendar:", {
+            email: normalizedEmail,
+            response: lumaResponse,
+          });
+        } catch (lumaError) {
+          console.error("Failed to add person to Luma (continuing anyway):", lumaError);
         }
-
-        return res.status(404).json({
-          error: "Profile not found",
-          message:
-            "We couldn't find your profile in our system. Please attend one of our events to create a profile.",
-        });
       }
 
-      if (personId) {
+      if (personId && person) {
         const emailsMatch = person.email.toLowerCase() === normalizedEmail;
         console.log("Email match check:", {
           provided: normalizedEmail,
@@ -2968,18 +2920,11 @@ export async function registerRoutes(app: Express) {
       );
 
       const person = await storage.getPersonByEmail(verificationToken.email);
-      if (!person) {
-        console.log(
-          "Verification failed: Associated person not found for email:",
-          verificationToken.email,
-        );
-        return res.status(404).json({ error: "Associated person not found" });
-      }
 
-      const userData = {
+      const userData: any = {
         email: verificationToken.email.toLowerCase(),
-        personId: person.id,
-        displayName: person.userName || person.fullName || undefined,
+        personId: person?.id || null,
+        displayName: person?.userName || person?.fullName || undefined,
         isVerified: false,
       };
 
@@ -2990,6 +2935,25 @@ export async function registerRoutes(app: Express) {
           userData.email,
         );
         user = await storage.createUser(userData);
+
+        // Auto-link any matching Luma people records
+        if (person) {
+          try {
+            const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+            await LumaMembershipService.linkPersonToUser(user.id, person.id, true);
+            console.log(`Auto-linked person ${person.id} to new user ${user.id}`);
+          } catch (linkError) {
+            console.error("Failed to auto-link person to user:", linkError);
+          }
+        } else {
+          // No Luma profile found - try auto-link anyway (might find by email later)
+          try {
+            const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+            await LumaMembershipService.autoLinkByEmail(user.id, userData.email);
+          } catch (linkError) {
+            console.error("Failed to auto-link by email:", linkError);
+          }
+        }
       }
 
       console.log("Email verification successful for:", userData.email);
@@ -6189,6 +6153,96 @@ export async function registerRoutes(app: Express) {
         error: "Failed to update profile",
         message: error.message,
       });
+    }
+  });
+
+  // Profile linking API endpoints
+  app.get("/api/users/linked-profiles", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+      const linkedPeople = await LumaMembershipService.getLinkedPeople(req.session.userId);
+      res.json(linkedPeople);
+    } catch (error) {
+      console.error("Failed to get linked profiles:", error);
+      res.status(500).json({ error: "Failed to get linked profiles" });
+    }
+  });
+
+  app.post("/api/users/link-profile", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const person = await storage.getPersonByEmail(email.toLowerCase());
+      if (!person) {
+        return res.status(404).json({ error: "No Luma profile found for this email" });
+      }
+
+      const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+      const existing = await LumaMembershipService.getLinkedPeople(req.session.userId);
+      if (existing.some(p => p.id === person.id)) {
+        return res.status(400).json({ error: "This profile is already linked" });
+      }
+
+      const isPrimary = existing.length === 0;
+      await LumaMembershipService.linkPersonToUser(req.session.userId, person.id, isPrimary);
+
+      res.json({ message: "Profile linked successfully", person });
+    } catch (error) {
+      console.error("Failed to link profile:", error);
+      res.status(500).json({ error: "Failed to link profile" });
+    }
+  });
+
+  app.delete("/api/users/unlink-profile/:personId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const personId = parseInt(req.params.personId);
+      if (isNaN(personId)) {
+        return res.status(400).json({ error: "Invalid person ID" });
+      }
+
+      const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+      const result = await LumaMembershipService.unlinkPerson(req.session.userId, personId);
+      if (!result) {
+        return res.status(404).json({ error: "Link not found" });
+      }
+      res.json({ message: "Profile unlinked successfully" });
+    } catch (error) {
+      console.error("Failed to unlink profile:", error);
+      res.status(500).json({ error: "Failed to unlink profile" });
+    }
+  });
+
+  app.post("/api/users/set-primary-profile/:personId", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const personId = parseInt(req.params.personId);
+      if (isNaN(personId)) {
+        return res.status(400).json({ error: "Invalid person ID" });
+      }
+
+      const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+      const result = await LumaMembershipService.setPrimaryPerson(req.session.userId, personId);
+      if (!result) {
+        return res.status(404).json({ error: "Link not found" });
+      }
+      res.json({ message: "Primary profile updated" });
+    } catch (error) {
+      console.error("Failed to set primary profile:", error);
+      res.status(500).json({ error: "Failed to set primary profile" });
     }
   });
 

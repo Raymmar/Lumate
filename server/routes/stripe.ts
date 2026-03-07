@@ -8,6 +8,7 @@
 import express from "express";
 import { storage } from "../storage";
 import { StripeService } from "../services/stripe";
+import { LumaMembershipService } from "../services/LumaMembershipService";
 
 const router = express.Router();
 
@@ -215,6 +216,12 @@ router.post("/cancel-subscription", async (req, res) => {
       cancelledSubscription.id,
       cancelledSubscription.status,
     );
+
+    try {
+      await LumaMembershipService.removeMemberFromLumaTier(user.email);
+    } catch (lumaError) {
+      console.error("❌ Error removing from Luma tier:", lumaError);
+    }
 
     res.json({
       status: "success",

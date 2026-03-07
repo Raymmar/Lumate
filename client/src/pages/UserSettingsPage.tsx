@@ -29,6 +29,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { LinkedProfilesSection } from "@/components/LinkedProfilesSection";
 
 interface UserCoupon {
   id: number;
@@ -549,6 +550,8 @@ export default function UserSettingsPage() {
             </Form>
           </CardContent>
         </Card>
+
+        <LinkedProfilesSection />
       </div>
     </DashboardLayout>
   );

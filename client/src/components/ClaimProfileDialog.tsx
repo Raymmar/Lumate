@@ -20,13 +20,7 @@ interface ClaimProfileDialogProps {
 }
 
 interface ClaimProfileResponse {
-  status?: 'invited';
   message: string;
-  nextEvent?: {
-    title: string;
-    startTime: string;
-    url: string | null;
-  };
 }
 
 export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimProfileDialogProps) {
@@ -49,34 +43,10 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
       return responseData as ClaimProfileResponse;
     },
     onSuccess: (data) => {
-      // Handle successful profile claim
-      if (data.status === 'invited') {
-        toast({
-          title: "Invitation Sent",
-          description: (
-            <>
-              {data.message}
-              {data.nextEvent?.url && (
-                <div className="mt-2">
-                  <a 
-                    href={data.nextEvent.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    Click here to view the event details
-                  </a>
-                </div>
-              )}
-            </>
-          ),
-        });
-      } else {
-        toast({
-          title: "Verification Email Sent",
-          description: "Please check your email to verify your profile claim.",
-        });
-      }
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your email to verify your account. Your Luma profile will be linked automatically if found.",
+      });
       setEmail('');
       setOpen(false);
       if (personId) {
@@ -112,13 +82,12 @@ export function ClaimProfileDialog({ trigger, personId, onOpenChange }: ClaimPro
         <DialogHeader>
           <DialogDescription className="space-y-4">
             <p className="text-xl">
-              Enter your email below to claim yor member profile.
+              Enter your email below to create your account.
             </p>
             <ul className="list-decimal pl-5 space-y-2 text-sm">
-              <li>Make sure you use the same email you use to register for our events!</li>
-              <li>If we find a match, we'll send you an activation email.</li>
+              <li>We'll send you a verification email to confirm your address.</li>
+              <li>If you've attended our events, your Luma profile will be linked automatically.</li>
               <li>From there you can set a password, log in & upgrade to add company details.</li>
-              <li>If you are not in our system, we'll send you an invite to our next event.</li>
             </ul>
           </DialogDescription>
         </DialogHeader>

@@ -62,6 +62,8 @@ export const people = pgTable("people", {
   phoneNumber: varchar("phone_number", { length: 50 }),
   bio: text("bio"),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
+  lumaMembershipStatus: varchar("luma_membership_status", { length: 50 }),
+  lumaMembershipTierId: varchar("luma_membership_tier_id", { length: 255 }),
   stats: json("stats").$type<{
     totalEventsAttended: number;
     lastEventDate: string | null;
@@ -84,7 +86,7 @@ export const users = pgTable("users", {
   password: varchar("password", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
-  personId: serial("person_id").references(() => people.id),
+  personId: integer("person_id").references(() => people.id),
   // Stripe related fields
   stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
   subscriptionStatus: varchar("subscription_status", { length: 50 }).default('inactive'),
@@ -108,6 +110,14 @@ export const users = pgTable("users", {
   tags: text("tags").array(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const userPeopleLinks = pgTable("user_people_links", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  personId: integer("person_id").notNull().references(() => people.id),
+  isPrimary: boolean("is_primary").notNull().default(false),
+  linkedAt: timestamp("linked_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
 export const verificationTokens = pgTable("verification_tokens", {
@@ -134,8 +144,8 @@ export const attendance = pgTable("attendance", {
   approvalStatus: varchar("approval_status", { length: 50 }).notNull(),
   registeredAt: timestamp("registered_at", { mode: 'string', withTimezone: true }),
   lastSyncedAt: timestamp("last_synced_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-  userId: serial("user_id").references(() => users.id),
-  personId: serial("person_id").references(() => people.id),
+  userId: integer("user_id").references(() => users.id),
+  personId: integer("person_id").references(() => people.id),
   // Ticket information
   ticketTypeId: varchar("ticket_type_id", { length: 255 }),
   ticketTypeName: varchar("ticket_type_name", { length: 255 }),
@@ -262,6 +272,12 @@ export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
 
 export const insertEventSchema = createInsertSchema(events);
 export const insertPersonSchema = createInsertSchema(people);
+export const insertUserPeopleLinkSchema = createInsertSchema(userPeopleLinks).omit({
+  id: true,
+  linkedAt: true,
+});
+export type UserPeopleLink = typeof userPeopleLinks.$inferSelect;
+export type InsertUserPeopleLink = z.infer<typeof insertUserPeopleLinkSchema>;
 export const insertCacheMetadataSchema = createInsertSchema(cacheMetadata).omit({ id: true, updatedAt: true });
 // Update the User type
 export type User = typeof users.$inferSelect & {

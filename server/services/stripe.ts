@@ -2,6 +2,7 @@ import { storage } from "../storage";
 import { getUncachableStripeClient } from "../stripeClient";
 import Stripe from "stripe";
 import { AutoCouponService } from "./autoCoupon";
+import { LumaMembershipService } from "./LumaMembershipService";
 
 export class StripeService {
   static async getPriceDetails(priceId: string) {
@@ -130,6 +131,12 @@ export class StripeService {
                 await AutoCouponService.generateCouponsForNewSubscriber(user.id, user.email);
               } catch (autoCouponError) {
                 console.error('[StripeService] Error generating auto-coupons:', autoCouponError);
+              }
+              try {
+                console.log(`[StripeService] Syncing membership to Luma for user ${user.id}...`);
+                await LumaMembershipService.addMemberToLumaTier(user.email);
+              } catch (lumaError) {
+                console.error('[StripeService] Error syncing to Luma:', lumaError);
               }
             }
           }
@@ -431,6 +438,12 @@ export class StripeService {
                 await AutoCouponService.generateCouponsForNewSubscriber(user.id, user.email);
               } catch (autoCouponError) {
                 console.error('[Startup Reconciliation] Error generating auto-coupons:', autoCouponError);
+              }
+              try {
+                console.log(`[Startup Reconciliation] Syncing membership to Luma for user ${user.id}...`);
+                await LumaMembershipService.addMemberToLumaTier(user.email);
+              } catch (lumaError) {
+                console.error('[Startup Reconciliation] Error syncing to Luma:', lumaError);
               }
             }
             
