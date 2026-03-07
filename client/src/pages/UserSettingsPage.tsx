@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Mail, ExternalLink, Lock, Ticket, Copy, Check, Link2, Unlink, Star, Plus } from "lucide-react";
+import { Loader2, AlertCircle, Mail, ExternalLink, Lock, Ticket, Copy, Check, Link2, Unlink, Star, Plus, Camera, Pencil } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Form,
   FormControl,
@@ -58,6 +58,9 @@ export default function UserSettingsPage() {
   const { theme, setTheme } = useTheme();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [linkEmail, setLinkEmail] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState("");
 
   const linkedProfiles: LinkedPerson[] = (user as any)?.linkedProfiles || [];
   const isLoadingProfiles = false;
@@ -121,6 +124,77 @@ export default function UserSettingsPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Error", description: "Please select an image file", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Error", description: "Image must be under 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const uploadRes = await fetch("/api/upload/file", { method: "POST", credentials: "include", body: formData });
+      if (!uploadRes.ok) throw new Error("Upload failed");
+      const uploadData = await uploadRes.json();
+      const url = uploadData?.url;
+      if (!url) throw new Error("No image URL returned from upload");
+
+      form.setValue("featuredImageUrl", url);
+      const currentValues = form.getValues();
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ...currentValues, featuredImageUrl: url }),
+      });
+      if (!res.ok) throw new Error("Failed to save profile image");
+      const data = await res.json();
+      queryClient.setQueryData(["/api/auth/me"], (old: any) => ({
+        ...old, ...data, linkedProfiles: data.linkedProfiles || old?.linkedProfiles || [],
+      }));
+      toast({ title: "Profile picture updated" });
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleNameSave = async () => {
+    const trimmed = editName.trim();
+    if (!trimmed) {
+      toast({ title: "Error", description: "Display name cannot be empty", variant: "destructive" });
+      return;
+    }
+    try {
+      const currentValues = form.getValues();
+      form.setValue("displayName", trimmed);
+      const res = await fetch("/api/auth/update-profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ...currentValues, displayName: trimmed }),
+      });
+      if (!res.ok) throw new Error("Failed to update name");
+      const data = await res.json();
+      queryClient.setQueryData(["/api/auth/me"], (old: any) => ({
+        ...old, ...data, linkedProfiles: data.linkedProfiles || old?.linkedProfiles || [],
+      }));
+      setIsEditingName(false);
+      toast({ title: "Display name updated" });
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update name", variant: "destructive" });
+    }
+  };
 
   // Enhanced subscription status check with proper typing
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
@@ -202,7 +276,7 @@ export default function UserSettingsPage() {
     mutationFn: async (data: UpdateUserProfile) => {
       const formattedData = {
         ...data,
-        displayName: user?.displayName,
+        displayName: data.displayName || user?.displayName || "",
         bio: data.bio || "",
       };
 
@@ -314,20 +388,66 @@ export default function UserSettingsPage() {
                 </CardHeader>
                 <CardContent className="px-4 py-3 space-y-4">
                   <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback>
-                        {(user.displayName || user.email)
-                          .charAt(0)
-                          .toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-1">
-                      <div className="font-medium">
-                        {user.displayName || "User"}
-                      </div>
+                    <div className="relative group">
+                      <Avatar className="h-14 w-14">
+                        {user.featuredImageUrl ? (
+                          <AvatarImage src={user.featuredImageUrl} alt={user.displayName || "Profile"} />
+                        ) : null}
+                        <AvatarFallback className="text-lg">
+                          {(user.displayName || user.email).charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <label
+                        className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                        htmlFor="avatar-upload"
+                      >
+                        {isUploadingImage ? (
+                          <Loader2 className="h-5 w-5 text-white animate-spin" />
+                        ) : (
+                          <Camera className="h-5 w-5 text-white" />
+                        )}
+                      </label>
+                      <input
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleImageUpload}
+                        disabled={isUploadingImage}
+                      />
+                    </div>
+                    <div className="space-y-1 flex-1 min-w-0">
+                      {isEditingName ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleNameSave();
+                              if (e.key === "Escape") setIsEditingName(false);
+                            }}
+                            className="h-8 text-sm font-medium"
+                            autoFocus
+                          />
+                          <Button size="sm" className="h-8" onClick={handleNameSave}>Save</Button>
+                          <Button size="sm" variant="ghost" className="h-8" onClick={() => setIsEditingName(false)}>Cancel</Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium truncate">{user.displayName || "Set your name"}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0 opacity-60 hover:opacity-100"
+                            onClick={() => { setEditName(user.displayName || ""); setIsEditingName(true); }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      )}
                       <div className="flex items-center text-sm text-muted-foreground gap-1">
                         <Mail className="h-3.5 w-3.5" />
-                        <span>{user.email}</span>
+                        <span className="truncate">{user.email}</span>
                       </div>
                     </div>
                   </div>
@@ -345,8 +465,8 @@ export default function UserSettingsPage() {
                         </TooltipTrigger>
                         <TooltipContent side="right" className="w-72 p-3">
                           <div className="text-sm">
-                            <p className="font-medium mb-1">Lu.ma-Managed Information</p>
-                            <p>Your display name and profile picture are synced from your Lu.ma profile. To update these, visit your Lu.ma settings.</p>
+                            <p className="font-medium mb-1">Lu.ma Event Profiles</p>
+                            <p>These are your linked Lu.ma profiles used for event check-ins and membership sync. Your display name and profile picture are managed above.</p>
                           </div>
                         </TooltipContent>
                       </Tooltip>

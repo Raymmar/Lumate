@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatUsernameForUrl } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -196,6 +196,9 @@ export function NavBar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
+                    {user.featuredImageUrl ? (
+                      <AvatarImage src={user.featuredImageUrl} alt={user.displayName || "Profile"} />
+                    ) : null}
                     <AvatarFallback>
                       {(user.displayName || user.email).charAt(0).toUpperCase()}
                     </AvatarFallback>

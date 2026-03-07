@@ -30,6 +30,12 @@ This is a full-stack web application built for the Sarasota Tech community, desi
   - `DELETE /api/users/unlink-profile/:personId` — unlink
   - `POST /api/users/set-primary-profile/:personId` — set primary
 - **Frontend**: Updated `ClaimProfileDialog.tsx` to reflect new flow; integrated linked Luma profiles directly into the Profile Details card in `UserSettingsPage`
+- **Profile Management (Independent of Luma)**:
+  - Profile picture upload via camera overlay on avatar (saves to `user.featuredImageUrl`)
+  - Inline display name editing with pencil icon (saves to `user.displayName`)
+  - NavBar avatar shows `user.featuredImageUrl` with initial fallback
+  - Linked Luma profiles data is included in `/api/auth/me` response (no separate query needed)
+  - Luma profiles section is purely informational — platform identity is managed independently
 - **Environment Variable**: `LUMA_MEMBERSHIP_TIER_ID` — the Luma membership tier ID for syncing (required for outbound sync)
 
 ### December 22, 2025 - Environment-Aware Event Sync
