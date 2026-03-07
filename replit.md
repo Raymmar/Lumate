@@ -29,7 +29,7 @@ This is a full-stack web application built for the Sarasota Tech community, desi
   - `POST /api/users/link-profile` — link by email
   - `DELETE /api/users/unlink-profile/:personId` — unlink
   - `POST /api/users/set-primary-profile/:personId` — set primary
-- **Frontend**: Updated `ClaimProfileDialog.tsx` to reflect new flow; added `LinkedProfilesSection` component to `UserSettingsPage`
+- **Frontend**: Updated `ClaimProfileDialog.tsx` to reflect new flow; integrated linked Luma profiles directly into the Profile Details card in `UserSettingsPage`
 - **Environment Variable**: `LUMA_MEMBERSHIP_TIER_ID` — the Luma membership tier ID for syncing (required for outbound sync)
 
 ### December 22, 2025 - Environment-Aware Event Sync

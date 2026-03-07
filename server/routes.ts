@@ -6160,10 +6160,13 @@ export async function registerRoutes(app: Express) {
   app.get("/api/users/linked-profiles", async (req, res) => {
     try {
       if (!req.session?.userId) {
+        console.log("[linked-profiles] No session userId, returning 401");
         return res.status(401).json({ error: "Not authenticated" });
       }
+      console.log("[linked-profiles] Fetching for userId:", req.session.userId);
       const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
       const linkedPeople = await LumaMembershipService.getLinkedPeople(req.session.userId);
+      console.log("[linked-profiles] Result:", JSON.stringify(linkedPeople.map(p => ({ id: p.id, email: p.email, isPrimary: p.isPrimary }))));
       res.json(linkedPeople);
     } catch (error) {
       console.error("Failed to get linked profiles:", error);

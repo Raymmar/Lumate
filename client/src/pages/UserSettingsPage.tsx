@@ -3,8 +3,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Mail, ExternalLink, Lock, Ticket, Copy, Check } from "lucide-react";
+import { Loader2, AlertCircle, Mail, ExternalLink, Lock, Ticket, Copy, Check, Link2, Unlink, Star, Plus } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -29,7 +32,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { LinkedProfilesSection } from "@/components/LinkedProfilesSection";
 
 interface UserCoupon {
   id: number;
@@ -42,12 +44,86 @@ interface UserCoupon {
   validEndAt: string | null;
 }
 
+interface LinkedPerson {
+  id: number;
+  fullName: string | null;
+  email: string;
+  isPrimary: boolean;
+  linkedAt: string;
+}
+
 export default function UserSettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  
+  const [linkEmail, setLinkEmail] = useState("");
+
+  const { data: linkedProfiles, isLoading: isLoadingProfiles } = useQuery<LinkedPerson[]>({
+    queryKey: ["/api/users/linked-profiles"],
+    enabled: !!user,
+  });
+
+  const linkMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch("/api/users/link-profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to link profile");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Profile linked successfully" });
+      setLinkEmail("");
+      queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unlinkMutation = useMutation({
+    mutationFn: async (personId: number) => {
+      const res = await fetch(`/api/users/unlink-profile/${personId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to unlink profile");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Profile unlinked" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const setPrimaryMutation = useMutation({
+    mutationFn: async (personId: number) => {
+      const res = await fetch(`/api/users/set-primary-profile/${personId}`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to set primary");
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Primary profile updated" });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Enhanced subscription status check with proper typing
   const { data: subscriptionStatus, isLoading: isSubscriptionLoading } =
     useQuery({
@@ -214,74 +290,169 @@ export default function UserSettingsPage() {
           </CardHeader>
           <CardContent className="px-6">
             <TooltipProvider>
-              {/* Luma Profile Information Card */}
+              {/* Profile Details & Linked Luma Profiles */}
               <Card className="mb-6 overflow-hidden">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="relative">
-                      <CardHeader className="px-4 pb-2 flex flex-row items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-medium">
-                            Profile Details
-                          </h3>
-                          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <Button variant="outline" size="sm" asChild>
-                          <a
-                            href="https://lu.ma/settings"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1"
+                <CardHeader className="px-4 pb-2 flex flex-row items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <h3 className="text-lg font-medium">
+                      Profile Details
+                    </h3>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href="https://lu.ma/settings"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      <span>Lu.ma</span>
+                    </a>
+                  </Button>
+                </CardHeader>
+                <CardContent className="px-4 py-3 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback>
+                        {(user.displayName || user.email)
+                          .charAt(0)
+                          .toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        {user.displayName || "User"}
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground gap-1">
+                        <Mail className="h-3.5 w-3.5" />
+                        <span>{user.email}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Linked Luma Profiles */}
+                  <div className="border-t pt-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Link2 className="h-4 w-4 text-muted-foreground" />
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-sm font-medium flex items-center gap-1">
+                            Linked Lu.ma Profiles
+                            <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="w-72 p-3">
+                          <div className="text-sm">
+                            <p className="font-medium mb-1">Lu.ma-Managed Information</p>
+                            <p>Your display name and profile picture are synced from your Lu.ma profile. To update these, visit your Lu.ma settings.</p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    {isLoadingProfiles ? (
+                      <div className="flex items-center justify-center py-3">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : linkedProfiles && linkedProfiles.length > 0 ? (
+                      <div className="space-y-2">
+                        {linkedProfiles.map((profile) => (
+                          <div
+                            key={profile.id}
+                            className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/30"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            <span>Lu.ma</span>
-                          </a>
-                        </Button>
-                      </CardHeader>
-                      <CardContent className="px-4 py-3">
-                        <div className="flex items-center gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarFallback>
-                              {(user.displayName || user.email)
-                                .charAt(0)
-                                .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="space-y-1">
-                            <div className="font-medium">
-                              {user.displayName || "User"}
+                            <div className="flex items-center gap-2 min-w-0">
+                              <Avatar className="h-8 w-8">
+                                <AvatarFallback className="text-xs">
+                                  {(profile.fullName || profile.email).charAt(0).toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">
+                                  {profile.fullName || profile.email}
+                                </p>
+                                {profile.fullName && (
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {profile.email}
+                                  </p>
+                                )}
+                              </div>
+                              {profile.isPrimary && (
+                                <Badge variant="secondary" className="shrink-0 text-xs py-0">
+                                  <Star className="h-3 w-3 mr-0.5" />
+                                  Primary
+                                </Badge>
+                              )}
                             </div>
-                            <div className="flex items-center text-sm text-muted-foreground gap-1">
-                              <Mail className="h-3.5 w-3.5" />
-                              <span>{user.email}</span>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {!profile.isPrimary && linkedProfiles.length > 1 && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0"
+                                    onClick={() => setPrimaryMutation.mutate(profile.id)}
+                                    disabled={setPrimaryMutation.isPending}
+                                    title="Set as primary"
+                                  >
+                                    <Star className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={() => unlinkMutation.mutate(profile.id)}
+                                    disabled={unlinkMutation.isPending}
+                                    title="Unlink profile"
+                                  >
+                                    <Unlink className="h-3.5 w-3.5" />
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="w-80 p-3">
-                    <div className="text-sm">
-                      <p className="font-medium mb-1">
-                        Lu.ma-Managed Information
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground py-2">
+                        No Lu.ma profiles linked yet. If you've attended our events, link your profile below.
                       </p>
-                      <p>
-                        Your display name, profile picture, and email address
-                        are managed through Lu.ma. To update these fields,
-                        please visit your{" "}
-                        <a
-                          href="https://lu.ma/settings"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-medium underline hover:text-amber-600"
-                        >
-                          Lu.ma settings
-                        </a>
-                        .
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                    )}
+
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (linkEmail) linkMutation.mutate(linkEmail);
+                      }}
+                      className="flex gap-2 mt-3"
+                    >
+                      <div className="flex-1">
+                        <Label htmlFor="link-email" className="sr-only">Email</Label>
+                        <Input
+                          id="link-email"
+                          type="email"
+                          value={linkEmail}
+                          onChange={(e) => setLinkEmail(e.target.value)}
+                          placeholder={linkedProfiles && linkedProfiles.length > 0 ? "Link additional Lu.ma profile by email" : "Link your Lu.ma profile by email"}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={linkMutation.isPending || !linkEmail}
+                        size="sm"
+                        className="h-8"
+                      >
+                        {linkMutation.isPending ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        <span className="ml-1">Link</span>
+                      </Button>
+                    </form>
+                  </div>
+                </CardContent>
               </Card>
             </TooltipProvider>
 
@@ -551,7 +722,6 @@ export default function UserSettingsPage() {
           </CardContent>
         </Card>
 
-        <LinkedProfilesSection />
       </div>
     </DashboardLayout>
   );
