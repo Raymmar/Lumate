@@ -646,142 +646,6 @@ export default function UserSettingsPage() {
                     "Save Changes"
                   )}
                 </Button>
-                
-                {/* Company Profile Section - Moved below save button */}
-                <div className="space-y-3">
-                  <div className="pt-4 text-center">
-                    {isSubscriptionLoading ? (
-                      <div className="flex justify-center mb-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : hasActiveSubscription ? (
-                      <>
-                        <Button 
-                          type="button" 
-                          variant="outline"
-                          onClick={() => window.location.href = '/company-profile'}
-                          className="w-full mb-4"
-                        >
-                          Edit Company Profile
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="flex items-center justify-center gap-2 mb-4">
-                        <Lock className="h-4 w-4 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Company profiles are available for premium members
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Event Coupons Section */}
-                {hasActiveSubscription && (
-                  <div className="mt-6 pt-6 border-t">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Ticket className="h-5 w-5 text-primary" />
-                      <h3 className="font-semibold">Your Event Coupons</h3>
-                      {couponsData?.hasUnclaimedCoupons && (
-                        <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
-                          New
-                        </span>
-                      )}
-                    </div>
-                    
-                    {isLoadingCoupons ? (
-                      <div className="flex justify-center py-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      </div>
-                    ) : couponsData?.coupons && couponsData.coupons.length > 0 ? (
-                      <div className="space-y-3">
-                        {couponsData.coupons.map((coupon) => {
-                          const couponLink = coupon.eventUrl ? `${coupon.eventUrl}?coupon=${coupon.code}` : null;
-                          return (
-                            <div 
-                              key={coupon.id} 
-                              className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800"
-                              data-testid={`coupon-card-${coupon.id}`}
-                            >
-                              <div className="flex items-start justify-between gap-3 mb-3">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-semibold text-base truncate">{coupon.eventTitle}</p>
-                                  <p className="text-sm text-green-700 dark:text-green-300 font-medium">
-                                    {coupon.discountPercent}% discount
-                                    {coupon.validEndAt && <span className="text-muted-foreground font-normal"> • Expires {new Date(coupon.validEndAt).toLocaleDateString()}</span>}
-                                  </p>
-                                </div>
-                                <Ticket className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
-                              </div>
-                              
-                              {couponLink ? (
-                                <div className="space-y-2">
-                                  <a 
-                                    href={couponLink}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
-                                    data-testid={`link-use-coupon-${coupon.id}`}
-                                  >
-                                    <ExternalLink className="h-4 w-4" />
-                                    Click to Register with Discount
-                                  </a>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => copyToClipboard(couponLink, true)}
-                                    data-testid={`button-copy-link-${coupon.id}`}
-                                  >
-                                    {copiedCode === couponLink ? (
-                                      <>
-                                        <Check className="h-4 w-4 mr-2 text-green-500" />
-                                        Link Copied!
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy className="h-4 w-4 mr-2" />
-                                        Copy Registration Link
-                                      </>
-                                    )}
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <code className="flex-1 bg-background px-3 py-2 rounded text-sm font-mono text-center">
-                                    {coupon.code}
-                                  </code>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => copyToClipboard(coupon.code)}
-                                    data-testid={`button-copy-coupon-${coupon.id}`}
-                                  >
-                                    {copiedCode === coupon.code ? (
-                                      <Check className="h-4 w-4 text-green-500" />
-                                    ) : (
-                                      <Copy className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        <p className="text-xs text-muted-foreground text-center mt-2">
-                          Click the button above to register with your discount already applied
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4 text-sm text-muted-foreground">
-                        <p>No coupons available yet.</p>
-                        <p className="text-xs mt-1">Check back before upcoming events!</p>
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {form.formState.isSubmitted &&
                   Object.keys(form.formState.errors).length > 0 && (
@@ -801,48 +665,178 @@ export default function UserSettingsPage() {
                       </ul>
                     </div>
                   )}
-                
-                {/* Subscription Management Button */}
-                {hasActiveSubscription && !user?.isAdmin && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full mt-2"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch(
-                          "/api/stripe/create-portal-session",
-                          {
-                            method: "POST",
-                            headers: {
-                              "Content-Type": "application/json",
-                            },
-                            credentials: "include",
-                          }
-                        );
-
-                        if (!response.ok) {
-                          throw new Error("Failed to create portal session");
-                        }
-
-                        const { url } = await response.json();
-                        window.location.href = url;
-                      } catch (error) {
-                        console.error("Error creating portal session:", error);
-                        toast({
-                          title: "Error",
-                          description:
-                            "Failed to access subscription management. Please try again later.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    Manage Subscription
-                  </Button>
-                )}
               </form>
             </Form>
+
+            {/* Company Profile Section */}
+            <div className="space-y-3">
+              <div className="pt-4 text-center">
+                {isSubscriptionLoading ? (
+                  <div className="flex justify-center mb-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : hasActiveSubscription ? (
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.location.href = '/company-profile'}
+                    className="w-full mb-4"
+                  >
+                    Edit Company Profile
+                  </Button>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 mb-4">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Company profiles are available for premium members
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Event Coupons Section */}
+            {hasActiveSubscription && (
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center gap-2 mb-4">
+                  <Ticket className="h-5 w-5 text-primary" />
+                  <h3 className="font-semibold">Your Event Coupons</h3>
+                  {couponsData?.hasUnclaimedCoupons && (
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
+                      New
+                    </span>
+                  )}
+                </div>
+                
+                {isLoadingCoupons ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : couponsData?.coupons && couponsData.coupons.length > 0 ? (
+                  <div className="space-y-3">
+                    {couponsData.coupons.map((coupon) => {
+                      const couponLink = coupon.eventUrl ? `${coupon.eventUrl}?coupon=${coupon.code}` : null;
+                      return (
+                        <div 
+                          key={coupon.id} 
+                          className="p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800"
+                          data-testid={`coupon-card-${coupon.id}`}
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-base truncate">{coupon.eventTitle}</p>
+                              <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                                {coupon.discountPercent}% discount
+                                {coupon.validEndAt && <span className="text-muted-foreground font-normal"> • Expires {new Date(coupon.validEndAt).toLocaleDateString()}</span>}
+                              </p>
+                            </div>
+                            <Ticket className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
+                          </div>
+                          
+                          {couponLink ? (
+                            <div className="space-y-2">
+                              <a 
+                                href={couponLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white rounded-md font-medium transition-colors"
+                                data-testid={`link-use-coupon-${coupon.id}`}
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                                Click to Register with Discount
+                              </a>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => copyToClipboard(couponLink, true)}
+                                data-testid={`button-copy-link-${coupon.id}`}
+                              >
+                                {copiedCode === couponLink ? (
+                                  <>
+                                    <Check className="h-4 w-4 mr-2 text-green-500" />
+                                    Link Copied!
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-4 w-4 mr-2" />
+                                    Copy Registration Link
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <code className="flex-1 bg-background px-3 py-2 rounded text-sm font-mono text-center">
+                                {coupon.code}
+                              </code>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyToClipboard(coupon.code)}
+                                data-testid={`button-copy-coupon-${coupon.id}`}
+                              >
+                                {copiedCode === coupon.code ? (
+                                  <Check className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <Copy className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <p className="text-xs text-muted-foreground text-center mt-2">
+                      Click the button above to register with your discount already applied
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-sm text-muted-foreground">
+                    <p>No coupons available yet.</p>
+                    <p className="text-xs mt-1">Check back before upcoming events!</p>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Subscription Management Button */}
+            {hasActiveSubscription && !user?.isAdmin && (
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(
+                      "/api/stripe/create-portal-session",
+                      {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                      }
+                    );
+
+                    if (!response.ok) {
+                      throw new Error("Failed to create portal session");
+                    }
+
+                    const { url } = await response.json();
+                    window.location.href = url;
+                  } catch (error) {
+                    console.error("Error creating portal session:", error);
+                    toast({
+                      title: "Error",
+                      description:
+                        "Failed to access subscription management. Please try again later.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+              >
+                Manage Subscription
+              </Button>
+            )}
           </CardContent>
         </Card>
 
