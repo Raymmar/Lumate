@@ -148,13 +148,13 @@ export default function UserSettingsPage() {
       const url = uploadData?.url;
       if (!url) throw new Error("No image URL returned from upload");
 
-      form.setValue("featuredImageUrl", url);
+      form.setValue("avatarUrl", url);
       const currentValues = form.getValues();
       const res = await fetch("/api/auth/update-profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ ...currentValues, featuredImageUrl: url }),
+        body: JSON.stringify({ ...currentValues, avatarUrl: url }),
       });
       if (!res.ok) throw new Error("Failed to save profile image");
       const data = await res.json();
@@ -236,6 +236,7 @@ export default function UserSettingsPage() {
     resolver: zodResolver(updateUserProfileSchema),
     defaultValues: {
       displayName: "",
+      avatarUrl: "",
       bio: "",
       featuredImageUrl: "",
       companyName: "",
@@ -257,6 +258,7 @@ export default function UserSettingsPage() {
     if (user) {
       form.reset({
         displayName: user.displayName || "",
+        avatarUrl: user.avatarUrl || "",
         bio: user.bio || "",
         featuredImageUrl: user.featuredImageUrl || "",
         companyName: user.companyName || "",
@@ -390,8 +392,8 @@ export default function UserSettingsPage() {
                   <div className="flex items-center gap-4">
                     <div className="relative group">
                       <Avatar className="h-14 w-14">
-                        {user.featuredImageUrl ? (
-                          <AvatarImage src={user.featuredImageUrl} alt={user.displayName || "Profile"} />
+                        {user.avatarUrl ? (
+                          <AvatarImage src={user.avatarUrl} alt={user.displayName || "Profile"} />
                         ) : null}
                         <AvatarFallback className="text-lg">
                           {(user.displayName || user.email).charAt(0).toUpperCase()}

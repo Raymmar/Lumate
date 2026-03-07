@@ -97,6 +97,7 @@ export const users = pgTable("users", {
   premiumGrantedBy: integer("premium_granted_by"),
   premiumGrantedAt: timestamp("premium_granted_at", { mode: 'string', withTimezone: true }),
   lumaTicketId: varchar("luma_ticket_id", { length: 255 }),
+  avatarUrl: varchar("avatar_url", { length: 512 }),
   featuredImageUrl: varchar("featured_image_url", { length: 255 }),
   bio: text("bio"),
   companyName: varchar("company_name", { length: 255 }),
@@ -483,6 +484,10 @@ export const updateUserProfileSchema = z.object({
   displayName: z.string()
     .min(1, "Display name is required")
     .transform(val => val?.trim() || val),
+  avatarUrl: z.string()
+    .nullable()
+    .transform(val => (!val || val === "" ? null : val))
+    .optional(),
   featuredImageUrl: z.string()
     .nullable()
     .transform(val => (!val || val === "" ? null : val))

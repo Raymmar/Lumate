@@ -196,8 +196,8 @@ export function NavBar() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    {user.featuredImageUrl ? (
-                      <AvatarImage src={user.featuredImageUrl} alt={user.displayName || "Profile"} />
+                    {user.avatarUrl ? (
+                      <AvatarImage src={user.avatarUrl} alt={user.displayName || "Profile"} />
                     ) : null}
                     <AvatarFallback>
                       {(user.displayName || user.email).charAt(0).toUpperCase()}

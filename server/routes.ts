@@ -3080,6 +3080,7 @@ export async function registerRoutes(app: Express) {
 
       let api_id = null;
       let displayName = user.displayName;
+      let avatarUrl = user.avatarUrl;
       
       if (user.personId) {
         const person = await storage.getPerson(user.personId);
@@ -3087,6 +3088,9 @@ export async function registerRoutes(app: Express) {
           api_id = person.api_id;
           if (!displayName && person.userName) {
             displayName = person.userName;
+          }
+          if (!avatarUrl && person.avatarUrl) {
+            avatarUrl = person.avatarUrl;
           }
         }
       }
@@ -3107,6 +3111,7 @@ export async function registerRoutes(app: Express) {
         isAdmin: user.isAdmin,
         personId: user.personId,
         api_id,
+        avatarUrl,
         bio: user.bio,
         featuredImageUrl: user.featuredImageUrl,
         companyName: user.companyName,
@@ -3554,6 +3559,7 @@ export async function registerRoutes(app: Express) {
 
         const updatedUser = await storage.updateUser(req.session.userId, {
           displayName: userData.displayName,
+          avatarUrl: userData.avatarUrl ?? null,
           bio: userData.bio ?? null,
           featuredImageUrl: userData.featuredImageUrl ?? null,
           companyName: userData.companyName ?? null,
@@ -5487,6 +5493,7 @@ export async function registerRoutes(app: Express) {
         // Attempt to update the user
         const updatedUser = await storage.updateUser(req.session.userId, {
           displayName: userData.displayName,
+          avatarUrl: userData.avatarUrl ?? null,
           bio: userData.bio ?? null,
           featuredImageUrl: userData.featuredImageUrl ?? null,
           companyName: userData.companyName ?? null,
@@ -5798,6 +5805,7 @@ export async function registerRoutes(app: Express) {
         // Attempt to update the user
         const updatedUser = await storage.updateUser(req.session.userId, {
           displayName: userData.displayName,
+          avatarUrl: userData.avatarUrl ?? null,
           bio: userData.bio ?? null,
           featuredImageUrl: userData.featuredImageUrl ?? null,
           companyName: userData.companyName ?? null,
@@ -6109,6 +6117,7 @@ export async function registerRoutes(app: Express) {
         // Attempt to update the user
         const updatedUser = await storage.updateUser(req.session.userId, {
           displayName: userData.displayName,
+          avatarUrl: userData.avatarUrl ?? null,
           bio: userData.bio ?? null,
           featuredImageUrl: userData.featuredImageUrl ?? null,
           companyName: userData.companyName ?? null,
