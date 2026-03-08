@@ -79,7 +79,7 @@ export default function MembershipsPage() {
         { text: "Keep up with community updates", included: true },
       ],
       cta: {
-        text: isPremium ? "Current Plan" : isLoggedIn ? "Current Plan" : "Start Here",
+        text: isPremium ? "Current Plan" : isLoggedIn ? "Current Plan" : "Claim Account",
         disabled: isPremium || isLoggedIn,
       },
     },
@@ -207,7 +207,7 @@ export default function MembershipsPage() {
                       <ClaimProfileDialog
                         trigger={
                           <Button
-                            className="w-full bg-[#FEA30E] hover:bg-[#E5930D] text-black font-medium"
+                            className="w-full bg-black hover:bg-black/80 text-white font-medium"
                           >
                             {plan.cta.text}
                           </Button>
@@ -216,7 +216,7 @@ export default function MembershipsPage() {
                     ) : (
                       <Button
                         className={`w-full ${
-                          plan.cta.accent ? "bg-primary hover:bg-primary/90" : ""
+                          plan.cta.accent ? "bg-[#FEA30E] hover:bg-[#E5930D] text-black font-medium" : ""
                         }`}
                         disabled={plan.cta.disabled}
                         onClick={plan.cta.action}
