@@ -252,6 +252,7 @@ export default function UserSettingsPage() {
       queryClient.setQueryData(["/api/auth/me"], (old: any) => ({
         ...old, slug: data.slug,
       }));
+      queryClient.invalidateQueries({ queryKey: ["/api/people"] });
       setIsEditingSlug(false);
       setSlugError(null);
       setSlugAvailable(null);
