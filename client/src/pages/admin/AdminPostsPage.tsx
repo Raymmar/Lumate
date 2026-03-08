@@ -1,24 +1,37 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostModal } from "@/components/admin/PostModal";
-import { PostForm, PostFormRef } from "@/components/admin/PostForm";
+import { PostForm } from "@/components/admin/PostForm";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { queryClient } from "@/lib/queryClient";
+import { usePostDrafts } from "@/hooks/use-post-drafts";
 
 export default function AdminPostsPage() {
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
-  const createFormRef = useRef<PostFormRef>(null);
-  const editFormRef = useRef<PostFormRef>(null);
+
+  const {
+    isSavingDraft,
+    setIsSavingDraft,
+    createFormRef,
+    editFormRef,
+    handleCreateDraft,
+    handleSaveDraft: rawSaveDraft,
+  } = usePostDrafts({
+    invalidateKeys: [["/api/admin/posts"]],
+    onCreateSuccess: () => setIsCreating(false),
+    onSaveSuccess: () => setEditingPost(null),
+  });
+
+  const handleSaveDraft = () => editingPost && rawSaveDraft(editingPost.id);
 
   const handleCreatePost = async (data: InsertPost & { tags?: string[] }) => {
     if (isSubmitting) return;
@@ -42,31 +55,6 @@ export default function AdminPostsPage() {
     }
   };
 
-  const handleCreateDraft = async () => {
-    if (isSavingDraft) return;
-    const formData = createFormRef.current?.getFormData();
-    if (!formData) return;
-    
-    setIsSavingDraft(true);
-    try {
-      await apiRequest('/api/admin/posts', 'POST', { ...formData, status: 'draft' });
-      setIsCreating(false);
-      toast({
-        title: "Success",
-        description: "Draft saved successfully"
-      });
-      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save draft",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSavingDraft(false);
-    }
-  };
-
   const handleUpdatePost = async (data: InsertPost & { tags?: string[] }) => {
     if (!editingPost || isSubmitting) return;
     setIsSubmitting(true);
@@ -86,31 +74,6 @@ export default function AdminPostsPage() {
       });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleSaveDraft = async () => {
-    if (!editingPost || isSavingDraft) return;
-    const formData = editFormRef.current?.getFormData();
-    if (!formData) return;
-    
-    setIsSavingDraft(true);
-    try {
-      await apiRequest(`/api/posts/${editingPost.id}`, 'PATCH', { ...formData, status: 'draft' });
-      setEditingPost(null);
-      toast({
-        title: "Success",
-        description: "Draft saved successfully"
-      });
-      await queryClient.invalidateQueries({ queryKey: ['/api/admin/posts'] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save draft",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSavingDraft(false);
     }
   };
 

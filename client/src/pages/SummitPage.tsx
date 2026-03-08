@@ -22,6 +22,7 @@ import {
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
 import type { InsertPost } from "@shared/schema";
+import { usePostDrafts } from "@/hooks/use-post-drafts";
 import { PublicPostsTable } from "@/components/bulletin/PublicPostsTable";
 import {
   DropdownMenu,
@@ -307,6 +308,19 @@ function SummitNewsSection() {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  const {
+    isSavingDraft,
+    createFormRef,
+    editFormRef,
+    handleCreateDraft,
+    handleSaveDraft: rawSaveDraft,
+  } = usePostDrafts({
+    onCreateSuccess: () => setIsCreating(false),
+    onSaveSuccess: () => setEditingPost(null),
+  });
+
+  const handleSaveDraft = () => editingPost && rawSaveDraft(editingPost.id);
+
   const handlePostClick = (post: Post, isEditing = false) => {
     if (isEditing) {
       setEditingPost(post);
@@ -433,8 +447,11 @@ function SummitNewsSection() {
           }
         }}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
+        onSaveDraft={handleCreateDraft}
       >
         <PostForm
+          ref={createFormRef}
           onSubmit={handleCreatePost}
           defaultValues={{ tags: ["summit 2026"] }}
           isEditing={false}
@@ -459,8 +476,11 @@ function SummitNewsSection() {
           }
         }}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
+        onSaveDraft={handleSaveDraft}
       >
         <PostForm
+          ref={editFormRef}
           onSubmit={handleUpdatePost}
           defaultValues={editingPost || undefined}
           isEditing={true}

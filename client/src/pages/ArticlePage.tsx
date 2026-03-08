@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import { usePostDrafts } from "@/hooks/use-post-drafts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,6 +42,26 @@ export function ArticlePage() {
   const [editingPost, setEditingPost] = useState<Post | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const {
+    isSavingDraft,
+    createFormRef,
+    editFormRef,
+    handleCreateDraft,
+    handleSaveDraft: rawSaveDraft,
+  } = usePostDrafts({
+    invalidateKeys: [["/api/posts/by-title", title || ""], ["/api/public/posts"]],
+    onCreateSuccess: () => { setIsModalOpen(false); setIsEditing(false); setEditingPost(undefined); },
+    onSaveSuccess: () => { setIsModalOpen(false); setIsEditing(false); setEditingPost(undefined); },
+  });
+
+  const handleSaveDraftForArticle = () => {
+    if (isEditing && editingPost) {
+      rawSaveDraft(editingPost.id);
+    } else {
+      handleCreateDraft();
+    }
+  };
 
   const { data: postData, isLoading: isPostLoading, error: postError } = useQuery<Post>({
     queryKey: ["/api/posts/by-title", title],
@@ -307,8 +328,11 @@ export function ArticlePage() {
             }
           }}
           isSubmitting={isSubmitting}
+          isSavingDraft={isSavingDraft}
+          onSaveDraft={handleSaveDraftForArticle}
         >
           <PostForm
+            ref={isEditing ? editFormRef : createFormRef}
             onSubmit={handleSubmitPost}
             defaultValues={isEditing ? {
               title: editingPost?.title || "",

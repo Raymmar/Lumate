@@ -12,6 +12,7 @@ import { PostPreview } from "@/components/admin/PostPreview";
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
 import type { Post, InsertPost } from "@shared/schema";
+import { usePostDrafts } from "@/hooks/use-post-drafts";
 import { apiRequest } from "@/lib/api";
 import { Link, useLocation } from "wouter";
 import { formatPostTitleForUrl } from "@/lib/utils";
@@ -94,6 +95,20 @@ export function BulletinBoard() {
   });
 
   const { toast } = useToast();
+
+  const {
+    isSavingDraft,
+    createFormRef,
+    editFormRef,
+    handleCreateDraft: rawCreateDraft,
+    handleSaveDraft: rawSaveDraft,
+  } = usePostDrafts({
+    onCreateSuccess: () => setIsCreating(false),
+    onSaveSuccess: () => setEditingPost(null),
+  });
+
+  const handleCreateDraft = rawCreateDraft;
+  const handleSaveDraft = () => editingPost && rawSaveDraft(editingPost.id);
 
   const mostRecentMembersOnlyPost = postsData?.posts
     .filter(post => post.membersOnly)
@@ -256,8 +271,11 @@ export function BulletinBoard() {
           }
         }}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
+        onSaveDraft={handleCreateDraft}
       >
         <PostForm 
+          ref={createFormRef}
           onSubmit={handleCreatePost}
           isEditing={false}
         />
@@ -281,9 +299,12 @@ export function BulletinBoard() {
           }
         }}
         isSubmitting={isSubmitting}
+        isSavingDraft={isSavingDraft}
+        onSaveDraft={handleSaveDraft}
       >
         {editingPost && (
           <PostForm 
+            ref={editFormRef}
             onSubmit={handleUpdatePost}
             defaultValues={{
               title: editingPost.title,
