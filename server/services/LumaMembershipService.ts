@@ -1,17 +1,141 @@
 import { lumaApiRequest } from '../routes';
 import { db } from '../db';
 import { users, people, userPeopleLinks } from '@shared/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, or, gt, isNotNull } from 'drizzle-orm';
 
 export class LumaMembershipService {
+  private static cachedTierId: string | null = null;
+  private static tierResolved = false;
+
   private static getTierId(): string | null {
-    return process.env.LUMA_MEMBERSHIP_TIER_ID || null;
+    if (process.env.LUMA_MEMBERSHIP_TIER_ID) {
+      return process.env.LUMA_MEMBERSHIP_TIER_ID;
+    }
+    return this.cachedTierId;
+  }
+
+  static async fetchMembershipTiers(): Promise<any[]> {
+    const allTiers: any[] = [];
+    let hasMore = true;
+    let nextCursor: string | null = null;
+
+    while (hasMore) {
+      const params: Record<string, string> = {};
+      if (nextCursor) {
+        params.pagination_cursor = nextCursor;
+      }
+
+      try {
+        const response = await lumaApiRequest('memberships/tiers/list', Object.keys(params).length > 0 ? params : undefined);
+
+        if (!response || !Array.isArray(response.entries)) {
+          console.log('[LumaMembership] Invalid response from membership tiers API:', response);
+          break;
+        }
+
+        allTiers.push(...response.entries);
+        hasMore = response.has_more === true;
+        nextCursor = response.next_cursor || null;
+      } catch (error) {
+        console.error('[LumaMembership] Failed to fetch membership tiers:', error);
+        break;
+      }
+    }
+
+    console.log(`[LumaMembership] Fetched ${allTiers.length} membership tiers from Luma`);
+    for (const tier of allTiers) {
+      console.log(`[LumaMembership]   Tier: "${tier.name}" (${tier.id}) - ${tier.access_info?.type || 'unknown'}`);
+    }
+
+    return allTiers;
+  }
+
+  static async resolveTierId(): Promise<string | null> {
+    if (process.env.LUMA_MEMBERSHIP_TIER_ID) {
+      console.log(`[LumaMembership] Using LUMA_MEMBERSHIP_TIER_ID from env: ${process.env.LUMA_MEMBERSHIP_TIER_ID}`);
+      this.cachedTierId = process.env.LUMA_MEMBERSHIP_TIER_ID;
+      this.tierResolved = true;
+      return this.cachedTierId;
+    }
+
+    if (this.tierResolved && this.cachedTierId) {
+      return this.cachedTierId;
+    }
+
+    console.log('[LumaMembership] No LUMA_MEMBERSHIP_TIER_ID env var set, fetching tiers from Luma API...');
+    const tiers = await this.fetchMembershipTiers();
+
+    if (tiers.length === 0) {
+      console.log('[LumaMembership] No membership tiers found on Luma calendar (will retry on next call)');
+      return null;
+    }
+
+    this.cachedTierId = tiers[0].id;
+    this.tierResolved = true;
+    console.log(`[LumaMembership] Resolved membership tier: "${tiers[0].name}" (${this.cachedTierId})`);
+    return this.cachedTierId;
+  }
+
+  static async syncPremiumMembersToLuma(): Promise<void> {
+    const tierId = await this.resolveTierId();
+    if (!tierId) {
+      console.log('[LumaMembership] No tier ID available, skipping push sync to Luma');
+      return;
+    }
+
+    console.log('[LumaMembership] Starting push sync: sending premium members to Luma...');
+
+    try {
+      const now = new Date().toISOString();
+      const premiumUsers = await db
+        .select()
+        .from(users)
+        .where(
+          or(
+            eq(users.subscriptionStatus, 'active'),
+            and(
+              isNotNull(users.premiumSource),
+              or(
+                gt(users.premiumExpiresAt, now),
+                sql`${users.premiumExpiresAt} IS NULL`
+              )
+            )
+          )
+        );
+
+      console.log(`[LumaMembership] Found ${premiumUsers.length} premium users to sync to Luma`);
+
+      let successCount = 0;
+      let skipCount = 0;
+      let failCount = 0;
+
+      for (const user of premiumUsers) {
+        try {
+          const result = await this.addMemberToLumaTier(user.email);
+          if (result) {
+            successCount++;
+          } else {
+            skipCount++;
+          }
+        } catch (error) {
+          failCount++;
+          console.error(`[LumaMembership] Failed to push ${user.email} to Luma:`, error);
+        }
+      }
+
+      console.log(`[LumaMembership] Push sync complete: ${successCount} added, ${skipCount} skipped, ${failCount} failed`);
+    } catch (error) {
+      console.error('[LumaMembership] Error during push sync to Luma:', error);
+    }
   }
 
   static async addMemberToLumaTier(email: string): Promise<boolean> {
-    const tierId = this.getTierId();
+    let tierId = this.getTierId();
     if (!tierId) {
-      console.log('[LumaMembership] No LUMA_MEMBERSHIP_TIER_ID configured, skipping Luma sync');
+      tierId = await this.resolveTierId();
+    }
+    if (!tierId) {
+      console.log('[LumaMembership] No membership tier ID available, skipping Luma sync');
       return false;
     }
 
@@ -36,9 +160,12 @@ export class LumaMembershipService {
   }
 
   static async removeMemberFromLumaTier(email: string): Promise<boolean> {
-    const tierId = this.getTierId();
+    let tierId = this.getTierId();
     if (!tierId) {
-      console.log('[LumaMembership] No LUMA_MEMBERSHIP_TIER_ID configured, skipping Luma sync');
+      tierId = await this.resolveTierId();
+    }
+    if (!tierId) {
+      console.log('[LumaMembership] No membership tier ID available, skipping Luma sync');
       return false;
     }
 
@@ -71,7 +198,10 @@ export class LumaMembershipService {
     if (!personData.membership) return;
 
     const { status, calendar_membership_tier_id } = personData.membership;
-    const configuredTierId = this.getTierId();
+    let configuredTierId = this.getTierId();
+    if (!configuredTierId) {
+      configuredTierId = await this.resolveTierId();
+    }
 
     try {
       await db

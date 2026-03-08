@@ -9,6 +9,7 @@ import stripeRoutes from "./routes/stripe";
 import { badgeService } from "./services/BadgeService";
 import { startEventSyncService } from "./services/eventSyncService";
 import { emailInvitationService } from "./services/EmailInvitationService";
+import { LumaMembershipService } from "./services/LumaMembershipService";
 import { pool } from "./db";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
@@ -329,6 +330,14 @@ app.use(
 
     // Start background services after server is listening
     try {
+      // Resolve Luma membership tier dynamically before sync services start
+      try {
+        const tierId = await LumaMembershipService.resolveTierId();
+        console.log(`[Server] Luma membership tier resolved: ${tierId || 'none found'}`);
+      } catch (tierError) {
+        console.error('[Server] Failed to resolve Luma membership tier (non-fatal):', tierError);
+      }
+
       eventSyncIntervals = await startEventSyncService(false);
       
       // Start email invitation service (for claim detection and follow-ups only)

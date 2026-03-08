@@ -45,6 +45,14 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 - **SEO**: Profile URLs stay at `/people/:slug` preserving existing search rankings
 - **People table**: Now secondary/fallback for unclaimed attendees without user accounts
 
+### March 8, 2026 - Dynamic Luma Membership Tier Resolution & Bi-directional Push Sync
+- **Feature**: Membership tier ID is now dynamically fetched from Luma API instead of relying solely on `LUMA_MEMBERSHIP_TIER_ID` env var
+- **Dynamic Tier Resolution**: `LumaMembershipService.resolveTierId()` calls `GET /v1/memberships/tiers/list` to fetch available tiers, caches the result. `LUMA_MEMBERSHIP_TIER_ID` env var still works as an override.
+- **Push Sync (Our System → Luma)**: New `syncPremiumMembersToLuma()` method queries all users with active premium status (Stripe active, or premiumSource with valid expiry) and pushes them to Luma membership tier via `addMemberToLumaTier()`. Runs on startup and at end of each sync cycle.
+- **Sync Interval**: Changed from 1 hour to 6 hours (`CacheService.SYNC_INTERVAL`)
+- **Startup Flow**: Server resolves Luma tier ID early during startup → CacheService pulls data from Luma → push sync sends premium members to Luma
+- **Files Changed**: `server/services/LumaMembershipService.ts`, `server/services/CacheService.ts`, `server/index.ts`
+
 ### March 7, 2026 - Luma Membership Sync & Decoupled Account Creation
 - **Feature**: Unified membership system between internal platform and Luma
 - **Database Changes**:
@@ -61,7 +69,7 @@ This is a full-stack web application built for the Sarasota Tech community, desi
   - `getLinkedPeople(userId)` — returns all linked Luma profiles for a user
 - **Outbound Sync (Stripe → Luma)**: When subscription activates or admin grants premium, pushes to Luma tier. When cancelled or revoked, removes from Luma tier.
   - Integrated into: `server/services/stripe.ts` (verifySession, reconcileAllSubscriptions), `server/routes/stripe.ts` (cancel-subscription), `server/routes/premium.ts` (grant/revoke premium)
-- **Inbound Sync (Luma → Our System)**: During hourly people sync in `CacheService.ts`, captures `membership.status` and `membership.calendar_membership_tier_id` from Luma data, stores on `people` table, and reconciles premium access
+- **Inbound Sync (Luma → Our System)**: During 6-hour people sync in `CacheService.ts`, captures `membership.status` and `membership.calendar_membership_tier_id` from Luma data, stores on `people` table, and reconciles premium access
 - **Account Creation Decoupled**: Users no longer need a Luma profile to sign up. `createUser()` in `server/storage.ts` allows null `personId`. Auto-linking happens during verification.
 - **Profile Linking API**: New endpoints for managing linked profiles:
   - `GET /api/users/linked-profiles` — list linked Luma profiles

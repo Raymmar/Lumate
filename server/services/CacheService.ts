@@ -15,7 +15,7 @@ export class CacheService extends EventEmitter {
   private readonly MAX_RETRIES = 3;  // Maximum number of retries for failed requests
   private readonly RETRY_DELAY = 1000;  // Delay between retries in milliseconds
   private lastSuccessfulSync: Date | null = null;
-  private readonly SYNC_INTERVAL = 60 * 60 * 1000; // Fixed 1-hour interval in milliseconds
+  private readonly SYNC_INTERVAL = 6 * 60 * 60 * 1000; // Fixed 6-hour interval in milliseconds
 
   private constructor() {
     super();
@@ -196,6 +196,14 @@ export class CacheService extends EventEmitter {
             progress
           );
         }
+      }
+
+      // Push premium members to Luma (bi-directional sync)
+      this.emitProgress('Syncing premium members to Luma...', 96);
+      try {
+        await LumaMembershipService.syncPremiumMembersToLuma();
+      } catch (pushError) {
+        this.logSync('Push sync to Luma failed (non-fatal):', pushError);
       }
 
       // Update the last cache time
