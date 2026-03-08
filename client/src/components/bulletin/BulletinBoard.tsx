@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SiInstagram, SiLinkedin, SiYoutube, SiX } from "react-icons/si";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Users, Calendar, Ticket, UserPlus, ExternalLink as ExternalLinkIcon, Loader2 } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ import { YoutubeEmbed } from "@/components/ui/youtube-embed";
 import { FeaturedMemberCard } from "@/components/people/FeaturedMemberCard";
 import { SponsorGrid } from "@/components/sponsors";
 import { PinnedPostsCarousel } from "@/components/news/PinnedPostsCarousel";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 
 
 function LinksSection() {
@@ -74,6 +75,7 @@ function LinksSection() {
 export function BulletinBoard() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { isSyncing } = useSyncStatus();
   const { data: statsData, isLoading } = useQuery({
     queryKey: ["/api/public/stats"],
     queryFn: async () => {
@@ -82,7 +84,9 @@ export function BulletinBoard() {
         throw new Error("Failed to fetch stats");
       }
       return response.json();
-    }
+    },
+    placeholderData: keepPreviousData,
+    refetchInterval: isSyncing ? false : undefined,
   });
 
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);

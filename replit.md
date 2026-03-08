@@ -6,6 +6,19 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 8, 2026 - Sync Status Persistence (Shadow Sync)
+- **Issue**: When the server restarted or a Luma sync ran, the frontend would show blank attendee lists and zero stats while data was being re-synced
+- **Solution**: "Shadow sync" pattern — frontend holds cached data during sync and refreshes all at once when sync completes
+- **Backend**:
+  - `server/services/SyncStatusService.ts` — singleton EventEmitter tracking which sync services (cache, events) are active
+  - `GET /api/sync/status` — returns `{ syncing: boolean, services: string[] }`
+  - `/api/public/stats` and `/api/events/:id/attendees` responses now include `syncing` flag
+  - `CacheService` and `EventSyncService` call `syncStatusService.startSync()` / `endSync()` around their sync operations
+- **Frontend**:
+  - `client/src/hooks/use-sync-status.ts` — polls `/api/sync/status` every 5s, detects sync completion transition, and invalidates all relevant query caches (stats, events, attendees, admin stats)
+  - `BulletinBoard.tsx` and `EventContent.tsx` use `placeholderData: keepPreviousData` and disable refetching during sync
+- **Impact**: Users never see blank or partially-loaded data during sync; previous data persists until sync is fully complete
+
 ### March 8, 2026 - Guest Premium Checkout (Stripe-First Onboarding)
 - **Feature**: Non-logged-in users can now purchase Premium memberships directly via Stripe without creating an account first
 - **Flow**: Click "Get Premium" → Stripe Checkout (collects email + payment) → Account auto-created → Verification email sent → User sets password → Logged in as Premium member with Luma profile auto-linked

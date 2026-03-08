@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
@@ -14,6 +14,7 @@ import { Link } from "wouter";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { formatUsernameForUrl } from "@/lib/utils";
+import { useSyncStatus } from "@/hooks/use-sync-status";
 
 function generateCalendarUrl(event: Event) {
   const startDate = new Date(event.startTime + 'Z');
@@ -54,6 +55,7 @@ export function EventContent({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isSyncing } = useSyncStatus();
   const [email, setEmail] = useState("");
   const [isInviting, setIsInviting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -108,7 +110,9 @@ export function EventContent({
       };
     },
     enabled: !!event.api_id,
-    staleTime: 30000
+    staleTime: 30000,
+    placeholderData: keepPreviousData,
+    refetchInterval: isSyncing ? false : undefined,
   });
 
   const { data: rsvpStatus } = useQuery({

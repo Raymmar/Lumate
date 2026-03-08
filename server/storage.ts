@@ -311,17 +311,13 @@ let memberStatsCache: {
   isSyncing: boolean;
 } = { data: null, timestamp: 0, isSyncing: false };
 
-// Export function to mark sync status - call this from eventSyncService
 export function setMemberStatsSyncing(syncing: boolean): void {
   memberStatsCache.isSyncing = syncing;
   if (!syncing) {
-    // Invalidate cache when sync completes so next request gets fresh data
     memberStatsCache.timestamp = 0;
   }
-  console.log(`[MemberStats] Sync status: ${syncing ? 'STARTED' : 'COMPLETED'}`);
 }
 
-// Export function to check if member stats sync is in progress
 export function isMemberStatsSyncing(): boolean {
   return memberStatsCache.isSyncing;
 }

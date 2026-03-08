@@ -1,4 +1,5 @@
 import { storage, setMemberStatsSyncing } from "../storage";
+import { syncStatusService } from "./SyncStatusService";
 import type { Event } from "@shared/schema";
 import { db } from "../db";
 import { users, events } from "@shared/schema";
@@ -167,8 +168,8 @@ async function syncEventAttendees(event: Event) {
 
 async function syncFutureEvents() {
   try {
-    // Signal that sync is starting - member stats should use cached data
     setMemberStatsSyncing(true);
+    syncStatusService.startSync('events');
     
     const futureEvents = await storage.getFutureEvents();
     console.log(`Found ${futureEvents.length} future events to sync`);
@@ -184,8 +185,8 @@ async function syncFutureEvents() {
   } catch (error) {
     console.error("Error in future events sync:", error);
   } finally {
-    // Signal that sync is complete - member stats can refresh
     setMemberStatsSyncing(false);
+    syncStatusService.endSync('events');
   }
 }
 
@@ -208,6 +209,7 @@ export async function startEventSyncService(immediate: boolean = false): Promise
   const recentSyncInterval = setInterval(async () => {
     try {
       setMemberStatsSyncing(true);
+      syncStatusService.startSync('events');
       const recentlyEndedEvents = await storage.getRecentlyEndedEvents();
       console.log(
         `Found ${recentlyEndedEvents.length} recently ended events to sync`,
@@ -225,6 +227,7 @@ export async function startEventSyncService(immediate: boolean = false): Promise
       console.error("Error in event sync service:", error);
     } finally {
       setMemberStatsSyncing(false);
+      syncStatusService.endSync('events');
     }
   }, RECENT_SYNC_INTERVAL);
 

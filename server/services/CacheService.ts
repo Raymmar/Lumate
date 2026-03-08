@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { users, userPeopleLinks } from '@shared/schema';
 import { EventEmitter } from 'events';
 import { LumaMembershipService } from './LumaMembershipService';
+import { syncStatusService } from './SyncStatusService';
 
 export class CacheService extends EventEmitter {
   private static instance: CacheService;
@@ -136,6 +137,7 @@ export class CacheService extends EventEmitter {
     }
 
     this.isCaching = true;
+    syncStatusService.startSync('cache');
     const syncStartTime = Date.now();
     this.logSync('Starting cache update process...');
     this.emitProgress('Starting cache update process...', 0);
@@ -236,6 +238,7 @@ export class CacheService extends EventEmitter {
       throw error;
     } finally {
       this.isCaching = false;
+      syncStatusService.endSync('cache');
     }
   }
 

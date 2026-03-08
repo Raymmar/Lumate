@@ -49,6 +49,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { eq, and, desc } from "drizzle-orm";
 import { CacheService } from "./services/CacheService";
+import { syncStatusService } from "./services/SyncStatusService";
 import stripeRouter from "./routes/stripe";
 import { StripeService } from "./services/stripe";
 import { badgeService } from "./services/BadgeService";
@@ -3616,6 +3617,10 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/sync/status", (_req, res) => {
+    res.json(syncStatusService.getStatus());
+  });
+
   app.get("/api/public/stats", async (_req, res) => {
     try {
       const [eventCount, totalAttendeesCount, uniqueAttendeesCount] =
@@ -3629,6 +3634,7 @@ export async function registerRoutes(app: Express) {
         events: eventCount,
         totalAttendees: totalAttendeesCount,
         uniqueAttendees: uniqueAttendeesCount,
+        syncing: syncStatusService.isSyncing(),
       });
     } catch (error) {
       console.error("Failed to fetch public stats:", error);
@@ -5745,6 +5751,7 @@ export async function registerRoutes(app: Express) {
       res.json({
         attendees: attendeesList,
         total: Number(totalCount[0]?.count || 0),
+        syncing: syncStatusService.isSyncing(),
       });
     } catch (error) {
       console.error("Failed to fetch event attendees:", error);
@@ -6057,6 +6064,7 @@ export async function registerRoutes(app: Express) {
       res.json({
         attendees: attendeesList,
         total: Number(totalCount[0]?.count || 0),
+        syncing: syncStatusService.isSyncing(),
       });
     } catch (error) {
       console.error("Failed to fetch event attendees:", error);
