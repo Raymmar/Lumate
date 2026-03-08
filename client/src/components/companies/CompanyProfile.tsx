@@ -517,10 +517,11 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                         .toUpperCase()
                         .substring(0, 2);
                         
-                      // Generate profile path
-                      const profilePath = member.user.person ? 
-                        `/people/${formatUsernameForUrl(member.user.person.userName, member.user.person.api_id)}` : 
-                        null;
+                      const profilePath = member.user.slug
+                        ? `/people/${encodeURIComponent(member.user.slug)}`
+                        : member.user.person
+                          ? `/people/${formatUsernameForUrl(member.user.person.userName, member.user.person.api_id)}`
+                          : null;
                       
                       if (!profilePath) return null;
                         

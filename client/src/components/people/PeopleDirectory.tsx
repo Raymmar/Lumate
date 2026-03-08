@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
 import { useLocation, useParams } from 'wouter';
-import { formatUsernameForUrl } from '@/lib/utils';
+
 import {
   Pagination,
   PaginationContent,
@@ -24,6 +24,7 @@ export interface Person {
   role: string | null;
   phoneNumber: string | null;
   bio: string | null;
+  slug: string | null;
   organizationName: string | null;
   jobTitle: string | null;
   stats?: {
@@ -40,7 +41,7 @@ export interface Person {
 interface PeopleResponse {
   people: Person[];
   total: number;
-  currentUserId?: string;
+  currentUserId?: number;
 }
 
 interface ApiError {
@@ -93,8 +94,8 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
     if (!data?.people) return [];
     return data.people.sort((a, b) => {
       // First prioritize current user
-      if (a.api_id === data.currentUserId) return -1;
-      if (b.api_id === data.currentUserId) return 1;
+      if (a.id === data.currentUserId) return -1;
+      if (b.id === data.currentUserId) return 1;
 
       // Then sort by total events attended
       const aCount = a.stats?.totalEventsAttended || 0;
@@ -114,8 +115,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   };
 
   const handlePersonClick = (person: Person) => {
-    const urlPath = formatUsernameForUrl(person.userName, person.api_id);
-    setLocation(`/people/${encodeURIComponent(urlPath)}`);
+    setLocation('/people/' + encodeURIComponent(person.slug || person.api_id));
     if (onMobileSelect) {
       onMobileSelect();
     }
@@ -196,12 +196,12 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
             <div className="space-y-0.5">
               {sortedPeople.map((person, index) => (
                 <div
-                  key={person.api_id}
+                  key={person.id}
                   className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
-                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === formatUsernameForUrl(person.userName, person.api_id))
+                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === (person.slug || person.api_id))
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
-                  } ${person.api_id === data?.currentUserId ? 'bg-primary/10' : ''}`}
+                  } ${person.id === data?.currentUserId ? 'bg-primary/10' : ''}`}
                   onClick={() => handlePersonClick(person)}
                 >
                   <Avatar className="h-8 w-8">
@@ -221,7 +221,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
                   <div className="min-w-0 flex-1">
                     <p className="text-base font-medium truncate">
                       {person.userName || "Anonymous"}
-                      {person.api_id === data?.currentUserId && (
+                      {person.id === data?.currentUserId && (
                         <span className="ml-2 text-xs text-primary">(You)</span>
                       )}
                     </p>

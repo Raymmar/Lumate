@@ -1357,16 +1357,8 @@ export async function registerRoutes(app: Express) {
       const limit = parseInt(req.query.limit as string) || 50;
       const searchQuery = ((req.query.search as string) || "").toLowerCase();
       const sort = req.query.sort as string;
-      const verifiedOnly = req.query.verifiedOnly === "true";
 
-      console.log(
-        "Fetching people from storage with search:",
-        searchQuery,
-        "sort:",
-        sort,
-        "verifiedOnly:",
-        verifiedOnly,
-      );
+      const currentUserId = req.session?.userId || null;
 
       const attendanceCounts = await db.execute(sql`
         WITH attendance_counts AS (
@@ -1384,130 +1376,89 @@ export async function registerRoutes(app: Express) {
         attendanceCounts.rows.map((row: any) => [row.email.toLowerCase(), row]),
       );
 
-      // Include all users but capture verification status
-      let query = db
+      let allUsersQuery = db
         .select({
-          id: people.id,
-          api_id: people.api_id,
-          email: people.email,
-          userName: people.userName,
-          fullName: people.fullName,
-          avatarUrl: people.avatarUrl,
-          role: people.role,
-          phoneNumber: people.phoneNumber,
-          bio: people.bio,
-          createdAt: people.createdAt,
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          slug: users.slug,
+          avatarUrl: users.avatarUrl,
+          bio: users.bio,
+          isVerified: users.isVerified,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+          personId: users.personId,
         })
-        .from(people);
-      
-      // If verifiedOnly is true, only show verified users
-      // Otherwise, get all users but we'll add verification status later
-      if (verifiedOnly) {
-        query = query
-          .innerJoin(users, eq(users.personId, people.id))
-          .where(eq(users.isVerified, true));
-      }
+        .from(users)
+        .where(
+          searchQuery
+            ? sql`(LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.email}) LIKE ${`%${searchQuery}%`})`
+            : undefined as any
+        );
 
-      // Add search filter if provided
-      if (searchQuery) {
-        if (verifiedOnly) {
-          // For verified users, add search conditions to the existing where clause
-          query = query.where(
-            sql`(LOWER(people.user_name) LIKE ${`%${searchQuery}%`} OR LOWER(people.email) LIKE ${`%${searchQuery}%`})`,
-          );
-        } else {
-          // For all users (when verified flag is not set)
-          query = query.where(
-            sql`(LOWER(user_name) LIKE ${`%${searchQuery}%`} OR LOWER(email) LIKE ${`%${searchQuery}%`})`,
-          );
-        }
-      }
-
-      const allPeople = await query;
-      
-      // Check verification status for each person and add it to the response
-      const peopleWithVerification = await Promise.all(
-        allPeople.map(async (person) => {
-          const userCheckResult = await db
-            .select()
-            .from(users)
-            .where(and(
-              eq(users.personId, person.id),
-              eq(users.isVerified, true)
-            ))
-            .limit(1);
-            
-          return {
-            ...person,
-            isVerified: userCheckResult.length > 0
-          };
+      let allMembers = await (searchQuery ? allUsersQuery : db
+        .select({
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          slug: users.slug,
+          avatarUrl: users.avatarUrl,
+          bio: users.bio,
+          isVerified: users.isVerified,
+          isAdmin: users.isAdmin,
+          createdAt: users.createdAt,
+          personId: users.personId,
         })
-      );
-      
-      // Sort by created_at descending (newest first)
-      peopleWithVerification.sort((a, b) => {
-        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return bTime - aTime;
+        .from(users));
+
+      const membersWithStats = allMembers.map((member) => {
+        const attendance = countMap.get(member.email.toLowerCase());
+        return {
+          id: member.id,
+          api_id: member.slug || `user-${member.id}`,
+          userName: member.displayName,
+          fullName: member.displayName,
+          avatarUrl: member.avatarUrl,
+          bio: member.bio,
+          slug: member.slug,
+          isVerified: member.isVerified,
+          createdAt: member.createdAt,
+          email: "",
+          role: null as string | null,
+          phoneNumber: null as string | null,
+          eventCount: Number(attendance?.event_count || 0),
+          lastAttended: attendance?.last_attended || null,
+          stats: {
+            totalEventsAttended: Number(attendance?.event_count || 0),
+          },
+        };
       });
 
       if (sort === "events") {
-        const sortedPeople = peopleWithVerification.sort((a, b) => {
-          // Sort by event count
-          const aCount = countMap.get(a.email.toLowerCase())?.event_count || 0;
-          const bCount = countMap.get(b.email.toLowerCase())?.event_count || 0;
-
-          if (bCount !== aCount) {
-            return bCount - aCount;
-          }
-
-          // If event count is tied, sort by most recent attendance
-          const aDate =
-            countMap.get(a.email.toLowerCase())?.last_attended || "1970-01-01";
-          const bDate =
-            countMap.get(b.email.toLowerCase())?.last_attended || "1970-01-01";
-          const dateComparison = new Date(bDate).getTime() - new Date(aDate).getTime();
-          
-          if (dateComparison !== 0) {
-            return dateComparison;
-          }
-          
-          // If still tied, maintain the original created_at order from database
+        membersWithStats.sort((a, b) => {
+          if (b.eventCount !== a.eventCount) return b.eventCount - a.eventCount;
+          const aDate = a.lastAttended || "1970-01-01";
+          const bDate = b.lastAttended || "1970-01-01";
+          const dateComp = new Date(bDate).getTime() - new Date(aDate).getTime();
+          if (dateComp !== 0) return dateComp;
           return 0;
         });
-
-        const start = (page - 1) * limit;
-        const end = start + limit;
-        const paginatedPeople = sortedPeople.slice(start, end).map((p) => {
-          return { ...p, email: "" };
+      } else {
+        membersWithStats.sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return bTime - aTime;
         });
-
-        console.log(
-          `Returning sorted verified people from index ${start} to ${end - 1}, total: ${sortedPeople.length}`,
-        );
-
-        res.json({
-          people: paginatedPeople,
-          total: sortedPeople.length,
-        });
-        return;
       }
 
-      // Already sorted by created_at DESC above
-      const sortedPeopleByVerification = peopleWithVerification;
-      
       const start = (page - 1) * limit;
       const end = start + limit;
-      const paginatedPeople = sortedPeopleByVerification.slice(start, end).map((p) => {
-        return { ...p, email: "" };
-      });
-      console.log(
-        `Returning paginated people (verified first), total: ${sortedPeopleByVerification.length}`,
-      );
+      const paginatedMembers = membersWithStats.slice(start, end);
 
       res.json({
-        people: paginatedPeople,
-        total: sortedPeopleByVerification.length,
+        people: paginatedMembers,
+        total: membersWithStats.length,
+        currentUserId: currentUserId,
       });
     } catch (error) {
       console.error("Failed to fetch people:", error);
@@ -2436,24 +2387,12 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ error: "Person not found" });
       }
 
-      // If accessing via API ID and person has a username, redirect to username URL
-      if (person.userName && req.headers.accept?.includes("text/html")) {
-        const formattedUsername = person.userName
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "-");
-        return res.redirect(
-          301,
-          `/people/${encodeURIComponent(formattedUsername)}`,
-        );
-      }
-
-      // Fetch the associated user data if it exists
       const user = await db
         .select({
           id: users.id,
           email: users.email,
           displayName: users.displayName,
+          slug: users.slug,
           isAdmin: users.isAdmin,
           companyName: users.companyName,
           companyDescription: users.companyDescription,
@@ -2470,32 +2409,19 @@ export async function registerRoutes(app: Express) {
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
 
-      // Attach the user data to the person object
+      if (user[0]?.slug && req.headers.accept?.includes("text/html")) {
+        return res.redirect(301, `/people/${encodeURIComponent(user[0].slug)}`);
+      }
+
+      if (!user[0] && person.userName && req.headers.accept?.includes("text/html")) {
+        const formattedUsername = person.userName.trim().toLowerCase().replace(/\s+/g, "-");
+        return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
+      }
+
       const personWithUser = {
         ...person,
         user: user[0] || null,
       };
-
-      console.log("API Response - Person with user data:", {
-        personId,
-        hasUser: !!user[0],
-        userData: user[0]
-          ? {
-              id: user[0].id,
-              email: user[0].email,
-              companyName: user[0].companyName,
-              companyDescription: user[0].companyDescription,
-              hasAddress: !!user[0].address,
-              hasPhone: !!user[0].phoneNumber,
-              hasCustomLinks:
-                Array.isArray(user[0].customLinks) &&
-                user[0].customLinks.length > 0,
-              hasFeaturedImage: !!user[0].featuredImageUrl,
-              hasTags: Array.isArray(user[0].tags) && user[0].tags.length > 0,
-              hasBio: !!user[0].bio,
-            }
-          : null,
-      });
 
       res.json(personWithUser);
     } catch (error) {
@@ -2507,47 +2433,97 @@ export async function registerRoutes(app: Express) {
   app.get("/api/people/by-username/:username", async (req, res) => {
     try {
       const username = decodeURIComponent(req.params.username);
-      console.log("Looking up person by username:", {
+      console.log("Looking up member by slug:", {
         original: req.params.username,
         decoded: username,
       });
 
-      let person = await storage.getPersonByUsername(username);
+      const userBySlug = await storage.getUserBySlug(username);
 
-      if (!person) {
-        // Try API ID as a fallback
-        console.log("Person not found by username, trying API ID:", username);
-        person = await storage.getPersonByApiId(username);
+      if (userBySlug) {
+        const userBadgesList = await db
+          .select({
+            id: badges.id,
+            name: badges.name,
+            description: badges.description,
+            icon: badges.icon,
+            isAutomatic: badges.isAutomatic,
+          })
+          .from(userBadgesTable)
+          .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .where(eq(userBadgesTable.userId, userBySlug.id));
 
-        if (!person) {
-          console.log("Person not found by either username or API ID");
-          return res.status(404).json({ error: "Person not found" });
+        let personData = null;
+        if (userBySlug.personId) {
+          const personResult = await db
+            .select()
+            .from(people)
+            .where(eq(people.id, userBySlug.personId))
+            .limit(1);
+          personData = personResult[0] || null;
+        }
+        if (!personData) {
+          const personByEmail = await storage.getPersonByEmail(userBySlug.email);
+          personData = personByEmail;
         }
 
-        if (person.userName) {
-          const formattedUsername = person.userName
-            .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "-");
-          console.log("Found by API ID, has username:", formattedUsername);
+        const response = {
+          id: personData?.id || userBySlug.id,
+          api_id: personData?.api_id || `user-${userBySlug.id}`,
+          email: personData?.email || userBySlug.email,
+          userName: userBySlug.displayName || personData?.userName,
+          fullName: userBySlug.displayName || personData?.fullName,
+          avatarUrl: userBySlug.avatarUrl || personData?.avatarUrl,
+          role: personData?.role || null,
+          phoneNumber: personData?.phoneNumber || null,
+          bio: userBySlug.bio || personData?.bio,
+          createdAt: personData?.createdAt || userBySlug.createdAt,
+          slug: userBySlug.slug,
+          isAdmin: userBySlug.isAdmin,
+          stats: personData?.stats || null,
+          user: {
+            id: userBySlug.id,
+            email: userBySlug.email,
+            displayName: userBySlug.displayName,
+            isAdmin: userBySlug.isAdmin,
+            companyName: userBySlug.companyName,
+            companyDescription: userBySlug.companyDescription,
+            address: userBySlug.address,
+            phoneNumber: userBySlug.phoneNumber,
+            isPhonePublic: userBySlug.isPhonePublic,
+            isEmailPublic: userBySlug.isEmailPublic,
+            customLinks: userBySlug.customLinks,
+            featuredImageUrl: userBySlug.featuredImageUrl,
+            tags: userBySlug.tags,
+            bio: userBySlug.bio,
+            badges: userBadgesList,
+            slug: userBySlug.slug,
+          },
+        };
 
-          // Only redirect browser requests
+        return res.json(response);
+      }
+
+      let person = await storage.getPersonByUsername(username);
+      if (!person) {
+        person = await storage.getPersonByApiId(username);
+        if (!person) {
+          return res.status(404).json({ error: "Person not found" });
+        }
+        if (person.userName) {
+          const formattedUsername = person.userName.trim().toLowerCase().replace(/\s+/g, "-");
           if (req.headers.accept?.includes("text/html")) {
-            console.log("Browser request - redirecting to username URL");
-            return res.redirect(
-              301,
-              `/people/${encodeURIComponent(formattedUsername)}`,
-            );
+            return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
           }
         }
       }
 
-      // Fetch the associated user data if it exists
       const user = await db
         .select({
           id: users.id,
           email: users.email,
           displayName: users.displayName,
+          slug: users.slug,
           isAdmin: users.isAdmin,
           companyName: users.companyName,
           companyDescription: users.companyDescription,
@@ -2564,10 +2540,14 @@ export async function registerRoutes(app: Express) {
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
 
-      // If we found a user, fetch their badges
       let userWithBadges = null;
       if (user[0]) {
-        // Fetch badges for this user
+        if (user[0].slug) {
+          if (req.headers.accept?.includes("text/html")) {
+            return res.redirect(301, `/people/${encodeURIComponent(user[0].slug)}`);
+          }
+        }
+
         const userBadgesList = await db
           .select({
             id: badges.id,
@@ -2580,39 +2560,10 @@ export async function registerRoutes(app: Express) {
           .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
           .where(eq(userBadgesTable.userId, user[0].id));
 
-        userWithBadges = {
-          ...user[0],
-          badges: userBadgesList,
-        };
-
-        console.log("Found badges for user:", {
-          userId: user[0].id,
-          badgeCount: userBadgesList.length,
-          badges: userBadgesList.map((badge) => badge.name),
-        });
+        userWithBadges = { ...user[0], badges: userBadgesList };
       }
 
-      // Attach the user data to the person object
-      const personWithUser = {
-        ...person,
-        user: userWithBadges,
-      };
-
-      console.log("API Response - Person with user data:", {
-        personId: person.id,
-        hasUser: !!userWithBadges,
-        userData: userWithBadges
-          ? {
-              id: userWithBadges.id,
-              email: userWithBadges.email,
-              companyName: userWithBadges.companyName,
-              badges: userWithBadges.badges?.map((b) => b.name),
-              badgeCount: userWithBadges.badges?.length,
-            }
-          : null,
-      });
-
-      res.json(personWithUser);
+      res.json({ ...person, user: userWithBadges });
     } catch (error) {
       console.error("Failed to fetch person by username:", error);
       res.status(500).json({
@@ -3067,6 +3018,65 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/user/check-slug/:slug", async (req, res) => {
+    try {
+      const slug = decodeURIComponent(req.params.slug).toLowerCase();
+      const currentUserId = req.session?.userId || null;
+      
+      const existing = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          currentUserId
+            ? and(sql`LOWER(${users.slug}) = LOWER(${slug})`, sql`${users.id} != ${currentUserId}`)
+            : sql`LOWER(${users.slug}) = LOWER(${slug})`
+        )
+        .limit(1);
+
+      res.json({ available: existing.length === 0 });
+    } catch (error) {
+      console.error("Failed to check slug:", error);
+      res.status(500).json({ error: "Failed to check slug" });
+    }
+  });
+
+  app.patch("/api/user/slug", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { slug } = req.body;
+      if (!slug || typeof slug !== 'string') {
+        return res.status(400).json({ error: "Slug is required" });
+      }
+
+      const formatted = (storage as any).formatSlug(slug);
+      if (!formatted) {
+        return res.status(400).json({ error: "Invalid slug format" });
+      }
+
+      const existing = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(and(
+          sql`LOWER(${users.slug}) = LOWER(${formatted})`,
+          sql`${users.id} != ${req.session.userId}`
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        return res.status(409).json({ error: "This profile URL is already taken" });
+      }
+
+      const updatedUser = await storage.updateUser(req.session.userId, { slug: formatted } as any);
+      res.json({ slug: updatedUser.slug });
+    } catch (error) {
+      console.error("Failed to update slug:", error);
+      res.status(500).json({ error: "Failed to update slug" });
+    }
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -3107,6 +3117,7 @@ export async function registerRoutes(app: Express) {
         id: user.id,
         email: user.email,
         displayName,
+        slug: user.slug,
         isVerified: user.isVerified,
         isAdmin: user.isAdmin,
         personId: user.personId,

@@ -40,10 +40,9 @@ export function NavBar() {
 
   const hasNewCoupons = couponsData?.hasUnclaimedCoupons || false;
 
-  // Generate profile URL using username if available, fallback to API ID
-  const profileUrl = user?.api_id ? 
-    `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : 
-    '';
+  const profileUrl = user?.slug ? 
+    `/people/${encodeURIComponent(user.slug)}` : 
+    (user?.api_id ? `/people/${encodeURIComponent(formatUsernameForUrl(user.displayName, user.api_id))}` : '');
 
   return (
     <nav className="flex h-16 items-center pl-2 pr-4 w-full">

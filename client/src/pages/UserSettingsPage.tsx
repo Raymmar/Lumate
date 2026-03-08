@@ -61,6 +61,11 @@ export default function UserSettingsPage() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState("");
+  const [isEditingSlug, setIsEditingSlug] = useState(false);
+  const [editSlug, setEditSlug] = useState("");
+  const [slugError, setSlugError] = useState<string | null>(null);
+  const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
   const linkedProfiles: LinkedPerson[] = (user as any)?.linkedProfiles || [];
   const isLoadingProfiles = false;
@@ -193,6 +198,61 @@ export default function UserSettingsPage() {
       toast({ title: "Display name updated" });
     } catch (err) {
       toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update name", variant: "destructive" });
+    }
+  };
+
+  const checkSlugAvailability = async (slug: string) => {
+    if (!slug || slug === (user as any)?.slug) {
+      setSlugError(null);
+      setSlugAvailable(null);
+      return;
+    }
+    const formatted = slug.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
+    if (formatted.length < 2) {
+      setSlugError("Must be at least 2 characters");
+      setSlugAvailable(null);
+      return;
+    }
+    setIsCheckingSlug(true);
+    try {
+      const res = await fetch(`/api/user/check-slug/${encodeURIComponent(formatted)}`);
+      const data = await res.json();
+      setSlugAvailable(data.available);
+      setSlugError(data.available ? null : "This URL is already taken");
+    } catch {
+      setSlugError("Could not check availability");
+    } finally {
+      setIsCheckingSlug(false);
+    }
+  };
+
+  const handleSlugSave = async () => {
+    const formatted = editSlug.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-').replace(/^-|-$/g, '');
+    if (formatted.length < 2) {
+      toast({ title: "Error", description: "Profile URL must be at least 2 characters", variant: "destructive" });
+      return;
+    }
+    try {
+      const res = await fetch("/api/user/slug", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ slug: formatted }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update profile URL");
+      }
+      const data = await res.json();
+      queryClient.setQueryData(["/api/auth/me"], (old: any) => ({
+        ...old, slug: data.slug,
+      }));
+      setIsEditingSlug(false);
+      setSlugError(null);
+      setSlugAvailable(null);
+      toast({ title: "Profile URL updated" });
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Failed to update profile URL", variant: "destructive" });
     }
   };
 
@@ -450,6 +510,41 @@ export default function UserSettingsPage() {
                       <div className="flex items-center text-sm text-muted-foreground gap-1">
                         <Mail className="h-3.5 w-3.5" />
                         <span className="truncate">{user.email}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-muted-foreground gap-1 mt-1">
+                        <Link2 className="h-3.5 w-3.5 flex-shrink-0" />
+                        {isEditingSlug ? (
+                          <div className="flex items-center gap-1 flex-1 min-w-0">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">/people/</span>
+                            <Input
+                              value={editSlug}
+                              onChange={(e) => {
+                                const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                                setEditSlug(val);
+                                checkSlugAvailability(val);
+                              }}
+                              className="h-7 text-sm font-mono px-1.5 max-w-[160px]"
+                              autoFocus
+                            />
+                            {isCheckingSlug && <Loader2 className="h-3 w-3 animate-spin" />}
+                            {slugAvailable === true && <Check className="h-3 w-3 text-green-500" />}
+                            {slugError && <span className="text-xs text-destructive whitespace-nowrap">{slugError}</span>}
+                            <Button size="sm" className="h-7 text-xs" onClick={handleSlugSave} disabled={!!slugError || isCheckingSlug}>Save</Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setIsEditingSlug(false); setSlugError(null); setSlugAvailable(null); }}>Cancel</Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <span className="truncate font-mono text-xs">/people/{(user as any)?.slug || "..."}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 w-5 p-0 opacity-60 hover:opacity-100"
+                              onClick={() => { setEditSlug((user as any)?.slug || ""); setIsEditingSlug(true); }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

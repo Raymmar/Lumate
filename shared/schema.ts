@@ -83,6 +83,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   displayName: varchar("display_name", { length: 255 }),
+  slug: varchar("slug", { length: 255 }).unique(),
   password: varchar("password", { length: 255 }),
   isVerified: boolean("is_verified").notNull().default(false),
   isAdmin: boolean("is_admin").notNull().default(false),
@@ -290,6 +291,7 @@ export type User = typeof users.$inferSelect & {
 // Update insert schema
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
+  slug: true,
   isVerified: true,
   createdAt: true,
   updatedAt: true,

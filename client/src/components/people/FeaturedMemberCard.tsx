@@ -17,6 +17,7 @@ interface Person {
   userName: string;
   avatarUrl: string | null;
   role: string | null;
+  slug?: string | null;
   organizationName?: string | null;
   jobTitle?: string | null;
   isAdmin?: boolean;
@@ -26,6 +27,7 @@ interface Person {
     displayName: string;
     bio: string;
     isAdmin: boolean;
+    slug?: string | null;
     badges?: Array<{
       id: number;
       name: string;
@@ -188,7 +190,8 @@ export function FeaturedMemberCard({
       ?.split(" ")
       .map((n: string) => n?.[0] || "")
       .join("") || person.email[0].toUpperCase();
-  const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;
+  const slug = person.slug || person.user?.slug || person.api_id;
+  const profilePath = `/people/${encodeURIComponent(slug)}`;
 
   return (
     <Link href={profilePath} className="group block w-full h-full">

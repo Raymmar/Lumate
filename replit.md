@@ -6,6 +6,31 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 8, 2026 - User-Centric Architecture & Slug-Based Profile URLs
+- **Architecture Shift**: Transitioned from `people`-record-centric to `users`-record-centric throughout the app
+- **Database Changes**:
+  - Added `slug` column (varchar, unique) to `users` table — stores URL-friendly profile identifiers
+  - Populated slugs for all 580 existing users from linked people.userName/displayName/email with uniqueness via numeric suffixes
+- **Backend**:
+  - `GET /api/people` directory API now queries `users` table, returns user-sourced displayName/avatarUrl/slug
+  - `GET /api/people/by-username/:username` looks up by `users.slug` first, falls back to `people.userName` for unclaimed attendees
+  - `GET /api/people/:id` redirects to user's slug URL if a user account exists
+  - `GET /api/auth/me` includes `slug` in response
+  - `PATCH /api/user/slug` — change profile URL slug with uniqueness validation
+  - `GET /api/user/check-slug/:slug` — real-time slug availability check
+  - `getFeaturedMember()` now includes user slug in response
+  - Added `getUserBySlug()`, `generateUniqueSlug()`, `formatSlug()` to storage
+  - `createUser()` auto-generates slug on signup
+- **Frontend**:
+  - `PeopleDirectory.tsx` — uses user slug for URLs, identifies current user by `userId` (number)
+  - `PersonProfilePage.tsx` — passes slug directly to API (no hyphen-to-space conversion needed)
+  - `NavBar.tsx` — profile link uses `user.slug` when available
+  - `FeaturedMemberCard.tsx` — profile links use slug
+  - `CompanyProfile.tsx` — team member links use user slug
+  - `UserSettingsPage.tsx` — editable profile URL slug with real-time availability checking
+- **SEO**: Profile URLs stay at `/people/:slug` preserving existing search rankings
+- **People table**: Now secondary/fallback for unclaimed attendees without user accounts
+
 ### March 7, 2026 - Luma Membership Sync & Decoupled Account Creation
 - **Feature**: Unified membership system between internal platform and Luma
 - **Database Changes**:

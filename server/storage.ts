@@ -69,6 +69,7 @@ export interface IStorage {
   createUser(userData: InsertUser): Promise<User>;
   getUserByEmail(email: string): Promise<User | null>;
   getUserById(id: number): Promise<User | null>;
+  getUserBySlug(slug: string): Promise<User | null>;
   getAllUsers(): Promise<User[]>;
   getUserCount(): Promise<number>; 
   getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null>;
@@ -76,6 +77,7 @@ export interface IStorage {
   verifyUser(userId: number): Promise<User>;
   updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
   updateUser(userId: number, data: Partial<User>): Promise<User>;
+  generateUniqueSlug(baseName: string, excludeUserId?: number): Promise<string>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -593,12 +595,16 @@ export class PostgresStorage implements IStorage {
       console.log('Creating new user with email:', userData.email);
       
       const person = await this.getPersonByEmail(userData.email);
+
+      const slugSource = person?.userName || userData.displayName || userData.email.split('@')[0];
+      const slug = await this.generateUniqueSlug(slugSource);
       
       const [newUser] = await db
         .insert(users)
         .values({
           ...userData,
-          email: userData.email.toLowerCase(), 
+          email: userData.email.toLowerCase(),
+          slug,
           personId: person?.id || userData.personId || null,
           isVerified: false, 
           createdAt: new Date().toISOString(),
@@ -606,7 +612,7 @@ export class PostgresStorage implements IStorage {
         })
         .returning();
       
-      console.log('Successfully created user:', newUser.id, person ? `linked to person: ${person.id}` : 'no Luma profile found');
+      console.log('Successfully created user:', newUser.id, `slug: ${slug}`, person ? `linked to person: ${person.id}` : 'no Luma profile found');
       return newUser;
     } catch (error) {
       console.error('Failed to create user:', error);
@@ -643,7 +649,65 @@ export class PostgresStorage implements IStorage {
       throw error;
     }
   }
-  
+
+  async getUserBySlug(slug: string): Promise<User | null> {
+    try {
+      const result = await db
+        .select()
+        .from(users)
+        .where(sql`LOWER(${users.slug}) = LOWER(${slug})`)
+        .limit(1);
+      return result.length > 0 ? result[0] : null;
+    } catch (error) {
+      console.error('Failed to get user by slug:', error);
+      throw error;
+    }
+  }
+
+  formatSlug(name: string): string {
+    let processed = name
+      .replace(/Dr\./i, 'dr')
+      .replace(/Mr\./i, 'mr')
+      .replace(/Mrs\./i, 'mrs')
+      .replace(/Ms\./i, 'ms')
+      .replace(/\./g, '')
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\w\s-]/g, ' ')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return processed;
+  }
+
+  async generateUniqueSlug(baseName: string, excludeUserId?: number): Promise<string> {
+    const baseSlug = this.formatSlug(baseName);
+    if (!baseSlug) {
+      const fallback = `member-${Date.now()}`;
+      return fallback;
+    }
+
+    let slug = baseSlug;
+    let counter = 1;
+    while (true) {
+      const existing = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(
+          excludeUserId
+            ? and(sql`LOWER(${users.slug}) = LOWER(${slug})`, sql`${users.id} != ${excludeUserId}`)
+            : sql`LOWER(${users.slug}) = LOWER(${slug})`
+        )
+        .limit(1);
+
+      if (existing.length === 0) return slug;
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+  }
+
   async getUserWithPerson(userId: number): Promise<(User & { person: Person }) | null> {
     try {
       const user = await this.getUserById(userId);
@@ -1424,7 +1488,6 @@ export class PostgresStorage implements IStorage {
         await this.setFeaturedMember(personId);
       }
       
-      // Get the complete person data with user and badges
       const personData = await db
         .select({
           ...people,
@@ -1433,7 +1496,8 @@ export class PostgresStorage implements IStorage {
             email: users.email,
             displayName: users.displayName,
             bio: users.bio,
-            isAdmin: users.isAdmin
+            isAdmin: users.isAdmin,
+            slug: users.slug
           }
         })
         .from(people)

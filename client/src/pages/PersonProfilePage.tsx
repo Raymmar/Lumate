@@ -11,18 +11,11 @@ export default function PersonProfilePage() {
     return <div>Invalid profile URL</div>;
   }
 
-  // Decode the URL-encoded username and handle special characters
   const rawUsername = decodeURIComponent(params.username);
   
-  // Check if this looks like an API ID (starts with usr-, gst-, evt-, etc.)
-  // If so, keep it as-is. Otherwise, convert hyphens to spaces for username lookup
-  const isApiId = /^(usr|gst|evt|api)-/.test(rawUsername);
-  
-  const decodedUsername = isApiId 
-    ? rawUsername // Keep API IDs with hyphens intact
-    : rawUsername
-        .replace(/^dr-/i, "Dr. ") // Convert "dr-" prefix back to "Dr. "
-        .replace(/-/g, " "); // Convert remaining hyphens to spaces for lookup
+  // Slugs are stored as URL-friendly values (lowercase, hyphenated)
+  // Pass directly to the API - the backend handles slug and legacy username lookups
+  const decodedUsername = rawUsername;
 
   // Fetch person data for SEO at the page level
   const { data: personData } = useQuery({
@@ -30,19 +23,18 @@ export default function PersonProfilePage() {
     queryFn: async () => {
       try {
         const response = await fetch(`/api/people/by-username/${encodeURIComponent(decodedUsername)}`);
-        if (!response.ok) return { person: null };
+        if (!response.ok) return null;
         return await response.json();
       } catch (error) {
         console.error("Error fetching person data for SEO:", error);
-        return { person: null };
+        return null;
       }
     }
   });
 
-  const person = personData?.person;
+  const person = personData;
 
-  // Generate SEO metadata with properly formatted values
-  const seoTitle = person?.userName ? `${person.userName} | Sarasota Tech` : 'Member Profile | Sarasota Tech';
+  const seoTitle = (person?.userName || person?.user?.displayName) ? `${person?.userName || person?.user?.displayName} | Sarasota Tech` : 'Member Profile | Sarasota Tech';
   const seoDescription = person?.user?.bio || `Member profile for ${person?.userName || 'a tech professional'} on Sarasota Tech.`;
   const seoImage = person?.avatarUrl || undefined;
 
