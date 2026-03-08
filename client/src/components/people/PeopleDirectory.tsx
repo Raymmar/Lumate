@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search } from 'lucide-react';
 import { useLocation, useParams } from 'wouter';
+import { formatUsernameForUrl } from '@/lib/utils';
 
 import {
   Pagination,
@@ -115,7 +116,8 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
   };
 
   const handlePersonClick = (person: Person) => {
-    setLocation('/people/' + encodeURIComponent(person.slug || person.api_id));
+    const profileSlug = person.slug || formatUsernameForUrl(person.userName, person.api_id);
+    setLocation('/people/' + encodeURIComponent(profileSlug));
     if (onMobileSelect) {
       onMobileSelect();
     }
@@ -198,7 +200,7 @@ export default function PeopleDirectory({ onMobileSelect }: PeopleDirectoryProps
                 <div
                   key={person.id}
                   className={`flex items-center gap-2 py-1.5 px-2 rounded-lg transition-colors cursor-pointer ${
-                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === (person.slug || person.api_id))
+                    (index === focusedIndex && isSearchActive) || (!isSearchActive && params?.username === (person.slug || formatUsernameForUrl(person.userName, person.api_id)))
                       ? 'bg-muted ring-1 ring-inset ring-ring'
                       : 'hover:bg-muted/50'
                   } ${person.id === data?.currentUserId ? 'bg-primary/10' : ''}`}
