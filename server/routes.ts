@@ -1376,13 +1376,19 @@ export async function registerRoutes(app: Express) {
         attendanceCounts.rows.map((row: any) => [row.email.toLowerCase(), row]),
       );
 
-      let allUsersQuery = db
+      const fallbackAvatar = sql<string>`COALESCE(
+        ${users.avatarUrl},
+        (SELECT p."avatar_url" FROM people p WHERE p.id = ${users.personId} LIMIT 1),
+        (SELECT p."avatar_url" FROM people p WHERE LOWER(p.email) = LOWER(${users.email}) LIMIT 1)
+      )`.as('avatar_url');
+
+      let allMembers = await db
         .select({
           id: users.id,
           email: users.email,
           displayName: users.displayName,
           slug: users.slug,
-          avatarUrl: users.avatarUrl,
+          avatarUrl: fallbackAvatar,
           bio: users.bio,
           isVerified: users.isVerified,
           isAdmin: users.isAdmin,
@@ -1395,21 +1401,6 @@ export async function registerRoutes(app: Express) {
             ? sql`(LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.email}) LIKE ${`%${searchQuery}%`})`
             : undefined as any
         );
-
-      let allMembers = await (searchQuery ? allUsersQuery : db
-        .select({
-          id: users.id,
-          email: users.email,
-          displayName: users.displayName,
-          slug: users.slug,
-          avatarUrl: users.avatarUrl,
-          bio: users.bio,
-          isVerified: users.isVerified,
-          isAdmin: users.isAdmin,
-          createdAt: users.createdAt,
-          personId: users.personId,
-        })
-        .from(users));
 
       const membersWithStats = allMembers.map((member) => {
         const attendance = countMap.get(member.email.toLowerCase());

@@ -529,9 +529,9 @@ export default function CompanyProfile({ nameSlug }: CompanyProfileProps) {
                         <Link key={member.id} href={profilePath}>
                           <div className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50 cursor-pointer transition-colors">
                             <Avatar className="h-8 w-8">
-                              {member.user.person?.avatarUrl ? (
+                              {(member.user.avatarUrl || member.user.person?.avatarUrl) ? (
                                 <AvatarImage 
-                                  src={member.user.person.avatarUrl} 
+                                  src={member.user.avatarUrl || member.user.person?.avatarUrl || ''} 
                                   alt={userName} 
                                 />
                               ) : (
