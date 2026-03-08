@@ -11,6 +11,7 @@ import { startEventSyncService } from "./services/eventSyncService";
 import { emailInvitationService } from "./services/EmailInvitationService";
 import { LumaMembershipService } from "./services/LumaMembershipService";
 import { pool } from "./db";
+import { storage } from "./storage";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -337,6 +338,8 @@ app.use(
       } catch (tierError) {
         console.error('[Server] Failed to resolve Luma membership tier (non-fatal):', tierError);
       }
+
+      await storage.backfillMissingSlugs();
 
       eventSyncIntervals = await startEventSyncService(false);
       

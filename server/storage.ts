@@ -78,6 +78,7 @@ export interface IStorage {
   updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
   updateUser(userId: number, data: Partial<User>): Promise<User>;
   generateUniqueSlug(baseName: string, excludeUserId?: number): Promise<string>;
+  backfillMissingSlugs(): Promise<number>;
 
   // Email verification
   createVerificationToken(email: string): Promise<VerificationToken>;
@@ -705,6 +706,43 @@ export class PostgresStorage implements IStorage {
       if (existing.length === 0) return slug;
       slug = `${baseSlug}-${counter}`;
       counter++;
+    }
+  }
+
+  async backfillMissingSlugs(): Promise<number> {
+    try {
+      const usersWithoutSlugs = await db
+        .select()
+        .from(users)
+        .where(sql`${users.slug} IS NULL OR ${users.slug} = ''`);
+
+      if (usersWithoutSlugs.length === 0) {
+        console.log('[Backfill] All users have slugs, nothing to do');
+        return 0;
+      }
+
+      console.log(`[Backfill] Found ${usersWithoutSlugs.length} users without slugs`);
+      let updated = 0;
+
+      for (const user of usersWithoutSlugs) {
+        const person = await this.getPersonByEmail(user.email);
+        const slugSource = person?.userName || user.displayName || user.email.split('@')[0];
+        const slug = await this.generateUniqueSlug(slugSource, user.id);
+
+        await db
+          .update(users)
+          .set({ slug })
+          .where(eq(users.id, user.id));
+
+        console.log(`[Backfill] User ${user.id} (${user.displayName || user.email}) -> slug: ${slug}`);
+        updated++;
+      }
+
+      console.log(`[Backfill] Successfully backfilled ${updated} user slugs`);
+      return updated;
+    } catch (error) {
+      console.error('[Backfill] Failed to backfill slugs:', error);
+      return 0;
     }
   }
 
