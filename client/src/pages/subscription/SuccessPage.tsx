@@ -1,30 +1,31 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, Mail } from "lucide-react";
 
 export default function SubscriptionSuccessPage() {
   const [location, navigate] = useLocation();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get('session_id');
 
-  // Type the response data
   type SessionResponse = {
     status: 'complete' | 'pending';
+    needsAccountSetup?: boolean;
+    accountEmail?: string | null;
     debug?: {
       sessionStatus: string;
       paymentStatus: string;
     };
   };
 
-  const { data: sessionStatus, isLoading, error } = useQuery({
+  const { data: sessionStatus, isLoading, error } = useQuery<SessionResponse>({
     queryKey: ['/api/stripe/session-status', sessionId],
     queryFn: async () => {
-      console.log('🔍 Verifying session:', sessionId);
-
       if (!sessionId) {
         throw new Error('No session ID provided');
       }
@@ -46,16 +47,14 @@ export default function SubscriptionSuccessPage() {
   });
 
   useEffect(() => {
-    if (sessionStatus?.status === 'complete') {
-      console.log('✨ Payment confirmed, invalidating queries...');
-      // Invalidate relevant queries to trigger a refresh
+    if (sessionStatus?.status === 'complete' && !sessionStatus?.needsAccountSetup && user) {
       queryClient.invalidateQueries({ queryKey: ['/api/subscription/status'] });
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
 
       const timer = setTimeout(() => navigate('/settings'), 3000);
       return () => clearTimeout(timer);
     }
-  }, [sessionStatus, navigate, queryClient]);
+  }, [sessionStatus, navigate, queryClient, user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
@@ -75,9 +74,28 @@ export default function SubscriptionSuccessPage() {
             <p className="text-muted-foreground mt-2">
               {error instanceof Error ? error.message : 'Failed to verify payment status'}
             </p>
-            <Button onClick={() => navigate('/settings')} className="mt-4">
-              Return to Settings
+            <Button onClick={() => navigate('/memberships')} className="mt-4">
+              Return to Memberships
             </Button>
+          </div>
+        ) : sessionStatus?.status === 'complete' && sessionStatus?.needsAccountSetup ? (
+          <div className="text-center py-8">
+            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
+            <h1 className="text-2xl font-bold mt-4">Payment Successful!</h1>
+            <p className="text-muted-foreground mt-2">
+              Your Premium membership is active.
+            </p>
+            <div className="mt-6 p-4 bg-muted rounded-lg">
+              <Mail className="h-8 w-8 mx-auto text-primary mb-2" />
+              <p className="font-medium">Check your email to complete setup</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                We've sent a verification email to <strong>{sessionStatus.accountEmail}</strong>. 
+                Click the link to set your password and access your account.
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              If you've attended our events, your Luma profile will be linked automatically.
+            </p>
           </div>
         ) : sessionStatus?.status === 'complete' ? (
           <div className="text-center py-8">

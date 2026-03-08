@@ -17,7 +17,6 @@ interface ClaimProfileDialogProps {
   trigger?: React.ReactNode;
   personId?: string;
   onOpenChange?: (open: boolean) => void;
-  intent?: "free" | "premium";
 }
 
 interface ClaimProfileResponse {

@@ -6,6 +6,20 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 8, 2026 - Guest Premium Checkout (Stripe-First Onboarding)
+- **Feature**: Non-logged-in users can now purchase Premium memberships directly via Stripe without creating an account first
+- **Flow**: Click "Get Premium" → Stripe Checkout (collects email + payment) → Account auto-created → Verification email sent → User sets password → Logged in as Premium member with Luma profile auto-linked
+- **Backend**:
+  - `StripeService.createGuestCheckoutSession(priceId)` — creates Stripe Checkout session without requiring a customer ID
+  - `POST /api/stripe/create-guest-checkout-session` — new unauthenticated endpoint for guest checkout
+  - `GET /api/stripe/session-status` — extended to auto-create user accounts for guest checkouts when payment confirmed (creates user, links Stripe customer ID, auto-links Luma profile, generates auto-coupons, syncs Luma tier, sends verification email)
+  - `StripeService.verifySession()` — now returns `customerEmail` from Stripe session data
+- **Frontend**:
+  - `use-subscription.ts` — added `startGuestSubscription()` function
+  - `MembershipsPage.tsx` — Premium button now enabled for logged-out users, shows "Get Premium" text, calls guest checkout
+  - `SubscriptionSuccessPage.tsx` — handles guest flow with account setup instructions and email prompt
+- **Integration**: Uses Replit Stripe connector (`getUncachableStripeClient()`) for all Stripe API calls
+
 ### March 8, 2026 - User-Centric Architecture & Slug-Based Profile URLs
 - **Architecture Shift**: Transitioned from `people`-record-centric to `users`-record-centric throughout the app
 - **Database Changes**:

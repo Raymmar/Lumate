@@ -95,6 +95,40 @@ export class StripeService {
     }
   }
 
+  static async createGuestCheckoutSession(priceId: string) {
+    try {
+      console.log("Creating guest checkout session:", { priceId });
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = process.env.APP_URL || "http://localhost:3000";
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+        mode: "subscription",
+        success_url: `${baseUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/memberships`,
+        allow_promotion_codes: true,
+        metadata: {
+          guestCheckout: "true",
+        },
+      });
+
+      console.log("✅ Guest checkout session created:", {
+        sessionId: session.id,
+      });
+
+      return session;
+    } catch (error) {
+      console.error("❌ Error creating guest checkout session:", error);
+      throw error;
+    }
+  }
+
   static async verifySession(sessionId: string) {
     try {
       console.log("🔍 Verifying session:", sessionId);
@@ -146,6 +180,7 @@ export class StripeService {
           isValid: true,
           status: session.status,
           paymentStatus: session.payment_status,
+          customerEmail: session.customer_details?.email || session.customer_email || null,
           subscriptionDetails: {
             id: subscription.id,
             status: subscription.status,
@@ -159,6 +194,7 @@ export class StripeService {
         isValid: true,
         status: session.status,
         paymentStatus: session.payment_status,
+        customerEmail: session.customer_details?.email || session.customer_email || null,
         subscriptionDetails: null,
       };
     } catch (error) {

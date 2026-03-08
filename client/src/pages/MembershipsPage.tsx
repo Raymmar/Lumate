@@ -49,7 +49,7 @@ interface PremiumPriceData {
 
 export default function MembershipsPage() {
   const { toast } = useToast();
-  const { isPremium, startSubscription, isLoading } = useSubscription();
+  const { isPremium, startSubscription, startGuestSubscription, isLoading } = useSubscription();
   const { user } = useAuth();
   const isLoggedIn = !!user;
 
@@ -102,9 +102,9 @@ export default function MembershipsPage() {
           ? "Current Plan"
           : isLoading
           ? "Loading..."
-          : isLoggedIn ? "Upgrade Now" : "Claim Profile to Upgrade",
-        action: isPremium ? undefined : isLoggedIn ? startSubscription : undefined,
-        disabled: isPremium || isLoading || !isLoggedIn,
+          : isLoggedIn ? "Upgrade Now" : "Get Premium",
+        action: isPremium ? undefined : isLoggedIn ? startSubscription : startGuestSubscription,
+        disabled: isPremium || isLoading,
         accent: true,
       },
     },

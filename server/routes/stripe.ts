@@ -9,6 +9,8 @@ import express from "express";
 import { storage } from "../storage";
 import { StripeService } from "../services/stripe";
 import { LumaMembershipService } from "../services/LumaMembershipService";
+import { AutoCouponService } from "../services/autoCoupon";
+import { sendVerificationEmail } from "../email";
 
 const router = express.Router();
 
@@ -64,6 +66,24 @@ router.get("/premium-price", async (req, res) => {
   } catch (error: any) {
     console.error("Error fetching premium price:", error);
     res.status(500).json({ error: "Failed to fetch price details" });
+  }
+});
+
+// Create guest checkout session (no login required)
+router.post("/create-guest-checkout-session", async (req, res) => {
+  try {
+    if (!process.env.STRIPE_PRICE_ID) {
+      throw new Error("Stripe price ID is not configured");
+    }
+
+    const session = await StripeService.createGuestCheckoutSession(
+      process.env.STRIPE_PRICE_ID,
+    );
+
+    res.json({ url: session.url });
+  } catch (error: any) {
+    console.error("Error creating guest checkout session:", error);
+    res.status(500).json({ error: "Failed to create checkout session" });
   }
 });
 
@@ -144,16 +164,89 @@ router.get("/session-status", async (req, res) => {
       paymentStatus: sessionDetails.paymentStatus,
     });
 
-    // If payment is confirmed, return complete status
     if (sessionDetails.paymentStatus === "paid") {
       console.log("💳 Payment confirmed as paid");
+
+      let needsAccountSetup = false;
+      let accountEmail: string | null = null;
+
+      if (sessionDetails.customerEmail && !req.session?.userId) {
+        const email = sessionDetails.customerEmail.toLowerCase();
+        accountEmail = email;
+        const existingUser = await storage.getUserByEmail(email);
+
+        if (!existingUser) {
+          console.log("🆕 Guest checkout: Creating account for", email);
+
+          const person = await storage.getPersonByEmail(email);
+
+          const newUser = await storage.createUser({
+            email,
+            personId: person?.id || null,
+            displayName: person?.userName || person?.fullName || undefined,
+            isVerified: false,
+            stripeCustomerId: sessionDetails.subscriptionDetails?.customerId || null,
+            subscriptionStatus: "active",
+            subscriptionId: sessionDetails.subscriptionDetails?.id || null,
+          });
+
+          if (person) {
+            try {
+              await LumaMembershipService.linkPersonToUser(newUser.id, person.id, true);
+              console.log(`Auto-linked person ${person.id} to new user ${newUser.id}`);
+            } catch (linkError) {
+              console.error("Failed to auto-link person to user:", linkError);
+            }
+          } else {
+            try {
+              await LumaMembershipService.autoLinkByEmail(newUser.id, email);
+            } catch (linkError) {
+              console.error("Failed to auto-link by email:", linkError);
+            }
+          }
+
+          try {
+            await LumaMembershipService.addMemberToLumaTier(email);
+          } catch (lumaError) {
+            console.error("Error syncing to Luma tier:", lumaError);
+          }
+
+          try {
+            await AutoCouponService.generateCouponsForNewSubscriber(newUser.id, email);
+          } catch (couponError) {
+            console.error("Error generating auto-coupons for guest:", couponError);
+          }
+
+          const verificationToken = await storage.createVerificationToken(email);
+          const emailSent = await sendVerificationEmail(email, verificationToken.token);
+          if (!emailSent) {
+            console.error("Failed to send verification email to guest:", email);
+          } else {
+            console.log("✅ Verification email sent to guest:", email);
+          }
+
+          needsAccountSetup = true;
+        } else if (!existingUser.stripeCustomerId || existingUser.stripeCustomerId === "NULL") {
+          if (sessionDetails.subscriptionDetails?.customerId) {
+            await storage.setStripeCustomerId(existingUser.id, sessionDetails.subscriptionDetails.customerId);
+            await storage.updateUserSubscription(
+              existingUser.id,
+              sessionDetails.subscriptionDetails.id,
+              "active",
+            );
+            console.log("📌 Linked Stripe customer to existing user:", existingUser.id);
+          }
+        }
+      }
+
       return res.json({
         status: "complete",
         subscription: sessionDetails.subscriptionDetails,
+        needsAccountSetup,
+        accountEmail,
       });
     }
 
-    // If payment is still processing, return pending status
     console.log("⏳ Payment pending:", sessionDetails.paymentStatus);
     return res.json({
       status: "pending",

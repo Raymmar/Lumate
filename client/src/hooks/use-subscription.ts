@@ -51,10 +51,37 @@ export function useSubscription() {
     }
   };
 
+  const startGuestSubscription = async () => {
+    try {
+      const response = await fetch("/api/stripe/create-guest-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create checkout session");
+      }
+
+      const { url } = await response.json();
+      if (!url) {
+        throw new Error("No checkout URL received");
+      }
+
+      window.location.href = url;
+    } catch (error) {
+      console.error("Guest subscription error:", error);
+      throw error;
+    }
+  };
+
   return {
     subscriptionStatus,
     isLoading,
     isPremium,
-    startSubscription
+    startSubscription,
+    startGuestSubscription,
   };
 }
