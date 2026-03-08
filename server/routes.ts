@@ -6199,7 +6199,9 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Email is required" });
       }
 
-      const person = await storage.getPersonByEmail(email.toLowerCase());
+      const normalizedEmail = email.toLowerCase();
+
+      const person = await storage.getPersonByEmail(normalizedEmail);
       if (!person) {
         return res.status(404).json({ error: "No Luma profile found for this email" });
       }
@@ -6210,13 +6212,87 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "This profile is already linked" });
       }
 
-      const isPrimary = existing.length === 0;
-      await LumaMembershipService.linkPersonToUser(req.session.userId, person.id, isPrimary);
+      const user = await storage.getUserById(req.session.userId);
+      if (user && user.email.toLowerCase() === normalizedEmail) {
+        const isPrimary = existing.length === 0;
+        await LumaMembershipService.linkPersonToUser(req.session.userId, person.id, isPrimary);
+        return res.json({ message: "Profile linked successfully", person });
+      }
 
-      res.json({ message: "Profile linked successfully", person });
+      const tokenPrefix = `link:${req.session.userId}:`;
+      const verificationToken = await storage.createVerificationToken(tokenPrefix + normalizedEmail);
+
+      const emailSent = await sendVerificationEmail(
+        normalizedEmail,
+        verificationToken.token,
+        "link"
+      );
+
+      if (!emailSent) {
+        await storage.deleteVerificationToken(verificationToken.token);
+        return res.status(500).json({ error: "Failed to send verification email" });
+      }
+
+      res.json({ message: "Verification email sent. Please check your inbox to confirm this email.", pendingVerification: true });
     } catch (error) {
       console.error("Failed to link profile:", error);
       res.status(500).json({ error: "Failed to link profile" });
+    }
+  });
+
+  app.post("/api/users/verify-link-profile", async (req, res) => {
+    try {
+      const { token } = req.body;
+      if (!token) {
+        return res.status(400).json({ error: "Missing verification token" });
+      }
+
+      const verificationToken = await storage.validateVerificationToken(token);
+      if (!verificationToken) {
+        return res.status(400).json({ error: "Invalid or expired verification link" });
+      }
+
+      const tokenEmail = verificationToken.email;
+      if (!tokenEmail.startsWith("link:")) {
+        return res.status(400).json({ error: "Invalid token type" });
+      }
+
+      const parts = tokenEmail.split(":");
+      const userId = parseInt(parts[1]);
+      const email = parts.slice(2).join(":");
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid token data" });
+      }
+
+      if (req.session?.userId && req.session.userId !== userId) {
+        await storage.deleteVerificationToken(token);
+        return res.status(403).json({ error: "This verification link belongs to a different account" });
+      }
+
+      const person = await storage.getPersonByEmail(email);
+      if (!person) {
+        await storage.deleteVerificationToken(token);
+        return res.status(404).json({ error: "No Luma profile found for this email" });
+      }
+
+      const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+      const existing = await LumaMembershipService.getLinkedPeople(userId);
+
+      if (existing.some(p => p.id === person.id)) {
+        await storage.deleteVerificationToken(token);
+        return res.json({ message: "Profile already linked", person });
+      }
+
+      const isPrimary = existing.length === 0;
+      await LumaMembershipService.linkPersonToUser(userId, person.id, isPrimary);
+      await storage.deleteVerificationToken(token);
+
+      console.log(`Verified and linked person ${person.id} to user ${userId} via email verification`);
+      res.json({ message: "Email verified and profile linked successfully", person });
+    } catch (error) {
+      console.error("Failed to verify link profile:", error);
+      res.status(500).json({ error: "Failed to verify and link profile" });
     }
   });
 

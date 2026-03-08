@@ -26,9 +26,32 @@ export default function VerifyPage() {
       try {
         const searchParams = new URLSearchParams(window.location.search);
         const token = searchParams.get('token');
+        const type = searchParams.get('type');
 
         if (!token) {
           throw new Error('Verification token is missing');
+        }
+
+        if (type === 'link') {
+          const response = await fetch('/api/users/verify-link-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ token }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Link verification failed');
+          }
+
+          toast({
+            title: "Profile Linked",
+            description: "Your Luma profile has been linked to your account.",
+          });
+          setLocation('/settings');
+          return;
         }
 
         const response = await fetch('/api/auth/verify', {

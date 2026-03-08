@@ -82,8 +82,13 @@ export default function UserSettingsPage() {
       if (!res.ok) throw new Error(data.error || "Failed to link profile");
       return data;
     },
-    onSuccess: () => {
-      toast({ title: "Profile linked successfully" });
+    onSuccess: (data) => {
+      if (data.pendingVerification) {
+        toast({ title: "Verification email sent", description: "Check your inbox and click the link to confirm this profile." });
+      } else {
+        toast({ title: "Profile linked successfully" });
+        queryClient.invalidateQueries({ queryKey: ["/api/users/linked-profiles"] });
+      }
       setLinkEmail("");
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },

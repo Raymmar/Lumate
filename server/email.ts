@@ -188,33 +188,70 @@ function getEmailTemplate(
 export async function sendVerificationEmail(
   email: string,
   token: string,
-  adminCreated: boolean = false,
+  adminCreated: boolean | string = false,
   emailStage: number = -1, // -1 means use the old template
   eventInfo?: { title: string; url: string; startTime: string }
 ): Promise<boolean> {
   try {
-    console.log('Sending verification email to:', email, adminCreated ? '(admin-created account)' : '', 'Stage:', emailStage, 'Has event:', !!eventInfo);
-    const verificationUrl = `${getEmailBaseUrl()}/verify?token=${token}`;
+    const purpose = typeof adminCreated === 'string' ? adminCreated : (adminCreated ? 'admin' : 'claim');
+    console.log('Sending verification email to:', email, 'Purpose:', purpose, 'Stage:', emailStage, 'Has event:', !!eventInfo);
+
+    const verifyPath = purpose === 'link' ? '/verify?type=link&token=' : '/verify?token=';
+    const verificationUrl = `${getEmailBaseUrl()}${verifyPath}${token}`;
+
+    if (purpose === 'link') {
+      if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+        console.log('Development mode - Link verification email would have been sent:', { to: email, verificationUrl });
+        return true;
+      }
+
+      const subject = 'Confirm your Luma profile link - Sarasota Tech';
+      const htmlContent = `
+        <div>
+          <h2>Confirm Your Profile Link</h2>
+          <p>Someone requested to link a Luma profile associated with this email to their Sarasota Tech account.</p>
+          <p>If this was you, click the button below to confirm:</p>
+          <a href="${verificationUrl}" style="display:inline-block;padding:12px 20px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;">
+            Confirm Link
+          </a>
+          <p style="margin-top:20px">Or copy and paste this link in your browser:</p>
+          <p>${verificationUrl}</p>
+          <p style="margin-top:20px;color:#666;">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      `;
+      const textContent = `Someone requested to link a Luma profile associated with this email to their Sarasota Tech account. If this was you, click this link to confirm: ${verificationUrl}`;
+
+      await mailService.send({
+        to: email,
+        from: FROM_EMAIL!,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+      console.log('Link verification email sent to:', email);
+      return true;
+    }
+
+    const isAdminCreated = purpose === 'admin';
 
     // In development, just log the verification URL
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
       console.log('Development mode - Email would have been sent with:', {
         to: email,
         verificationUrl,
-        adminCreated,
+        purpose,
         emailStage,
         eventInfo
       });
       return true;
     }
 
-    // Add debug logging similar to sendPasswordResetEmail
     console.log('Email configuration:', {
       hasApiKey: !!process.env.SENDGRID_API_KEY,
       fromEmail: FROM_EMAIL,
       isDevelopment,
       verificationUrl,
-      adminCreated,
+      purpose,
       emailStage,
       hasEvent: !!eventInfo
     });
@@ -223,15 +260,13 @@ export async function sendVerificationEmail(
     let htmlContent: string;
     let textContent: string;
 
-    // Use new template system for staged emails, otherwise use legacy templates
     if (emailStage >= 0) {
       const template = getEmailTemplate(emailStage, verificationUrl, eventInfo);
       subject = template.subject;
       htmlContent = template.htmlContent;
       textContent = template.textContent;
     } else {
-      // Legacy template for backward compatibility
-      subject = adminCreated 
+      subject = isAdminCreated 
         ? 'Your Sarasota Tech member profile is ready to claim' 
         : 'Verify your Sarasota Tech member profile';
 
@@ -257,7 +292,7 @@ export async function sendVerificationEmail(
 
       const eventTextSection = eventInfo ? `\n\nJoin us at our next event: ${eventInfo.title} on ${new Date(eventInfo.startTime).toLocaleDateString('en-US')}. Register at: ${eventInfo.url}` : '';
 
-      htmlContent = adminCreated 
+      htmlContent = isAdminCreated 
         ? `
           <div>
             <h2>Your Sarasota Tech Member Profile is Ready</h2>
@@ -284,7 +319,7 @@ export async function sendVerificationEmail(
           </div>
         `;
 
-      textContent = adminCreated
+      textContent = isAdminCreated
         ? `An administrator has created a member profile for you on the Sarasota Tech platform. Click the following link to claim your profile and set your password: ${verificationUrl}${eventTextSection}`
         : `Click the following link to verify your Sarasota Tech member profile: ${verificationUrl}${eventTextSection}`;
     }
@@ -293,7 +328,7 @@ export async function sendVerificationEmail(
       to: email,
       from: FROM_EMAIL,
       subject,
-      adminCreated,
+      purpose,
       emailStage
     });
 
@@ -309,7 +344,7 @@ export async function sendVerificationEmail(
       statusCode: 'Success',
       headers: null,
       email: email,
-      adminCreated,
+      purpose,
       emailStage
     });
 
