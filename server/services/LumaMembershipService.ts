@@ -147,12 +147,12 @@ export class LumaMembershipService {
     return allMembers;
   }
 
-  static async getActivePremiumEmails(): Promise<Map<string, { source: string }>> {
-    const premiumEmails = new Map<string, { source: string }>();
+  static async getActivePremiumEmails(): Promise<Map<string, { source: string; fromEventTicket?: boolean }>> {
+    const premiumEmails = new Map<string, { source: string; fromEventTicket?: boolean }>();
 
     const now = new Date().toISOString();
     const usersWithGrants = await db
-      .select({ email: users.email, premiumSource: users.premiumSource })
+      .select({ email: users.email, premiumSource: users.premiumSource, lumaTicketId: users.lumaTicketId })
       .from(users)
       .where(
         and(
@@ -165,7 +165,10 @@ export class LumaMembershipService {
       );
 
     for (const u of usersWithGrants) {
-      premiumEmails.set(u.email.toLowerCase(), { source: u.premiumSource || 'unknown' });
+      premiumEmails.set(u.email.toLowerCase(), {
+        source: u.premiumSource || 'unknown',
+        fromEventTicket: !!(u.premiumSource === 'luma' && u.lumaTicketId),
+      });
     }
 
     try {
@@ -249,6 +252,13 @@ export class LumaMembershipService {
 
       const user = matchingUsers[0];
       if (user.premiumSource === 'luma') {
+        const hasEventTicketGrant = user.lumaTicketId && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+        if (hasEventTicketGrant) {
+          result.details.push(`Skipped revocation for ${email} — premium from event ticket, not Luma membership tier`);
+          console.log(`[LumaMembership] Skipping revocation for ${email} — has active event ticket grant (ticket: ${user.lumaTicketId})`);
+          continue;
+        }
+
         await db
           .update(users)
           .set({
@@ -301,7 +311,7 @@ export class LumaMembershipService {
 
     const now = new Date().toISOString();
     const localLumaGrantedUsers = await db
-      .select({ id: users.id, email: users.email })
+      .select({ id: users.id, email: users.email, lumaTicketId: users.lumaTicketId, premiumExpiresAt: users.premiumExpiresAt })
       .from(users)
       .where(
         and(
@@ -316,6 +326,12 @@ export class LumaMembershipService {
     for (const user of localLumaGrantedUsers) {
       const lowerEmail = user.email.toLowerCase();
       if (!lumaApprovedEmails.has(lowerEmail)) {
+        const hasEventTicketGrant = user.lumaTicketId && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+        if (hasEventTicketGrant) {
+          result.details.push(`Skipped revocation for ${lowerEmail} — premium from event ticket, not Luma membership tier`);
+          continue;
+        }
+
         await db
           .update(users)
           .set({
@@ -337,7 +353,7 @@ export class LumaMembershipService {
     for (const [email, info] of activePremiumEmails) {
       if (lumaApprovedEmails.has(email)) continue;
 
-      if (info.source === 'luma') {
+      if (info.source === 'luma' && !info.fromEventTicket) {
         continue;
       }
 
