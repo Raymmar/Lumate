@@ -98,6 +98,8 @@ export const users = pgTable("users", {
   premiumGrantedBy: integer("premium_granted_by"),
   premiumGrantedAt: timestamp("premium_granted_at", { mode: 'string', withTimezone: true }),
   lumaTicketId: varchar("luma_ticket_id", { length: 255 }),
+  emailDriftDetectedAt: timestamp("email_drift_detected_at", { mode: 'string', withTimezone: true }),
+  emailDriftPersonEmail: varchar("email_drift_person_email", { length: 255 }),
   avatarUrl: varchar("avatar_url", { length: 512 }),
   featuredImageUrl: varchar("featured_image_url", { length: 255 }),
   bio: text("bio"),

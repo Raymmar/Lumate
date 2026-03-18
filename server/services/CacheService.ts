@@ -12,6 +12,7 @@ interface ExistingUser {
   id: number;
   email: string;
   personId: number | null;
+  emailDriftDetectedAt: string | null;
 }
 
 interface ExistingLink {
@@ -245,7 +246,7 @@ export class CacheService extends EventEmitter {
         this.emitProgress(`Processing ${people.length} people...`, 80);
 
         const existingUsers: ExistingUser[] = await db
-          .select({ id: users.id, email: users.email, personId: users.personId })
+          .select({ id: users.id, email: users.email, personId: users.personId, emailDriftDetectedAt: users.emailDriftDetectedAt })
           .from(users);
 
         const existingLinks: ExistingLink[] = await db
@@ -621,14 +622,30 @@ export class CacheService extends EventEmitter {
 
         if (linkedPersonIds.has(insertedPerson.id)) {
           const linkedUser = existingUsers.find(u => u.personId === insertedPerson.id);
-          if (linkedUser && linkedUser.email.toLowerCase() !== insertedPerson.email.toLowerCase()) {
-            emailDriftDetected++;
-            this.logSync(`[Email Drift] Person ${person.api_id} (${insertedPerson.email}) is linked to user ${linkedUser.email} — emails no longer match`, {
-              personId: insertedPerson.id,
-              personEmail: insertedPerson.email,
-              userId: linkedUser.id,
-              userEmail: linkedUser.email,
-            });
+          if (linkedUser) {
+            if (linkedUser.email.toLowerCase() !== insertedPerson.email.toLowerCase()) {
+              emailDriftDetected++;
+              this.logSync(`[Email Drift] Person ${person.api_id} (${insertedPerson.email}) is linked to user ${linkedUser.email} — emails no longer match`, {
+                personId: insertedPerson.id,
+                personEmail: insertedPerson.email,
+                userId: linkedUser.id,
+                userEmail: linkedUser.email,
+              });
+              await db.execute(sql`
+                UPDATE users
+                SET email_drift_detected_at = COALESCE(email_drift_detected_at, NOW()),
+                    email_drift_person_email = ${insertedPerson.email}
+                WHERE id = ${linkedUser.id}
+              `);
+            } else if (linkedUser.emailDriftDetectedAt) {
+              await db.execute(sql`
+                UPDATE users
+                SET email_drift_detected_at = NULL,
+                    email_drift_person_email = NULL
+                WHERE id = ${linkedUser.id}
+              `);
+              this.logSync(`[Email Drift Resolved] User ${linkedUser.email} drift cleared — emails match again`);
+            }
           }
         } else {
           const matchingUser = existingUsers.find(user =>

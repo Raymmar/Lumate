@@ -4977,11 +4977,13 @@ export async function registerRoutes(app: Express) {
           premiumGrantedAt: users.premiumGrantedAt,
           stripeCustomerId: users.stripeCustomerId,
           subscriptionId: users.subscriptionId,
+          emailDriftDetectedAt: users.emailDriftDetectedAt,
+          emailDriftPersonEmail: users.emailDriftPersonEmail,
         })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
         .where(whereClause)
-        .orderBy(users.createdAt)
+        .orderBy(sql`CASE WHEN ${users.emailDriftDetectedAt} IS NOT NULL THEN 0 ELSE 1 END`, sql`${users.emailDriftDetectedAt} DESC NULLS LAST`, users.createdAt)
         .limit(limit)
         .offset(offset);
 
