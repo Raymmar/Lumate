@@ -6,6 +6,15 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 18, 2026 - CacheService Optimizations
+- **Daily full people refresh**: Tracks `last_full_people_refresh` in `cache_metadata` table. Every 24h, bypasses `created_after` filter (passes epoch) to fetch ALL people from Luma, catching records missed by incremental sync. Timestamp updated only after successful sync.
+- **Removed redundant per-person syncMembershipFromLuma**: The per-person `syncMembershipFromLuma()` call during people insert was removed. Membership state is now handled comprehensively by `reconcileMemberships()` at the end of each sync cycle.
+- **Batch-loop optimization**: `existingUsers` and `userPeopleLinks` are loaded once before all people batches (not per-batch), reducing DB queries from O(batches) to O(1).
+- **Smart relinking with email drift detection**: Email-based user↔person linking only happens for previously unlinked people. For already-linked people, if their Luma email changes but their linked user account email doesn't match, it's logged as `[Email Drift]` for admin review.
+- **Graceful per-person error handling**: Individual person processing failures are caught, logged (with `api_id` and email), and skipped — the batch continues instead of aborting the entire transaction.
+- **Files**: `server/services/CacheService.ts`
+- **Key constants**: `FULL_PEOPLE_REFRESH_INTERVAL` (24h), `FULL_PEOPLE_REFRESH_KEY` ('last_full_people_refresh'), `SYNC_INTERVAL` (6h)
+
 ### March 18, 2026 - Bidirectional Luma Membership Sync
 - **Problem**: Luma membership sync was one-directional (push only), didn't fetch the full Luma member roster, couldn't remove stale members, and didn't correct drifted Stripe subscription statuses
 - **Solution**: Full bidirectional reconciliation in `LumaMembershipService.reconcileMemberships()`
