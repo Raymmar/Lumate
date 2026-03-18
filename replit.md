@@ -6,6 +6,11 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 18, 2026 - Fix Zero Attendee Count During Sync
+- **Issue**: Event sync service deleted all attendance records before re-fetching from Luma API, causing attendee counts to show as zero during the sync window (or permanently if the API call failed)
+- **Fix**: Removed the destructive `deleteAttendanceByEvent()` call from `syncEventAttendees()`. The sync now purely upserts new/updated attendee records. After all upserts complete successfully, stale records (those with `lastSyncedAt` older than the sync start time) are cleaned up. This ensures existing data is always visible and only removed after the full sync succeeds.
+- **Files**: `server/services/eventSyncService.ts`
+
 ### March 8, 2026 - Sync Status Persistence (Shadow Sync)
 - **Issue**: When the server restarted or a Luma sync ran, the frontend would show blank attendee lists and zero stats while data was being re-synced
 - **Solution**: "Shadow sync" pattern — frontend holds cached data during sync and refreshes all at once when sync completes

@@ -2,8 +2,8 @@ import { storage, setMemberStatsSyncing } from "../storage";
 import { syncStatusService } from "./SyncStatusService";
 import type { Event } from "@shared/schema";
 import { db } from "../db";
-import { users, events } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { users, events, attendance } from "@shared/schema";
+import { eq, and, lt } from "drizzle-orm";
 import { hasActivePremium } from "../utils/premiumCheck";
 import { syncCouponsForEvent } from "./couponSyncService";
 
@@ -24,8 +24,7 @@ async function syncEventAttendees(event: Event) {
     const premiumTicketTypes = eventData[0]?.premiumTicketTypes || [];
     const premiumExpiresAt = eventData[0]?.premiumExpiresAt;
 
-    // Clear existing attendance records for this event
-    await storage.deleteAttendanceByEvent(event.api_id);
+    const syncStartedAt = new Date().toISOString();
 
     let hasMore = true;
     let cursor: string | undefined;
@@ -141,6 +140,20 @@ async function syncEventAttendees(event: Event) {
           }
         }
       }
+    }
+
+    const staleDeleted = await db
+      .delete(attendance)
+      .where(
+        and(
+          eq(attendance.eventApiId, event.api_id),
+          lt(attendance.lastSyncedAt, syncStartedAt)
+        )
+      )
+      .returning({ id: attendance.id });
+
+    if (staleDeleted.length > 0) {
+      console.log(`Removed ${staleDeleted.length} stale attendance records for event: ${event.title}`);
     }
 
     // Update event sync timestamp
