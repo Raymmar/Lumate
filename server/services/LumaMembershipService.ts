@@ -299,6 +299,38 @@ export class LumaMembershipService {
       }
     }
 
+    const now = new Date().toISOString();
+    const localLumaGrantedUsers = await db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(
+        and(
+          eq(users.premiumSource, 'luma'),
+          or(
+            gt(users.premiumExpiresAt, now),
+            sql`${users.premiumExpiresAt} IS NULL`
+          )
+        )
+      );
+
+    for (const user of localLumaGrantedUsers) {
+      const lowerEmail = user.email.toLowerCase();
+      if (!lumaApprovedEmails.has(lowerEmail)) {
+        await db
+          .update(users)
+          .set({
+            premiumSource: null,
+            premiumExpiresAt: null,
+            premiumGrantedAt: null,
+          })
+          .where(eq(users.id, user.id));
+
+        result.pulledFromLuma++;
+        result.details.push(`Revoked local Luma premium (not in Luma approved list): ${lowerEmail}`);
+        console.log(`[LumaMembership] Revoked Luma-granted premium for ${lowerEmail} (absent from Luma approved members)`);
+      }
+    }
+
     const activePremiumEmails = await this.getActivePremiumEmails();
     console.log(`[LumaMembership] Found ${activePremiumEmails.size} active premium emails from all sources (after Luma sync)`);
 
