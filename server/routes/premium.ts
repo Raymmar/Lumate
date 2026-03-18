@@ -461,4 +461,64 @@ router.post("/api/admin/luma-membership-sync", requireAdmin, async (req, res) =>
   }
 });
 
+router.post("/api/admin/sync-premium-for-existing-users", requireAdmin, async (req, res) => {
+  try {
+    console.log("[Admin] Full premium sync triggered (tickets + Luma membership reconciliation)");
+
+    const { checkAndGrantPremiumFromTickets } = await import("../utils/premiumCheck.js");
+    const allUsers = await db.select().from(users);
+
+    let usersProcessed = 0;
+    let premiumGranted = 0;
+    const grantedUsers: Array<{ name: string; email: string; expiresAt: string }> = [];
+    const ticketErrors: string[] = [];
+
+    console.log(`[Admin] Step 1: Syncing ticket-based premium for ${allUsers.length} users...`);
+
+    for (const user of allUsers) {
+      try {
+        const result = await checkAndGrantPremiumFromTickets(user.id);
+        usersProcessed++;
+
+        if (result.granted) {
+          premiumGranted++;
+          grantedUsers.push({
+            name: user.name || user.email,
+            email: user.email,
+            expiresAt: result.expiresAt || '',
+          });
+        }
+      } catch (error) {
+        ticketErrors.push(`${user.email}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+
+    console.log(`[Admin] Step 1 complete: ${premiumGranted} granted from tickets, ${usersProcessed} processed`);
+
+    console.log("[Admin] Step 2: Running Luma membership reconciliation...");
+    let reconciliation;
+    try {
+      reconciliation = await LumaMembershipService.reconcileMemberships();
+      console.log(`[Admin] Step 2 complete: ${reconciliation.pushedToLuma} pushed, ${reconciliation.pulledFromLuma} pulled, ${reconciliation.removedFromLuma} removed`);
+    } catch (error) {
+      console.error("[Admin] Luma reconciliation failed (ticket sync still applied):", error);
+      reconciliation = { error: error instanceof Error ? error.message : String(error) };
+    }
+
+    res.json({
+      usersProcessed,
+      premiumGranted,
+      users: grantedUsers,
+      ticketErrors: ticketErrors.length > 0 ? ticketErrors : undefined,
+      reconciliation,
+    });
+  } catch (error) {
+    console.error("Failed to sync premium for existing users:", error);
+    res.status(500).json({
+      error: "Failed to sync premium access",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 export default router;

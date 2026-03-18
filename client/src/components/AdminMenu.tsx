@@ -169,13 +169,24 @@ export default function AdminMenu() {
         usersProcessed: number;
         premiumGranted: number;
         users: Array<{ name: string; email: string; expiresAt: string }>;
+        reconciliation?: {
+          pushedToLuma?: number;
+          pulledFromLuma?: number;
+          removedFromLuma?: number;
+          error?: string;
+        };
       }>('/api/admin/sync-premium-for-existing-users', 'POST');
 
       setPremiumSyncResult(result);
+
+      const reconInfo = result.reconciliation;
+      const reconSummary = reconInfo && !reconInfo.error
+        ? ` | Luma sync: ${reconInfo.pushedToLuma || 0} pushed, ${reconInfo.pulledFromLuma || 0} pulled, ${reconInfo.removedFromLuma || 0} removed`
+        : reconInfo?.error ? ' | Luma sync failed' : '';
       
       toast({
         title: "Premium Access Synced",
-        description: `Granted premium to ${result.premiumGranted} of ${result.usersProcessed} users with qualifying tickets.`,
+        description: `Granted premium to ${result.premiumGranted} of ${result.usersProcessed} users with qualifying tickets.${reconSummary}`,
       });
     } catch (error) {
       console.error('Error syncing premium access:', error);
@@ -291,15 +302,15 @@ export default function AdminMenu() {
               Sync Premium Access
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-4">
-              <p className="font-medium">This will:</p>
+              <p className="font-medium">This will run a full premium sync:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Check all users with claimed accounts</li>
-                <li>Look for VIP tickets in premium-enabled events</li>
-                <li>Grant premium access where appropriate</li>
+                <li>Check all users for qualifying event tickets and grant premium access</li>
+                <li>Reconcile memberships with Luma — push local premium members to Luma and pull Luma membership changes back</li>
+                <li>Remove stale Luma members who no longer have active premium</li>
                 <li>Respect existing Stripe subscriptions and manual grants</li>
               </ul>
               <p className="mt-4 text-sm text-muted-foreground">
-                Useful after enabling premium on events or changing ticket types.
+                This may take a minute. Useful after enabling premium on events, changing ticket types, or to force a Luma membership sync.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
