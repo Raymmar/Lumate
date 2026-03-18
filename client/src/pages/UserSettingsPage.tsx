@@ -3,12 +3,12 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Mail, ExternalLink, Lock, Ticket, Copy, Check, Link2, Unlink, Star, Plus, Camera, Pencil } from "lucide-react";
+import { Loader2, AlertCircle, AlertTriangle, Mail, ExternalLink, Lock, Ticket, Copy, Check, Link2, Unlink, Star, Plus, Camera, Pencil, ArrowRight, X } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useTheme } from "@/hooks/use-theme";
@@ -69,6 +69,26 @@ export default function UserSettingsPage() {
 
   const linkedProfiles: LinkedPerson[] = (user as any)?.linkedProfiles || [];
   const isLoadingProfiles = false;
+  const emailDriftDetectedAt = (user as any)?.emailDriftDetectedAt || null;
+  const emailDriftPersonEmail = (user as any)?.emailDriftPersonEmail || null;
+
+  const resolveDriftMutation = useMutation({
+    mutationFn: async (action: "update-email" | "link-both" | "dismiss") => {
+      return await apiRequest("/api/user/resolve-drift", "POST", { action });
+    },
+    onSuccess: (_data: any, action: string) => {
+      const messages: Record<string, string> = {
+        "update-email": "Your email has been updated to match your Luma profile",
+        "link-both": "Both email profiles have been linked to your account",
+        "dismiss": "Email drift alert dismissed",
+      };
+      toast({ title: "Resolved", description: messages[action] || "Drift resolved" });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to resolve", variant: "destructive" });
+    },
+  });
 
   const linkMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -643,6 +663,57 @@ export default function UserSettingsPage() {
                       </form>
                     </Form>
                   </div>
+
+                  {/* Email Drift Alert */}
+                  {emailDriftDetectedAt && emailDriftPersonEmail && (
+                    <div className="border-t pt-3">
+                      <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4">
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-amber-800 dark:text-amber-300 text-sm mb-1">
+                              Email Mismatch Detected
+                            </h4>
+                            <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
+                              Your linked Luma profile email changed to <strong>{emailDriftPersonEmail}</strong>, but your account email is still <strong>{user?.email}</strong>.
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-7 text-xs"
+                                onClick={() => resolveDriftMutation.mutate("update-email")}
+                                disabled={resolveDriftMutation.isPending}
+                              >
+                                <ArrowRight className="h-3 w-3 mr-1" />
+                                Update my email
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => resolveDriftMutation.mutate("link-both")}
+                                disabled={resolveDriftMutation.isPending}
+                              >
+                                <Link2 className="h-3 w-3 mr-1" />
+                                Link both
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs text-muted-foreground"
+                                onClick={() => resolveDriftMutation.mutate("dismiss")}
+                                disabled={resolveDriftMutation.isPending}
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Dismiss
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Linked Luma Profiles */}
                   <div className="border-t pt-3">

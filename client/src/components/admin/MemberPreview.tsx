@@ -19,6 +19,8 @@ import {
   X,
   Crown,
   CreditCard,
+  AlertTriangle,
+  Send,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +34,8 @@ import { getBadgeIcon } from "@/lib/badge-icons";
 interface Member extends User {
   person?: Person | null;
   badges?: BadgeType[];
+  emailDriftDetectedAt?: string | null;
+  emailDriftPersonEmail?: string | null;
 }
 
 interface MemberPreviewProps {
@@ -218,6 +222,25 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     await resendVerificationMutation.mutateAsync();
   };
 
+  const notifyDriftMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/admin/members/${member.id}/notify-drift`, "POST");
+    },
+    onSuccess: () => {
+      toast({
+        title: "Notification Sent",
+        description: `Drift notification sent to ${member.email} and ${member.emailDriftPersonEmail}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send drift notification",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getViewProfileUrl = () => {
     if (member.person?.userName) {
       return `/people/${member.person.userName}`;
@@ -319,6 +342,34 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
           )}
         </div>
       </div>
+
+      {member.emailDriftDetectedAt && member.emailDriftPersonEmail && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-4 w-4 text-amber-500" />
+            <h4 className="font-medium text-amber-800 dark:text-amber-300 text-sm">Email Drift Detected</h4>
+          </div>
+          <p className="text-xs text-amber-700 dark:text-amber-400 mb-1">
+            Luma profile email changed to:
+          </p>
+          <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-3">
+            {member.emailDriftPersonEmail}
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Detected {format(new Date(member.emailDriftDetectedAt), "PPP")}
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/50"
+            onClick={() => notifyDriftMutation.mutate()}
+            disabled={notifyDriftMutation.isPending}
+          >
+            <Send className="h-3.5 w-3.5 mr-1.5" />
+            {notifyDriftMutation.isPending ? "Sending..." : "Notify User"}
+          </Button>
+        </div>
+      )}
 
       <div>
         <div className="flex items-center justify-between mb-2">

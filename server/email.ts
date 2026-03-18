@@ -603,6 +603,68 @@ We look forward to seeing you there!`;
   }
 }
 
+export async function sendEmailDriftNotification(
+  accountEmail: string,
+  driftedPersonEmail: string,
+): Promise<boolean> {
+  try {
+    const settingsUrl = `${getEmailBaseUrl()}/settings`;
+
+    if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+      console.log('Development mode - Drift notification email would have been sent:', {
+        to: [accountEmail, driftedPersonEmail],
+        settingsUrl,
+      });
+      return true;
+    }
+
+    const htmlContent = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+        <h2 style="color:#333;">Action Needed: Your Sarasota Tech Profile</h2>
+        <p>We noticed that your linked Luma profile email has changed.</p>
+        <div style="margin:20px 0;padding:15px;background:#fffbeb;border-left:4px solid #f59e0b;border-radius:4px;">
+          <p style="margin:0 0 8px 0;"><strong>Account email:</strong> ${accountEmail}</p>
+          <p style="margin:0;"><strong>Luma profile email:</strong> ${driftedPersonEmail}</p>
+        </div>
+        <p>To keep your account in sync, please visit your settings and choose one of the following:</p>
+        <ul style="color:#555;">
+          <li>Update your account email to match your Luma profile</li>
+          <li>Link both email profiles to your account</li>
+          <li>Dismiss if everything looks correct</li>
+        </ul>
+        <a href="${settingsUrl}" style="display:inline-block;padding:12px 24px;background:#0070f3;color:white;text-decoration:none;border-radius:5px;margin-top:10px;">
+          Go to Settings
+        </a>
+        <p style="margin-top:30px;color:#999;font-size:12px;">
+          If you didn't expect this email, you can safely ignore it or contact us at info@sarasota.tech
+        </p>
+      </div>
+    `;
+
+    const recipients = [accountEmail];
+    if (driftedPersonEmail.toLowerCase() !== accountEmail.toLowerCase()) {
+      recipients.push(driftedPersonEmail);
+    }
+
+    for (const recipient of recipients) {
+      const msg = {
+        to: recipient,
+        from: FROM_EMAIL,
+        subject: 'Action Needed: Your Sarasota Tech profile email has changed',
+        text: `Your linked Luma profile email has changed from ${accountEmail} to ${driftedPersonEmail}. Visit ${settingsUrl} to update your account.`,
+        html: htmlContent,
+      };
+      await mailService.send(msg);
+    }
+
+    console.log('Drift notification sent to:', recipients);
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send drift notification email:', error.message);
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   token: string

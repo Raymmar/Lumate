@@ -10,8 +10,14 @@ import { SearchInput } from "./SearchInput";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { UserPlus } from "lucide-react";
+import { UserPlus, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useLocation } from "wouter";
 import {
   Dialog,
@@ -39,6 +45,8 @@ import { useToast } from "@/hooks/use-toast";
 interface Member extends User {
   person?: Person | null;
   badges?: Badge[];
+  emailDriftDetectedAt?: string | null;
+  emailDriftPersonEmail?: string | null;
 }
 
 interface MembersResponse {
@@ -129,7 +137,25 @@ export function MembersTable() {
     {
       key: "email",
       header: "Email",
-      cell: (row: Member) => row.email,
+      cell: (row: Member) => (
+        <div className="flex items-center gap-1.5">
+          <span>{row.email}</span>
+          {row.emailDriftDetectedAt && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-xs">
+                    Linked Luma profile email changed to <strong>{row.emailDriftPersonEmail}</strong>
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      ),
     },
     {
       key: "displayName",
@@ -246,6 +272,9 @@ export function MembersTable() {
             columns={columns}
             actions={actions}
             onRowClick={(member) => setSelectedMember(member)}
+            rowClassName={(member: Member) =>
+              member.emailDriftDetectedAt ? "bg-amber-50/50 dark:bg-amber-950/20" : ""
+            }
           />
         </div>
       </div>

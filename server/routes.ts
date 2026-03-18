@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
-import { sendPasswordResetEmail } from "./email";
+import { sendPasswordResetEmail, sendEmailDriftNotification } from "./email";
 import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
@@ -240,6 +240,27 @@ export async function registerRoutes(app: Express) {
   
   // Resend verification email endpoint
   app.post("/api/admin/members/:id/resend-verification", resendVerification);
+
+  app.post("/api/admin/members/:id/notify-drift", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (!targetUser.emailDriftDetectedAt || !targetUser.emailDriftPersonEmail) {
+        return res.status(400).json({ error: "No email drift detected for this user" });
+      }
+      const sent = await sendEmailDriftNotification(targetUser.email, targetUser.emailDriftPersonEmail);
+      if (!sent) {
+        return res.status(500).json({ error: "Failed to send notification email" });
+      }
+      res.json({ success: true, message: `Drift notification sent to ${targetUser.email} and ${targetUser.emailDriftPersonEmail}` });
+    } catch (error) {
+      console.error("Failed to send drift notification:", error);
+      res.status(500).json({ error: "Failed to send drift notification" });
+    }
+  });
 
   // Manually trigger email invitation service
   app.post("/api/admin/trigger-email-invitations", requireAdmin, async (req, res) => {
@@ -3069,6 +3090,72 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/user/resolve-drift", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const { action } = req.body;
+      if (!action || !["update-email", "link-both", "dismiss"].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be 'update-email', 'link-both', or 'dismiss'" });
+      }
+
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !user.emailDriftDetectedAt || !user.emailDriftPersonEmail) {
+        return res.status(400).json({ error: "No email drift to resolve" });
+      }
+
+      const newEmail = user.emailDriftPersonEmail;
+
+      if (action === "update-email") {
+        const existingUser = await storage.getUserByEmail(newEmail.toLowerCase());
+        if (existingUser && existingUser.id !== user.id) {
+          return res.status(409).json({ error: "An account with that email already exists" });
+        }
+        await db.execute(sql`
+          UPDATE users
+          SET email = ${newEmail.toLowerCase()},
+              email_drift_detected_at = NULL,
+              email_drift_person_email = NULL
+          WHERE id = ${user.id}
+        `);
+        res.json({ success: true, message: "Email updated to match Luma profile" });
+      } else if (action === "link-both") {
+        const personResult = await db.execute(sql`
+          SELECT id FROM people WHERE LOWER(email) = ${newEmail.toLowerCase()} LIMIT 1
+        `);
+        if (personResult.rows.length === 0) {
+          return res.status(404).json({ error: "No Luma profile found for that email. Try updating your email instead." });
+        }
+        const personId = personResult.rows[0].id as number;
+        await db.execute(sql`
+          INSERT INTO user_people_links (user_id, person_id, is_primary, linked_at)
+          VALUES (${user.id}, ${personId}, false, NOW())
+          ON CONFLICT (user_id, person_id) DO NOTHING
+        `);
+        await db.execute(sql`
+          UPDATE users
+          SET email_drift_detected_at = NULL,
+              email_drift_person_email = NULL
+          WHERE id = ${user.id}
+        `);
+        res.json({ success: true, message: "Both profiles linked" });
+      } else {
+        await db.execute(sql`
+          UPDATE users
+          SET email_drift_detected_at = NULL,
+              email_drift_person_email = NULL
+          WHERE id = ${user.id}
+        `);
+        res.json({ success: true, message: "Drift dismissed" });
+      }
+    } catch (error) {
+      console.error("Failed to resolve drift:", error);
+      res.status(500).json({ error: "Failed to resolve email drift" });
+    }
+  });
+
   app.get("/api/auth/me", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -3127,6 +3214,8 @@ export async function registerRoutes(app: Express) {
         customLinks: user.customLinks || [],
         tags: user.tags || [],
         linkedProfiles,
+        emailDriftDetectedAt: user.emailDriftDetectedAt,
+        emailDriftPersonEmail: user.emailDriftPersonEmail,
       });
     } catch (error) {
       console.error("Failed to get user info:", error);

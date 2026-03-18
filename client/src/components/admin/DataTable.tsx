@@ -27,9 +27,10 @@ interface DataTableProps<T> {
     onClick: (row: T) => void;
   }[];
   onRowClick?: (row: T) => void;
+  rowClassName?: (row: T) => string;
 }
 
-export function DataTable<T>({ data, columns, actions, onRowClick }: DataTableProps<T>) {
+export function DataTable<T>({ data, columns, actions, onRowClick, rowClassName }: DataTableProps<T>) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -49,6 +50,7 @@ export function DataTable<T>({ data, columns, actions, onRowClick }: DataTablePr
               className={`
                 flex flex-col md:table-row
                 ${onRowClick ? "cursor-pointer hover:bg-muted/50" : ""}
+                ${rowClassName ? rowClassName(row) : ""}
               `}
             >
               {columns.map((column) => (

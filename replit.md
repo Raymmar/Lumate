@@ -6,6 +6,17 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 18, 2026 - Email Drift Detection UI
+- **Feature**: Surfaces accounts where a linked Luma profile email changed but the user's account email didn't, enabling admin notifications and user self-service resolution.
+- **Schema**: Added `emailDriftDetectedAt` (timestamp) and `emailDriftPersonEmail` (varchar) columns to `users` table.
+- **CacheService**: During `batchInsertPeople`, drift is detected when a linked person's email differs from their user account email. Drift fields are persisted to the user record. When emails match again (resolved externally), drift fields are automatically cleared.
+- **Admin Members Table**: Drifted users sort to the top of the members list. Drifted rows have a subtle amber tint. Warning icon with tooltip in the email column shows the new Luma email.
+- **Admin MemberPreview Sidebar**: Shows an "Email Drift Detected" alert card with the new email, detection date, and a "Notify User" button.
+- **Admin Notification**: `POST /api/admin/members/:id/notify-drift` sends email to BOTH the account email and the drifted Luma email, linking them to the settings page.
+- **User Self-Service**: Alert banner in settings page (above Linked Luma Profiles) with three options: "Update my email" (changes account email), "Link both" (adds second profile link), or "Dismiss" (clears drift).
+- **Resolve Endpoint**: `POST /api/user/resolve-drift` handles all three actions. `link-both` validates that a person record exists for the drifted email before claiming success.
+- **Files**: `shared/schema.ts`, `server/services/CacheService.ts`, `server/routes.ts`, `server/email.ts`, `client/src/components/admin/DataTable.tsx`, `client/src/components/admin/MembersTable.tsx`, `client/src/components/admin/MemberPreview.tsx`, `client/src/pages/UserSettingsPage.tsx`
+
 ### March 18, 2026 - CacheService Optimizations
 - **Daily full people refresh**: Tracks `last_full_people_refresh` in `cache_metadata` table. Every 24h, bypasses `created_after` filter (passes epoch) to fetch ALL people from Luma, catching records missed by incremental sync. Timestamp updated only after successful sync.
 - **Removed redundant per-person syncMembershipFromLuma**: The per-person `syncMembershipFromLuma()` call during people insert was removed. Membership state is now handled comprehensively by `reconcileMemberships()` at the end of each sync cycle.
