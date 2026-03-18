@@ -3,6 +3,21 @@ import { db } from '../db';
 import { users, people, userPeopleLinks } from '@shared/schema';
 import { eq, and, sql, or, gt, isNotNull } from 'drizzle-orm';
 
+export interface LumaMember {
+  email: string;
+  status: string;
+  tierId: string | null;
+}
+
+export interface ReconciliationResult {
+  pushedToLuma: number;
+  pulledFromLuma: number;
+  removedFromLuma: number;
+  stripeStatusUpdated: number;
+  errors: number;
+  details: string[];
+}
+
 export class LumaMembershipService {
   private static cachedTierId: string | null = null;
   private static tierResolved = false;
@@ -76,6 +91,273 @@ export class LumaMembershipService {
     return this.cachedTierId;
   }
 
+  static async fetchLumaMembersList(): Promise<LumaMember[]> {
+    const tierId = await this.resolveTierId();
+    if (!tierId) {
+      console.log('[LumaMembership] No tier ID available, cannot fetch Luma members list');
+      return [];
+    }
+
+    const allMembers: LumaMember[] = [];
+    let hasMore = true;
+    let nextCursor: string | null = null;
+    let pageCount = 0;
+
+    while (hasMore) {
+      const params: Record<string, string> = {
+        membership_tier_id: tierId,
+      };
+      if (nextCursor) {
+        params.pagination_cursor = nextCursor;
+      }
+
+      try {
+        pageCount++;
+        const response = await lumaApiRequest('memberships/members/list', params);
+
+        if (!response || !Array.isArray(response.entries)) {
+          console.log('[LumaMembership] Invalid response from members list API:', response);
+          break;
+        }
+
+        for (const entry of response.entries) {
+          const email = entry.user?.email || entry.email;
+          if (email) {
+            allMembers.push({
+              email: email.toLowerCase(),
+              status: entry.status || 'unknown',
+              tierId: entry.membership_tier_id || tierId,
+            });
+          }
+        }
+
+        hasMore = response.has_more === true;
+        nextCursor = response.next_cursor || null;
+
+        if (!hasMore || !nextCursor) break;
+
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error(`[LumaMembership] Error fetching members list page ${pageCount}:`, error);
+        break;
+      }
+    }
+
+    console.log(`[LumaMembership] Fetched ${allMembers.length} members from Luma tier (${pageCount} pages)`);
+    return allMembers;
+  }
+
+  static async getActivePremiumEmails(): Promise<Set<string>> {
+    const premiumEmails = new Set<string>();
+
+    const now = new Date().toISOString();
+    const usersWithManualOrLuma = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(
+        and(
+          isNotNull(users.premiumSource),
+          or(
+            gt(users.premiumExpiresAt, now),
+            sql`${users.premiumExpiresAt} IS NULL`
+          )
+        )
+      );
+
+    for (const u of usersWithManualOrLuma) {
+      premiumEmails.add(u.email.toLowerCase());
+    }
+
+    try {
+      const stripeActiveResult = await db.execute(
+        sql`
+          SELECT LOWER(c.email) as email
+          FROM stripe.subscriptions s
+          INNER JOIN stripe.customers c ON c.id = s.customer
+          WHERE s.status = 'active'
+          AND c.email IS NOT NULL
+        `
+      );
+      for (const row of stripeActiveResult.rows as any[]) {
+        if (row.email) {
+          premiumEmails.add(row.email);
+        }
+      }
+    } catch (error) {
+      console.error('[LumaMembership] Error querying stripe.subscriptions for active emails:', error);
+      const fallbackUsers = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.subscriptionStatus, 'active'));
+      for (const u of fallbackUsers) {
+        premiumEmails.add(u.email.toLowerCase());
+      }
+    }
+
+    return premiumEmails;
+  }
+
+  static async reconcileMemberships(): Promise<ReconciliationResult> {
+    const result: ReconciliationResult = {
+      pushedToLuma: 0,
+      pulledFromLuma: 0,
+      removedFromLuma: 0,
+      stripeStatusUpdated: 0,
+      errors: 0,
+      details: [],
+    };
+
+    const tierId = await this.resolveTierId();
+    if (!tierId) {
+      result.details.push('No tier ID available, skipping reconciliation');
+      console.log('[LumaMembership] No tier ID available, skipping reconciliation');
+      return result;
+    }
+
+    console.log('[LumaMembership] Starting full membership reconciliation...');
+
+    try {
+      await this.reconcileStripeStatuses(result);
+    } catch (error) {
+      console.error('[LumaMembership] Error during Stripe status reconciliation:', error);
+      result.details.push('Stripe status reconciliation failed');
+    }
+
+    const activePremiumEmails = await this.getActivePremiumEmails();
+    console.log(`[LumaMembership] Found ${activePremiumEmails.size} active premium emails from all sources`);
+
+    const lumaMembers = await this.fetchLumaMembersList();
+    const lumaApprovedEmails = new Set<string>();
+    for (const member of lumaMembers) {
+      if (member.status === 'approved') {
+        lumaApprovedEmails.add(member.email);
+      }
+    }
+    console.log(`[LumaMembership] Found ${lumaApprovedEmails.size} approved members in Luma tier`);
+
+    for (const email of activePremiumEmails) {
+      if (!lumaApprovedEmails.has(email)) {
+        try {
+          const pushed = await this.addMemberToLumaTier(email);
+          if (pushed) {
+            result.pushedToLuma++;
+            result.details.push(`Pushed to Luma: ${email}`);
+          }
+        } catch (error) {
+          result.errors++;
+          console.error(`[LumaMembership] Failed to push ${email} to Luma:`, error);
+        }
+      }
+    }
+
+    for (const email of lumaApprovedEmails) {
+      if (activePremiumEmails.has(email)) continue;
+
+      const matchingUsers = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+
+      if (matchingUsers.length === 0) {
+        result.details.push(`Luma member ${email} has no local user account — skipping (no account to grant to)`);
+        console.log(`[LumaMembership] Luma member ${email} has no local user account, cannot grant premium`);
+        continue;
+      }
+
+      const user = matchingUsers[0];
+      const hadPremiumBefore = user.premiumSource !== null || user.subscriptionStatus === 'active' || user.subscriptionId !== null;
+
+      if (hadPremiumBefore) {
+        try {
+          const removed = await this.removeMemberFromLumaTier(email);
+          if (removed) {
+            result.removedFromLuma++;
+            result.details.push(`Removed from Luma (premium expired/cancelled): ${email}`);
+          }
+        } catch (error) {
+          result.errors++;
+          console.error(`[LumaMembership] Failed to remove ${email} from Luma:`, error);
+        }
+      } else {
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+        await db
+          .update(users)
+          .set({
+            premiumSource: 'luma',
+            premiumExpiresAt: expiresAt.toISOString(),
+            premiumGrantedAt: new Date().toISOString(),
+          })
+          .where(eq(users.id, user.id));
+
+        result.pulledFromLuma++;
+        result.details.push(`Granted premium from Luma membership: ${email}`);
+        console.log(`[LumaMembership] Granted premium to ${email} from Luma membership`);
+      }
+    }
+
+    console.log(`[LumaMembership] Reconciliation complete: ${result.pushedToLuma} pushed, ${result.pulledFromLuma} pulled, ${result.removedFromLuma} removed, ${result.stripeStatusUpdated} stripe statuses updated, ${result.errors} errors`);
+    return result;
+  }
+
+  private static async reconcileStripeStatuses(result: ReconciliationResult): Promise<void> {
+    try {
+      const staleUsers = await db.execute(
+        sql`
+          SELECT u.id, u.email, u.subscription_status, u.subscription_id
+          FROM users u
+          WHERE u.subscription_status = 'active'
+          AND NOT EXISTS (
+            SELECT 1
+            FROM stripe.subscriptions s
+            INNER JOIN stripe.customers c ON c.id = s.customer
+            WHERE LOWER(c.email) = LOWER(u.email)
+            AND s.status = 'active'
+          )
+        `
+      );
+
+      for (const row of staleUsers.rows as any[]) {
+        await db
+          .update(users)
+          .set({ subscriptionStatus: 'inactive' })
+          .where(eq(users.id, row.id));
+
+        result.stripeStatusUpdated++;
+        result.details.push(`Stripe status corrected to inactive: ${row.email}`);
+        console.log(`[LumaMembership] Corrected stale Stripe status for ${row.email} (no active subscription in Stripe connector data)`);
+      }
+
+      const missedActiveResult = await db.execute(
+        sql`
+          SELECT u.id, u.email, s.id as sub_id
+          FROM users u
+          INNER JOIN stripe.customers c ON LOWER(c.email) = LOWER(u.email)
+          INNER JOIN stripe.subscriptions s ON s.customer = c.id AND s.status = 'active'
+          WHERE (u.subscription_status IS NULL OR u.subscription_status != 'active')
+        `
+      );
+
+      for (const row of missedActiveResult.rows as any[]) {
+        await db
+          .update(users)
+          .set({
+            subscriptionStatus: 'active',
+            subscriptionId: row.sub_id,
+          })
+          .where(eq(users.id, row.id));
+
+        result.stripeStatusUpdated++;
+        result.details.push(`Stripe status corrected to active: ${row.email}`);
+        console.log(`[LumaMembership] Corrected missed Stripe status for ${row.email} (active subscription found in Stripe connector data)`);
+      }
+    } catch (error) {
+      console.error('[LumaMembership] Error reconciling Stripe statuses:', error);
+      result.details.push('Stripe status reconciliation query failed — stripe schema may not exist yet');
+    }
+  }
+
   static async syncPremiumMembersToLuma(): Promise<void> {
     const tierId = await this.resolveTierId();
     if (!tierId) {
@@ -86,32 +368,17 @@ export class LumaMembershipService {
     console.log('[LumaMembership] Starting push sync: sending premium members to Luma...');
 
     try {
-      const now = new Date().toISOString();
-      const premiumUsers = await db
-        .select()
-        .from(users)
-        .where(
-          or(
-            eq(users.subscriptionStatus, 'active'),
-            and(
-              isNotNull(users.premiumSource),
-              or(
-                gt(users.premiumExpiresAt, now),
-                sql`${users.premiumExpiresAt} IS NULL`
-              )
-            )
-          )
-        );
+      const premiumEmails = await this.getActivePremiumEmails();
 
-      console.log(`[LumaMembership] Found ${premiumUsers.length} premium users to sync to Luma`);
+      console.log(`[LumaMembership] Found ${premiumEmails.size} premium users to sync to Luma`);
 
       let successCount = 0;
       let skipCount = 0;
       let failCount = 0;
 
-      for (const user of premiumUsers) {
+      for (const email of premiumEmails) {
         try {
-          const result = await this.addMemberToLumaTier(user.email);
+          const result = await this.addMemberToLumaTier(email);
           if (result) {
             successCount++;
           } else {
@@ -119,7 +386,7 @@ export class LumaMembershipService {
           }
         } catch (error) {
           failCount++;
-          console.error(`[LumaMembership] Failed to push ${user.email} to Luma:`, error);
+          console.error(`[LumaMembership] Failed to push ${email} to Luma:`, error);
         }
       }
 

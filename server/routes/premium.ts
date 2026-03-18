@@ -444,4 +444,21 @@ router.post("/api/admin/sync-premium-from-tickets", requireAdmin, async (req, re
   }
 });
 
+router.post("/api/admin/luma-membership-sync", requireAdmin, async (req, res) => {
+  try {
+    console.log("[Admin] Manual Luma membership reconciliation triggered");
+    const result = await LumaMembershipService.reconcileMemberships();
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("Failed to run Luma membership reconciliation:", error);
+    res.status(500).json({
+      error: "Failed to run Luma membership reconciliation",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 export default router;

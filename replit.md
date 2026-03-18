@@ -6,6 +6,24 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 18, 2026 - Bidirectional Luma Membership Sync
+- **Problem**: Luma membership sync was one-directional (push only), didn't fetch the full Luma member roster, couldn't remove stale members, and didn't correct drifted Stripe subscription statuses
+- **Solution**: Full bidirectional reconciliation in `LumaMembershipService.reconcileMemberships()`
+- **Key methods added**:
+  - `fetchLumaMembersList()` — paginated fetch of all members in the configured Luma tier
+  - `getActivePremiumEmails()` — aggregates premium users from ALL sources: Stripe connector (`stripe.subscriptions` + `stripe.customers`), manual admin grants (`users.premiumSource='manual'`), and Luma/event grants (`users.premiumSource='luma'`)
+  - `reconcileMemberships()` — compares DB premium set against Luma tier roster:
+    - Pushes DB premium users missing from Luma
+    - Pulls Luma-approved members into DB (grants `premiumSource='luma'` for users with no prior premium)
+    - Removes stale Luma members who previously had premium but lost it
+    - Corrects stale `users.subscriptionStatus` by comparing against `stripe.subscriptions` connector data
+  - `reconcileStripeStatuses()` — fixes users whose local `subscriptionStatus` drifted from Stripe connector truth
+- **Integration**:
+  - `CacheService.updateCache()` now calls `reconcileMemberships()` instead of `syncPremiumMembersToLuma()`
+  - New admin endpoint `POST /api/admin/luma-membership-sync` for on-demand reconciliation
+- **Files**: `server/services/LumaMembershipService.ts`, `server/services/CacheService.ts`, `server/routes/premium.ts`
+- **Critical note**: Premium source determination uses ALL three sources — never just Stripe alone. The Stripe connector (`stripe-replit-sync`) auto-syncs subscription data to `stripe.*` schema; do NOT add manual webhook handlers.
+
 ### March 18, 2026 - Fix Zero Attendee Count During Sync
 - **Issue**: Event sync service deleted all attendance records before re-fetching from Luma API, causing attendee counts to show as zero during the sync window (or permanently if the API call failed)
 - **Fix**: Removed the destructive `deleteAttendanceByEvent()` call from `syncEventAttendees()`. The sync now purely upserts new/updated attendee records. After all upserts complete successfully, stale records (those with `lastSyncedAt` older than the sync start time) are cleaned up. This ensures existing data is always visible and only removed after the full sync succeeds.

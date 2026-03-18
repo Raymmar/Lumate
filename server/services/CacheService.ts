@@ -200,12 +200,12 @@ export class CacheService extends EventEmitter {
         }
       }
 
-      // Push premium members to Luma (bi-directional sync)
-      this.emitProgress('Syncing premium members to Luma...', 96);
+      this.emitProgress('Reconciling Luma memberships (bidirectional)...', 96);
       try {
-        await LumaMembershipService.syncPremiumMembersToLuma();
-      } catch (pushError) {
-        this.logSync('Push sync to Luma failed (non-fatal):', pushError);
+        const reconcileResult = await LumaMembershipService.reconcileMemberships();
+        this.logSync(`Luma reconciliation complete: ${reconcileResult.pushedToLuma} pushed, ${reconcileResult.pulledFromLuma} pulled, ${reconcileResult.removedFromLuma} removed, ${reconcileResult.stripeStatusUpdated} stripe statuses corrected, ${reconcileResult.errors} errors`);
+      } catch (reconcileError) {
+        this.logSync('Luma membership reconciliation failed (non-fatal):', reconcileError);
       }
 
       // Update the last cache time
