@@ -262,6 +262,28 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/admin/members/:id/dismiss-drift", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (!targetUser.emailDriftDetectedAt) {
+        return res.status(400).json({ error: "No email drift detected for this user" });
+      }
+      await db.execute(sql`
+        UPDATE users
+        SET email_drift_admin_dismissed_at = NOW()
+        WHERE id = ${userId}
+      `);
+      res.json({ success: true, message: "Drift alert dismissed from admin view" });
+    } catch (error) {
+      console.error("Failed to dismiss drift:", error);
+      res.status(500).json({ error: "Failed to dismiss drift alert" });
+    }
+  });
+
   // Manually trigger email invitation service
   app.post("/api/admin/trigger-email-invitations", requireAdmin, async (req, res) => {
     try {
@@ -3117,7 +3139,8 @@ export async function registerRoutes(app: Express) {
           UPDATE users
           SET email = ${newEmail.toLowerCase()},
               email_drift_detected_at = NULL,
-              email_drift_person_email = NULL
+              email_drift_person_email = NULL,
+              email_drift_admin_dismissed_at = NULL
           WHERE id = ${user.id}
         `);
         res.json({ success: true, message: "Email updated to match Luma profile" });
@@ -3137,7 +3160,8 @@ export async function registerRoutes(app: Express) {
         await db.execute(sql`
           UPDATE users
           SET email_drift_detected_at = NULL,
-              email_drift_person_email = NULL
+              email_drift_person_email = NULL,
+              email_drift_admin_dismissed_at = NULL
           WHERE id = ${user.id}
         `);
         res.json({ success: true, message: "Both profiles linked" });
@@ -3145,7 +3169,8 @@ export async function registerRoutes(app: Express) {
         await db.execute(sql`
           UPDATE users
           SET email_drift_detected_at = NULL,
-              email_drift_person_email = NULL
+              email_drift_person_email = NULL,
+              email_drift_admin_dismissed_at = NULL
           WHERE id = ${user.id}
         `);
         res.json({ success: true, message: "Drift dismissed" });
@@ -5068,11 +5093,12 @@ export async function registerRoutes(app: Express) {
           subscriptionId: users.subscriptionId,
           emailDriftDetectedAt: users.emailDriftDetectedAt,
           emailDriftPersonEmail: users.emailDriftPersonEmail,
+          emailDriftAdminDismissedAt: users.emailDriftAdminDismissedAt,
         })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
         .where(whereClause)
-        .orderBy(sql`CASE WHEN ${users.emailDriftDetectedAt} IS NOT NULL THEN 0 ELSE 1 END`, sql`${users.emailDriftDetectedAt} DESC NULLS LAST`, users.createdAt)
+        .orderBy(sql`CASE WHEN ${users.emailDriftDetectedAt} IS NOT NULL AND ${users.emailDriftAdminDismissedAt} IS NULL THEN 0 ELSE 1 END`, sql`${users.emailDriftDetectedAt} DESC NULLS LAST`, users.createdAt)
         .limit(limit)
         .offset(offset);
 

@@ -100,6 +100,7 @@ export const users = pgTable("users", {
   lumaTicketId: varchar("luma_ticket_id", { length: 255 }),
   emailDriftDetectedAt: timestamp("email_drift_detected_at", { mode: 'string', withTimezone: true }),
   emailDriftPersonEmail: varchar("email_drift_person_email", { length: 255 }),
+  emailDriftAdminDismissedAt: timestamp("email_drift_admin_dismissed_at", { mode: 'string', withTimezone: true }),
   avatarUrl: varchar("avatar_url", { length: 512 }),
   featuredImageUrl: varchar("featured_image_url", { length: 255 }),
   bio: text("bio"),

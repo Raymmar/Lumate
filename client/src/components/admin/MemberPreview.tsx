@@ -21,6 +21,7 @@ import {
   CreditCard,
   AlertTriangle,
   Send,
+  EyeOff,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -36,6 +37,7 @@ interface Member extends User {
   badges?: BadgeType[];
   emailDriftDetectedAt?: string | null;
   emailDriftPersonEmail?: string | null;
+  emailDriftAdminDismissedAt?: string | null;
 }
 
 interface MemberPreviewProps {
@@ -241,6 +243,26 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     },
   });
 
+  const dismissDriftMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/admin/members/${member.id}/dismiss-drift`, "POST");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "Dismissed",
+        description: "Drift alert dismissed from admin view. The user can still resolve it.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to dismiss drift",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getViewProfileUrl = () => {
     if (member.person?.userName) {
       return `/people/${member.person.userName}`;
@@ -344,30 +366,50 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
       </div>
 
       {member.emailDriftDetectedAt && member.emailDriftPersonEmail && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-3 mb-4">
+        <div className={`rounded-lg border p-3 mb-4 ${
+          member.emailDriftAdminDismissedAt
+            ? "border-border bg-muted/30"
+            : "border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700"
+        }`}>
           <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <h4 className="font-medium text-amber-800 dark:text-amber-300 text-sm">Email Drift Detected</h4>
+            <AlertTriangle className={`h-4 w-4 ${member.emailDriftAdminDismissedAt ? "text-muted-foreground" : "text-amber-500"}`} />
+            <h4 className={`font-medium text-sm ${member.emailDriftAdminDismissedAt ? "text-muted-foreground" : "text-amber-800 dark:text-amber-300"}`}>
+              {member.emailDriftAdminDismissedAt ? "Email Drift (Dismissed)" : "Email Drift Detected"}
+            </h4>
           </div>
-          <p className="text-xs text-amber-700 dark:text-amber-400 mb-1">
+          <p className="text-xs text-muted-foreground mb-1">
             Luma profile email changed to:
           </p>
-          <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-3">
+          <p className="text-sm font-medium mb-3">
             {member.emailDriftPersonEmail}
           </p>
           <p className="text-xs text-muted-foreground mb-2">
             Detected {format(new Date(member.emailDriftDetectedAt), "PPP")}
           </p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/50"
-            onClick={() => notifyDriftMutation.mutate()}
-            disabled={notifyDriftMutation.isPending}
-          >
-            <Send className="h-3.5 w-3.5 mr-1.5" />
-            {notifyDriftMutation.isPending ? "Sending..." : "Notify User"}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className={`flex-1 ${member.emailDriftAdminDismissedAt ? "" : "border-amber-300 hover:bg-amber-100 dark:border-amber-700 dark:hover:bg-amber-900/50"}`}
+              onClick={() => notifyDriftMutation.mutate()}
+              disabled={notifyDriftMutation.isPending}
+            >
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              {notifyDriftMutation.isPending ? "Sending..." : "Notify"}
+            </Button>
+            {!member.emailDriftAdminDismissedAt && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground"
+                onClick={() => dismissDriftMutation.mutate()}
+                disabled={dismissDriftMutation.isPending}
+              >
+                <EyeOff className="h-3.5 w-3.5 mr-1.5" />
+                {dismissDriftMutation.isPending ? "..." : "Dismiss"}
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

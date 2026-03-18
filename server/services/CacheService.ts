@@ -634,14 +634,16 @@ export class CacheService extends EventEmitter {
               await db.execute(sql`
                 UPDATE users
                 SET email_drift_detected_at = COALESCE(email_drift_detected_at, NOW()),
-                    email_drift_person_email = ${insertedPerson.email}
+                    email_drift_person_email = ${insertedPerson.email},
+                    email_drift_admin_dismissed_at = NULL
                 WHERE id = ${linkedUser.id}
               `);
             } else if (linkedUser.emailDriftDetectedAt) {
               await db.execute(sql`
                 UPDATE users
                 SET email_drift_detected_at = NULL,
-                    email_drift_person_email = NULL
+                    email_drift_person_email = NULL,
+                    email_drift_admin_dismissed_at = NULL
                 WHERE id = ${linkedUser.id}
               `);
               this.logSync(`[Email Drift Resolved] User ${linkedUser.email} drift cleared — emails match again`);

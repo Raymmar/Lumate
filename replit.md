@@ -15,6 +15,7 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 - **Admin Notification**: `POST /api/admin/members/:id/notify-drift` sends email to BOTH the account email and the drifted Luma email, linking them to the settings page.
 - **User Self-Service**: Alert banner in settings page (above Linked Luma Profiles) with three options: "Update my email" (changes account email), "Link both" (adds second profile link), or "Dismiss" (clears drift).
 - **Resolve Endpoint**: `POST /api/user/resolve-drift` handles all three actions. `link-both` validates that a person record exists for the drifted email before claiming success.
+- **Admin Dismiss**: `POST /api/admin/members/:id/dismiss-drift` sets `emailDriftAdminDismissedAt` so the drift no longer sorts to top or shows amber tint, but the user can still see and resolve it. If the Luma email changes again (new drift), the admin dismissed flag is automatically cleared so it resurfaces. All three drift fields are cleared together when the user resolves.
 - **Files**: `shared/schema.ts`, `server/services/CacheService.ts`, `server/routes.ts`, `server/email.ts`, `client/src/components/admin/DataTable.tsx`, `client/src/components/admin/MembersTable.tsx`, `client/src/components/admin/MemberPreview.tsx`, `client/src/pages/UserSettingsPage.tsx`
 
 ### March 18, 2026 - CacheService Optimizations

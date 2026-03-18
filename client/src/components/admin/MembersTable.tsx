@@ -47,6 +47,7 @@ interface Member extends User {
   badges?: Badge[];
   emailDriftDetectedAt?: string | null;
   emailDriftPersonEmail?: string | null;
+  emailDriftAdminDismissedAt?: string | null;
 }
 
 interface MembersResponse {
@@ -144,11 +145,12 @@ export function MembersTable() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+                  <AlertTriangle className={`h-3.5 w-3.5 shrink-0 ${row.emailDriftAdminDismissedAt ? "text-muted-foreground/50" : "text-amber-500"}`} />
                 </TooltipTrigger>
                 <TooltipContent side="top" className="max-w-xs">
                   <p className="text-xs">
                     Linked Luma profile email changed to <strong>{row.emailDriftPersonEmail}</strong>
+                    {row.emailDriftAdminDismissedAt && <span className="text-muted-foreground"> (dismissed)</span>}
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -273,7 +275,7 @@ export function MembersTable() {
             actions={actions}
             onRowClick={(member) => setSelectedMember(member)}
             rowClassName={(member: Member) =>
-              member.emailDriftDetectedAt ? "bg-amber-50/50 dark:bg-amber-950/20" : ""
+              member.emailDriftDetectedAt && !member.emailDriftAdminDismissedAt ? "bg-amber-50/50 dark:bg-amber-950/20" : ""
             }
           />
         </div>
