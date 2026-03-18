@@ -147,12 +147,12 @@ export class LumaMembershipService {
     return allMembers;
   }
 
-  static async getActivePremiumEmails(): Promise<Set<string>> {
-    const premiumEmails = new Set<string>();
+  static async getActivePremiumEmails(): Promise<Map<string, { source: string }>> {
+    const premiumEmails = new Map<string, { source: string }>();
 
     const now = new Date().toISOString();
-    const usersWithManualOrLuma = await db
-      .select({ email: users.email })
+    const usersWithGrants = await db
+      .select({ email: users.email, premiumSource: users.premiumSource })
       .from(users)
       .where(
         and(
@@ -164,8 +164,8 @@ export class LumaMembershipService {
         )
       );
 
-    for (const u of usersWithManualOrLuma) {
-      premiumEmails.add(u.email.toLowerCase());
+    for (const u of usersWithGrants) {
+      premiumEmails.set(u.email.toLowerCase(), { source: u.premiumSource || 'unknown' });
     }
 
     try {
@@ -178,9 +178,10 @@ export class LumaMembershipService {
           AND c.email IS NOT NULL
         `
       );
-      for (const row of stripeActiveResult.rows as any[]) {
-        if (row.email) {
-          premiumEmails.add(row.email);
+      const rows = stripeActiveResult.rows as Array<{ email: string }>;
+      for (const row of rows) {
+        if (row.email && !premiumEmails.has(row.email)) {
+          premiumEmails.set(row.email, { source: 'stripe' });
         }
       }
     } catch (error) {
@@ -190,7 +191,10 @@ export class LumaMembershipService {
         .from(users)
         .where(eq(users.subscriptionStatus, 'active'));
       for (const u of fallbackUsers) {
-        premiumEmails.add(u.email.toLowerCase());
+        const lowerEmail = u.email.toLowerCase();
+        if (!premiumEmails.has(lowerEmail)) {
+          premiumEmails.set(lowerEmail, { source: 'stripe' });
+        }
       }
     }
 
@@ -223,62 +227,60 @@ export class LumaMembershipService {
       result.details.push('Stripe status reconciliation failed');
     }
 
-    const activePremiumEmails = await this.getActivePremiumEmails();
-    console.log(`[LumaMembership] Found ${activePremiumEmails.size} active premium emails from all sources`);
-
     const lumaMembers = await this.fetchLumaMembersList();
     const lumaApprovedEmails = new Set<string>();
+    const lumaRevokedEmails = new Set<string>();
     for (const member of lumaMembers) {
       if (member.status === 'approved') {
         lumaApprovedEmails.add(member.email);
+      } else if (member.status === 'declined' || member.status === 'revoked') {
+        lumaRevokedEmails.add(member.email);
       }
     }
-    console.log(`[LumaMembership] Found ${lumaApprovedEmails.size} approved members in Luma tier`);
+    console.log(`[LumaMembership] Luma tier: ${lumaApprovedEmails.size} approved, ${lumaRevokedEmails.size} declined/revoked`);
 
-    for (const email of activePremiumEmails) {
-      if (!lumaApprovedEmails.has(email)) {
-        try {
-          const pushed = await this.addMemberToLumaTier(email);
-          if (pushed) {
-            result.pushedToLuma++;
-            result.details.push(`Pushed to Luma: ${email}`);
-          }
-        } catch (error) {
-          result.errors++;
-          console.error(`[LumaMembership] Failed to push ${email} to Luma:`, error);
-        }
+    for (const email of lumaRevokedEmails) {
+      const matchingUsers = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+
+      if (matchingUsers.length === 0) continue;
+
+      const user = matchingUsers[0];
+      if (user.premiumSource === 'luma') {
+        await db
+          .update(users)
+          .set({
+            premiumSource: null,
+            premiumExpiresAt: null,
+            premiumGrantedAt: null,
+          })
+          .where(eq(users.id, user.id));
+
+        result.pulledFromLuma++;
+        result.details.push(`Revoked local Luma premium (Luma declined/revoked): ${email}`);
+        console.log(`[LumaMembership] Revoked Luma-granted premium for ${email} (Luma status: declined/revoked)`);
       }
     }
 
     for (const email of lumaApprovedEmails) {
-      if (activePremiumEmails.has(email)) continue;
-
       const matchingUsers = await db
         .select()
         .from(users)
         .where(eq(users.email, email));
 
       if (matchingUsers.length === 0) {
-        result.details.push(`Luma member ${email} has no local user account — skipping (no account to grant to)`);
-        console.log(`[LumaMembership] Luma member ${email} has no local user account, cannot grant premium`);
+        result.details.push(`Luma member ${email} has no local user account — skipping`);
         continue;
       }
 
       const user = matchingUsers[0];
-      const hadPremiumBefore = user.premiumSource !== null || user.subscriptionStatus === 'active' || user.subscriptionId !== null;
+      const hasActiveStripe = user.subscriptionStatus === 'active';
+      const hasActiveManual = user.premiumSource === 'manual' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+      const hasActiveLuma = user.premiumSource === 'luma' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
 
-      if (hadPremiumBefore) {
-        try {
-          const removed = await this.removeMemberFromLumaTier(email);
-          if (removed) {
-            result.removedFromLuma++;
-            result.details.push(`Removed from Luma (premium expired/cancelled): ${email}`);
-          }
-        } catch (error) {
-          result.errors++;
-          console.error(`[LumaMembership] Failed to remove ${email} from Luma:`, error);
-        }
-      } else {
+      if (!hasActiveStripe && !hasActiveManual && !hasActiveLuma) {
         const expiresAt = new Date();
         expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
@@ -297,12 +299,50 @@ export class LumaMembershipService {
       }
     }
 
-    console.log(`[LumaMembership] Reconciliation complete: ${result.pushedToLuma} pushed, ${result.pulledFromLuma} pulled, ${result.removedFromLuma} removed, ${result.stripeStatusUpdated} stripe statuses updated, ${result.errors} errors`);
+    const activePremiumEmails = await this.getActivePremiumEmails();
+    console.log(`[LumaMembership] Found ${activePremiumEmails.size} active premium emails from all sources (after Luma sync)`);
+
+    for (const [email, info] of activePremiumEmails) {
+      if (lumaApprovedEmails.has(email)) continue;
+
+      if (info.source === 'luma') {
+        continue;
+      }
+
+      try {
+        const pushed = await this.addMemberToLumaTier(email);
+        if (pushed) {
+          result.pushedToLuma++;
+          result.details.push(`Pushed to Luma (source: ${info.source}): ${email}`);
+        }
+      } catch (error) {
+        result.errors++;
+        console.error(`[LumaMembership] Failed to push ${email} to Luma:`, error);
+      }
+    }
+
+    for (const email of lumaApprovedEmails) {
+      if (activePremiumEmails.has(email)) continue;
+
+      try {
+        const removed = await this.removeMemberFromLumaTier(email);
+        if (removed) {
+          result.removedFromLuma++;
+          result.details.push(`Removed from Luma (no active premium from any source): ${email}`);
+        }
+      } catch (error) {
+        result.errors++;
+        console.error(`[LumaMembership] Failed to remove ${email} from Luma:`, error);
+      }
+    }
+
+    console.log(`[LumaMembership] Reconciliation complete: ${result.pushedToLuma} pushed, ${result.pulledFromLuma} pulled, ${result.removedFromLuma} removed, ${result.stripeStatusUpdated} stripe statuses corrected, ${result.errors} errors`);
     return result;
   }
 
   private static async reconcileStripeStatuses(result: ReconciliationResult): Promise<void> {
     try {
+      interface StaleUserRow { id: number; email: string; subscription_status: string; subscription_id: string | null }
       const staleUsers = await db.execute(
         sql`
           SELECT u.id, u.email, u.subscription_status, u.subscription_id
@@ -318,7 +358,7 @@ export class LumaMembershipService {
         `
       );
 
-      for (const row of staleUsers.rows as any[]) {
+      for (const row of staleUsers.rows as StaleUserRow[]) {
         await db
           .update(users)
           .set({ subscriptionStatus: 'inactive' })
@@ -329,6 +369,7 @@ export class LumaMembershipService {
         console.log(`[LumaMembership] Corrected stale Stripe status for ${row.email} (no active subscription in Stripe connector data)`);
       }
 
+      interface MissedActiveRow { id: number; email: string; sub_id: string }
       const missedActiveResult = await db.execute(
         sql`
           SELECT u.id, u.email, s.id as sub_id
@@ -339,7 +380,7 @@ export class LumaMembershipService {
         `
       );
 
-      for (const row of missedActiveResult.rows as any[]) {
+      for (const row of missedActiveResult.rows as MissedActiveRow[]) {
         await db
           .update(users)
           .set({
@@ -376,7 +417,7 @@ export class LumaMembershipService {
       let skipCount = 0;
       let failCount = 0;
 
-      for (const email of premiumEmails) {
+      for (const [email] of premiumEmails) {
         try {
           const result = await this.addMemberToLumaTier(email);
           if (result) {
