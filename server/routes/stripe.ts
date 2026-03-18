@@ -310,10 +310,14 @@ router.post("/cancel-subscription", async (req, res) => {
       cancelledSubscription.status,
     );
 
-    try {
-      await LumaMembershipService.removeMemberFromLumaTier(user.email);
-    } catch (lumaError) {
-      console.error("❌ Error removing from Luma tier:", lumaError);
+    if (cancelledSubscription.status !== 'active') {
+      try {
+        await LumaMembershipService.removeMemberFromLumaTier(user.email);
+      } catch (lumaError) {
+        console.error("❌ Error removing from Luma tier:", lumaError);
+      }
+    } else {
+      console.log(`[Stripe] Subscription ${cancelledSubscription.id} set to cancel at period end — deferring Luma removal until subscription actually expires`);
     }
 
     res.json({

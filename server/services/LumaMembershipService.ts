@@ -603,6 +603,12 @@ export class LumaMembershipService {
 
           for (const user of matchingUsers) {
             if (user.premiumSource === 'luma') {
+              const hasEventTicketGrant = user.lumaTicketId && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+              if (hasEventTicketGrant) {
+                console.log(`[LumaMembership] Skipping revocation for ${user.email} — has active event ticket grant (ticket: ${user.lumaTicketId})`);
+                continue;
+              }
+
               await db
                 .update(users)
                 .set({
