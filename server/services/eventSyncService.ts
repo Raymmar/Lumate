@@ -2,8 +2,8 @@ import { storage, setMemberStatsSyncing } from "../storage";
 import { syncStatusService } from "./SyncStatusService";
 import type { Event } from "@shared/schema";
 import { db } from "../db";
-import { users, events, attendance } from "@shared/schema";
-import { eq, and, lt } from "drizzle-orm";
+import { users, events, attendance, people } from "@shared/schema";
+import { eq, and, lt, sql } from "drizzle-orm";
 import { hasActivePremium } from "../utils/premiumCheck";
 import { syncCouponsForEvent } from "./couponSyncService";
 
@@ -103,19 +103,15 @@ async function syncEventAttendees(event: Event) {
           .where(eq(users.email, guest.email.toLowerCase()))
           .limit(1);
 
+        const calculatedExpiresAt = premiumExpiresAt || 
+          new Date(`${new Date(event.startTime).getFullYear()}-12-31T23:59:59Z`).toISOString();
+
         if (user.length > 0) {
           const currentUser = user[0];
           
-          // Calculate expiration date if not set
-          const calculatedExpiresAt = premiumExpiresAt || 
-            new Date(`${new Date(event.startTime).getFullYear()}-12-31T23:59:59Z`).toISOString();
-          
-          // Check if user already has premium from any source
-          const alreadyHasPremium = hasActivePremium(currentUser);
           const hasActiveStripePremium = currentUser.subscriptionStatus === 'active';
           
           if (!hasActiveStripePremium) {
-            // Check if this would extend their current Luma premium
             const hasActiveLumaPremium = currentUser.premiumSource === 'luma' && 
               currentUser.premiumExpiresAt && 
               new Date(currentUser.premiumExpiresAt) > new Date();
@@ -136,6 +132,70 @@ async function syncEventAttendees(event: Event) {
               
               premiumGrantedCount++;
               console.log(`Granted premium access to ${guest.email} through ${calculatedExpiresAt}`);
+            }
+          }
+        } else {
+          try {
+            const guestName = guest.name || guest.user_name || null;
+            const personRecord = await db
+              .select({ id: people.id, userName: people.userName })
+              .from(people)
+              .where(sql`LOWER(${people.email}) = ${guest.email.toLowerCase()}`)
+              .limit(1);
+
+            const displayName = guestName || personRecord[0]?.userName || null;
+
+            const newUser = await storage.createUser({
+              email: guest.email.toLowerCase(),
+              password: null as any,
+              displayName,
+            });
+
+            await db
+              .update(users)
+              .set({
+                premiumSource: 'luma',
+                premiumExpiresAt: calculatedExpiresAt,
+                premiumGrantedAt: new Date().toISOString(),
+                lumaTicketId: ticketTypeId,
+              })
+              .where(eq(users.id, newUser.id));
+
+            premiumGrantedCount++;
+            console.log(`[EventSync] Auto-created unclaimed account for ${guest.email} and granted premium through ${calculatedExpiresAt}`);
+          } catch (createError: any) {
+            if (createError?.message?.includes('duplicate key') || createError?.code === '23505') {
+              const existingUser = await db
+                .select()
+                .from(users)
+                .where(eq(users.email, guest.email.toLowerCase()))
+                .limit(1);
+
+              if (existingUser.length > 0) {
+                const eu = existingUser[0];
+                const hasActiveStripePremium = eu.subscriptionStatus === 'active';
+                if (!hasActiveStripePremium) {
+                  const hasActiveLumaPremium = eu.premiumSource === 'luma' &&
+                    eu.premiumExpiresAt && new Date(eu.premiumExpiresAt) > new Date();
+                  const shouldUpdate = !hasActiveLumaPremium ||
+                    (new Date(calculatedExpiresAt) > new Date(eu.premiumExpiresAt!));
+                  if (shouldUpdate) {
+                    await db
+                      .update(users)
+                      .set({
+                        premiumSource: 'luma',
+                        premiumExpiresAt: calculatedExpiresAt,
+                        premiumGrantedAt: new Date().toISOString(),
+                        lumaTicketId: ticketTypeId,
+                      })
+                      .where(eq(users.id, eu.id));
+                    premiumGrantedCount++;
+                    console.log(`[EventSync] Granted premium to existing account ${guest.email} through ${calculatedExpiresAt}`);
+                  }
+                }
+              }
+            } else {
+              console.error(`[EventSync] Failed to auto-create account for ${guest.email}:`, createError);
             }
           }
         }

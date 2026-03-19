@@ -319,21 +319,45 @@ export class LumaMembershipService {
     }
 
     const activePremiumEmails = await this.getActivePremiumEmails();
+
+    const ticketPremiumResult = await db.execute(
+      sql`SELECT DISTINCT LOWER(a.user_email) as email
+          FROM attendance a
+          INNER JOIN events e ON e.api_id = a.event_api_id
+          WHERE e.grants_premium_access = true
+            AND a.approval_status = 'approved'
+            AND a.ticket_type_id IS NOT NULL
+            AND EXISTS (
+              SELECT 1 FROM json_array_elements_text(e.premium_ticket_types) AS pt
+              WHERE pt.value = a.ticket_type_id
+            )
+            AND (e.premium_expires_at IS NULL OR e.premium_expires_at > NOW())`
+    );
+    for (const row of ticketPremiumResult.rows as any[]) {
+      if (row.email && !activePremiumEmails.has(row.email)) {
+        activePremiumEmails.set(row.email, { source: 'luma', fromEventTicket: true });
+      }
+    }
+
     console.log(`[LumaMembership] Found ${activePremiumEmails.size} active premium emails from all sources (after Luma sync)`);
 
+    const emailsToPush: Array<{ email: string; info: { source: string; fromEventTicket?: boolean } }> = [];
     for (const [email, info] of activePremiumEmails) {
       if (lumaApprovedEmails.has(email)) continue;
+      if (info.source === 'luma' && !info.fromEventTicket) continue;
+      emailsToPush.push({ email, info });
+    }
 
-      if (info.source === 'luma' && !info.fromEventTicket) {
-        continue;
-      }
+    console.log(`[LumaMembership] ${emailsToPush.length} members need to be pushed to Luma (${activePremiumEmails.size} total - ${lumaApprovedEmails.size} already on Luma)`);
 
+    for (const { email, info } of emailsToPush) {
       try {
         const pushed = await this.addMemberToLumaTier(email);
         if (pushed) {
           result.pushedToLuma++;
           result.details.push(`Pushed to Luma (source: ${info.source}): ${email}`);
         }
+        await new Promise(resolve => setTimeout(resolve, 750));
       } catch (error) {
         result.errors++;
         console.error(`[LumaMembership] Failed to push ${email} to Luma:`, error);
@@ -366,6 +390,7 @@ export class LumaMembershipService {
             result.removedFromLuma++;
             result.details.push(`Removed from Luma (no active premium, no Luma revenue): ${email}`);
           }
+          await new Promise(resolve => setTimeout(resolve, 750));
         } catch (error) {
           result.errors++;
           console.error(`[LumaMembership] Failed to remove ${email} from Luma:`, error);

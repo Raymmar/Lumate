@@ -974,7 +974,10 @@ export class PostgresStorage implements IStorage {
         WHERE e.grants_premium_access = true
           AND a.approval_status = 'approved'
           AND a.ticket_type_id IS NOT NULL
-          AND e.premium_ticket_types::text LIKE '%' || a.ticket_type_id || '%'
+          AND EXISTS (
+            SELECT 1 FROM json_array_elements_text(e.premium_ticket_types) AS pt
+            WHERE pt.value = a.ticket_type_id
+          )
       `);
       const allTicketEmails = ticketResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean);
       console.log('[MemberStats] Ticket holders (total):', allTicketEmails.length);
