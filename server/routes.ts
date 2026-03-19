@@ -4346,6 +4346,9 @@ export async function registerRoutes(app: Express) {
                 guestApiId: guest.api_id,
                 approvalStatus: guest.approval_status,
                 registeredAt: guest.registered_at,
+                ticketTypeId: guest.event_ticket?.event_ticket_type_id || null,
+                ticketTypeName: guest.event_ticket?.name || null,
+                ticketAmount: guest.event_ticket?.amount || 0,
               });
 
               successCount++;
@@ -5745,15 +5748,19 @@ export async function registerRoutes(app: Express) {
           const response = await lumaApiRequest("event/get-guests", params);
 
           if (response.entries) {
-            for (const guest of response.entries) {
+            for (const entry of response.entries) {
+              const guest = entry.guest || entry;
               processedGuests++;
               if (guest.approval_status === "approved") {
                 await storage.upsertAttendance({
                   eventApiId: eventId,
-                  userEmail: guest.email,
-                  guestApiId: guest.guest_id,
+                  userEmail: (guest.email || '').toLowerCase(),
+                  guestApiId: guest.api_id || guest.guest_id,
                   approvalStatus: guest.approval_status,
                   registeredAt: guest.registered_at,
+                  ticketTypeId: guest.event_ticket?.event_ticket_type_id || null,
+                  ticketTypeName: guest.event_ticket?.name || null,
+                  ticketAmount: guest.event_ticket?.amount || 0,
                   lastSyncedAt: new Date().toISOString(),
                 });
               }
@@ -6058,15 +6065,19 @@ export async function registerRoutes(app: Express) {
           const response = await lumaApiRequest("event/get-guests", params);
 
           if (response.entries) {
-            for (const guest of response.entries) {
+            for (const entry of response.entries) {
+              const guest = entry.guest || entry;
               processedGuests++;
               if (guest.approval_status === "approved") {
                 await storage.upsertAttendance({
                   eventApiId: eventId,
-                  userEmail: guest.email,
-                  guestApiId: guest.guest_id,
+                  userEmail: (guest.email || '').toLowerCase(),
+                  guestApiId: guest.api_id || guest.guest_id,
                   approvalStatus: guest.approval_status,
                   registeredAt: guest.registered_at,
+                  ticketTypeId: guest.event_ticket?.event_ticket_type_id || null,
+                  ticketTypeName: guest.event_ticket?.name || null,
+                  ticketAmount: guest.event_ticket?.amount || 0,
                   lastSyncedAt: new Date().toISOString(),
                 });
               }
