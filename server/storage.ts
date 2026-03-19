@@ -982,19 +982,28 @@ export class PostgresStorage implements IStorage {
       const allTicketEmails = ticketResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean);
       console.log('[MemberStats] Ticket holders (total):', allTicketEmails.length);
 
-      // Get all user emails for checking activation status
-      const userResult = await db.select({ email: users.email }).from(users);
-      const userEmails = new Set(userResult.map(u => u.email?.toLowerCase()).filter(Boolean));
+      // Get claimed user emails (verified OR has password = real account, not auto-created)
+      const userResult = await db.select({ 
+        email: users.email, 
+        isVerified: users.isVerified,
+        password: users.password,
+      }).from(users);
+      const claimedUserEmails = new Set(
+        userResult
+          .filter(u => u.isVerified || u.password)
+          .map(u => u.email?.toLowerCase())
+          .filter(Boolean)
+      );
 
       // De-duplicate: ticket holders who DON'T have Stripe subscriptions
       const ticketOnlyEmails = allTicketEmails.filter(email => !stripeEmails.has(email));
       
-      // Split by activation status
+      // Split by claimed status (verified/has-password vs unclaimed/auto-created)
       let ticketsActivated = 0;
       let ticketsNotActivated = 0;
       
       for (const email of ticketOnlyEmails) {
-        if (userEmails.has(email)) {
+        if (claimedUserEmails.has(email)) {
           ticketsActivated++;
         } else {
           ticketsNotActivated++;
