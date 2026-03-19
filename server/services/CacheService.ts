@@ -589,10 +589,15 @@ export class CacheService extends EventEmitter {
 
     for (const person of people) {
       try {
+        const membershipStatus = person.membership?.status || null;
+        const membershipTierId = person.membership?.calendar_membership_tier_id || null;
+        const revenueUsdCents = person.revenue_usd_cents || 0;
+
         const query = sql`
           INSERT INTO people (
             api_id, email, user_name, full_name, avatar_url,
-            role, phone_number, bio, created_at
+            role, phone_number, bio, created_at,
+            luma_membership_status, luma_membership_tier_id, revenue_usd_cents
           )
           VALUES (
             ${person.api_id},
@@ -603,7 +608,10 @@ export class CacheService extends EventEmitter {
             ${person.role || null},
             ${person.phoneNumber || person.user?.phone_number || null},
             ${person.bio || person.user?.bio || null},
-            ${person.created_at || null}
+            ${person.created_at || null},
+            ${membershipStatus},
+            ${membershipTierId},
+            ${revenueUsdCents}
           )
           ON CONFLICT (api_id) DO UPDATE SET
             email = EXCLUDED.email,
@@ -613,7 +621,10 @@ export class CacheService extends EventEmitter {
             role = EXCLUDED.role,
             phone_number = EXCLUDED.phone_number,
             bio = EXCLUDED.bio,
-            created_at = EXCLUDED.created_at
+            created_at = EXCLUDED.created_at,
+            luma_membership_status = EXCLUDED.luma_membership_status,
+            luma_membership_tier_id = EXCLUDED.luma_membership_tier_id,
+            revenue_usd_cents = EXCLUDED.revenue_usd_cents
           RETURNING *
         `;
 

@@ -7,6 +7,7 @@ export interface LumaMember {
   email: string;
   status: string;
   tierId: string | null;
+  revenueUsdCents: number;
 }
 
 export interface ReconciliationResult {
@@ -98,53 +99,35 @@ export class LumaMembershipService {
       return [];
     }
 
-    const allMembers: LumaMember[] = [];
-    let hasMore = true;
-    let nextCursor: string | null = null;
-    let pageCount = 0;
+    try {
+      const rows = await db
+        .select({
+          email: people.email,
+          lumaMembershipStatus: people.lumaMembershipStatus,
+          lumaMembershipTierId: people.lumaMembershipTierId,
+          revenueUsdCents: people.revenueUsdCents,
+        })
+        .from(people)
+        .where(
+          and(
+            eq(people.lumaMembershipTierId, tierId),
+            isNotNull(people.lumaMembershipStatus)
+          )
+        );
 
-    while (hasMore) {
-      const params: Record<string, string> = {
-        membership_tier_id: tierId,
-      };
-      if (nextCursor) {
-        params.pagination_cursor = nextCursor;
-      }
+      const allMembers: LumaMember[] = rows.map(row => ({
+        email: row.email.toLowerCase(),
+        status: row.lumaMembershipStatus || 'unknown',
+        tierId: row.lumaMembershipTierId,
+        revenueUsdCents: row.revenueUsdCents || 0,
+      }));
 
-      try {
-        pageCount++;
-        const response = await lumaApiRequest('memberships/members/list', params);
-
-        if (!response || !Array.isArray(response.entries)) {
-          console.log('[LumaMembership] Invalid response from members list API:', response);
-          break;
-        }
-
-        for (const entry of response.entries) {
-          const email = entry.user?.email || entry.email;
-          if (email) {
-            allMembers.push({
-              email: email.toLowerCase(),
-              status: entry.status || 'unknown',
-              tierId: entry.membership_tier_id || tierId,
-            });
-          }
-        }
-
-        hasMore = response.has_more === true;
-        nextCursor = response.next_cursor || null;
-
-        if (!hasMore || !nextCursor) break;
-
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`[LumaMembership] Error fetching members list page ${pageCount}:`, error);
-        break;
-      }
+      console.log(`[LumaMembership] Found ${allMembers.length} Luma members from synced people table (tier: ${tierId})`);
+      return allMembers;
+    } catch (error) {
+      console.error('[LumaMembership] Error querying people table for Luma members:', error);
+      return [];
     }
-
-    console.log(`[LumaMembership] Fetched ${allMembers.length} members from Luma tier (${pageCount} pages)`);
-    return allMembers;
   }
 
   static async getActivePremiumEmails(): Promise<Map<string, { source: string; fromEventTicket?: boolean }>> {
@@ -233,9 +216,11 @@ export class LumaMembershipService {
     const lumaMembers = await this.fetchLumaMembersList();
     const lumaApprovedEmails = new Set<string>();
     const lumaRevokedEmails = new Set<string>();
+    const lumaMemberRevenue = new Map<string, number>();
     for (const member of lumaMembers) {
       if (member.status === 'approved') {
         lumaApprovedEmails.add(member.email);
+        lumaMemberRevenue.set(member.email, member.revenueUsdCents);
       } else if (member.status === 'declined' || member.status === 'revoked') {
         lumaRevokedEmails.add(member.email);
       }
@@ -251,14 +236,7 @@ export class LumaMembershipService {
       if (matchingUsers.length === 0) continue;
 
       const user = matchingUsers[0];
-      if (user.premiumSource === 'luma') {
-        const hasEventTicketGrant = user.lumaTicketId && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
-        if (hasEventTicketGrant) {
-          result.details.push(`Skipped revocation for ${email} — premium from event ticket, not Luma membership tier`);
-          console.log(`[LumaMembership] Skipping revocation for ${email} — has active event ticket grant (ticket: ${user.lumaTicketId})`);
-          continue;
-        }
-
+      if (user.premiumSource === 'luma' && !user.lumaTicketId) {
         await db
           .update(users)
           .set({
@@ -275,76 +253,69 @@ export class LumaMembershipService {
     }
 
     for (const email of lumaApprovedEmails) {
+      const totalRevenue = lumaMemberRevenue.get(email) || 0;
+      if (totalRevenue <= 0) continue;
+
       const matchingUsers = await db
         .select()
         .from(users)
         .where(eq(users.email, email));
 
-      if (matchingUsers.length === 0) {
-        result.details.push(`Luma member ${email} has no local user account — skipping`);
-        continue;
-      }
+      if (matchingUsers.length === 0) continue;
 
       const user = matchingUsers[0];
+
       const hasActiveStripe = user.subscriptionStatus === 'active';
       const hasActiveManual = user.premiumSource === 'manual' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
       const hasActiveLuma = user.premiumSource === 'luma' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
 
-      if (!hasActiveStripe && !hasActiveManual && !hasActiveLuma) {
-        const expiresAt = new Date();
-        expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      if (hasActiveStripe || hasActiveManual || hasActiveLuma) continue;
 
-        await db
-          .update(users)
-          .set({
-            premiumSource: 'luma',
-            premiumExpiresAt: expiresAt.toISOString(),
-            premiumGrantedAt: new Date().toISOString(),
-          })
-          .where(eq(users.id, user.id));
-
-        result.pulledFromLuma++;
-        result.details.push(`Granted premium from Luma membership: ${email}`);
-        console.log(`[LumaMembership] Granted premium to ${email} from Luma membership`);
-      }
-    }
-
-    const now = new Date().toISOString();
-    const localLumaGrantedUsers = await db
-      .select({ id: users.id, email: users.email, lumaTicketId: users.lumaTicketId, premiumExpiresAt: users.premiumExpiresAt })
-      .from(users)
-      .where(
-        and(
-          eq(users.premiumSource, 'luma'),
-          or(
-            gt(users.premiumExpiresAt, now),
-            sql`${users.premiumExpiresAt} IS NULL`
-          )
-        )
+      const premiumTicketResult = await db.execute(
+        sql`SELECT a.ticket_type_id, a.ticket_type_name, a.ticket_amount, e.premium_ticket_types
+            FROM attendance a
+            JOIN events e ON e.api_id = a.event_api_id
+            WHERE LOWER(a.user_email) = ${email}
+            AND e.grants_premium_access = true
+            AND a.ticket_type_id IS NOT NULL`
       );
 
-    for (const user of localLumaGrantedUsers) {
-      const lowerEmail = user.email.toLowerCase();
-      if (!lumaApprovedEmails.has(lowerEmail)) {
-        const hasEventTicketGrant = user.lumaTicketId && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
-        if (hasEventTicketGrant) {
-          result.details.push(`Skipped revocation for ${lowerEmail} — premium from event ticket, not Luma membership tier`);
-          continue;
+      let accessExplainedByTicket = false;
+      for (const row of premiumTicketResult.rows as any[]) {
+        const premiumTypes: string[] = (() => {
+          try {
+            if (Array.isArray(row.premium_ticket_types)) return row.premium_ticket_types;
+            if (typeof row.premium_ticket_types === 'string') return JSON.parse(row.premium_ticket_types);
+          } catch {}
+          return [];
+        })();
+
+        if (premiumTypes.includes(row.ticket_type_id)) {
+          accessExplainedByTicket = true;
+          break;
         }
-
-        await db
-          .update(users)
-          .set({
-            premiumSource: null,
-            premiumExpiresAt: null,
-            premiumGrantedAt: null,
-          })
-          .where(eq(users.id, user.id));
-
-        result.pulledFromLuma++;
-        result.details.push(`Revoked local Luma premium (not in Luma approved list): ${lowerEmail}`);
-        console.log(`[LumaMembership] Revoked Luma-granted premium for ${lowerEmail} (absent from Luma approved members)`);
       }
+
+      if (accessExplainedByTicket) {
+        console.log(`[LumaMembership] ${email} has Luma revenue ($${(totalRevenue / 100).toFixed(2)}) but access is from a premium event ticket — skipping`);
+        continue;
+      }
+
+      const expiresAt = new Date();
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+
+      await db
+        .update(users)
+        .set({
+          premiumSource: 'luma',
+          premiumExpiresAt: expiresAt.toISOString(),
+          premiumGrantedAt: new Date().toISOString(),
+        })
+        .where(eq(users.id, user.id));
+
+      result.pulledFromLuma++;
+      result.details.push(`Granted premium from Luma membership payment: ${email} (revenue: $${(totalRevenue / 100).toFixed(2)})`);
+      console.log(`[LumaMembership] Granted premium to ${email} — paid on Luma (revenue: $${(totalRevenue / 100).toFixed(2)}, no premium ticket found)`);
     }
 
     const activePremiumEmails = await this.getActivePremiumEmails();
@@ -372,15 +343,33 @@ export class LumaMembershipService {
     for (const email of lumaApprovedEmails) {
       if (activePremiumEmails.has(email)) continue;
 
-      try {
-        const removed = await this.removeMemberFromLumaTier(email);
-        if (removed) {
-          result.removedFromLuma++;
-          result.details.push(`Removed from Luma (no active premium from any source): ${email}`);
+      const memberRevenue = lumaMemberRevenue.get(email) || 0;
+      if (memberRevenue > 0) {
+        console.log(`[LumaMembership] ${email} not in active premium but has Luma revenue ($${(memberRevenue / 100).toFixed(2)}) — leaving on Luma tier (may have paid directly)`);
+        continue;
+      }
+
+      const matchingUsers = await db
+        .select({ id: users.id, premiumSource: users.premiumSource })
+        .from(users)
+        .where(eq(users.email, email));
+
+      if (matchingUsers.length === 0) {
+        continue;
+      }
+
+      const user = matchingUsers[0];
+      if (!user.premiumSource) {
+        try {
+          const removed = await this.removeMemberFromLumaTier(email);
+          if (removed) {
+            result.removedFromLuma++;
+            result.details.push(`Removed from Luma (no active premium, no Luma revenue): ${email}`);
+          }
+        } catch (error) {
+          result.errors++;
+          console.error(`[LumaMembership] Failed to remove ${email} from Luma:`, error);
         }
-      } catch (error) {
-        result.errors++;
-        console.error(`[LumaMembership] Failed to remove ${email} from Luma:`, error);
       }
     }
 
@@ -509,7 +498,12 @@ export class LumaMembershipService {
 
       console.log(`[LumaMembership] Successfully added ${email} to Luma tier`);
       return true;
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error);
+      if (errorMessage.includes('already has an active membership')) {
+        console.log(`[LumaMembership] ${email} already has an active membership in Luma — skipping`);
+        return true;
+      }
       console.error(`[LumaMembership] Failed to add ${email} to Luma tier:`, error);
       return false;
     }
@@ -544,89 +538,6 @@ export class LumaMembershipService {
     }
   }
 
-  static async syncMembershipFromLuma(personData: {
-    email: string;
-    membership?: {
-      status: string;
-      calendar_membership_tier_id: string | null;
-    } | null;
-  }): Promise<void> {
-    if (!personData.membership) return;
-
-    const { status, calendar_membership_tier_id } = personData.membership;
-    let configuredTierId = this.getTierId();
-    if (!configuredTierId) {
-      configuredTierId = await this.resolveTierId();
-    }
-
-    try {
-      await db
-        .update(people)
-        .set({
-          lumaMembershipStatus: status,
-          lumaMembershipTierId: calendar_membership_tier_id,
-        })
-        .where(eq(people.email, personData.email));
-
-      if (configuredTierId && calendar_membership_tier_id === configuredTierId) {
-        if (status === 'approved') {
-          const matchingUsers = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, personData.email.toLowerCase()));
-
-          for (const user of matchingUsers) {
-            if (user.subscriptionStatus === 'active') continue;
-            if (user.premiumSource === 'manual' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date()) continue;
-
-            if (!user.premiumSource || (user.premiumExpiresAt && new Date(user.premiumExpiresAt) <= new Date())) {
-              const expiresAt = new Date();
-              expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-              await db
-                .update(users)
-                .set({
-                  premiumSource: 'luma',
-                  premiumExpiresAt: expiresAt.toISOString(),
-                  premiumGrantedAt: new Date().toISOString(),
-                })
-                .where(eq(users.id, user.id));
-
-              console.log(`[LumaMembership] Granted premium to ${user.email} from Luma membership (expires ${expiresAt.toISOString()})`);
-            }
-          }
-        } else if (status === 'declined' || status === 'revoked') {
-          const matchingUsers = await db
-            .select()
-            .from(users)
-            .where(eq(users.email, personData.email.toLowerCase()));
-
-          for (const user of matchingUsers) {
-            if (user.premiumSource === 'luma') {
-              const hasEventTicketGrant = user.lumaTicketId && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
-              if (hasEventTicketGrant) {
-                console.log(`[LumaMembership] Skipping revocation for ${user.email} — has active event ticket grant (ticket: ${user.lumaTicketId})`);
-                continue;
-              }
-
-              await db
-                .update(users)
-                .set({
-                  premiumSource: null,
-                  premiumExpiresAt: null,
-                  premiumGrantedAt: null,
-                })
-                .where(eq(users.id, user.id));
-
-              console.log(`[LumaMembership] Revoked Luma-granted premium for ${user.email} (status: ${status})`);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error(`[LumaMembership] Error syncing membership for ${personData.email}:`, error);
-    }
-  }
 
   static async linkPersonToUser(userId: number, personId: number, isPrimary: boolean = false): Promise<void> {
     try {

@@ -64,6 +64,7 @@ export const people = pgTable("people", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }),
   lumaMembershipStatus: varchar("luma_membership_status", { length: 50 }),
   lumaMembershipTierId: varchar("luma_membership_tier_id", { length: 255 }),
+  revenueUsdCents: integer("revenue_usd_cents").default(0),
   stats: json("stats").$type<{
     totalEventsAttended: number;
     lastEventDate: string | null;

@@ -6,6 +6,14 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### March 19, 2026 - Luma Membership Sync Bug Fixes
+- **Bug 1**: `fetchLumaMembersList()` was calling `memberships/members/list` which returns 404 (endpoint doesn't exist in Luma API). Fixed: now reads membership data from the local `people` table, which is populated during cron sync via `calendar/list-people` (membership status is embedded per-person in Luma's response).
+- **Bug 2**: `addMemberToLumaTier()` treated "already has an active membership" 400 errors as failures, causing 3x retries per already-member. Fixed: 400 errors are now flagged `nonRetryable` in `lumaApiRequest()`, and the "already has an active membership" message is caught and treated as a skip/success.
+- **Bug 3**: `batchInsertPeople()` was not storing `luma_membership_status` or `luma_membership_tier_id` from Luma person records, so the people table had no membership data for the pull/revocation logic. Fixed: these fields are now extracted and stored during sync.
+- **Safe mode guard**: `reconcileMemberships()` checks `hasMembershipData` flag — if no people have membership data yet (first sync with new fields), all pull/revocation logic is skipped to prevent false revocations.
+- **Pull logic (Luma→local) uses ticket cross-reference**: Only grants `premiumSource: 'luma'` to Luma-approved members who have `revenue_usd_cents > 0` AND whose revenue is NOT explained by a premium-granting event ticket. Cross-references `attendance.ticket_type_id` against `events.premium_ticket_types` for events where `grants_premium_access = true`. This prevents the recursive loop where users we pushed (via `skip_payment: true`, revenue stays $0) or users who only bought event tickets get incorrectly granted Luma membership premium.
+- **Files**: `server/services/LumaMembershipService.ts`, `server/services/CacheService.ts`, `server/routes.ts`
+
 ### March 18, 2026 - Email Drift Detection UI
 - **Feature**: Surfaces accounts where a linked Luma profile email changed but the user's account email didn't, enabling admin notifications and user self-service resolution.
 - **Schema**: Added `emailDriftDetectedAt` (timestamp) and `emailDriftPersonEmail` (varchar) columns to `users` table.
@@ -20,7 +28,7 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ### March 18, 2026 - CacheService Optimizations
 - **Daily full people refresh**: Tracks `last_full_people_refresh` in `cache_metadata` table. Every 24h, bypasses `created_after` filter (passes epoch) to fetch ALL people from Luma, catching records missed by incremental sync. Timestamp updated only after successful sync.
-- **Removed redundant per-person syncMembershipFromLuma**: The per-person `syncMembershipFromLuma()` call during people insert was removed. Membership state is now handled comprehensively by `reconcileMemberships()` at the end of each sync cycle.
+- **Removed dead syncMembershipFromLuma method**: The per-person `syncMembershipFromLuma()` method was removed entirely. Membership state is now handled comprehensively by `reconcileMemberships()` at the end of each sync cycle.
 - **Batch-loop optimization**: `existingUsers` and `userPeopleLinks` are loaded once before all people batches (not per-batch), reducing DB queries from O(batches) to O(1).
 - **Smart relinking with email drift detection**: Email-based user↔person linking only happens for previously unlinked people. For already-linked people, if their Luma email changes but their linked user account email doesn't match, it's logged as `[Email Drift]` for admin review.
 - **Graceful per-person error handling**: Individual person processing failures are caught, logged (with `api_id` and email), and skipped — the batch continues instead of aborting the entire transaction.
@@ -120,7 +128,6 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 - **New Service**: `server/services/LumaMembershipService.ts`
   - `addMemberToLumaTier(email)` — pushes membership to Luma via `POST /v1/memberships/members/add` with `skip_payment: true`
   - `removeMemberFromLumaTier(email)` — removes via `POST /v1/memberships/members/update-status` with `status: "declined"`
-  - `syncMembershipFromLuma(person)` — reconciles Luma membership data during inbound sync
   - `autoLinkByEmail(userId, email)` — auto-links Luma people records to user accounts
   - `linkPersonToUser/unlinkPerson/setPrimaryPerson` — junction table management
   - `getLinkedPeople(userId)` — returns all linked Luma profiles for a user

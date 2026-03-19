@@ -167,9 +167,12 @@ export async function lumaApiRequest(
           errorText,
           params,
         });
-        throw new Error(
+        const err: any = new Error(
           `Luma API error: ${response.statusText} - ${errorText}`,
         );
+        err.statusCode = response.status;
+        err.nonRetryable = response.status === 400;
+        throw err;
       }
 
       const data = await response.json();
@@ -184,7 +187,11 @@ export async function lumaApiRequest(
       });
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.nonRetryable) {
+        console.error(`Luma API request failed for ${endpoint} (non-retryable):`, error);
+        throw error;
+      }
       if (retryCount === maxRetries - 1) {
         console.error(
           `Luma API request failed for ${endpoint} after ${maxRetries} retries:`,
