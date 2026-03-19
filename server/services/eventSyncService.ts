@@ -6,6 +6,7 @@ import { users, events, attendance, people } from "@shared/schema";
 import { eq, and, lt, sql } from "drizzle-orm";
 import { hasActivePremium } from "../utils/premiumCheck";
 import { syncCouponsForEvent } from "./couponSyncService";
+import { fetchAllEventGuests } from "./lumaHelpers";
 
 async function syncEventAttendees(event: Event) {
   console.log(
@@ -26,81 +27,30 @@ async function syncEventAttendees(event: Event) {
 
     const syncStartedAt = new Date().toISOString();
 
-    let hasMore = true;
-    let cursor: string | undefined;
-    let page = 1;
-    const allGuests: any[] = [];
+    const allGuests = await fetchAllEventGuests(event.api_id);
 
-    while (hasMore) {
-      const params = new URLSearchParams({
-        event_api_id: event.api_id,
-        ...(cursor ? { pagination_cursor: cursor } : {}),
-      });
-
-      const response = await fetch(
-        `https://api.lu.ma/public/v1/event/get-guests?${params}`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.LUMA_API_KEY}`,
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch guests");
-      }
-
-      const data = await response.json();
-
-      // Filter for approved guests only
-      const approvedGuests = (data.entries || []).filter(
-        (entry: any) => entry.guest.approval_status === "approved",
-      );
-
-      allGuests.push(...approvedGuests);
-
-      hasMore = data.has_more;
-      cursor = data.next_cursor;
-      console.log(
-        `Background Fetched page ${page} of guests hasMore:${hasMore} cursor:${cursor}`,
-      );
-
-      page++;
-    }
-
-    // Process and store approved guests with ticket information
     let premiumGrantedCount = 0;
     
-    for (const entry of allGuests) {
-      const { guest } = entry;
-      
-      // Extract ticket information
-      const ticketTypeId = guest.event_ticket?.event_ticket_type_id || null;
-      const ticketTypeName = guest.event_ticket?.name || null;
-      const ticketAmount = guest.event_ticket?.amount || 0;
-      
-      // Store attendance with ticket data
+    for (const guest of allGuests) {
       await storage.upsertAttendance({
-        guestApiId: guest.api_id,
+        guestApiId: guest.guestApiId,
         eventApiId: event.api_id,
-        userEmail: guest.email.toLowerCase(),
-        registeredAt: guest.registered_at,
-        approvalStatus: guest.approval_status,
-        ticketTypeId: ticketTypeId,
-        ticketTypeName: ticketTypeName,
-        ticketAmount: ticketAmount,
+        userEmail: guest.email,
+        registeredAt: guest.registeredAt,
+        approvalStatus: guest.approvalStatus,
+        ticketTypeId: guest.ticketTypeId,
+        ticketTypeName: guest.ticketTypeName,
+        ticketAmount: guest.ticketAmount,
       });
 
-      // Check if this attendee should get premium access
       if (grantsPremiumAccess && 
-          ticketTypeId && 
-          premiumTicketTypes.includes(ticketTypeId)) {
+          guest.ticketTypeId && 
+          premiumTicketTypes.includes(guest.ticketTypeId)) {
         
-        // Find the user by email
         const user = await db
           .select()
           .from(users)
-          .where(eq(users.email, guest.email.toLowerCase()))
+          .where(eq(users.email, guest.email))
           .limit(1);
 
         const calculatedExpiresAt = premiumExpiresAt || 
@@ -126,7 +76,7 @@ async function syncEventAttendees(event: Event) {
                   premiumSource: 'luma',
                   premiumExpiresAt: calculatedExpiresAt,
                   premiumGrantedAt: new Date().toISOString(),
-                  lumaTicketId: ticketTypeId,
+                  lumaTicketId: guest.ticketTypeId,
                 })
                 .where(eq(users.id, currentUser.id));
               
@@ -136,17 +86,16 @@ async function syncEventAttendees(event: Event) {
           }
         } else {
           try {
-            const guestName = guest.name || guest.user_name || null;
             const personRecord = await db
               .select({ id: people.id, userName: people.userName })
               .from(people)
-              .where(sql`LOWER(${people.email}) = ${guest.email.toLowerCase()}`)
+              .where(sql`LOWER(${people.email}) = ${guest.email}`)
               .limit(1);
 
-            const displayName = guestName || personRecord[0]?.userName || null;
+            const displayName = guest.displayName || personRecord[0]?.userName || null;
 
             const newUser = await storage.createUser({
-              email: guest.email.toLowerCase(),
+              email: guest.email,
               password: null as any,
               displayName,
             });
@@ -157,7 +106,7 @@ async function syncEventAttendees(event: Event) {
                 premiumSource: 'luma',
                 premiumExpiresAt: calculatedExpiresAt,
                 premiumGrantedAt: new Date().toISOString(),
-                lumaTicketId: ticketTypeId,
+                lumaTicketId: guest.ticketTypeId,
               })
               .where(eq(users.id, newUser.id));
 
@@ -168,7 +117,7 @@ async function syncEventAttendees(event: Event) {
               const existingUser = await db
                 .select()
                 .from(users)
-                .where(eq(users.email, guest.email.toLowerCase()))
+                .where(eq(users.email, guest.email))
                 .limit(1);
 
               if (existingUser.length > 0) {
@@ -186,7 +135,7 @@ async function syncEventAttendees(event: Event) {
                         premiumSource: 'luma',
                         premiumExpiresAt: calculatedExpiresAt,
                         premiumGrantedAt: new Date().toISOString(),
-                        lumaTicketId: ticketTypeId,
+                        lumaTicketId: guest.ticketTypeId,
                       })
                       .where(eq(users.id, eu.id));
                     premiumGrantedCount++;
