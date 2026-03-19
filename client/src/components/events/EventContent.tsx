@@ -1,6 +1,6 @@
 import { Event, Person } from "@shared/schema";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react";
+import { Calendar, MapPin, Users, Loader2, ChevronLeft, ChevronRight, CalendarPlus, Crown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -222,6 +222,13 @@ export function EventContent({
               data-testid="img-event-cover"
             />
 
+            {event.visibility === 'members-only' && (
+              <div className="absolute top-3 left-3 bg-amber-500/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-2 shadow-sm">
+                <Crown className="h-4 w-4 text-white" />
+                <span className="text-sm font-medium text-white">Members Only</span>
+              </div>
+            )}
+
             {event.tags && event.tags.length > 0 && (
               <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent rounded-b-lg">
                 <div className="flex gap-2">
@@ -243,7 +250,15 @@ export function EventContent({
 
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold mb-4" data-testid="text-event-title">{event.title}</h1>
+            <div className="flex items-start gap-3 mb-4">
+              <h1 className="text-3xl font-bold" data-testid="text-event-title">{event.title}</h1>
+              {event.visibility === 'members-only' && !event.coverUrl && (
+                <div className="flex-shrink-0 bg-amber-500/90 rounded-full px-2.5 py-1 flex items-center gap-1.5 mt-1">
+                  <Crown className="h-3.5 w-3.5 text-white" />
+                  <span className="text-xs font-medium text-white">Members Only</span>
+                </div>
+              )}
+            </div>
             {event.description && (
               <div className="relative">
                 <div className={`prose prose-lg max-w-none dark:prose-invert ${!isExpanded ? 'line-clamp-4' : ''}`}>

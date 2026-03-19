@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, ExternalLink, Users, CalendarPlus, CalendarDays } from "lucide-react";
+import { Calendar, ExternalLink, Users, CalendarPlus, CalendarDays, Crown } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -167,6 +167,14 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
                   <CalendarDays className="h-6 w-6 text-muted-foreground" />
                 </div>
               )}
+              {event.visibility === 'members-only' && (
+                <div
+                  className="absolute top-1 left-1 bg-amber-500/90 rounded-full p-0.5"
+                  title="Members Only"
+                >
+                  <Crown className="h-3 w-3 text-white" />
+                </div>
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-sm font-medium group-hover:text-primary transition-colors line-clamp-1">
@@ -222,6 +230,16 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
               </div>
             )}
           </AspectRatio>
+
+          {event.visibility === 'members-only' && (
+            <div
+              className="absolute top-2 left-2 bg-amber-500/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1.5 shadow-sm"
+              title="Members Only"
+            >
+              <Crown className="h-3.5 w-3.5 text-white" />
+              <span className="text-xs font-medium text-white">Members Only</span>
+            </div>
+          )}
 
           <div className="absolute top-2 right-2">
             <AuthGuard>
