@@ -189,19 +189,18 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
                     </Button>
                   )}
                 </AuthGuard>
+                {event.visibility === 'members-only' && (
+                  <div
+                    className="bg-amber-500/90 rounded-full p-0.5"
+                    title="Members Only"
+                  >
+                    <Crown className="h-3 w-3 text-white" />
+                  </div>
+                )}
                 {!isAttendeesLoading && (
                   <span className="text-xs text-muted-foreground">
                     {attendeesData?.total || 0} attending
                   </span>
-                )}
-                {event.visibility === 'members-only' && (
-                  <div
-                    className="bg-amber-500/90 rounded-full px-1.5 py-0.5 flex items-center gap-1"
-                    title="Members Only"
-                  >
-                    <Crown className="h-3 w-3 text-white" />
-                    <span className="text-[10px] font-medium text-white">Members</span>
-                  </div>
                 )}
               </div>
             </div>
