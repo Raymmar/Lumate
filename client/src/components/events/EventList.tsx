@@ -214,7 +214,7 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
               <img
                 src={event.coverUrl}
                 alt={event.title}
-                className="rounded-t-lg object-contain w-full h-full bg-muted"
+                className="rounded-t-lg object-cover w-full h-full bg-muted"
               />
             ) : (
               <div className="w-full h-full bg-muted rounded-t-lg flex items-center justify-center">
@@ -273,11 +273,6 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
               )}
             </div>
 
-            {event.description && (
-              <p className="text-xs line-clamp-2">
-                {event.description}
-              </p>
-            )}
           </div>
         </div>
       </div>
@@ -302,9 +297,11 @@ export default function EventList({ compact }: EventListProps) {
 
   const now = new Date();
   const eventsArray = data?.events || [];
-  const upcomingEvent = eventsArray
+  const upcomingEvents = eventsArray
     .filter(event => new Date(event.startTime) > now)
-    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+    .slice(0, 3);
+  const upcomingEvent = upcomingEvents[0];
   const isEventEnded = upcomingEvent && new Date(upcomingEvent.endTime) < now;
 
   const { data: rsvpStatus } = useQuery({
@@ -330,7 +327,7 @@ export default function EventList({ compact }: EventListProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between pb-1">
-        <h2 className="text-sm font-medium">Next Event</h2>
+        <h2 className="text-sm font-medium">Upcoming Events</h2>
         {upcomingEvent && rsvpStatus?.isGoing && !isEventEnded && (
           <Button
             variant="ghost"
@@ -348,11 +345,20 @@ export default function EventList({ compact }: EventListProps) {
         <div className="space-y-2">
           <Skeleton className="h-[88px]" />
         </div>
-      ) : upcomingEvent ? (
-        <EventCard
-          event={upcomingEvent}
-          compact={compact}
-        />
+      ) : upcomingEvents.length > 0 ? (
+        <div className="space-y-2">
+          <EventCard
+            event={upcomingEvents[0]}
+            compact={compact}
+          />
+          {upcomingEvents.slice(1).map((event) => (
+            <EventCard
+              key={event.api_id}
+              event={event}
+              compact
+            />
+          ))}
+        </div>
       ) : (
         <p className="text-xs text-muted-foreground">No upcoming events</p>
       )}
