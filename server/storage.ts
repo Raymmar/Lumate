@@ -982,15 +982,14 @@ export class PostgresStorage implements IStorage {
       const allTicketEmails = ticketResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean);
       console.log('[MemberStats] Ticket holders (total):', allTicketEmails.length);
 
-      // Get claimed user emails (verified OR has password = real account, not auto-created)
+      // Get activated (verified) user emails — unverified accounts are pending
       const userResult = await db.select({ 
         email: users.email, 
         isVerified: users.isVerified,
-        password: users.password,
       }).from(users);
       const claimedUserEmails = new Set(
         userResult
-          .filter(u => u.isVerified || u.password)
+          .filter(u => u.isVerified)
           .map(u => u.email?.toLowerCase())
           .filter(Boolean)
       );
