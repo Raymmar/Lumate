@@ -60,7 +60,7 @@ interface SendNewsletterModalProps {
 export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletterModalProps) {
   const { toast } = useToast();
   const videoInfo = getVideoThumbnail(post.videoUrl);
-  const [audience, setAudience] = useState<string>("all");
+  const [audience, setAudience] = useState<string>("people");
   const [selectedBadgeIds, setSelectedBadgeIds] = useState<number[]>([]);
   const [selectedEventApiIds, setSelectedEventApiIds] = useState<string[]>([]);
   const [testEmail, setTestEmail] = useState("");
