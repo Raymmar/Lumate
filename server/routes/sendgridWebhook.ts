@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { createPublicKey, createVerify } from "crypto";
+import { EventWebhook, EventWebhookHeader } from "@sendgrid/eventwebhook";
 import { db } from "../db";
 import { emailEvents, newsletterRecipients, newsletterSends, people } from "@shared/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
@@ -7,14 +7,19 @@ import { eq, and, sql, isNull } from "drizzle-orm";
 const SCANNER_GRACE_PERIOD_MS = 30 * 1000;
 const SENDGRID_WEBHOOK_VERIFICATION_KEY = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
 
+const eventWebhook = new EventWebhook();
+const ecPublicKey = SENDGRID_WEBHOOK_VERIFICATION_KEY
+  ? eventWebhook.convertPublicKeyToECDSA(SENDGRID_WEBHOOK_VERIFICATION_KEY)
+  : null;
+
 function verifySendGridSignature(rawBody: Buffer, req: Request): boolean {
-  if (!SENDGRID_WEBHOOK_VERIFICATION_KEY) {
+  if (!ecPublicKey) {
     console.log("[SendGrid Webhook] No verification key configured, skipping signature check");
     return true;
   }
 
-  const signature = req.headers['x-twilio-email-event-webhook-signature'] as string;
-  const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
+  const signature = req.headers[EventWebhookHeader.SIGNATURE().toLowerCase()] as string;
+  const timestamp = req.headers[EventWebhookHeader.TIMESTAMP().toLowerCase()] as string;
 
   if (!signature || !timestamp) {
     console.warn("[SendGrid Webhook] Verification key is set but signature headers are missing — rejecting request");
@@ -22,23 +27,7 @@ function verifySendGridSignature(rawBody: Buffer, req: Request): boolean {
   }
 
   try {
-    let keyPem = SENDGRID_WEBHOOK_VERIFICATION_KEY;
-    if (!keyPem.includes('-----BEGIN')) {
-      keyPem = `-----BEGIN PUBLIC KEY-----\n${keyPem}\n-----END PUBLIC KEY-----`;
-    }
-
-    const publicKey = createPublicKey({
-      key: keyPem,
-      format: "pem",
-      type: "spki",
-    });
-
-    const payload = timestamp + rawBody.toString('utf8');
-    const verifier = createVerify("sha256");
-    verifier.update(payload);
-    verifier.end();
-
-    const isValid = verifier.verify(publicKey, signature, "base64");
+    const isValid = eventWebhook.verifySignature(ecPublicKey, rawBody, signature, timestamp);
 
     if (!isValid) {
       console.warn("[SendGrid Webhook] ECDSA signature verification failed");

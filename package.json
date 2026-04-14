@@ -44,6 +44,7 @@
     "@react-google-maps/api": "^2.20.6",
     "@replit/object-storage": "^1.0.0",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
+    "@sendgrid/eventwebhook": "^8.0.0",
     "@sendgrid/mail": "^8.1.4",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^5.10.0",
