@@ -1,5 +1,10 @@
 import { MailService } from '@sendgrid/mail';
 import { createHmac } from 'crypto';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+
+const logoPath = resolve(process.cwd(), 'client/public/st-logo-email.png');
+const logoBase64 = readFileSync(logoPath).toString('base64');
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
@@ -762,8 +767,6 @@ export async function sendNewsletterEmail(
 
     const subject = postData.title;
 
-    const logoUrl = `${baseUrl}/st-logo-email.png`;
-
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -771,7 +774,7 @@ export async function sendNewsletterEmail(
       <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
         <div style="max-width:600px;margin:0 auto;background-color:#ffffff;">
           <div style="padding:16px 32px;text-align:center;border-bottom:1px solid #e5e5e5;">
-            <img src="${logoUrl}" alt="Sarasota Tech" style="display:block;margin:0 auto;max-width:280px;width:100%;height:auto;" />
+            <img src="cid:sarasota_tech_logo" alt="Sarasota Tech" style="display:block;margin:0 auto;max-width:280px;width:100%;height:auto;" />
           </div>
           <div style="padding:32px;">
             ${featuredImageSection}
