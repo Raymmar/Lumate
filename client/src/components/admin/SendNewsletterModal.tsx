@@ -160,10 +160,10 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
             <div className="flex-1 overflow-y-auto border-r">
               <div className="p-4">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">Email Preview</h3>
-                <div className="rounded-lg overflow-hidden border" style={{ backgroundColor: '#111' }}>
-                  <div style={{ maxWidth: 600, margin: '0 auto', backgroundColor: '#1a1a1a' }}>
-                    <div style={{ padding: '24px 32px', textAlign: 'center', borderBottom: '1px solid #333' }}>
-                      <h1 style={{ margin: 0, color: '#FEA30E', fontSize: 24, fontWeight: 'bold' }}>Sarasota Tech</h1>
+                <div className="rounded-lg overflow-hidden border" style={{ backgroundColor: '#f4f4f4' }}>
+                  <div style={{ maxWidth: 600, margin: '0 auto', backgroundColor: '#ffffff' }}>
+                    <div style={{ padding: '24px 32px', textAlign: 'center', borderBottom: '1px solid #e5e5e5' }}>
+                      <img src="/st-logo-email.png" alt="Sarasota Tech" style={{ height: 40, width: 'auto' }} />
                     </div>
                     <div style={{ padding: 32 }}>
                       {post.featuredImage && (
@@ -173,12 +173,12 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                           style={{ width: '100%', height: 'auto', borderRadius: 8, marginBottom: 24 }}
                         />
                       )}
-                      <h2 style={{ color: '#fff', fontSize: 28, lineHeight: 1.3, margin: '0 0 16px 0' }}>{post.title}</h2>
+                      <h2 style={{ color: '#1a1a1a', fontSize: 28, lineHeight: 1.3, margin: '0 0 16px 0' }}>{post.title}</h2>
                       {post.summary && (
-                        <p style={{ fontSize: 16, color: '#999', lineHeight: 1.6, margin: '0 0 24px 0', fontStyle: 'italic' }}>{post.summary}</p>
+                        <p style={{ fontSize: 16, color: '#666', lineHeight: 1.6, margin: '0 0 24px 0', fontStyle: 'italic' }}>{post.summary}</p>
                       )}
                       <div
-                        style={{ color: '#ccc', fontSize: 16, lineHeight: 1.7 }}
+                        style={{ color: '#333', fontSize: 16, lineHeight: 1.7 }}
                         dangerouslySetInnerHTML={{ __html: post.body }}
                       />
                       {post.ctaLink && post.ctaLabel && (
@@ -200,8 +200,8 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                         </div>
                       )}
                     </div>
-                    <div style={{ padding: '24px 32px', borderTop: '1px solid #333', textAlign: 'center' }}>
-                      <p style={{ margin: '0 0 8px 0', color: '#666', fontSize: 12 }}>Sarasota Tech Community</p>
+                    <div style={{ padding: '24px 32px', borderTop: '1px solid #e5e5e5', textAlign: 'center' }}>
+                      <p style={{ margin: '0 0 8px 0', color: '#999', fontSize: 12 }}>Sarasota Tech Community</p>
                       <p style={{ margin: 0, color: '#FEA30E', fontSize: 12 }}>Visit our website</p>
                     </div>
                   </div>

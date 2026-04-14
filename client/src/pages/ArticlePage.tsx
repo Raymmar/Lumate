@@ -4,7 +4,7 @@ import { Post, type InsertPost } from "@shared/schema";
 import { ArticleContent } from "@/components/news/ArticleContent";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash2, Send } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import NotFound from "./not-found";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { SendNewsletterModal } from "@/components/admin/SendNewsletterModal";
 
 export function ArticlePage() {
   const { title } = useParams<{ title: string }>();
@@ -42,6 +43,7 @@ export function ArticlePage() {
   const [editingPost, setEditingPost] = useState<Post | undefined>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showNewsletterModal, setShowNewsletterModal] = useState(false);
 
   const {
     isSavingDraft,
@@ -280,6 +282,12 @@ export function ArticlePage() {
                     Edit Post
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    onClick={() => setShowNewsletterModal(true)}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send as Newsletter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
                     onClick={handleDeletePost}
                     className="text-red-600 focus:text-red-600"
                     data-testid="menu-delete-post"
@@ -330,6 +338,11 @@ export function ArticlePage() {
           isSubmitting={isSubmitting}
           isSavingDraft={isSavingDraft}
           onSaveDraft={handleSaveDraftForArticle}
+          onSendNewsletter={() => {
+            setIsModalOpen(false);
+            setShowNewsletterModal(true);
+          }}
+          postId={editingPost?.id}
         >
           <PostForm
             ref={isEditing ? editFormRef : createFormRef}
@@ -350,6 +363,14 @@ export function ArticlePage() {
             isEditing={isEditing}
           />
         </PostModal>
+
+        {post && (
+          <SendNewsletterModal
+            open={showNewsletterModal}
+            onOpenChange={setShowNewsletterModal}
+            post={post}
+          />
+        )}
 
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <AlertDialogContent>

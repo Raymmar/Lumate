@@ -5731,7 +5731,6 @@ export async function registerRoutes(app: Express) {
 
       const [postData] = await db.select().from(posts).where(eq(posts.id, postId));
       if (!postData) return res.status(404).json({ error: "Post not found" });
-      if (postData.status !== 'published') return res.status(400).json({ error: "Only published posts can be sent as newsletters" });
 
       let recipientEmails = new Set<string>();
 

@@ -161,6 +161,12 @@ export default function AdminPostsPage() {
         onSubmit={() => {}}
         onSaveDraft={handleSaveDraft}
         onDelete={handleDeletePost}
+        onSendNewsletter={() => {
+          if (editingPost) {
+            setIsEditModalOpen(false);
+            setNewsletterPost(editingPost);
+          }
+        }}
         isSubmitting={isSubmitting}
         isSavingDraft={isSavingDraft}
         isDeleting={isDeleting}

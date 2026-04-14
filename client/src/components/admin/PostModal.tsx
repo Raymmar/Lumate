@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X, Loader2, Trash2, Mail } from "lucide-react";
+import { X, Loader2, Trash2, Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ interface PostModalProps {
   onSubmit: () => void;
   onSaveDraft?: () => void;
   onDelete?: () => void;
+  onSendNewsletter?: () => void;
   isSubmitting?: boolean;
   isSavingDraft?: boolean;
   isDeleting?: boolean;
@@ -40,6 +41,7 @@ export function PostModal({
   onSubmit,
   onSaveDraft,
   onDelete,
+  onSendNewsletter,
   isSubmitting = false,
   isSavingDraft = false,
   isDeleting = false,
@@ -95,6 +97,18 @@ export function PostModal({
                     data-testid="button-delete-post"
                   >
                     <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+                {mode === 'edit' && onSendNewsletter && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onSendNewsletter}
+                    className="h-8 gap-1.5 text-xs"
+                    disabled={isSubmitting || isSavingDraft || isDeleting}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Newsletter
                   </Button>
                 )}
               </div>

@@ -16,14 +16,15 @@ This is a full-stack web application built for the Sarasota Tech community, desi
   - `POST /api/admin/posts/:id/newsletter/send` - send to filtered audience (published posts only)
   - `GET /api/admin/newsletter/sent-posts` - batch endpoint for sent post IDs (used by PostsTable indicator)
   - `GET /api/admin/badges-list` / `GET /api/admin/events-list` - data for filter UI
-- **Email Template**: Dark-themed branded template in `server/email.ts` (`sendNewsletterEmail`) with Sarasota Tech header (#FEA30E on #1a1a1a), featured image, post body, CTA button, and footer.
+- **Email Template**: Light-themed branded template in `server/email.ts` (`sendNewsletterEmail`) with Sarasota Tech logo image (`/st-logo-email.png`) in header, white background (#ffffff on #f4f4f4), featured image, post body, CTA button, and footer.
 - **Frontend**:
   - `SendNewsletterModal.tsx` - split-pane modal with email preview (left) and controls (right): audience selector, badge filter toggle chips, event attendance filter, live recipient count, test email input, send history, confirmation dialog.
   - `PostsTable.tsx` - "Send as Newsletter" action in post dropdown menu, blue mail icon indicator for posts previously sent as newsletters.
   - `PostModal.tsx` - blue banner showing last newsletter send info when editing a previously sent post.
-  - `AdminPostsPage.tsx` - wires up SendNewsletterModal and passes postId to PostModal.
+  - `AdminPostsPage.tsx` - wires up SendNewsletterModal and passes postId to PostModal, newsletter button in edit modal header.
+  - `ArticlePage.tsx` - "Send as Newsletter" in post action dropdown menu and available from edit modal.
 - **Audience Filtering**: Intersects base audience (all verified users or premium only) with optional badge membership and/or event attendance filters.
-- **Validation**: Server enforces published-only posts, admin-only access, valid audience values.
+- **Validation**: Server enforces admin-only access, valid audience values. Both published and draft posts can be sent as newsletters.
 - **Files**: `shared/schema.ts`, `server/email.ts`, `server/routes.ts`, `client/src/components/admin/SendNewsletterModal.tsx`, `client/src/components/admin/PostsTable.tsx`, `client/src/components/admin/PostModal.tsx`, `client/src/pages/admin/AdminPostsPage.tsx`
 
 ### March 19, 2026 - Luma Membership Sync Bug Fixes
