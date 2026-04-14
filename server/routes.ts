@@ -5851,13 +5851,18 @@ export async function registerRoutes(app: Express) {
       if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
 
       const sentPosts = await db
-        .select({ postId: newsletterSends.postId })
+        .select({
+          postId: newsletterSends.postId,
+          latestSendId: sql<number>`max(${newsletterSends.id})`,
+        })
         .from(newsletterSends)
         .where(eq(newsletterSends.testSend, false))
         .groupBy(newsletterSends.postId);
 
       const postIds = sentPosts.map(s => s.postId);
-      res.json({ sentPostIds: postIds });
+      const postSendMap: Record<number, number> = {};
+      sentPosts.forEach(s => { postSendMap[s.postId] = s.latestSendId; });
+      res.json({ sentPostIds: postIds, postSendMap });
     } catch (error) {
       console.error("Failed to fetch sent post IDs:", error);
       res.status(500).json({ error: "Failed to fetch sent post IDs" });

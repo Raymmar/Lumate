@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { X, Send, Mail, TestTube, Loader2, Users, CheckCircle2, AlertCircle } from "lucide-react";
+import { X, Send, Mail, TestTube, Loader2, Users, CheckCircle2, AlertCircle, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Post } from "@shared/schema";
@@ -55,9 +55,10 @@ interface SendNewsletterModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   post: Post;
+  onViewAnalytics?: (sendId: number) => void;
 }
 
-export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletterModalProps) {
+export function SendNewsletterModal({ open, onOpenChange, post, onViewAnalytics }: SendNewsletterModalProps) {
   const { toast } = useToast();
   const videoInfo = getVideoThumbnail(post.videoUrl);
   const [audience, setAudience] = useState<string>("people");
@@ -380,9 +381,20 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                                 {new Date(send.sentAt).toLocaleDateString()} {new Date(send.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
-                            <div className="text-muted-foreground">
-                              {send.testSend ? `To: test email` : `${send.recipientCount} recipients (${send.audience})`}
-                              {send.senderName && ` • by ${send.senderName}`}
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">
+                                {send.testSend ? `To: test email` : `${send.recipientCount} recipients (${send.audience})`}
+                                {send.senderName && ` • by ${send.senderName}`}
+                              </span>
+                              {!send.testSend && onViewAnalytics && (
+                                <button
+                                  onClick={() => onViewAnalytics(send.id)}
+                                  className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-600 font-medium"
+                                >
+                                  <BarChart3 className="h-2.5 w-2.5" />
+                                  Analytics
+                                </button>
+                              )}
                             </div>
                           </div>
                         ))}

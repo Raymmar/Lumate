@@ -4,7 +4,7 @@ import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Edit, Trash2, Mail, Send } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Trash2, Mail, Send, BarChart3 } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -31,9 +31,10 @@ import { useToast } from "@/hooks/use-toast";
 interface PostsTableProps {
   onSelect: (post: Post) => void;
   onSendNewsletter?: (post: Post) => void;
+  onViewAnalytics?: (post: Post, sendId: number) => void;
 }
 
-export function PostsTable({ onSelect, onSendNewsletter }: PostsTableProps) {
+export function PostsTable({ onSelect, onSendNewsletter, onViewAnalytics }: PostsTableProps) {
   const { toast } = useToast();
   const [deletePost, setDeletePost] = useState<Post | null>(null);
 
@@ -48,12 +49,13 @@ export function PostsTable({ onSelect, onSendNewsletter }: PostsTableProps) {
     }
   });
 
-  const { data: sentPostsData } = useQuery<{ sentPostIds: number[] }>({
+  const { data: sentPostsData } = useQuery<{ sentPostIds: number[]; postSendMap: Record<number, number> }>({
     queryKey: ["/api/admin/newsletter/sent-posts"],
     enabled: !!data?.posts?.length,
   });
 
   const sentPostIds = new Set(sentPostsData?.sentPostIds || []);
+  const postSendMap = sentPostsData?.postSendMap || {};
 
   const deleteMutation = useMutation({
     mutationFn: async (postId: number) => {
@@ -96,7 +98,16 @@ export function PostsTable({ onSelect, onSendNewsletter }: PostsTableProps) {
           {row.isPinned && (
             <Badge variant="secondary">Featured</Badge>
           )}
-          {sentPostIds.has(row.id) && (
+          {sentPostIds.has(row.id) && onViewAnalytics && postSendMap[row.id] && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onViewAnalytics(row, postSendMap[row.id]); }}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-600 border border-blue-500/20 hover:bg-blue-500/20 transition-colors cursor-pointer"
+            >
+              <BarChart3 className="h-3 w-3" />
+              Newsletter
+            </button>
+          )}
+          {sentPostIds.has(row.id) && !onViewAnalytics && (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger>
@@ -166,6 +177,14 @@ export function PostsTable({ onSelect, onSendNewsletter }: PostsTableProps) {
                     Send as Newsletter
                   </DropdownMenuItem>
                 </>
+              )}
+              {sentPostIds.has(row.id) && onViewAnalytics && postSendMap[row.id] && (
+                <DropdownMenuItem
+                  onClick={() => onViewAnalytics(row, postSendMap[row.id])}
+                >
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  View Analytics
+                </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem

@@ -4,6 +4,7 @@ import { PostsTable } from "@/components/admin/PostsTable";
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
 import { SendNewsletterModal } from "@/components/admin/SendNewsletterModal";
+import { NewsletterAnalyticsModal } from "@/components/admin/NewsletterAnalyticsModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
@@ -18,6 +19,7 @@ export default function AdminPostsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [newsletterPost, setNewsletterPost] = useState<Post | null>(null);
+  const [analyticsState, setAnalyticsState] = useState<{ sendId: number; postTitle: string } | null>(null);
   const { toast } = useToast();
 
   const {
@@ -119,7 +121,11 @@ export default function AdminPostsPage() {
     }>
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="min-w-full inline-block align-middle">
-          <PostsTable onSelect={setEditingPost} onSendNewsletter={setNewsletterPost} />
+          <PostsTable
+            onSelect={setEditingPost}
+            onSendNewsletter={setNewsletterPost}
+            onViewAnalytics={(post, sendId) => setAnalyticsState({ sendId, postTitle: post.title })}
+          />
         </div>
       </div>
 
@@ -163,8 +169,12 @@ export default function AdminPostsPage() {
         onDelete={handleDeletePost}
         onSendNewsletter={() => {
           if (editingPost) {
-            setIsEditModalOpen(false);
             setNewsletterPost(editingPost);
+          }
+        }}
+        onViewAnalytics={(sendId) => {
+          if (editingPost) {
+            setAnalyticsState({ sendId, postTitle: editingPost.title });
           }
         }}
         isSubmitting={isSubmitting}
@@ -200,8 +210,15 @@ export default function AdminPostsPage() {
         open={!!newsletterPost}
         onOpenChange={(open) => !open && setNewsletterPost(null)}
         post={newsletterPost}
+        onViewAnalytics={(sendId) => setAnalyticsState({ sendId, postTitle: newsletterPost.title })}
       />
     )}
+    <NewsletterAnalyticsModal
+      open={!!analyticsState}
+      onOpenChange={(open) => !open && setAnalyticsState(null)}
+      sendId={analyticsState?.sendId || null}
+      postTitle={analyticsState?.postTitle}
+    />
     </>
   );
 }

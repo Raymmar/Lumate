@@ -4,7 +4,7 @@ import { Post, type InsertPost } from "@shared/schema";
 import { ArticleContent } from "@/components/news/ArticleContent";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash2, Send } from "lucide-react";
+import { ArrowLeft, Plus, MoreHorizontal, Edit, Trash2, Send, BarChart3 } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import NotFound from "./not-found";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SendNewsletterModal } from "@/components/admin/SendNewsletterModal";
+import { NewsletterAnalyticsModal } from "@/components/admin/NewsletterAnalyticsModal";
 
 export function ArticlePage() {
   const { title } = useParams<{ title: string }>();
@@ -44,6 +45,7 @@ export function ArticlePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showNewsletterModal, setShowNewsletterModal] = useState(false);
+  const [analyticsState, setAnalyticsState] = useState<{ sendId: number; postTitle: string } | null>(null);
 
   const {
     isSavingDraft,
@@ -86,6 +88,17 @@ export function ArticlePage() {
   const { data: postsData, isLoading: isPostsLoading } = useQuery<{ posts: Post[] }>({
     queryKey: ["/api/public/posts"],
   });
+
+  const { data: newsletterHistory } = useQuery<{ sends: Array<{ id: number; testSend: boolean }> }>({
+    queryKey: ["/api/admin/posts", postData?.id, "newsletter"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/posts/${postData!.id}/newsletter`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: !!(postData?.id && user?.isAdmin),
+  });
+  const latestRealSend = newsletterHistory?.sends?.find(s => !s.testSend);
 
   const deleteMutation = useMutation({
     mutationFn: async (postId: number) => {
@@ -287,6 +300,14 @@ export function ArticlePage() {
                     <Send className="mr-2 h-4 w-4" />
                     Send as Newsletter
                   </DropdownMenuItem>
+                  {latestRealSend && (
+                    <DropdownMenuItem
+                      onClick={() => setAnalyticsState({ sendId: latestRealSend.id, postTitle: post.title })}
+                    >
+                      <BarChart3 className="mr-2 h-4 w-4" />
+                      View Analytics
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem
                     onClick={handleDeletePost}
                     className="text-red-600 focus:text-red-600"
@@ -342,6 +363,9 @@ export function ArticlePage() {
             setIsModalOpen(false);
             setShowNewsletterModal(true);
           }}
+          onViewAnalytics={(sendId) => {
+            if (post) setAnalyticsState({ sendId, postTitle: post.title });
+          }}
           postId={editingPost?.id}
         >
           <PostForm
@@ -369,8 +393,16 @@ export function ArticlePage() {
             open={showNewsletterModal}
             onOpenChange={setShowNewsletterModal}
             post={post}
+            onViewAnalytics={(sendId) => setAnalyticsState({ sendId, postTitle: post.title })}
           />
         )}
+
+        <NewsletterAnalyticsModal
+          open={!!analyticsState}
+          onOpenChange={(open) => !open && setAnalyticsState(null)}
+          sendId={analyticsState?.sendId || null}
+          postTitle={analyticsState?.postTitle}
+        />
 
         <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <AlertDialogContent>
