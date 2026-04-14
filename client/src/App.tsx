@@ -22,6 +22,7 @@ import AdminCompaniesPage from "@/pages/admin/AdminCompaniesPage";
 import AdminSponsorsPage from "@/pages/admin/AdminSponsorsPage";
 import IndustriesPage from "@/pages/admin/IndustriesPage";
 import RolesPage from "@/pages/admin/RolesPage";
+import BadgesPage from "@/pages/admin/BadgesPage";
 import AdminCouponsPage from "@/pages/admin/AdminCouponsPage";
 import AdminPostsPage from "@/pages/admin/AdminPostsPage";
 import AboutPage from "@/pages/AboutPage";
@@ -70,6 +71,7 @@ function Router() {
           <Route path="/admin/companies" component={AdminCompaniesPage} />
           <Route path="/admin/sponsors" component={AdminSponsorsPage} />
           <Route path="/admin/industries" component={IndustriesPage} />
+          <Route path="/admin/badges" component={BadgesPage} />
           <Route path="/admin/roles" component={RolesPage} />
           <Route path="/admin/sponsor-showcase" component={SponsorShowcasePage} />
           <Route path="/subscription/success" component={SubscriptionSuccessPage} />

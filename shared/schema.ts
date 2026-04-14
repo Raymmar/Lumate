@@ -245,6 +245,22 @@ export const userBadges = pgTable("user_badges", {
   assignedAt: timestamp("assigned_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+export const badgeRules = pgTable("badge_rules", {
+  id: serial("id").primaryKey(),
+  badgeId: integer("badge_id").notNull().references(() => badges.id, { onDelete: 'cascade' }),
+  ruleType: varchar("rule_type", { length: 50 }).notNull(),
+  config: json("config").$type<Record<string, any>>().notNull(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const insertBadgeRuleSchema = createInsertSchema(badgeRules).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type BadgeRuleSelect = typeof badgeRules.$inferSelect;
+export type BadgeRuleInsert = z.infer<typeof insertBadgeRuleSchema>;
+
 export const insertTagSchema = createInsertSchema(tags).omit({
   id: true,
   createdAt: true

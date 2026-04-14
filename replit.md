@@ -6,6 +6,22 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### April 14, 2026 - Badge Management Admin UI & Data-Driven Rules Engine
+- **Feature**: Admins can now create, edit, and delete badges, and configure assignment rules per badge through a dedicated admin page. The badge cron job reads rules from the database instead of hardcoded logic, making it fully expandable without code changes.
+- **Schema**: Added `badge_rules` table with: `badgeId` (FK to badges, cascade delete), `ruleType` (varchar: event_attendance, premium_member, event_count_min, event_count_max, manual_only), `config` (JSON for rule parameters), `createdAt`.
+- **Badge Service**: `BadgeService.processUserBadges()` now reads all badges and their rules from the database. Rules are evaluated with OR logic (any matching rule triggers assignment). `manual_only` rules are filtered out during auto-evaluation. Existing hardcoded rules (2025 Summit, OG, Newbie) were migrated to `badge_rules` records.
+- **Backend Routes**:
+  - `POST /api/admin/badges` - create a new badge
+  - `PATCH /api/admin/badges/:id` - update badge details
+  - `DELETE /api/admin/badges/:id` - delete badge and all assignments
+  - `GET /api/admin/badges/:id/rules` - list rules for a badge
+  - `POST /api/admin/badges/:id/rules` - add a rule to a badge (auto-sets isAutomatic flag)
+  - `DELETE /api/admin/badges/:id/rules/:ruleId` - remove a rule (recalculates isAutomatic)
+- **Security Fix**: `/api/admin/auto-assign-badges` endpoint was unauthenticated; added admin session checks.
+- **Frontend**: `BadgeManagement.tsx` component with table listing all badges (expandable rows showing rules), create/edit/delete dialogs, add rule dialog with event picker for event_attendance rules.
+- **Navigation**: Added "Badges" tab in admin sidebar between Industries and Roles & Permissions.
+- **Files**: `shared/schema.ts`, `server/services/BadgeService.ts`, `server/routes.ts`, `client/src/components/admin/BadgeManagement.tsx`, `client/src/pages/admin/BadgesPage.tsx`, `client/src/components/admin/AdminTabs.tsx`, `client/src/App.tsx`
+
 ### April 14, 2026 - Send Post as Newsletter Feature
 - **Feature**: Admins can send any published post as a branded newsletter email to community members, with audience filtering and send tracking.
 - **Schema**: Added `newsletter_sends` table tracking: postId, sentBy (userId), audience ('all'|'premium'|'test'), audienceFilters (JSON with badgeIds/eventApiIds), recipientCount, testSend boolean, testEmail, sentAt timestamp.

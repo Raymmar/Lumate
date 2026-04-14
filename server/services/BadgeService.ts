@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { eq } from "drizzle-orm";
-import { users, attendance, badges, userBadges } from "@shared/schema";
+import { users, attendance, badges, userBadges, badgeRules } from "@shared/schema";
 
 export class BadgeService {
   private static instance: BadgeService;
@@ -16,9 +16,6 @@ export class BadgeService {
   }
 
   private async getBadgeByName(name: string) {
-    console.log('Looking up badge:', { searchName: name });
-
-    // Handle common badge name variations
     const badgeNameMap: { [key: string]: string } = {
       'Summit Attendee': '2025 Summit',
       '2025 Summit': '2025 Summit',
@@ -30,21 +27,6 @@ export class BadgeService {
       .select()
       .from(badges)
       .where(sql`LOWER(name) = LOWER(${searchName})`);
-
-    if (!badge) {
-      console.log('Badge not found in database:', { 
-        searchName,
-        originalName: name,
-        mapped: !!badgeNameMap[name]
-      });
-    } else {
-      console.log('Found badge:', { 
-        id: badge.id, 
-        name: badge.name,
-        searchName,
-        originalName: name 
-      });
-    }
 
     return badge;
   }
@@ -68,8 +50,6 @@ export class BadgeService {
   }
 
   private async assignBadge(userId: number, badgeId: number) {
-    console.log('Assigning badge:', { userId, badgeId });
-
     try {
       const [assignment] = await db
         .insert(userBadges)
@@ -79,12 +59,6 @@ export class BadgeService {
           assignedAt: new Date().toISOString(),
         })
         .returning();
-
-      console.log('Successfully assigned badge:', {
-        userId,
-        badgeId,
-        assignment
-      });
 
       return assignment;
     } catch (error) {
@@ -97,63 +71,87 @@ export class BadgeService {
     }
   }
 
+  private evaluateRules(
+    rules: { ruleType: string; config: Record<string, any> }[],
+    userAttendance: any[],
+    user: any
+  ): boolean {
+    if (rules.length === 0) return false;
+
+    const autoRules = rules.filter(r => r.ruleType !== 'manual_only');
+    if (autoRules.length === 0) return false;
+
+    for (const rule of autoRules) {
+      const matched = this.evaluateSingleRule(rule, userAttendance, user);
+      if (matched) return true;
+    }
+    return false;
+  }
+
+  private evaluateSingleRule(
+    rule: { ruleType: string; config: Record<string, any> },
+    userAttendance: any[],
+    user: any
+  ): boolean {
+    switch (rule.ruleType) {
+      case 'event_attendance': {
+        const eventApiId = rule.config.eventApiId;
+        if (!eventApiId) return false;
+        return userAttendance.some(record => record.eventApiId === eventApiId);
+      }
+      case 'premium_member': {
+        const hasPremium =
+          user.subscriptionStatus === 'active' ||
+          (user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date());
+        return !!hasPremium;
+      }
+      case 'event_count_min': {
+        const minEvents = rule.config.minEvents || 0;
+        return userAttendance.length >= minEvents;
+      }
+      case 'event_count_max': {
+        const maxEvents = rule.config.maxEvents || 0;
+        return userAttendance.length < maxEvents;
+      }
+      case 'manual_only':
+        return false;
+      default:
+        return false;
+    }
+  }
+
   public async processUserBadges(user: any) {
-    console.log(`Processing badges for user ${user.email}`);
-
     const userAttendance = await this.getUserAttendance(user.email);
-    console.log(`Found ${userAttendance.length} attendance records`);
-
     const existingBadges = await this.getExistingBadges(user.id);
 
-    // Summit Attendee Badge
-    const hasSummitAttendance = userAttendance.some(record => 
-      record.eventApiId === 'evt-7mHZuVCKYfqARWL'
-    );
+    const allBadges = await db.select().from(badges);
+    const allRules = await db.select().from(badgeRules);
 
-    // OG Badge
-    const ogEvents = [
-      'evt-KUEx5csMUv6otHD',
-      'evt-LArNIZtsDO3shT7',
-      'evt-t8pRapBHvNlNw1L',
-      'evt-C1AWCRN0nScneOw'
-    ];
-    const hasOgAttendance = userAttendance.some(record => 
-      ogEvents.includes(record.eventApiId)
-    );
+    const rulesByBadge = new Map<number, typeof allRules>();
+    for (const rule of allRules) {
+      const existing = rulesByBadge.get(rule.badgeId) || [];
+      existing.push(rule);
+      rulesByBadge.set(rule.badgeId, existing);
+    }
 
-    // Newbie Badge
-    const isNewbie = userAttendance.length < 3;
-
-    // Get badge definitions
-    const [summitBadge, ogBadge, newbieBadge] = await Promise.all([
-      this.getBadgeByName('2025 Summit'),
-      this.getBadgeByName('OG'),
-      this.getBadgeByName('Newbie')
-    ]);
-
-    // Process badge assignments
     const assignments = [];
 
-    if (hasSummitAttendance && summitBadge && !this.hasBadge(existingBadges, summitBadge.id)) {
-      assignments.push(this.assignBadge(user.id, summitBadge.id));
-      console.log(`Assigning Summit badge to ${user.email}`);
-    }
+    for (const badge of allBadges) {
+      if (this.hasBadge(existingBadges, badge.id)) continue;
 
-    if (hasOgAttendance && ogBadge && !this.hasBadge(existingBadges, ogBadge.id)) {
-      assignments.push(this.assignBadge(user.id, ogBadge.id));
-      console.log(`Assigning OG badge to ${user.email}`);
-    }
+      const rules = rulesByBadge.get(badge.id) || [];
+      if (rules.length === 0) continue;
 
-    if (isNewbie && newbieBadge && !this.hasBadge(existingBadges, newbieBadge.id)) {
-      assignments.push(this.assignBadge(user.id, newbieBadge.id));
-      console.log(`Assigning Newbie badge to ${user.email}`);
+      const shouldAssign = this.evaluateRules(rules, userAttendance, user);
+      if (shouldAssign) {
+        assignments.push(this.assignBadge(user.id, badge.id));
+        console.log(`Assigning ${badge.name} badge to ${user.email}`);
+      }
     }
 
     if (assignments.length > 0) {
       await Promise.all(assignments);
       console.log(`Completed ${assignments.length} badge assignments for ${user.email}`);
-    } else {
-      console.log(`No new badges to assign for ${user.email}`);
     }
   }
 
@@ -169,7 +167,6 @@ export class BadgeService {
           await this.processUserBadges(user);
         } catch (error) {
           console.error(`Failed to process badges for user ${user.email}:`, error);
-          // Continue processing other users even if one fails
         }
       }
 

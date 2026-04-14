@@ -41,6 +41,7 @@ import {
   insertAgendaSessionTypeSchema,
   insertTimeBlockSchema,
   newsletterSends,
+  badgeRules,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail, sendEventInviteEmail, sendNewsletterEmail } from "./email";
@@ -236,8 +237,12 @@ export async function registerRoutes(app: Express) {
 
   app.post(
     "/api/admin/auto-assign-badges",
-    async (_req: Request, res: Response) => {
+    async (req: Request, res: Response) => {
       try {
+        if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+        const user = await storage.getUser(req.session.userId);
+        if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
         console.log("Starting automatic badge assignment process");
         await badgeService.runDailyBadgeAssignment();
         return res.json({ message: "Automatic badge assignment completed" });
@@ -5833,6 +5838,156 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to fetch badges:", error);
       res.status(500).json({ error: "Failed to fetch badges" });
+    }
+  });
+
+  app.post("/api/admin/badges", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const { name, icon, description, isAutomatic } = req.body;
+      if (!name || !icon || !description) {
+        return res.status(400).json({ error: "Name, icon, and description are required" });
+      }
+
+      const [badge] = await db.insert(badges).values({
+        name,
+        icon,
+        description,
+        isAutomatic: isAutomatic || false,
+      }).returning();
+
+      res.json({ badge });
+    } catch (error: any) {
+      if (error?.constraint === 'badges_name_unique') {
+        return res.status(400).json({ error: "A badge with that name already exists" });
+      }
+      console.error("Failed to create badge:", error);
+      res.status(500).json({ error: "Failed to create badge" });
+    }
+  });
+
+  app.patch("/api/admin/badges/:id", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const badgeId = parseInt(req.params.id);
+      const { name, icon, description, isAutomatic } = req.body;
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (icon !== undefined) updateData.icon = icon;
+      if (description !== undefined) updateData.description = description;
+      if (isAutomatic !== undefined) updateData.isAutomatic = isAutomatic;
+
+      const [updated] = await db.update(badges)
+        .set(updateData)
+        .where(eq(badges.id, badgeId))
+        .returning();
+
+      if (!updated) return res.status(404).json({ error: "Badge not found" });
+      res.json({ badge: updated });
+    } catch (error) {
+      console.error("Failed to update badge:", error);
+      res.status(500).json({ error: "Failed to update badge" });
+    }
+  });
+
+  app.delete("/api/admin/badges/:id", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const badgeId = parseInt(req.params.id);
+
+      await db.delete(userBadgesTable).where(eq(userBadgesTable.badgeId, badgeId));
+      const [deleted] = await db.delete(badges).where(eq(badges.id, badgeId)).returning();
+
+      if (!deleted) return res.status(404).json({ error: "Badge not found" });
+      res.json({ message: "Badge deleted" });
+    } catch (error) {
+      console.error("Failed to delete badge:", error);
+      res.status(500).json({ error: "Failed to delete badge" });
+    }
+  });
+
+  app.get("/api/admin/badges/:id/rules", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const badgeId = parseInt(req.params.id);
+      const rules = await db.select().from(badgeRules).where(eq(badgeRules.badgeId, badgeId));
+      res.json({ rules });
+    } catch (error) {
+      console.error("Failed to fetch badge rules:", error);
+      res.status(500).json({ error: "Failed to fetch badge rules" });
+    }
+  });
+
+  app.post("/api/admin/badges/:id/rules", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const badgeId = parseInt(req.params.id);
+      const { ruleType, config } = req.body;
+
+      if (!ruleType || !config) {
+        return res.status(400).json({ error: "ruleType and config are required" });
+      }
+
+      const validRuleTypes = ['event_attendance', 'premium_member', 'event_count_min', 'event_count_max', 'manual_only'];
+      if (!validRuleTypes.includes(ruleType)) {
+        return res.status(400).json({ error: `Invalid rule type. Must be one of: ${validRuleTypes.join(', ')}` });
+      }
+
+      const [rule] = await db.insert(badgeRules).values({
+        badgeId,
+        ruleType,
+        config,
+      }).returning();
+
+      if (ruleType !== 'manual_only') {
+        await db.update(badges).set({ isAutomatic: true }).where(eq(badges.id, badgeId));
+      }
+
+      res.json({ rule });
+    } catch (error) {
+      console.error("Failed to create badge rule:", error);
+      res.status(500).json({ error: "Failed to create badge rule" });
+    }
+  });
+
+  app.delete("/api/admin/badges/:id/rules/:ruleId", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const ruleId = parseInt(req.params.ruleId);
+      const badgeId = parseInt(req.params.id);
+
+      const [deleted] = await db.delete(badgeRules).where(and(eq(badgeRules.id, ruleId), eq(badgeRules.badgeId, badgeId))).returning();
+      if (!deleted) return res.status(404).json({ error: "Rule not found" });
+
+      const remainingRules = await db.select().from(badgeRules).where(eq(badgeRules.badgeId, badgeId));
+      const hasAutoRules = remainingRules.some(r => r.ruleType !== 'manual_only');
+      if (!hasAutoRules) {
+        await db.update(badges).set({ isAutomatic: false }).where(eq(badges.id, badgeId));
+      }
+
+      res.json({ message: "Rule deleted" });
+    } catch (error) {
+      console.error("Failed to delete badge rule:", error);
+      res.status(500).json({ error: "Failed to delete badge rule" });
     }
   });
 
