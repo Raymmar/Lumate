@@ -1,0 +1,32 @@
+How Stats Come In: The Webhook Pipeline
+Your app doesn't poll SendGrid for stats. Instead, SendGrid pushes events to your app in real-time via a webhook endpoint. Every time something happens with an email you sent (it gets delivered, opened, clicked, bounces, etc.), SendGrid fires an event to your server. Your app then processes that event and stores it.
+
+The events you're tracking are: delivered, open, click, bounce, dropped, deferred, spam report, and unsubscribe.
+
+How Open Rate & Deliverability Are Calculated
+You're storing data at three levels:
+
+Per-event — every single raw event from SendGrid gets logged with full metadata (user agent, IP, timestamp, the raw payload).
+Per-recipient — each recipient on a blast has a status (pending, sent, delivered, bounced, failed) and timestamps for when they first opened, first clicked, or unsubscribed.
+Per-blast (aggregate) — the blast itself keeps running counters for total recipients, opens, and clicks.
+So open rate is essentially openCount / recipientCount on the blast record, and deliverability can be derived from how many recipients ended up in a "delivered" vs "bounced" or "failed" state.
+
+Duplicate Opens — This Is Where the Nuance Lives
+Your app has three layers of filtering to avoid inflated open numbers:
+
+First-open-only counting — The per-recipient openedAt timestamp only gets set once. If someone opens the same email five times, it only counts as one unique open in the aggregate counter. However, every individual open event still gets logged in the raw events table, so you have the full picture if you need it.
+
+Machine open filtering — SendGrid flags events caused by Apple Mail Privacy Protection and similar automated proxies with a sg_machine_open flag. Your app checks for this and ignores those events entirely — they don't count toward opens and don't update the recipient record.
+
+Security scanner detection — There's a 30-second grace period after a blast is sent. Any open that comes in within those first 30 seconds is assumed to be an automated email security scanner (common in corporate environments) and gets discarded. This prevents those instant bot-opens from inflating your numbers.
+
+Unsubscribe Handling
+This one is clever — your app watches for click events where the URL contains /unsubscribe?email= and automatically converts those into unsubscribe events. The recipient gets an unsubscribedAt timestamp, which is then used to exclude them from future sends.
+
+Sending Mechanics
+Blasts go out in batches of 10 in the background so they don't block your server. Each email has SendGrid's click tracking and open tracking explicitly enabled, and the SendGrid message ID gets stored per-recipient so incoming webhook events can be matched back to the right blast and person.
+
+Summary
+The overall flow is: Send blast → Store SendGrid message IDs per recipient → Receive webhook events → Filter out bots/scanners/duplicates → Update per-recipient status → Increment aggregate counters → Serve stats via analytics endpoints.
+
+The time you're spending on getting open signals right is well-placed — those three filtering layers (first-open-only, machine open detection, and the 30-second scanner window) are doing real work to keep your numbers honest. Without them, open rates could easily be inflated by 20-40% depending on your audience's email clients and corporate security setups.
