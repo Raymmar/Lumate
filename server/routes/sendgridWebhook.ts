@@ -1,17 +1,15 @@
-import { Router, Request, Response } from "express";
+import { Request, Response } from "express";
 import { createPublicKey, createVerify } from "crypto";
 import { db } from "../db";
 import { emailEvents, newsletterRecipients, newsletterSends, people } from "@shared/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 
-const router = Router();
-
 const SCANNER_GRACE_PERIOD_MS = 30 * 1000;
 const SENDGRID_WEBHOOK_VERIFICATION_KEY = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
 
-function verifySendGridSignature(req: Request): boolean {
+function verifySendGridSignature(rawBody: Buffer, req: Request): boolean {
   if (!SENDGRID_WEBHOOK_VERIFICATION_KEY) {
-    console.log("[SendGrid Webhook] No verification key set, accepting request without signature check");
+    console.log("[SendGrid Webhook] No verification key configured, skipping signature check");
     return true;
   }
 
@@ -19,8 +17,8 @@ function verifySendGridSignature(req: Request): boolean {
   const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
 
   if (!signature || !timestamp) {
-    console.log("[SendGrid Webhook] Signature headers not present, accepting request (verification key is set but SendGrid may not be sending signed requests yet)");
-    return true;
+    console.warn("[SendGrid Webhook] Verification key is set but signature headers are missing — rejecting request");
+    return false;
   }
 
   try {
@@ -30,7 +28,7 @@ function verifySendGridSignature(req: Request): boolean {
       type: "spki",
     });
 
-    const payload = timestamp + JSON.stringify(req.body);
+    const payload = timestamp + rawBody.toString('utf8');
     const verifier = createVerify("SHA256");
     verifier.update(payload);
     verifier.end();
@@ -39,12 +37,14 @@ function verifySendGridSignature(req: Request): boolean {
 
     if (!isValid) {
       console.warn("[SendGrid Webhook] ECDSA signature verification failed");
+    } else {
+      console.log("[SendGrid Webhook] Signature verified successfully");
     }
 
     return isValid;
   } catch (err) {
     console.error("[SendGrid Webhook] Signature verification error:", err);
-    return true;
+    return false;
   }
 }
 
@@ -62,19 +62,29 @@ interface SendGridEvent {
   [key: string]: any;
 }
 
-router.post("/", async (req: Request, res: Response) => {
+export async function handleSendGridWebhook(req: Request, res: Response) {
   try {
-    console.log("[SendGrid Webhook] Received POST request with", Array.isArray(req.body) ? req.body.length : 0, "events");
+    const rawBody = req.body as Buffer;
 
-    if (!verifySendGridSignature(req)) {
-      console.warn("[SendGrid Webhook] Signature verification failed, returning 403");
+    if (!Buffer.isBuffer(rawBody)) {
+      console.error("[SendGrid Webhook] req.body is not a Buffer — express.json() likely parsed it before this route");
+      return res.status(500).json({ error: "Webhook processing error" });
+    }
+
+    if (!verifySendGridSignature(rawBody, req)) {
       return res.status(403).json({ error: "Invalid webhook signature" });
     }
 
-    const events: SendGridEvent[] = req.body;
+    let events: SendGridEvent[];
+    try {
+      events = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      console.warn("[SendGrid Webhook] Failed to parse body as JSON");
+      return res.status(400).json({ error: "Invalid JSON" });
+    }
 
     if (!Array.isArray(events)) {
-      console.warn("[SendGrid Webhook] Body is not an array:", typeof req.body);
+      console.warn("[SendGrid Webhook] Body is not an array:", typeof events);
       return res.status(400).json({ error: "Expected array of events" });
     }
 
@@ -93,7 +103,7 @@ router.post("/", async (req: Request, res: Response) => {
     console.error("[SendGrid Webhook] Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
-});
+}
 
 async function processEvent(event: SendGridEvent) {
   const sgMessageId = event.sg_message_id?.split(".")[0];
@@ -315,4 +325,4 @@ async function handleUnsubscribe(email: string, sgMessageId: string, timestamp: 
     );
 }
 
-export default router;
+export default { handleSendGridWebhook };

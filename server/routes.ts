@@ -55,7 +55,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { CacheService } from "./services/CacheService";
 import { syncStatusService } from "./services/SyncStatusService";
 import stripeRouter from "./routes/stripe";
-import sendgridWebhookRouter from "./routes/sendgridWebhook";
+
 import { StripeService } from "./services/stripe";
 import { badgeService } from "./services/BadgeService";
 import { EmailInvitationService } from "./services/EmailInvitationService";
@@ -117,7 +117,6 @@ export async function registerRoutes(app: Express) {
   app.use("/api/upload", uploadRouter);
   app.use("/api/unsplash", unsplashRouter);
   app.use("/api/stripe", stripeRouter);
-  app.use("/api/webhooks/sendgrid", sendgridWebhookRouter);
   app.use("/api/companies", companiesRouter);
   
   // Resend verification email endpoint

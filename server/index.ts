@@ -30,6 +30,16 @@ const isProduction = process.env.NODE_ENV === "production";
 // Initialize storage for SSE connections
 app.set('activeSSEConnections', []);
 
+// Raw body handling for SendGrid webhooks must come before express.json()
+app.post(
+  "/api/webhooks/sendgrid",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const { handleSendGridWebhook } = await import("./routes/sendgridWebhook");
+    return handleSendGridWebhook(req, res);
+  }
+);
+
 // Raw body handling for Stripe webhooks with UUID must come first
 app.post(
   "/api/stripe/webhook/:uuid",

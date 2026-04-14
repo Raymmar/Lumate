@@ -1,10 +1,23 @@
 import { MailService } from '@sendgrid/mail';
 import { createHmac } from 'crypto';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
-const logoPath = resolve(process.cwd(), 'client/public/st-logo-email.png');
-const logoBase64 = readFileSync(logoPath).toString('base64');
+function loadLogoBase64(): string {
+  const paths = [
+    resolve(process.cwd(), 'dist/public/st-logo-email.png'),
+    resolve(process.cwd(), 'client/public/st-logo-email.png'),
+  ];
+  for (const p of paths) {
+    if (existsSync(p)) {
+      return readFileSync(p).toString('base64');
+    }
+  }
+  console.warn('[Email] Logo file not found, newsletters will send without inline logo');
+  return '';
+}
+
+const logoBase64 = loadLogoBase64();
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
@@ -774,7 +787,9 @@ export async function sendNewsletterEmail(
       <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
         <div style="max-width:600px;margin:0 auto;background-color:#ffffff;">
           <div style="padding:16px 32px;text-align:center;border-bottom:1px solid #e5e5e5;">
-            <img src="cid:sarasota_tech_logo" alt="Sarasota Tech" style="display:block;margin:0 auto;max-width:280px;width:100%;height:auto;" />
+            ${logoBase64
+              ? '<img src="cid:sarasota_tech_logo" alt="Sarasota Tech" style="display:block;margin:0 auto;max-width:280px;width:100%;height:auto;" />'
+              : '<h1 style="margin:0;color:#0e5494;font-size:24px;">Sarasota Tech</h1>'}
           </div>
           <div style="padding:32px;">
             ${featuredImageSection}
@@ -816,6 +831,15 @@ export async function sendNewsletterEmail(
       subject,
       text: textContent,
       html: htmlContent,
+      attachments: logoBase64 ? [
+        {
+          content: logoBase64,
+          filename: 'st-logo-email.png',
+          type: 'image/png',
+          disposition: 'inline',
+          contentId: 'sarasota_tech_logo',
+        },
+      ] : undefined,
       trackingSettings: {
         clickTracking: { enable: true },
         openTracking: { enable: true },
