@@ -41,10 +41,12 @@ import {
   insertAgendaSessionTypeSchema,
   insertTimeBlockSchema,
   newsletterSends,
+  newsletterRecipients,
+  emailEvents,
   badgeRules,
 } from "@shared/schema";
 import { z } from "zod";
-import { sendVerificationEmail, sendEventInviteEmail, sendNewsletterEmail } from "./email";
+import { sendVerificationEmail, sendEventInviteEmail, sendNewsletterEmail, verifyUnsubscribeToken } from "./email";
 import { comparePasswords } from "./auth";
 import { ZodError } from "zod";
 import session from "express-session";
@@ -53,6 +55,7 @@ import { eq, and, desc } from "drizzle-orm";
 import { CacheService } from "./services/CacheService";
 import { syncStatusService } from "./services/SyncStatusService";
 import stripeRouter from "./routes/stripe";
+import sendgridWebhookRouter from "./routes/sendgridWebhook";
 import { StripeService } from "./services/stripe";
 import { badgeService } from "./services/BadgeService";
 import { EmailInvitationService } from "./services/EmailInvitationService";
@@ -114,6 +117,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/upload", uploadRouter);
   app.use("/api/unsplash", unsplashRouter);
   app.use("/api/stripe", stripeRouter);
+  app.use("/api/webhooks/sendgrid", sendgridWebhookRouter);
   app.use("/api/companies", companiesRouter);
   
   // Resend verification email endpoint
@@ -5597,6 +5601,10 @@ export async function registerRoutes(app: Express) {
           audience: newsletterSends.audience,
           audienceFilters: newsletterSends.audienceFilters,
           recipientCount: newsletterSends.recipientCount,
+          deliveredCount: newsletterSends.deliveredCount,
+          openCount: newsletterSends.openCount,
+          clickCount: newsletterSends.clickCount,
+          bounceCount: newsletterSends.bounceCount,
           testSend: newsletterSends.testSend,
           testEmail: newsletterSends.testEmail,
           sentAt: newsletterSends.sentAt,
@@ -5718,7 +5726,7 @@ export async function registerRoutes(app: Express) {
       }
       if (!postData) return res.status(404).json({ error: "Post not found" });
 
-      const success = await sendNewsletterEmail(email, {
+      const result = await sendNewsletterEmail(email, {
         title: postData.title,
         summary: postData.summary,
         body: postData.body,
@@ -5728,7 +5736,7 @@ export async function registerRoutes(app: Express) {
         ctaLabel: postData.ctaLabel,
       });
 
-      if (!success) return res.status(500).json({ error: "Failed to send test email" });
+      if (!result.success) return res.status(500).json({ error: "Failed to send test email" });
 
       await db.insert(newsletterSends).values({
         postId,
@@ -5767,13 +5775,33 @@ export async function registerRoutes(app: Express) {
       const filterEventApiIds = eventApiIds && Array.isArray(eventApiIds) ? eventApiIds : [];
 
       const recipientEmails = await getNewsletterRecipientEmails(audience, filterBadgeIds, filterEventApiIds);
-      const emails = [...recipientEmails];
-      console.log(`Sending newsletter for post ${postId} to ${emails.length} recipients`);
+
+      const unsubscribedResult = await db
+        .select({ email: people.email })
+        .from(people)
+        .where(sql`${people.newsletterUnsubscribedAt} IS NOT NULL`);
+      const unsubscribedEmails = new Set(unsubscribedResult.map(r => r.email.toLowerCase()));
+
+      const emails = [...recipientEmails].filter(e => !unsubscribedEmails.has(e));
+      console.log(`Sending newsletter for post ${postId} to ${emails.length} recipients (${unsubscribedEmails.size} unsubscribed filtered)`);
+
+      const audienceFilters: { badgeIds?: number[]; eventApiIds?: string[] } = {};
+      if (filterBadgeIds.length > 0) audienceFilters.badgeIds = filterBadgeIds;
+      if (filterEventApiIds.length > 0) audienceFilters.eventApiIds = filterEventApiIds;
+
+      const [sendRecord] = await db.insert(newsletterSends).values({
+        postId,
+        sentBy: req.session.userId,
+        audience,
+        audienceFilters: Object.keys(audienceFilters).length > 0 ? audienceFilters : null,
+        recipientCount: emails.length,
+        testSend: false,
+      }).returning();
 
       let successCount = 0;
       let failCount = 0;
       for (const email of emails) {
-        const success = await sendNewsletterEmail(email, {
+        const result = await sendNewsletterEmail(email, {
           title: postData.title,
           summary: postData.summary,
           body: postData.body,
@@ -5781,23 +5809,32 @@ export async function registerRoutes(app: Express) {
           videoUrl: postData.videoUrl,
           ctaLink: postData.ctaLink,
           ctaLabel: postData.ctaLabel,
-        });
-        if (success) successCount++;
-        else failCount++;
+        }, sendRecord.id);
+
+        if (result.success) {
+          successCount++;
+          const personResult = await db
+            .select({ id: people.id })
+            .from(people)
+            .where(eq(people.email, email))
+            .limit(1);
+
+          await db.insert(newsletterRecipients).values({
+            newsletterSendId: sendRecord.id,
+            email,
+            personId: personResult[0]?.id || null,
+            sendgridMessageId: result.messageId || null,
+            status: 'sent',
+          });
+        } else {
+          failCount++;
+        }
       }
 
-      const audienceFilters: { badgeIds?: number[]; eventApiIds?: string[] } = {};
-      if (filterBadgeIds.length > 0) audienceFilters.badgeIds = filterBadgeIds;
-      if (filterEventApiIds.length > 0) audienceFilters.eventApiIds = filterEventApiIds;
-
-      await db.insert(newsletterSends).values({
-        postId,
-        sentBy: req.session.userId,
-        audience,
-        audienceFilters: Object.keys(audienceFilters).length > 0 ? audienceFilters : null,
-        recipientCount: successCount,
-        testSend: false,
-      });
+      await db
+        .update(newsletterSends)
+        .set({ recipientCount: successCount })
+        .where(eq(newsletterSends.id, sendRecord.id));
 
       console.log(`Newsletter sent: ${successCount} succeeded, ${failCount} failed`);
       res.json({ message: "Newsletter sent", successCount, failCount, totalRecipients: emails.length });
@@ -5824,6 +5861,125 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to fetch sent post IDs:", error);
       res.status(500).json({ error: "Failed to fetch sent post IDs" });
+    }
+  });
+
+  app.get("/api/unsubscribe", async (req, res) => {
+    try {
+      const email = (req.query.email as string)?.toLowerCase();
+      const token = req.query.token as string;
+
+      if (!email || !token || !verifyUnsubscribeToken(email, token)) {
+        return res.status(400).send(`
+          <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:50px auto;text-align:center;">
+            <h2>Invalid Request</h2>
+            <p>This unsubscribe link is invalid or has expired.</p>
+          </body></html>
+        `);
+      }
+
+      const [person] = await db
+        .select()
+        .from(people)
+        .where(eq(people.email, email))
+        .limit(1);
+
+      if (person && !person.newsletterUnsubscribedAt) {
+        await db
+          .update(people)
+          .set({ newsletterUnsubscribedAt: new Date().toISOString() })
+          .where(eq(people.id, person.id));
+      }
+
+      res.send(`
+        <html>
+        <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+        <body style="font-family:Arial,sans-serif;max-width:600px;margin:50px auto;text-align:center;padding:20px;">
+          <h2 style="color:#333;">Unsubscribed Successfully</h2>
+          <p style="color:#666;font-size:16px;line-height:1.6;">
+            You have been unsubscribed from Sarasota Tech newsletters.
+          </p>
+          <p style="color:#999;font-size:14px;margin-top:30px;">
+            You will no longer receive newsletter emails from us. If you unsubscribed by mistake, 
+            please contact us to re-subscribe.
+          </p>
+        </body>
+        </html>
+      `);
+    } catch (error) {
+      console.error("Unsubscribe error:", error);
+      res.status(500).send(`
+        <html><body style="font-family:Arial,sans-serif;max-width:600px;margin:50px auto;text-align:center;">
+          <h2>Something went wrong</h2>
+          <p>Please try again later.</p>
+        </body></html>
+      `);
+    }
+  });
+
+  app.get("/api/admin/newsletter/:sendId/analytics", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const sendId = parseInt(req.params.sendId);
+      if (isNaN(sendId)) return res.status(400).json({ error: "Invalid send ID" });
+
+      const [send] = await db
+        .select()
+        .from(newsletterSends)
+        .where(eq(newsletterSends.id, sendId))
+        .limit(1);
+
+      if (!send) return res.status(404).json({ error: "Newsletter send not found" });
+
+      const recipients = await db
+        .select()
+        .from(newsletterRecipients)
+        .where(eq(newsletterRecipients.newsletterSendId, sendId));
+
+      const eventCounts = await db
+        .select({
+          eventType: emailEvents.eventType,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(emailEvents)
+        .where(eq(emailEvents.newsletterSendId, sendId))
+        .groupBy(emailEvents.eventType);
+
+      res.json({
+        send: {
+          id: send.id,
+          recipientCount: send.recipientCount,
+          deliveredCount: send.deliveredCount,
+          openCount: send.openCount,
+          clickCount: send.clickCount,
+          bounceCount: send.bounceCount,
+          sentAt: send.sentAt,
+          openRate: send.recipientCount > 0 ? (send.openCount / send.recipientCount * 100).toFixed(1) : '0.0',
+          clickRate: send.recipientCount > 0 ? (send.clickCount / send.recipientCount * 100).toFixed(1) : '0.0',
+          deliveryRate: send.recipientCount > 0 ? (send.deliveredCount / send.recipientCount * 100).toFixed(1) : '0.0',
+          bounceRate: send.recipientCount > 0 ? (send.bounceCount / send.recipientCount * 100).toFixed(1) : '0.0',
+        },
+        recipients: recipients.map(r => ({
+          id: r.id,
+          email: r.email,
+          status: r.status,
+          deliveredAt: r.deliveredAt,
+          openedAt: r.openedAt,
+          clickedAt: r.clickedAt,
+          bouncedAt: r.bouncedAt,
+          unsubscribedAt: r.unsubscribedAt,
+        })),
+        rawEventCounts: eventCounts.reduce((acc, e) => {
+          acc[e.eventType] = e.count;
+          return acc;
+        }, {} as Record<string, number>),
+      });
+    } catch (error) {
+      console.error("Failed to fetch newsletter analytics:", error);
+      res.status(500).json({ error: "Failed to fetch newsletter analytics" });
     }
   });
 

@@ -1,4 +1,5 @@
 import { MailService } from '@sendgrid/mail';
+import { createHmac } from 'crypto';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
@@ -26,6 +27,19 @@ if (process.env.SENDGRID_API_KEY) {
 
 if (!FROM_EMAIL) {
   throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
+}
+
+const UNSUBSCRIBE_SECRET = process.env.SESSION_SECRET || 'unsubscribe-fallback-secret';
+
+export function generateUnsubscribeToken(email: string): string {
+  return createHmac('sha256', UNSUBSCRIBE_SECRET)
+    .update(email.toLowerCase())
+    .digest('hex');
+}
+
+export function verifyUnsubscribeToken(email: string, token: string): boolean {
+  const expected = generateUnsubscribeToken(email);
+  return token === expected;
 }
 
 // Generate email template based on follow-up stage
@@ -703,8 +717,9 @@ export async function sendNewsletterEmail(
     videoUrl: string | null;
     ctaLink: string | null;
     ctaLabel: string | null;
-  }
-): Promise<boolean> {
+  },
+  newsletterSendId?: number
+): Promise<{ success: boolean; messageId?: string }> {
   try {
     const baseUrl = getEmailBaseUrl();
 
@@ -713,7 +728,7 @@ export async function sendNewsletterEmail(
         to: email,
         postTitle: postData.title,
       });
-      return true;
+      return { success: true, messageId: `dev-${Date.now()}` };
     }
 
     const featuredImageSection = postData.featuredImage
@@ -772,8 +787,11 @@ export async function sendNewsletterEmail(
             <p style="margin:0 0 8px 0;color:#999;font-size:12px;">
               Sarasota Tech Community
             </p>
-            <p style="margin:0;color:#999;font-size:12px;">
+            <p style="margin:0 0 8px 0;color:#999;font-size:12px;">
               <a href="${baseUrl}" style="color:#FEA30E;text-decoration:none;">Visit our website</a>
+            </p>
+            <p style="margin:0;color:#bbb;font-size:11px;">
+              <a href="${baseUrl}/api/unsubscribe?email=${encodeURIComponent(email)}&token=${generateUnsubscribeToken(email)}" style="color:#bbb;text-decoration:underline;">Unsubscribe from newsletters</a>
             </p>
           </div>
         </div>
@@ -782,20 +800,32 @@ export async function sendNewsletterEmail(
     `;
 
     const bodyText = postData.body.replace(/<[^>]*>/g, '');
-    const textContent = `${postData.title}\n\n${postData.summary || ''}\n\n${bodyText}\n\nVisit: ${baseUrl}`;
+    const textContent = `${postData.title}\n\n${postData.summary || ''}\n\n${bodyText}\n\nVisit: ${baseUrl}\n\nUnsubscribe: ${baseUrl}/api/unsubscribe?email=${encodeURIComponent(email)}&token=${generateUnsubscribeToken(email)}`;
 
-    await mailService.send({
+    const customArgs: Record<string, string> = {};
+    if (newsletterSendId) {
+      customArgs.newsletter_send_id = String(newsletterSendId);
+    }
+
+    const [response] = await mailService.send({
       to: email,
       from: FROM_EMAIL!,
       subject,
       text: textContent,
       html: htmlContent,
+      trackingSettings: {
+        clickTracking: { enable: true },
+        openTracking: { enable: true },
+      },
+      customArgs: Object.keys(customArgs).length > 0 ? customArgs : undefined,
     });
 
-    return true;
+    const messageId = response?.headers?.['x-message-id'] as string | undefined;
+
+    return { success: true, messageId };
   } catch (error: any) {
     console.error('Failed to send newsletter email to:', email, error.message);
-    return false;
+    return { success: false };
   }
 }
 

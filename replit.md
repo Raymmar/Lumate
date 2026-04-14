@@ -6,6 +6,26 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### April 14, 2026 - SendGrid Webhook Integration & Newsletter Analytics
+- **Feature**: Full SendGrid webhook pipeline for real-time email analytics (delivery, opens, clicks, bounces) with newsletter-specific unsubscribe handling.
+- **Schema**:
+  - Added `newsletter_recipients` table: per-recipient tracking with SendGrid message ID, delivery/open/click/bounce/unsubscribe timestamps.
+  - Added `email_events` table: raw event log from SendGrid webhooks with full metadata (user agent, IP, URL, reason, raw payload).
+  - Added `delivered_count`, `open_count`, `click_count`, `bounce_count` aggregate counters to `newsletter_sends`.
+  - Added `newsletter_unsubscribed_at` to `people` table for newsletter opt-out.
+- **Webhook Endpoint**: `POST /api/webhooks/sendgrid` receives and processes SendGrid event batches in real-time.
+  - Three filtering layers for accurate open tracking: first-open-only counting, machine open filtering (Apple Mail Privacy Protection), 30-second scanner grace period.
+  - Handles: delivered, open, click, bounce, dropped, deferred, spam_report, unsubscribe, group_unsubscribe events.
+  - Auto-detects unsubscribe link clicks and converts them to unsubscribe events.
+- **Message ID Tracking**: `sendNewsletterEmail` now captures SendGrid message IDs from the API response and stores them per-recipient for webhook correlation.
+- **Unsubscribe System**:
+  - Unsubscribe link added to newsletter email footer.
+  - `GET /api/unsubscribe?email=` public endpoint renders confirmation page and sets `newsletter_unsubscribed_at` on the person record.
+  - Newsletter send route filters out unsubscribed people before sending.
+- **Analytics Endpoint**: `GET /api/admin/newsletter/:sendId/analytics` returns per-send stats (open rate, click rate, delivery rate, bounce rate), per-recipient details, and raw event counts.
+- **Newsletter History**: Existing newsletter history endpoint now includes analytics counters (delivered, opens, clicks, bounces).
+- **Files**: `shared/schema.ts`, `server/email.ts`, `server/routes.ts`, `server/routes/sendgridWebhook.ts`
+
 ### April 14, 2026 - Badge Management Admin UI & Data-Driven Rules Engine
 - **Feature**: Admins can now create, edit, and delete badges, and configure assignment rules per badge through a dedicated admin page. The badge cron job reads rules from the database instead of hardcoded logic, making it fully expandable without code changes.
 - **Schema**: Added `badge_rules` table with: `badgeId` (FK to badges, cascade delete), `ruleType` (varchar: event_attendance, premium_member, event_count_min, event_count_max, manual_only), `config` (JSON for rule parameters), `createdAt`.

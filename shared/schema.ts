@@ -65,6 +65,7 @@ export const people = pgTable("people", {
   lumaMembershipStatus: varchar("luma_membership_status", { length: 50 }),
   lumaMembershipTierId: varchar("luma_membership_tier_id", { length: 255 }),
   revenueUsdCents: integer("revenue_usd_cents").default(0),
+  newsletterUnsubscribedAt: timestamp("newsletter_unsubscribed_at", { mode: 'string', withTimezone: true }),
   stats: json("stats").$type<{
     totalEventsAttended: number;
     lastEventDate: string | null;
@@ -968,6 +969,10 @@ export const newsletterSends = pgTable("newsletter_sends", {
   recipientCount: integer("recipient_count").notNull().default(0),
   testSend: boolean("test_send").notNull().default(false),
   testEmail: varchar("test_email", { length: 255 }),
+  deliveredCount: integer("delivered_count").notNull().default(0),
+  openCount: integer("open_count").notNull().default(0),
+  clickCount: integer("click_count").notNull().default(0),
+  bounceCount: integer("bounce_count").notNull().default(0),
   sentAt: timestamp("sent_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("newsletter_sends_post_idx").on(table.postId),
@@ -981,3 +986,59 @@ export const insertNewsletterSendSchema = createInsertSchema(newsletterSends).om
 
 export type NewsletterSend = typeof newsletterSends.$inferSelect;
 export type InsertNewsletterSend = z.infer<typeof insertNewsletterSendSchema>;
+
+export const newsletterRecipients = pgTable("newsletter_recipients", {
+  id: serial("id").primaryKey(),
+  newsletterSendId: integer("newsletter_send_id").notNull().references(() => newsletterSends.id),
+  email: varchar("email", { length: 255 }).notNull(),
+  personId: integer("person_id").references(() => people.id),
+  sendgridMessageId: varchar("sendgrid_message_id", { length: 255 }),
+  status: varchar("status", { length: 50 }).notNull().default('sent'),
+  deliveredAt: timestamp("delivered_at", { mode: 'string', withTimezone: true }),
+  openedAt: timestamp("opened_at", { mode: 'string', withTimezone: true }),
+  clickedAt: timestamp("clicked_at", { mode: 'string', withTimezone: true }),
+  bouncedAt: timestamp("bounced_at", { mode: 'string', withTimezone: true }),
+  unsubscribedAt: timestamp("unsubscribed_at", { mode: 'string', withTimezone: true }),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("newsletter_recipients_send_idx").on(table.newsletterSendId),
+  index("newsletter_recipients_email_idx").on(table.email),
+  index("newsletter_recipients_msgid_idx").on(table.sendgridMessageId),
+]);
+
+export const insertNewsletterRecipientSchema = createInsertSchema(newsletterRecipients).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type NewsletterRecipient = typeof newsletterRecipients.$inferSelect;
+export type InsertNewsletterRecipient = z.infer<typeof insertNewsletterRecipientSchema>;
+
+export const emailEvents = pgTable("email_events", {
+  id: serial("id").primaryKey(),
+  eventType: varchar("event_type", { length: 50 }).notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  sendgridMessageId: varchar("sendgrid_message_id", { length: 255 }),
+  newsletterSendId: integer("newsletter_send_id").references(() => newsletterSends.id),
+  timestamp: timestamp("timestamp", { mode: 'string', withTimezone: true }).notNull(),
+  userAgent: text("user_agent"),
+  ip: varchar("ip", { length: 45 }),
+  url: text("url"),
+  reason: text("reason"),
+  sgMachineOpen: boolean("sg_machine_open").default(false),
+  rawPayload: json("raw_payload").$type<Record<string, any>>(),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("email_events_type_idx").on(table.eventType),
+  index("email_events_email_idx").on(table.email),
+  index("email_events_msgid_idx").on(table.sendgridMessageId),
+  index("email_events_send_idx").on(table.newsletterSendId),
+]);
+
+export const insertEmailEventSchema = createInsertSchema(emailEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type EmailEvent = typeof emailEvents.$inferSelect;
+export type InsertEmailEvent = z.infer<typeof insertEmailEventSchema>;
