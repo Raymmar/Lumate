@@ -714,7 +714,7 @@ export async function sendNewsletterEmail(
       <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
       <body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
         <div style="max-width:600px;margin:0 auto;background-color:#ffffff;">
-          <div style="padding:32px;text-align:center;border-bottom:1px solid #e5e5e5;">
+          <div style="padding:16px 32px;text-align:center;border-bottom:1px solid #e5e5e5;">
             <img src="${logoUrl}" alt="Sarasota Tech" style="display:block;margin:0 auto;max-width:280px;width:100%;height:auto;" />
           </div>
           <div style="padding:32px;">
