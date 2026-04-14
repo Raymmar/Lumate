@@ -722,7 +722,7 @@ export async function sendNewsletterEmail(
 
     const videoInfo = getVideoThumbnailAndUrl(postData.videoUrl);
     const videoSection = videoInfo
-      ? `<div style="margin-bottom:24px;position:relative;">
+      ? `<div style="margin-top:24px;margin-bottom:24px;position:relative;">
           <a href="${videoInfo.videoLink}" target="_blank" style="display:block;text-decoration:none;">
             <img src="${videoInfo.thumbnailUrl}" alt="Watch Video" style="width:100%;max-width:600px;height:auto;border-radius:8px;" />
             <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
