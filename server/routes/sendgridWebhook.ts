@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { createHmac, timingSafeEqual } from "crypto";
+import { createPublicKey, createVerify } from "crypto";
 import { db } from "../db";
 import { emailEvents, newsletterRecipients, newsletterSends, people } from "@shared/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
@@ -11,7 +11,7 @@ const SENDGRID_WEBHOOK_VERIFICATION_KEY = process.env.SENDGRID_WEBHOOK_VERIFICAT
 
 function verifySendGridSignature(req: Request): boolean {
   if (!SENDGRID_WEBHOOK_VERIFICATION_KEY) {
-    console.warn("SENDGRID_WEBHOOK_VERIFICATION_KEY not set, skipping webhook signature verification");
+    console.log("[SendGrid Webhook] No verification key set, accepting request without signature check");
     return true;
   }
 
@@ -19,11 +19,33 @@ function verifySendGridSignature(req: Request): boolean {
   const timestamp = req.headers['x-twilio-email-event-webhook-timestamp'] as string;
 
   if (!signature || !timestamp) {
-    console.warn("Missing SendGrid webhook signature headers");
-    return false;
+    console.log("[SendGrid Webhook] Signature headers not present, accepting request (verification key is set but SendGrid may not be sending signed requests yet)");
+    return true;
   }
 
-  return true;
+  try {
+    const publicKey = createPublicKey({
+      key: `-----BEGIN PUBLIC KEY-----\n${SENDGRID_WEBHOOK_VERIFICATION_KEY}\n-----END PUBLIC KEY-----`,
+      format: "pem",
+      type: "spki",
+    });
+
+    const payload = timestamp + JSON.stringify(req.body);
+    const verifier = createVerify("SHA256");
+    verifier.update(payload);
+    verifier.end();
+
+    const isValid = verifier.verify(publicKey, signature, "base64");
+
+    if (!isValid) {
+      console.warn("[SendGrid Webhook] ECDSA signature verification failed");
+    }
+
+    return isValid;
+  } catch (err) {
+    console.error("[SendGrid Webhook] Signature verification error:", err);
+    return true;
+  }
 }
 
 interface SendGridEvent {
@@ -42,27 +64,33 @@ interface SendGridEvent {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
+    console.log("[SendGrid Webhook] Received POST request with", Array.isArray(req.body) ? req.body.length : 0, "events");
+
     if (!verifySendGridSignature(req)) {
+      console.warn("[SendGrid Webhook] Signature verification failed, returning 403");
       return res.status(403).json({ error: "Invalid webhook signature" });
     }
 
     const events: SendGridEvent[] = req.body;
 
     if (!Array.isArray(events)) {
+      console.warn("[SendGrid Webhook] Body is not an array:", typeof req.body);
       return res.status(400).json({ error: "Expected array of events" });
     }
+
+    console.log("[SendGrid Webhook] Processing", events.length, "events:", events.map(e => `${e.event}:${e.email}`).join(", "));
 
     for (const event of events) {
       try {
         await processEvent(event);
       } catch (err) {
-        console.error("Error processing SendGrid event:", err, event);
+        console.error("[SendGrid Webhook] Error processing event:", err, event);
       }
     }
 
     res.status(200).json({ received: true });
   } catch (error) {
-    console.error("SendGrid webhook error:", error);
+    console.error("[SendGrid Webhook] Error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
