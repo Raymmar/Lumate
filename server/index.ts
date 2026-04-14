@@ -126,6 +126,10 @@ app.use(
   const { ensureTablesExist } = await import("./db");
   await ensureTablesExist();
 
+  // Run badge rules migration
+  const { runBadgeRulesMigration } = await import("./migrations/badge-rules-migration");
+  await runBadgeRulesMigration();
+
   // Initialize Stripe schema and sync
   async function initStripe() {
     const databaseUrl = process.env.DATABASE_URL;
