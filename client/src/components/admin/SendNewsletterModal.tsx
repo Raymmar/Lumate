@@ -243,13 +243,12 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                       <button
                         key={badge.id}
                         onClick={() => toggleBadge(badge.id)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs border transition-colors ${
                           selectedBadgeIds.includes(badge.id)
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted/50 hover:bg-muted border-border'
                         }`}
                       >
-                        <span>{badge.icon}</span>
                         {badge.name}
                       </button>
                     ))}
