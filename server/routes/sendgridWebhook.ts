@@ -22,14 +22,19 @@ function verifySendGridSignature(rawBody: Buffer, req: Request): boolean {
   }
 
   try {
+    let keyPem = SENDGRID_WEBHOOK_VERIFICATION_KEY;
+    if (!keyPem.includes('-----BEGIN')) {
+      keyPem = `-----BEGIN PUBLIC KEY-----\n${keyPem}\n-----END PUBLIC KEY-----`;
+    }
+
     const publicKey = createPublicKey({
-      key: `-----BEGIN PUBLIC KEY-----\n${SENDGRID_WEBHOOK_VERIFICATION_KEY}\n-----END PUBLIC KEY-----`,
+      key: keyPem,
       format: "pem",
       type: "spki",
     });
 
     const payload = timestamp + rawBody.toString('utf8');
-    const verifier = createVerify("SHA256");
+    const verifier = createVerify("sha256");
     verifier.update(payload);
     verifier.end();
 
