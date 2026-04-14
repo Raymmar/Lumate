@@ -386,7 +386,7 @@ export function SendNewsletterModal({ open, onOpenChange, post, onViewAnalytics 
                                 {send.testSend ? `To: test email` : `${send.recipientCount} recipients (${send.audience})`}
                                 {send.senderName && ` • by ${send.senderName}`}
                               </span>
-                              {!send.testSend && onViewAnalytics && (
+                              {onViewAnalytics && (
                                 <button
                                   onClick={() => onViewAnalytics(send.id)}
                                   className="inline-flex items-center gap-1 text-[10px] text-blue-500 hover:text-blue-600 font-medium"
