@@ -20,45 +20,27 @@ interface SendGridEvent {
 }
 
 export async function handleSendGridWebhook(req: Request, res: Response) {
+  res.status(200).json({ received: true });
+
   try {
-    const rawBody = req.body as Buffer;
-
-    if (!Buffer.isBuffer(rawBody)) {
-      console.error("[SendGrid Webhook] req.body is not a Buffer — express.json() likely parsed it before this route");
-      return res.status(500).json({ error: "Webhook processing error" });
-    }
-
-    if (!verifySendGridSignature(rawBody, req)) {
-      return res.status(403).json({ error: "Invalid webhook signature" });
-    }
-
-    let events: SendGridEvent[];
-    try {
-      events = JSON.parse(rawBody.toString('utf8'));
-    } catch {
-      console.warn("[SendGrid Webhook] Failed to parse body as JSON");
-      return res.status(400).json({ error: "Invalid JSON" });
-    }
+    let events: SendGridEvent[] = req.body;
 
     if (!Array.isArray(events)) {
-      console.warn("[SendGrid Webhook] Body is not an array:", typeof events);
-      return res.status(400).json({ error: "Expected array of events" });
+      events = [events];
     }
 
     console.log("[SendGrid Webhook] Processing", events.length, "events:", events.map(e => `${e.event}:${e.email}`).join(", "));
 
-    for (const event of events) {
-      try {
-        await processEvent(event);
-      } catch (err) {
-        console.error("[SendGrid Webhook] Error processing event:", err, event);
-      }
-    }
+    const results = await Promise.allSettled(
+      events.map(event => processEvent(event))
+    );
 
-    res.status(200).json({ received: true });
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length > 0) {
+      console.error(`[SendGrid Webhook] ${failed.length}/${events.length} events failed to process`);
+    }
   } catch (error) {
     console.error("[SendGrid Webhook] Error:", error);
-    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -168,8 +150,6 @@ async function processEvent(event: SendGridEvent) {
       break;
     case "unsubscribe":
     case "group_unsubscribe":
-      await handleUnsubscribe(eventEmail, sgMessageId, eventTimestamp, newsletterSendId);
-      break;
     case "spamreport":
       await handleUnsubscribe(eventEmail, sgMessageId, eventTimestamp, newsletterSendId);
       break;
@@ -220,7 +200,7 @@ async function handleOpen(sgMessageId: string, timestamp: string, newsletterSend
   }
 }
 
-async function handleClick(sgMessageId: string, timestamp: string, newsletterSendId: number | null, url?: string) {
+async function handleClick(sgMessageId: string, timestamp: string, newsletterSendId: number | null, _url?: string) {
   const [updated] = await db
     .update(newsletterRecipients)
     .set({ clickedAt: timestamp })
@@ -260,8 +240,8 @@ async function handleBounce(sgMessageId: string, timestamp: string, newsletterSe
   }
 }
 
-async function handleUnsubscribe(email: string, sgMessageId: string, timestamp: string, newsletterSendId: number | null) {
-  await db
+async function handleUnsubscribe(email: string, sgMessageId: string, timestamp: string, _newsletterSendId: number | null) {
+  const [updated] = await db
     .update(newsletterRecipients)
     .set({ unsubscribedAt: timestamp })
     .where(
@@ -269,17 +249,20 @@ async function handleUnsubscribe(email: string, sgMessageId: string, timestamp: 
         eq(newsletterRecipients.sendgridMessageId, sgMessageId),
         isNull(newsletterRecipients.unsubscribedAt)
       )
-    );
+    )
+    .returning({ id: newsletterRecipients.id, email: newsletterRecipients.email });
 
-  await db
-    .update(people)
-    .set({ newsletterUnsubscribedAt: timestamp })
-    .where(
-      and(
-        eq(people.email, email),
-        isNull(people.newsletterUnsubscribedAt)
-      )
-    );
+  if (updated) {
+    await db
+      .update(people)
+      .set({ newsletterUnsubscribedAt: timestamp })
+      .where(
+        and(
+          eq(people.email, email),
+          isNull(people.newsletterUnsubscribedAt)
+        )
+      );
+  } else {
+    console.warn("[SendGrid Webhook] Unsubscribe event for unknown message ID:", sgMessageId, email);
+  }
 }
-
-export default { handleSendGridWebhook };

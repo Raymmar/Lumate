@@ -118,6 +118,11 @@ export async function registerRoutes(app: Express) {
   app.use("/api/unsplash", unsplashRouter);
   app.use("/api/stripe", stripeRouter);
   app.use("/api/companies", companiesRouter);
+
+  app.post("/api/webhooks/sendgrid", async (req, res) => {
+    const { handleSendGridWebhook } = await import("./routes/sendgridWebhook");
+    return handleSendGridWebhook(req, res);
+  });
   
   // Resend verification email endpoint
   app.post("/api/admin/members/:id/resend-verification", resendVerification);
