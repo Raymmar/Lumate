@@ -6,7 +6,17 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
-### April 14, 2026 - SendGrid Webhook Integration & Newsletter Analytics
+### April 14, 2026 - Newsletter Analytics UI
+- **Feature**: Analytics modal accessible from every newsletter touchpoint — posts table, post editor, send newsletter modal, and article page.
+- **NewsletterAnalyticsModal**: Full-screen modal showing delivery rate, open rate, click rate, bounce rate as stat cards, plus per-recipient breakdown table with status badges (delivered/opened/clicked/bounced/unsubscribed). Auto-refreshes every 30 seconds.
+- **PostsTable**: Sent newsletters now show a clickable "Newsletter" chip (with chart icon) instead of just a mail icon. "View Analytics" also available in the row action dropdown.
+- **PostModal**: The blue "Sent as newsletter" banner is now clickable — opens analytics for the most recent send. Shows a chart icon on hover.
+- **SendNewsletterModal**: Each send history entry now has an "Analytics" link to open the analytics modal for that specific send.
+- **ArticlePage**: "View Analytics" item added to the Actions dropdown for posts that have been sent as newsletters.
+- **Backend Enhancement**: `/api/admin/newsletter/sent-posts` now returns `postSendMap` (a mapping of postId to latest sendId) alongside `sentPostIds`, enabling direct analytics access from the posts table without extra API calls.
+- **Files**: `client/src/components/admin/NewsletterAnalyticsModal.tsx` (new), `client/src/components/admin/PostsTable.tsx`, `client/src/components/admin/PostModal.tsx`, `client/src/components/admin/SendNewsletterModal.tsx`, `client/src/pages/admin/AdminPostsPage.tsx`, `client/src/pages/ArticlePage.tsx`, `server/routes.ts`
+
+### April 14, 2026 - SendGrid Webhook Integration & Newsletter Analytics Backend
 - **Feature**: Full SendGrid webhook pipeline for real-time email analytics (delivery, opens, clicks, bounces) with newsletter-specific unsubscribe handling.
 - **Schema**:
   - Added `newsletter_recipients` table: per-recipient tracking with SendGrid message ID, delivery/open/click/bounce/unsubscribe timestamps.
