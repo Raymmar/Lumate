@@ -277,8 +277,8 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="people">Everyone</SelectItem>
-                      <SelectItem value="all">Members</SelectItem>
-                      <SelectItem value="premium">Active</SelectItem>
+                      <SelectItem value="all">Active Attendees</SelectItem>
+                      <SelectItem value="premium">Paid Members</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
