@@ -23,6 +23,34 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Post } from "@shared/schema";
 
+function getVideoThumbnail(videoUrl: string | null | undefined): { thumbnailUrl: string; videoLink: string } | null {
+  if (!videoUrl) return null;
+  try {
+    const url = new URL(videoUrl);
+    if (url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')) {
+      const videoId = url.hostname.includes('youtu.be')
+        ? url.pathname.slice(1)
+        : url.searchParams.get('v');
+      if (videoId) {
+        return {
+          thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          videoLink: `https://www.youtube.com/watch?v=${videoId}`,
+        };
+      }
+    }
+    if (url.hostname.includes('vimeo.com')) {
+      const videoId = url.pathname.split('/').pop();
+      if (videoId) {
+        return {
+          thumbnailUrl: `https://vumbnail.com/${videoId}.jpg`,
+          videoLink: `https://vimeo.com/${videoId}`,
+        };
+      }
+    }
+  } catch {}
+  return null;
+}
+
 interface SendNewsletterModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +59,7 @@ interface SendNewsletterModalProps {
 
 export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletterModalProps) {
   const { toast } = useToast();
+  const videoInfo = getVideoThumbnail(post.videoUrl);
   const [audience, setAudience] = useState<string>("all");
   const [selectedBadgeIds, setSelectedBadgeIds] = useState<number[]>([]);
   const [selectedEventApiIds, setSelectedEventApiIds] = useState<string[]>([]);
@@ -172,6 +201,27 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                           alt={post.title}
                           style={{ width: '100%', height: 'auto', borderRadius: 8, marginBottom: 24 }}
                         />
+                      )}
+                      {videoInfo && (
+                        <div style={{ marginBottom: 24, position: 'relative', cursor: 'pointer' }}>
+                          <img
+                            src={videoInfo.thumbnailUrl}
+                            alt="Watch Video"
+                            style={{ width: '100%', height: 'auto', borderRadius: 8 }}
+                          />
+                          <div style={{
+                            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                            width: 64, height: 64, background: 'rgba(0,0,0,0.7)', borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>
+                            <div style={{
+                              width: 0, height: 0, borderStyle: 'solid',
+                              borderWidth: '12px 0 12px 22px',
+                              borderColor: 'transparent transparent transparent #fff',
+                              marginLeft: 4,
+                            }} />
+                          </div>
+                        </div>
                       )}
                       <h2 style={{ color: '#1a1a1a', fontSize: 28, lineHeight: 1.3, margin: '0 0 16px 0' }}>{post.title}</h2>
                       {post.summary && (

@@ -5693,6 +5693,7 @@ export async function registerRoutes(app: Express) {
         summary: postData.summary,
         body: postData.body,
         featuredImage: postData.featuredImage,
+        videoUrl: postData.videoUrl,
         ctaLink: postData.ctaLink,
         ctaLabel: postData.ctaLabel,
       });
@@ -5779,6 +5780,7 @@ export async function registerRoutes(app: Express) {
           summary: postData.summary,
           body: postData.body,
           featuredImage: postData.featuredImage,
+          videoUrl: postData.videoUrl,
           ctaLink: postData.ctaLink,
           ctaLabel: postData.ctaLabel,
         });

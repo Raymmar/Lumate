@@ -665,6 +665,34 @@ export async function sendEmailDriftNotification(
   }
 }
 
+function getVideoThumbnailAndUrl(videoUrl: string | null): { thumbnailUrl: string; videoLink: string } | null {
+  if (!videoUrl) return null;
+  try {
+    const url = new URL(videoUrl);
+    if (url.hostname.includes('youtube.com') || url.hostname.includes('youtu.be')) {
+      const videoId = url.hostname.includes('youtu.be')
+        ? url.pathname.slice(1)
+        : url.searchParams.get('v');
+      if (videoId) {
+        return {
+          thumbnailUrl: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          videoLink: `https://www.youtube.com/watch?v=${videoId}`,
+        };
+      }
+    }
+    if (url.hostname.includes('vimeo.com')) {
+      const videoId = url.pathname.split('/').pop();
+      if (videoId) {
+        return {
+          thumbnailUrl: `https://vumbnail.com/${videoId}.jpg`,
+          videoLink: `https://vimeo.com/${videoId}`,
+        };
+      }
+    }
+  } catch {}
+  return null;
+}
+
 export async function sendNewsletterEmail(
   email: string,
   postData: {
@@ -672,6 +700,7 @@ export async function sendNewsletterEmail(
     summary: string | null;
     body: string;
     featuredImage: string | null;
+    videoUrl: string | null;
     ctaLink: string | null;
     ctaLabel: string | null;
   }
@@ -689,6 +718,18 @@ export async function sendNewsletterEmail(
 
     const featuredImageSection = postData.featuredImage
       ? `<img src="${postData.featuredImage}" alt="${postData.title}" style="width:100%;max-width:600px;height:auto;border-radius:8px;margin-bottom:24px;" />`
+      : '';
+
+    const videoInfo = getVideoThumbnailAndUrl(postData.videoUrl);
+    const videoSection = videoInfo
+      ? `<div style="margin-bottom:24px;position:relative;">
+          <a href="${videoInfo.videoLink}" target="_blank" style="display:block;text-decoration:none;">
+            <img src="${videoInfo.thumbnailUrl}" alt="Watch Video" style="width:100%;max-width:600px;height:auto;border-radius:8px;" />
+            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,0.7);border-radius:50%;display:flex;align-items:center;justify-content:center;">
+              <div style="width:0;height:0;border-style:solid;border-width:12px 0 12px 22px;border-color:transparent transparent transparent #fff;margin-left:4px;"></div>
+            </div>
+          </a>
+        </div>`
       : '';
 
     const ctaSection = postData.ctaLink && postData.ctaLabel
@@ -719,6 +760,7 @@ export async function sendNewsletterEmail(
           </div>
           <div style="padding:32px;">
             ${featuredImageSection}
+            ${videoSection}
             <h2 style="color:#1a1a1a;font-size:28px;line-height:1.3;margin:0 0 16px 0;">${postData.title}</h2>
             ${summarySection}
             <div style="color:#333;font-size:16px;line-height:1.7;">
