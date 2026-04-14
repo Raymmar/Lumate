@@ -1,46 +1,9 @@
 import { Request, Response } from "express";
-import { EventWebhook, EventWebhookHeader } from "@sendgrid/eventwebhook";
 import { db } from "../db";
 import { emailEvents, newsletterRecipients, newsletterSends, people } from "@shared/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 
 const SCANNER_GRACE_PERIOD_MS = 30 * 1000;
-const SENDGRID_WEBHOOK_VERIFICATION_KEY = process.env.SENDGRID_WEBHOOK_VERIFICATION_KEY;
-
-const eventWebhook = new EventWebhook();
-const ecPublicKey = SENDGRID_WEBHOOK_VERIFICATION_KEY
-  ? eventWebhook.convertPublicKeyToECDSA(SENDGRID_WEBHOOK_VERIFICATION_KEY)
-  : null;
-
-function verifySendGridSignature(rawBody: Buffer, req: Request): boolean {
-  if (!ecPublicKey) {
-    console.log("[SendGrid Webhook] No verification key configured, skipping signature check");
-    return true;
-  }
-
-  const signature = req.headers[EventWebhookHeader.SIGNATURE().toLowerCase()] as string;
-  const timestamp = req.headers[EventWebhookHeader.TIMESTAMP().toLowerCase()] as string;
-
-  if (!signature || !timestamp) {
-    console.warn("[SendGrid Webhook] Verification key is set but signature headers are missing — rejecting request");
-    return false;
-  }
-
-  try {
-    const isValid = eventWebhook.verifySignature(ecPublicKey, rawBody, signature, timestamp);
-
-    if (!isValid) {
-      console.warn("[SendGrid Webhook] ECDSA signature verification failed");
-    } else {
-      console.log("[SendGrid Webhook] Signature verified successfully");
-    }
-
-    return isValid;
-  } catch (err) {
-    console.error("[SendGrid Webhook] Signature verification error:", err);
-    return false;
-  }
-}
 
 interface SendGridEvent {
   event: string;

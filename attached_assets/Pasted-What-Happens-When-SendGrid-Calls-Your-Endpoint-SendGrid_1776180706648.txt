@@ -1,0 +1,17 @@
+What Happens When SendGrid Calls Your Endpoint
+SendGrid sends a batch — SendGrid doesn't send one event at a time. It batches them up and sends an array of events in a single POST request. Your handler accounts for this by checking if the body is an array and normalizing it either way.
+
+All events are processed in parallel — The handler uses Promise.allSettled to process every event in the batch concurrently. This is important because it means if one event fails (say, a recipient can't be found in your database), it doesn't block the others from being processed.
+
+For each event, the matching step happens — This is the coordination piece. When your app originally sends a blast email, it stores the SendGrid message ID on each recipient record. When a webhook event comes in, the handler strips the message ID down to its base form (SendGrid appends routing suffixes with dots, so it takes everything before the first .) and then looks up the matching recipient by both email address and that base message ID. That's how it connects "person X opened an email" back to "this specific blast."
+
+Filtering runs before anything is stored — The bot/scanner/duplicate logic I mentioned before all happens here, before the event gets written to the database. If the event is filtered out, it's simply discarded and never counted.
+
+Two writes happen per valid event — First, the raw event goes into the blast_events table (the full audit trail). Second, the aggregate counters and recipient status get updated.
+
+Always returns a 200 response — This is a critical design choice. Your app always sends a 200 back to SendGrid, even if processing partially or fully fails. If you returned a 4xx or 5xx, SendGrid would retry the delivery, which could lead to duplicate processing and inflated stats. By always returning 200, you avoid that retry loop. The tradeoff is that if processing genuinely fails, those events are lost unless you add a separate recovery mechanism.
+
+One Thing Worth Noting
+There's a quirk in the aggregate counter updates — when an open or click comes in, the code sets openCount or clickCount to 1 with a comment saying "will be recalculated with proper query later." This means the aggregate counts on the blast record aren't being properly incremented in real-time. They're being overwritten to 1 on every event. Your actual accurate counts would need to come from querying the blast_recipients table (counting records where openedAt is not null) or the blast_events table, rather than trusting the counters on the blast record itself.
+
+That's something to be aware of — depending on how your frontend reads those numbers, you might be showing 1 instead of the real count, or you might have a separate recalculation job that fixes it. Worth confirming which path your analytics endpoints are actually using.
