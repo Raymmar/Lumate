@@ -4,7 +4,7 @@ import TimeAgo from 'javascript-time-ago';
 import en from 'javascript-time-ago/locale/en';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ImageIcon, Plus, MoreVertical, Edit, Trash2, Lock, ExternalLink } from "lucide-react";
+import { ImageIcon, Plus, MoreVertical, Edit, Trash2, Lock, ExternalLink, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
@@ -40,12 +40,13 @@ export const PUBLIC_POSTS_QUERY_KEY = ["/api/public/posts"];
 interface PublicPostsTableProps {
   onSelect: (post: Post, isEditing?: boolean) => void;
   onCreatePost?: () => void;
+  onSendNewsletter?: (post: Post) => void;
   filterTags?: string[];
   title?: string;
   maxPosts?: number;
 }
 
-export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "Community News", maxPosts }: PublicPostsTableProps) {
+export function PublicPostsTable({ onSelect, onCreatePost, onSendNewsletter, filterTags, title = "Community News", maxPosts }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -236,6 +237,17 @@ export function PublicPostsTable({ onSelect, onCreatePost, filterTags, title = "
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
+                            {onSendNewsletter && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSendNewsletter(post);
+                                }}
+                              >
+                                <Send className="h-4 w-4 mr-2" />
+                                Send as Newsletter
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"

@@ -162,8 +162,8 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">Email Preview</h3>
                 <div className="rounded-lg overflow-hidden border" style={{ backgroundColor: '#f4f4f4' }}>
                   <div style={{ maxWidth: 600, margin: '0 auto', backgroundColor: '#ffffff' }}>
-                    <div style={{ padding: '24px 32px', textAlign: 'center', borderBottom: '1px solid #e5e5e5' }}>
-                      <img src="/st-logo-email.png" alt="Sarasota Tech" style={{ height: 40, width: 'auto' }} />
+                    <div style={{ padding: 32, textAlign: 'center', borderBottom: '1px solid #e5e5e5' }}>
+                      <img src="/st-logo-email.png" alt="Sarasota Tech" style={{ display: 'block', margin: '0 auto', maxWidth: 280, width: '100%', height: 'auto' }} />
                     </div>
                     <div style={{ padding: 32 }}>
                       {post.featuredImage && (
