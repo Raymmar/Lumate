@@ -202,8 +202,17 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                           style={{ width: '100%', height: 'auto', borderRadius: 8, marginBottom: 24 }}
                         />
                       )}
+                      <h2 style={{ color: '#1a1a1a', fontSize: 28, lineHeight: 1.3, margin: '0 0 16px 0' }}>{post.title}</h2>
+                      {post.summary && (
+                        <p style={{ fontSize: 16, color: '#666', lineHeight: 1.6, margin: '0 0 24px 0', fontStyle: 'italic' }}>{post.summary}</p>
+                      )}
+                      <div
+                        className="prose prose-sm max-w-none [&_p]:mb-[1.25em] [&_h1]:mt-[1.5em] [&_h1]:mb-[0.75em] [&_h2]:mt-[1.5em] [&_h2]:mb-[0.75em] [&_h3]:mt-[1.25em] [&_h3]:mb-[0.5em] [&_ul]:mb-[1.25em] [&_ol]:mb-[1.25em] [&_li]:mb-[0.35em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-[#e5e5e5] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#555]"
+                        style={{ color: '#333', fontSize: 16, lineHeight: 1.8 }}
+                        dangerouslySetInnerHTML={{ __html: post.body }}
+                      />
                       {videoInfo && (
-                        <div style={{ marginBottom: 24, position: 'relative', cursor: 'pointer' }}>
+                        <div style={{ marginTop: 24, marginBottom: 24, position: 'relative', cursor: 'pointer' }}>
                           <img
                             src={videoInfo.thumbnailUrl}
                             alt="Watch Video"
@@ -223,14 +232,6 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                           </div>
                         </div>
                       )}
-                      <h2 style={{ color: '#1a1a1a', fontSize: 28, lineHeight: 1.3, margin: '0 0 16px 0' }}>{post.title}</h2>
-                      {post.summary && (
-                        <p style={{ fontSize: 16, color: '#666', lineHeight: 1.6, margin: '0 0 24px 0', fontStyle: 'italic' }}>{post.summary}</p>
-                      )}
-                      <div
-                        style={{ color: '#333', fontSize: 16, lineHeight: 1.7 }}
-                        dangerouslySetInnerHTML={{ __html: post.body }}
-                      />
                       {post.ctaLink && post.ctaLabel && (
                         <div style={{ textAlign: 'center', margin: '30px 0' }}>
                           <span
