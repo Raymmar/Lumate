@@ -207,7 +207,7 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                         <p style={{ fontSize: 16, color: '#666', lineHeight: 1.6, margin: '0 0 24px 0', fontStyle: 'italic' }}>{post.summary}</p>
                       )}
                       <div
-                        className="prose prose-sm max-w-none [&_p]:mb-[1.25em] [&_h1]:mt-[1.5em] [&_h1]:mb-[0.75em] [&_h2]:mt-[1.5em] [&_h2]:mb-[0.75em] [&_h3]:mt-[1.25em] [&_h3]:mb-[0.5em] [&_ul]:mb-[1.25em] [&_ol]:mb-[1.25em] [&_li]:mb-[0.35em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-[#e5e5e5] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#555]"
+                        className="prose prose-sm max-w-none [&_p]:mb-[1.25em] [&_li_p]:mb-0 [&_h1]:mt-[1.5em] [&_h1]:mb-[0.75em] [&_h2]:mt-[1.5em] [&_h2]:mb-[0.75em] [&_h3]:mt-[1.25em] [&_h3]:mb-[0.5em] [&_ul]:mb-[1.25em] [&_ol]:mb-[1.25em] [&_li]:mb-[0.25em] [&_blockquote]:border-l-[3px] [&_blockquote]:border-[#e5e5e5] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[#555]"
                         style={{ color: '#333', fontSize: 16, lineHeight: 1.8 }}
                         dangerouslySetInnerHTML={{ __html: post.body }}
                       />

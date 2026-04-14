@@ -763,7 +763,7 @@ export async function sendNewsletterEmail(
             <h2 style="color:#1a1a1a;font-size:28px;line-height:1.3;margin:0 0 16px 0;">${postData.title}</h2>
             ${summarySection}
             <div style="color:#333;font-size:16px;line-height:1.8;">
-              ${postData.body.replace(/<p>/g, '<p style="margin:0 0 1.25em 0;">').replace(/<h1/g, '<h1 style="margin:1.5em 0 0.75em 0;font-size:24px;color:#1a1a1a;"').replace(/<h2/g, '<h2 style="margin:1.5em 0 0.75em 0;font-size:20px;color:#1a1a1a;"').replace(/<h3/g, '<h3 style="margin:1.25em 0 0.5em 0;font-size:18px;color:#1a1a1a;"').replace(/<ul>/g, '<ul style="margin:0 0 1.25em 0;padding-left:1.5em;">').replace(/<ol>/g, '<ol style="margin:0 0 1.25em 0;padding-left:1.5em;">').replace(/<li>/g, '<li style="margin:0 0 0.35em 0;">').replace(/<blockquote>/g, '<blockquote style="margin:1.25em 0;padding:0.75em 1em;border-left:3px solid #e5e5e5;color:#555;font-style:italic;">')}
+              ${postData.body.replace(/<li>\s*<p>/g, '<li style="margin:0 0 0.25em 0;"><p style="margin:0;">').replace(/<p>/g, '<p style="margin:0 0 1.25em 0;">').replace(/<h1/g, '<h1 style="margin:1.5em 0 0.75em 0;font-size:24px;color:#1a1a1a;"').replace(/<h2/g, '<h2 style="margin:1.5em 0 0.75em 0;font-size:20px;color:#1a1a1a;"').replace(/<h3/g, '<h3 style="margin:1.25em 0 0.5em 0;font-size:18px;color:#1a1a1a;"').replace(/<ul>/g, '<ul style="margin:0 0 1.25em 0;padding-left:1.5em;">').replace(/<ol>/g, '<ol style="margin:0 0 1.25em 0;padding-left:1.5em;">').replace(/<li>/g, '<li style="margin:0 0 0.25em 0;">').replace(/<blockquote>/g, '<blockquote style="margin:1.25em 0;padding:0.75em 1em;border-left:3px solid #e5e5e5;color:#555;font-style:italic;">')}
             </div>
             ${videoSection}
             ${ctaSection}
