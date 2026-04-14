@@ -143,11 +143,6 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
     );
   };
 
-  const toggleEvent = (eventApiId: string) => {
-    setSelectedEventApiIds(prev =>
-      prev.includes(eventApiId) ? prev.filter(id => id !== eventApiId) : [...prev, eventApiId]
-    );
-  };
 
   return (
     <>
@@ -281,8 +276,9 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Members</SelectItem>
-                      <SelectItem value="premium">Premium Members Only</SelectItem>
+                      <SelectItem value="people">Everyone</SelectItem>
+                      <SelectItem value="all">Members</SelectItem>
+                      <SelectItem value="premium">Active</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -311,29 +307,29 @@ export function SendNewsletterModal({ open, onOpenChange, post }: SendNewsletter
 
                 <div className="space-y-2">
                   <Label className="text-sm">Filter by Event Attendance</Label>
-                  <ScrollArea className="max-h-32">
-                    <div className="space-y-1">
+                  <Select
+                    value={selectedEventApiIds.length === 1 ? selectedEventApiIds[0] : "none"}
+                    onValueChange={(val) => {
+                      if (val === "none") {
+                        setSelectedEventApiIds([]);
+                      } else {
+                        setSelectedEventApiIds([val]);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="text-xs">
+                      <SelectValue placeholder="No event filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No event filter</SelectItem>
                       {eventsData?.events?.map(event => (
-                        <button
-                          key={event.apiId}
-                          onClick={() => toggleEvent(event.apiId)}
-                          className={`w-full text-left px-2.5 py-1.5 rounded text-xs transition-colors ${
-                            selectedEventApiIds.includes(event.apiId)
-                              ? 'bg-primary/10 text-primary border border-primary/30'
-                              : 'hover:bg-muted/50'
-                          }`}
-                        >
-                          <div className="font-medium truncate">{event.title}</div>
-                          <div className="text-muted-foreground text-[10px]">
-                            {new Date(event.startTime).toLocaleDateString()}
-                          </div>
-                        </button>
+                        <SelectItem key={event.apiId} value={event.apiId}>
+                          <span className="truncate">{event.title}</span>
+                          <span className="text-muted-foreground ml-1">({new Date(event.startTime).toLocaleDateString()})</span>
+                        </SelectItem>
                       ))}
-                      {!eventsData?.events?.length && (
-                        <p className="text-xs text-muted-foreground">No events available</p>
-                      )}
-                    </div>
-                  </ScrollArea>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Separator />

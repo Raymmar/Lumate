@@ -5609,6 +5609,70 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  async function getNewsletterRecipientEmails(audience: string, badgeIds: number[] = [], eventApiIds: string[] = []): Promise<Set<string>> {
+    let recipientEmails = new Set<string>();
+
+    if (audience === 'people') {
+      const allPeople = await db.select({ email: people.email }).from(people);
+      allPeople.forEach(p => recipientEmails.add(p.email.toLowerCase()));
+    } else if (audience === 'all') {
+      const allUsers = await db.select({ email: users.email }).from(users);
+      allUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
+    } else if (audience === 'premium') {
+      const stripeResult = await db.execute(sql`
+        SELECT DISTINCT LOWER(c.email) as email
+        FROM stripe.subscriptions s
+        INNER JOIN stripe.customers c ON c.id = s.customer
+        WHERE s.status = 'active'
+      `);
+      stripeResult.rows.forEach((r: any) => { if (r.email) recipientEmails.add(r.email); });
+
+      const ticketResult = await db.execute(sql`
+        SELECT DISTINCT LOWER(a.user_email) as email
+        FROM attendance a
+        INNER JOIN events e ON e.api_id = a.event_api_id
+        WHERE e.grants_premium_access = true
+          AND a.approval_status = 'approved'
+          AND a.ticket_type_id IS NOT NULL
+          AND EXISTS (
+            SELECT 1 FROM json_array_elements_text(e.premium_ticket_types) AS pt
+            WHERE pt.value = a.ticket_type_id
+          )
+      `);
+      ticketResult.rows.forEach((r: any) => { if (r.email) recipientEmails.add(r.email); });
+
+      const now = new Date().toISOString();
+      const manualResult = await db.select({ email: users.email }).from(users).where(
+        and(
+          eq(users.premiumSource, 'manual'),
+          sql`${users.premiumExpiresAt} > ${now}`
+        )
+      );
+      manualResult.forEach(u => recipientEmails.add(u.email.toLowerCase()));
+    }
+
+    if (badgeIds.length > 0) {
+      const usersWithBadges = await db
+        .select({ email: users.email })
+        .from(users)
+        .innerJoin(userBadgesTable, eq(users.id, userBadgesTable.userId))
+        .where(sql`${userBadgesTable.badgeId} IN (${sql.join(badgeIds.map(id => sql`${id}`), sql`, `)})`);
+      const badgeEmails = new Set(usersWithBadges.map(u => u.email.toLowerCase()));
+      recipientEmails = new Set([...recipientEmails].filter(e => badgeEmails.has(e)));
+    }
+
+    if (eventApiIds.length > 0) {
+      const eventAttendees = await db
+        .select({ email: attendance.userEmail })
+        .from(attendance)
+        .where(sql`${attendance.eventApiId} IN (${sql.join(eventApiIds.map(id => sql`${id}`), sql`, `)})`);
+      const eventEmails = new Set(eventAttendees.map(a => a.email.toLowerCase()));
+      recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
+    }
+
+    return recipientEmails;
+  }
+
   app.get("/api/admin/newsletter/recipients", async (req, res) => {
     try {
       if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
@@ -5619,46 +5683,7 @@ export async function registerRoutes(app: Express) {
       const badgeIds = req.query.badgeIds ? (req.query.badgeIds as string).split(',').map(Number) : [];
       const eventApiIds = req.query.eventApiIds ? (req.query.eventApiIds as string).split(',') : [];
 
-      let recipientEmails = new Set<string>();
-
-      if (audience === 'all') {
-        const allUsers = await db.select({ email: users.email }).from(users).where(eq(users.isVerified, true));
-        allUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
-      } else if (audience === 'premium') {
-        const premiumUsers = await db.select({ email: users.email }).from(users)
-          .where(and(
-            eq(users.isVerified, true),
-            sql`(${users.subscriptionStatus} = 'active' OR ${users.premiumSource} IS NOT NULL)`
-          ));
-        premiumUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
-      }
-
-      if (badgeIds.length > 0) {
-        const usersWithBadges = await db
-          .select({ email: users.email })
-          .from(users)
-          .innerJoin(userBadgesTable, eq(users.id, userBadgesTable.userId))
-          .where(sql`${userBadgesTable.badgeId} IN (${sql.join(badgeIds.map(id => sql`${id}`), sql`, `)})`)
-          ;
-        const badgeEmails = new Set(usersWithBadges.map(u => u.email.toLowerCase()));
-        if (audience === 'all' || audience === 'premium') {
-          recipientEmails = new Set([...recipientEmails].filter(e => badgeEmails.has(e)));
-        }
-      }
-
-      if (eventApiIds.length > 0) {
-        const eventAttendees = await db
-          .select({ email: attendance.userEmail })
-          .from(attendance)
-          .where(sql`${attendance.eventApiId} IN (${sql.join(eventApiIds.map(id => sql`${id}`), sql`, `)})`);
-        const eventEmails = new Set(eventAttendees.map(a => a.email.toLowerCase()));
-        if (badgeIds.length > 0) {
-          recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
-        } else {
-          recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
-        }
-      }
-
+      const recipientEmails = await getNewsletterRecipientEmails(audience, badgeIds, eventApiIds);
       res.json({ count: recipientEmails.size });
     } catch (error) {
       console.error("Failed to get recipient count:", error);
@@ -5726,49 +5751,17 @@ export async function registerRoutes(app: Express) {
       if (isNaN(postId)) return res.status(400).json({ error: "Invalid post ID" });
 
       const { audience, badgeIds, eventApiIds } = req.body;
-      if (!audience || !['all', 'premium'].includes(audience)) {
-        return res.status(400).json({ error: "Audience must be 'all' or 'premium'" });
+      if (!audience || !['people', 'all', 'premium'].includes(audience)) {
+        return res.status(400).json({ error: "Audience must be 'people', 'all', or 'premium'" });
       }
 
       const [postData] = await db.select().from(posts).where(eq(posts.id, postId));
       if (!postData) return res.status(404).json({ error: "Post not found" });
 
-      let recipientEmails = new Set<string>();
-
-      if (audience === 'all') {
-        const allUsers = await db.select({ email: users.email }).from(users).where(eq(users.isVerified, true));
-        allUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
-      } else if (audience === 'premium') {
-        const premiumUsers = await db.select({ email: users.email }).from(users)
-          .where(and(
-            eq(users.isVerified, true),
-            sql`(${users.subscriptionStatus} = 'active' OR ${users.premiumSource} IS NOT NULL)`
-          ));
-        premiumUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
-      }
-
       const filterBadgeIds = badgeIds && Array.isArray(badgeIds) ? badgeIds : [];
       const filterEventApiIds = eventApiIds && Array.isArray(eventApiIds) ? eventApiIds : [];
 
-      if (filterBadgeIds.length > 0) {
-        const usersWithBadges = await db
-          .select({ email: users.email })
-          .from(users)
-          .innerJoin(userBadgesTable, eq(users.id, userBadgesTable.userId))
-          .where(sql`${userBadgesTable.badgeId} IN (${sql.join(filterBadgeIds.map((id: number) => sql`${id}`), sql`, `)})`);
-        const badgeEmails = new Set(usersWithBadges.map(u => u.email.toLowerCase()));
-        recipientEmails = new Set([...recipientEmails].filter(e => badgeEmails.has(e)));
-      }
-
-      if (filterEventApiIds.length > 0) {
-        const eventAttendees = await db
-          .select({ email: attendance.userEmail })
-          .from(attendance)
-          .where(sql`${attendance.eventApiId} IN (${sql.join(filterEventApiIds.map((id: string) => sql`${id}`), sql`, `)})`);
-        const eventEmails = new Set(eventAttendees.map(a => a.email.toLowerCase()));
-        recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
-      }
-
+      const recipientEmails = await getNewsletterRecipientEmails(audience, filterBadgeIds, filterEventApiIds);
       const emails = [...recipientEmails];
       console.log(`Sending newsletter for post ${postId} to ${emails.length} recipients`);
 
