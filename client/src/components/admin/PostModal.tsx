@@ -1,6 +1,7 @@
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { X, Loader2, Trash2 } from "lucide-react";
+import { X, Loader2, Trash2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -27,6 +28,7 @@ interface PostModalProps {
   isDeleting?: boolean;
   currentStatus?: 'draft' | 'published';
   postTitle?: string;
+  postId?: number;
 }
 
 export function PostModal({ 
@@ -42,9 +44,22 @@ export function PostModal({
   isSavingDraft = false,
   isDeleting = false,
   currentStatus = 'published',
-  postTitle = ''
+  postTitle = '',
+  postId
 }: PostModalProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+
+  const { data: newsletterHistory } = useQuery<{ sends: Array<{ id: number; audience: string; recipientCount: number; testSend: boolean; sentAt: string; senderName: string | null }> }>({
+    queryKey: ["/api/admin/posts", postId, "newsletter"],
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/posts/${postId}/newsletter`);
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: open && mode === 'edit' && !!postId,
+  });
+
+  const realSends = newsletterHistory?.sends?.filter(s => !s.testSend) || [];
 
   return (
     <>
@@ -128,6 +143,16 @@ export function PostModal({
             </div>
           </DialogHeader>
           
+          {realSends.length > 0 && (
+            <div className="mx-6 mt-3 flex items-center gap-2 px-3 py-2 rounded-md bg-blue-500/10 border border-blue-500/20 text-sm">
+              <Mail className="h-4 w-4 text-blue-500 flex-shrink-0" />
+              <span className="text-blue-400">
+                Sent as newsletter on {new Date(realSends[0].sentAt).toLocaleDateString()} to {realSends[0].recipientCount} recipients ({realSends[0].audience})
+                {realSends[0].senderName && ` by ${realSends[0].senderName}`}
+              </span>
+            </div>
+          )}
+
           {/* Content area with scroll */}
           <div className="flex-1 overflow-y-auto p-6">
             {children}

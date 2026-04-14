@@ -665,6 +665,96 @@ export async function sendEmailDriftNotification(
   }
 }
 
+export async function sendNewsletterEmail(
+  email: string,
+  postData: {
+    title: string;
+    summary: string | null;
+    body: string;
+    featuredImage: string | null;
+    ctaLink: string | null;
+    ctaLabel: string | null;
+  }
+): Promise<boolean> {
+  try {
+    const baseUrl = getEmailBaseUrl();
+
+    if (isDevelopment && !process.env.SENDGRID_API_KEY) {
+      console.log('Development mode - Newsletter email would have been sent:', {
+        to: email,
+        postTitle: postData.title,
+      });
+      return true;
+    }
+
+    const featuredImageSection = postData.featuredImage
+      ? `<img src="${postData.featuredImage}" alt="${postData.title}" style="width:100%;max-width:600px;height:auto;border-radius:8px;margin-bottom:24px;" />`
+      : '';
+
+    const ctaSection = postData.ctaLink && postData.ctaLabel
+      ? `<div style="text-align:center;margin:30px 0;">
+          <a href="${postData.ctaLink.startsWith('http') ? postData.ctaLink : baseUrl + postData.ctaLink}"
+             style="display:inline-block;padding:14px 28px;background-color:#FEA30E;color:#000;text-decoration:none;border-radius:6px;font-size:16px;font-weight:bold;">
+            ${postData.ctaLabel}
+          </a>
+        </div>`
+      : '';
+
+    const summarySection = postData.summary
+      ? `<p style="font-size:16px;color:#999;line-height:1.6;margin:0 0 24px 0;font-style:italic;">${postData.summary}</p>`
+      : '';
+
+    const subject = postData.title;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+      <body style="margin:0;padding:0;background-color:#111;font-family:Arial,Helvetica,sans-serif;">
+        <div style="max-width:600px;margin:0 auto;background-color:#1a1a1a;">
+          <div style="padding:24px 32px;text-align:center;border-bottom:1px solid #333;">
+            <h1 style="margin:0;color:#FEA30E;font-size:24px;font-weight:bold;">Sarasota Tech</h1>
+          </div>
+          <div style="padding:32px;">
+            ${featuredImageSection}
+            <h2 style="color:#fff;font-size:28px;line-height:1.3;margin:0 0 16px 0;">${postData.title}</h2>
+            ${summarySection}
+            <div style="color:#ccc;font-size:16px;line-height:1.7;">
+              ${postData.body}
+            </div>
+            ${ctaSection}
+          </div>
+          <div style="padding:24px 32px;border-top:1px solid #333;text-align:center;">
+            <p style="margin:0 0 8px 0;color:#666;font-size:12px;">
+              Sarasota Tech Community
+            </p>
+            <p style="margin:0;color:#666;font-size:12px;">
+              <a href="${baseUrl}" style="color:#FEA30E;text-decoration:none;">Visit our website</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const bodyText = postData.body.replace(/<[^>]*>/g, '');
+    const textContent = `${postData.title}\n\n${postData.summary || ''}\n\n${bodyText}\n\nVisit: ${baseUrl}`;
+
+    await mailService.send({
+      to: email,
+      from: FROM_EMAIL!,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    return true;
+  } catch (error: any) {
+    console.error('Failed to send newsletter email to:', email, error.message);
+    return false;
+  }
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   token: string

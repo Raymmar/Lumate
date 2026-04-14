@@ -40,9 +40,10 @@ import {
   insertAgendaTrackSchema,
   insertAgendaSessionTypeSchema,
   insertTimeBlockSchema,
+  newsletterSends,
 } from "@shared/schema";
 import { z } from "zod";
-import { sendVerificationEmail, sendEventInviteEmail } from "./email";
+import { sendVerificationEmail, sendEventInviteEmail, sendNewsletterEmail } from "./email";
 import { comparePasswords } from "./auth";
 import { ZodError } from "zod";
 import session from "express-session";
@@ -5571,6 +5572,291 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to set primary profile:", error);
       res.status(500).json({ error: "Failed to set primary profile" });
+    }
+  });
+
+  app.get("/api/admin/posts/:id/newsletter", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ error: "Invalid post ID" });
+
+      const sends = await db
+        .select({
+          id: newsletterSends.id,
+          postId: newsletterSends.postId,
+          sentBy: newsletterSends.sentBy,
+          audience: newsletterSends.audience,
+          audienceFilters: newsletterSends.audienceFilters,
+          recipientCount: newsletterSends.recipientCount,
+          testSend: newsletterSends.testSend,
+          testEmail: newsletterSends.testEmail,
+          sentAt: newsletterSends.sentAt,
+          senderName: users.displayName,
+        })
+        .from(newsletterSends)
+        .leftJoin(users, eq(newsletterSends.sentBy, users.id))
+        .where(eq(newsletterSends.postId, postId))
+        .orderBy(desc(newsletterSends.sentAt));
+
+      res.json({ sends });
+    } catch (error) {
+      console.error("Failed to fetch newsletter sends:", error);
+      res.status(500).json({ error: "Failed to fetch newsletter sends" });
+    }
+  });
+
+  app.get("/api/admin/newsletter/recipients", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const audience = (req.query.audience as string) || 'all';
+      const badgeIds = req.query.badgeIds ? (req.query.badgeIds as string).split(',').map(Number) : [];
+      const eventApiIds = req.query.eventApiIds ? (req.query.eventApiIds as string).split(',') : [];
+
+      let recipientEmails = new Set<string>();
+
+      if (audience === 'all') {
+        const allUsers = await db.select({ email: users.email }).from(users).where(eq(users.isVerified, true));
+        allUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
+      } else if (audience === 'premium') {
+        const premiumUsers = await db.select({ email: users.email }).from(users)
+          .where(and(
+            eq(users.isVerified, true),
+            sql`(${users.subscriptionStatus} = 'active' OR ${users.premiumSource} IS NOT NULL)`
+          ));
+        premiumUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
+      }
+
+      if (badgeIds.length > 0) {
+        const usersWithBadges = await db
+          .select({ email: users.email })
+          .from(users)
+          .innerJoin(userBadgesTable, eq(users.id, userBadgesTable.userId))
+          .where(sql`${userBadgesTable.badgeId} IN (${sql.join(badgeIds.map(id => sql`${id}`), sql`, `)})`)
+          ;
+        const badgeEmails = new Set(usersWithBadges.map(u => u.email.toLowerCase()));
+        if (audience === 'all' || audience === 'premium') {
+          recipientEmails = new Set([...recipientEmails].filter(e => badgeEmails.has(e)));
+        }
+      }
+
+      if (eventApiIds.length > 0) {
+        const eventAttendees = await db
+          .select({ email: attendance.userEmail })
+          .from(attendance)
+          .where(sql`${attendance.eventApiId} IN (${sql.join(eventApiIds.map(id => sql`${id}`), sql`, `)})`);
+        const eventEmails = new Set(eventAttendees.map(a => a.email.toLowerCase()));
+        if (badgeIds.length > 0) {
+          recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
+        } else {
+          recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
+        }
+      }
+
+      res.json({ count: recipientEmails.size });
+    } catch (error) {
+      console.error("Failed to get recipient count:", error);
+      res.status(500).json({ error: "Failed to get recipient count" });
+    }
+  });
+
+  app.post("/api/admin/posts/:id/newsletter/test", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ error: "Invalid post ID" });
+
+      const { email } = req.body;
+      if (!email || !z.string().email().safeParse(email).success) {
+        return res.status(400).json({ error: "Valid email address required" });
+      }
+
+      const post = await storage.getPost ? await storage.getPost(postId) : null;
+      let postData: any = post;
+      if (!postData) {
+        const [dbPost] = await db.select().from(posts).where(eq(posts.id, postId));
+        postData = dbPost;
+      }
+      if (!postData) return res.status(404).json({ error: "Post not found" });
+
+      const success = await sendNewsletterEmail(email, {
+        title: postData.title,
+        summary: postData.summary,
+        body: postData.body,
+        featuredImage: postData.featuredImage,
+        ctaLink: postData.ctaLink,
+        ctaLabel: postData.ctaLabel,
+      });
+
+      if (!success) return res.status(500).json({ error: "Failed to send test email" });
+
+      await db.insert(newsletterSends).values({
+        postId,
+        sentBy: req.session.userId,
+        audience: 'test',
+        recipientCount: 1,
+        testSend: true,
+        testEmail: email,
+      });
+
+      res.json({ message: "Test email sent successfully" });
+    } catch (error) {
+      console.error("Failed to send test newsletter:", error);
+      res.status(500).json({ error: "Failed to send test newsletter" });
+    }
+  });
+
+  app.post("/api/admin/posts/:id/newsletter/send", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const postId = parseInt(req.params.id);
+      if (isNaN(postId)) return res.status(400).json({ error: "Invalid post ID" });
+
+      const { audience, badgeIds, eventApiIds } = req.body;
+      if (!audience || !['all', 'premium'].includes(audience)) {
+        return res.status(400).json({ error: "Audience must be 'all' or 'premium'" });
+      }
+
+      const [postData] = await db.select().from(posts).where(eq(posts.id, postId));
+      if (!postData) return res.status(404).json({ error: "Post not found" });
+      if (postData.status !== 'published') return res.status(400).json({ error: "Only published posts can be sent as newsletters" });
+
+      let recipientEmails = new Set<string>();
+
+      if (audience === 'all') {
+        const allUsers = await db.select({ email: users.email }).from(users).where(eq(users.isVerified, true));
+        allUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
+      } else if (audience === 'premium') {
+        const premiumUsers = await db.select({ email: users.email }).from(users)
+          .where(and(
+            eq(users.isVerified, true),
+            sql`(${users.subscriptionStatus} = 'active' OR ${users.premiumSource} IS NOT NULL)`
+          ));
+        premiumUsers.forEach(u => recipientEmails.add(u.email.toLowerCase()));
+      }
+
+      const filterBadgeIds = badgeIds && Array.isArray(badgeIds) ? badgeIds : [];
+      const filterEventApiIds = eventApiIds && Array.isArray(eventApiIds) ? eventApiIds : [];
+
+      if (filterBadgeIds.length > 0) {
+        const usersWithBadges = await db
+          .select({ email: users.email })
+          .from(users)
+          .innerJoin(userBadgesTable, eq(users.id, userBadgesTable.userId))
+          .where(sql`${userBadgesTable.badgeId} IN (${sql.join(filterBadgeIds.map((id: number) => sql`${id}`), sql`, `)})`);
+        const badgeEmails = new Set(usersWithBadges.map(u => u.email.toLowerCase()));
+        recipientEmails = new Set([...recipientEmails].filter(e => badgeEmails.has(e)));
+      }
+
+      if (filterEventApiIds.length > 0) {
+        const eventAttendees = await db
+          .select({ email: attendance.userEmail })
+          .from(attendance)
+          .where(sql`${attendance.eventApiId} IN (${sql.join(filterEventApiIds.map((id: string) => sql`${id}`), sql`, `)})`);
+        const eventEmails = new Set(eventAttendees.map(a => a.email.toLowerCase()));
+        recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
+      }
+
+      const emails = [...recipientEmails];
+      console.log(`Sending newsletter for post ${postId} to ${emails.length} recipients`);
+
+      let successCount = 0;
+      let failCount = 0;
+      for (const email of emails) {
+        const success = await sendNewsletterEmail(email, {
+          title: postData.title,
+          summary: postData.summary,
+          body: postData.body,
+          featuredImage: postData.featuredImage,
+          ctaLink: postData.ctaLink,
+          ctaLabel: postData.ctaLabel,
+        });
+        if (success) successCount++;
+        else failCount++;
+      }
+
+      const audienceFilters: { badgeIds?: number[]; eventApiIds?: string[] } = {};
+      if (filterBadgeIds.length > 0) audienceFilters.badgeIds = filterBadgeIds;
+      if (filterEventApiIds.length > 0) audienceFilters.eventApiIds = filterEventApiIds;
+
+      await db.insert(newsletterSends).values({
+        postId,
+        sentBy: req.session.userId,
+        audience,
+        audienceFilters: Object.keys(audienceFilters).length > 0 ? audienceFilters : null,
+        recipientCount: successCount,
+        testSend: false,
+      });
+
+      console.log(`Newsletter sent: ${successCount} succeeded, ${failCount} failed`);
+      res.json({ message: "Newsletter sent", successCount, failCount, totalRecipients: emails.length });
+    } catch (error) {
+      console.error("Failed to send newsletter:", error);
+      res.status(500).json({ error: "Failed to send newsletter" });
+    }
+  });
+
+  app.get("/api/admin/newsletter/sent-posts", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const sentPosts = await db
+        .select({ postId: newsletterSends.postId })
+        .from(newsletterSends)
+        .where(eq(newsletterSends.testSend, false))
+        .groupBy(newsletterSends.postId);
+
+      const postIds = sentPosts.map(s => s.postId);
+      res.json({ sentPostIds: postIds });
+    } catch (error) {
+      console.error("Failed to fetch sent post IDs:", error);
+      res.status(500).json({ error: "Failed to fetch sent post IDs" });
+    }
+  });
+
+  app.get("/api/admin/badges-list", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const allBadges = await db.select().from(badges);
+      res.json({ badges: allBadges });
+    } catch (error) {
+      console.error("Failed to fetch badges:", error);
+      res.status(500).json({ error: "Failed to fetch badges" });
+    }
+  });
+
+  app.get("/api/admin/events-list", async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const user = await storage.getUser(req.session.userId);
+      if (!user?.isAdmin) return res.status(403).json({ error: "Not authorized" });
+
+      const allEvents = await db
+        .select({ apiId: events.api_id, title: events.title, startTime: events.startTime })
+        .from(events)
+        .orderBy(desc(events.startTime))
+        .limit(50);
+      res.json({ events: allEvents });
+    } catch (error) {
+      console.error("Failed to fetch events:", error);
+      res.status(500).json({ error: "Failed to fetch events" });
     }
   });
 

@@ -939,3 +939,29 @@ export type PresentationWithSpeakers = Presentation & {
 export type TimeBlockWithPresentations = TimeBlock & {
   presentations: PresentationWithSpeakers[];
 };
+
+export const newsletterSends = pgTable("newsletter_sends", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => posts.id),
+  sentBy: integer("sent_by").notNull().references(() => users.id),
+  audience: varchar("audience", { length: 50 }).notNull(),
+  audienceFilters: json("audience_filters").$type<{
+    badgeIds?: number[];
+    eventApiIds?: string[];
+  }>(),
+  recipientCount: integer("recipient_count").notNull().default(0),
+  testSend: boolean("test_send").notNull().default(false),
+  testEmail: varchar("test_email", { length: 255 }),
+  sentAt: timestamp("sent_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("newsletter_sends_post_idx").on(table.postId),
+  index("newsletter_sends_sent_by_idx").on(table.sentBy),
+]);
+
+export const insertNewsletterSendSchema = createInsertSchema(newsletterSends).omit({
+  id: true,
+  sentAt: true,
+});
+
+export type NewsletterSend = typeof newsletterSends.$inferSelect;
+export type InsertNewsletterSend = z.infer<typeof insertNewsletterSendSchema>;

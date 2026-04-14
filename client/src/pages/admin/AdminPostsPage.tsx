@@ -3,6 +3,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import { PostsTable } from "@/components/admin/PostsTable";
 import { PostModal } from "@/components/admin/PostModal";
 import { PostForm } from "@/components/admin/PostForm";
+import { SendNewsletterModal } from "@/components/admin/SendNewsletterModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Post, InsertPost } from "@shared/schema";
@@ -16,6 +17,7 @@ export default function AdminPostsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [newsletterPost, setNewsletterPost] = useState<Post | null>(null);
   const { toast } = useToast();
 
   const {
@@ -101,6 +103,7 @@ export default function AdminPostsPage() {
   };
 
   return (
+    <>
     <AdminLayout title={
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl font-bold">Posts</h1>
@@ -116,7 +119,7 @@ export default function AdminPostsPage() {
     }>
       <div className="overflow-x-auto -mx-4 sm:mx-0">
         <div className="min-w-full inline-block align-middle">
-          <PostsTable onSelect={setEditingPost} />
+          <PostsTable onSelect={setEditingPost} onSendNewsletter={setNewsletterPost} />
         </div>
       </div>
 
@@ -163,6 +166,7 @@ export default function AdminPostsPage() {
         isDeleting={isDeleting}
         currentStatus={(editingPost?.status as 'draft' | 'published') || 'published'}
         postTitle={editingPost?.title || ''}
+        postId={editingPost?.id}
       >
         {editingPost && (
           <PostForm 
@@ -185,5 +189,13 @@ export default function AdminPostsPage() {
         )}
       </PostModal>
     </AdminLayout>
+    {newsletterPost && (
+      <SendNewsletterModal
+        open={!!newsletterPost}
+        onOpenChange={(open) => !open && setNewsletterPost(null)}
+        post={newsletterPost}
+      />
+    )}
+    </>
   );
 }

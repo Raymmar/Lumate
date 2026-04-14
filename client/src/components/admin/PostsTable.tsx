@@ -4,12 +4,13 @@ import { DataTable } from "./DataTable";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
+import { MoreHorizontal, Eye, Edit, Trash2, Mail, Send } from "lucide-react";
 import { formatPostTitleForUrl } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -22,15 +23,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface PostsTableProps {
   onSelect: (post: Post) => void;
+  onSendNewsletter?: (post: Post) => void;
 }
 
-export function PostsTable({ onSelect }: PostsTableProps) {
+export function PostsTable({ onSelect, onSendNewsletter }: PostsTableProps) {
   const { toast } = useToast();
   const [deletePost, setDeletePost] = useState<Post | null>(null);
 
@@ -44,6 +47,13 @@ export function PostsTable({ onSelect }: PostsTableProps) {
       return response.json();
     }
   });
+
+  const { data: sentPostsData } = useQuery<{ sentPostIds: number[] }>({
+    queryKey: ["/api/admin/newsletter/sent-posts"],
+    enabled: !!data?.posts?.length,
+  });
+
+  const sentPostIds = new Set(sentPostsData?.sentPostIds || []);
 
   const deleteMutation = useMutation({
     mutationFn: async (postId: number) => {
@@ -85,6 +95,18 @@ export function PostsTable({ onSelect }: PostsTableProps) {
           )}
           {row.isPinned && (
             <Badge variant="secondary">Featured</Badge>
+          )}
+          {sentPostIds.has(row.id) && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Mail className="h-3.5 w-3.5 text-blue-500" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Sent as newsletter</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       )
@@ -133,6 +155,19 @@ export function PostsTable({ onSelect }: PostsTableProps) {
                 <Eye className="mr-2 h-4 w-4" />
                 View
               </DropdownMenuItem>
+              {row.status === 'published' && onSendNewsletter && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onSendNewsletter(row)}
+                    data-testid={`menu-newsletter-post-${row.id}`}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Send as Newsletter
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setDeletePost(row)}
                 className="text-red-600 focus:text-red-600"

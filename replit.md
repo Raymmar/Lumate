@@ -6,6 +6,26 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### April 14, 2026 - Send Post as Newsletter Feature
+- **Feature**: Admins can send any published post as a branded newsletter email to community members, with audience filtering and send tracking.
+- **Schema**: Added `newsletter_sends` table tracking: postId, sentBy (userId), audience ('all'|'premium'|'test'), audienceFilters (JSON with badgeIds/eventApiIds), recipientCount, testSend boolean, testEmail, sentAt timestamp.
+- **Backend Routes**:
+  - `GET /api/admin/posts/:id/newsletter` - send history for a post (with sender name join)
+  - `GET /api/admin/newsletter/recipients` - live recipient count for given audience/filters
+  - `POST /api/admin/posts/:id/newsletter/test` - send test email to a single address
+  - `POST /api/admin/posts/:id/newsletter/send` - send to filtered audience (published posts only)
+  - `GET /api/admin/newsletter/sent-posts` - batch endpoint for sent post IDs (used by PostsTable indicator)
+  - `GET /api/admin/badges-list` / `GET /api/admin/events-list` - data for filter UI
+- **Email Template**: Dark-themed branded template in `server/email.ts` (`sendNewsletterEmail`) with Sarasota Tech header (#FEA30E on #1a1a1a), featured image, post body, CTA button, and footer.
+- **Frontend**:
+  - `SendNewsletterModal.tsx` - split-pane modal with email preview (left) and controls (right): audience selector, badge filter toggle chips, event attendance filter, live recipient count, test email input, send history, confirmation dialog.
+  - `PostsTable.tsx` - "Send as Newsletter" action in post dropdown menu, blue mail icon indicator for posts previously sent as newsletters.
+  - `PostModal.tsx` - blue banner showing last newsletter send info when editing a previously sent post.
+  - `AdminPostsPage.tsx` - wires up SendNewsletterModal and passes postId to PostModal.
+- **Audience Filtering**: Intersects base audience (all verified users or premium only) with optional badge membership and/or event attendance filters.
+- **Validation**: Server enforces published-only posts, admin-only access, valid audience values.
+- **Files**: `shared/schema.ts`, `server/email.ts`, `server/routes.ts`, `client/src/components/admin/SendNewsletterModal.tsx`, `client/src/components/admin/PostsTable.tsx`, `client/src/components/admin/PostModal.tsx`, `client/src/pages/admin/AdminPostsPage.tsx`
+
 ### March 19, 2026 - Luma Membership Sync Bug Fixes
 - **Bug 1**: `fetchLumaMembersList()` was calling `memberships/members/list` which returns 404 (endpoint doesn't exist in Luma API). Fixed: now reads membership data from the local `people` table, which is populated during cron sync via `calendar/list-people` (membership status is embedded per-person in Luma's response).
 - **Bug 2**: `addMemberToLumaTier()` treated "already has an active membership" 400 errors as failures, causing 3x retries per already-member. Fixed: 400 errors are now flagged `nonRetryable` in `lumaApiRequest()`, and the "already has an active membership" message is caught and treated as a skip/success.
