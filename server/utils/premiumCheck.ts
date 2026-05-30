@@ -9,7 +9,10 @@ import { eq, and, sql } from "drizzle-orm";
  */
 export function hasActivePremium(user: User | null): boolean {
   if (!user) return false;
-  
+
+  // Blocked users never have premium access
+  if (user.blockedAt) return false;
+
   // Check Stripe subscription
   if (user.subscriptionStatus === 'active') {
     return true;
@@ -162,7 +165,13 @@ export async function checkAndGrantPremiumFromTickets(userId: number): Promise<{
     }
     
     const user = userResult[0];
-    
+
+    // Never grant premium to a blocked user
+    if (user.blockedAt) {
+      console.log(`User ${user.email} is blocked, skipping premium grant from tickets`);
+      return { granted: false, source: null, expiresAt: null, ticketTypeId: null };
+    }
+
     // Don't override active Stripe subscriptions
     if (user.subscriptionStatus === 'active') {
       console.log(`User ${user.email} has active Stripe subscription, skipping Luma premium grant`);
@@ -343,7 +352,7 @@ export async function hasCompanyPremiumAccess(companyId: number): Promise<Compan
     
     const owner = ownerResult[0]?.user;
     
-    if (owner) {
+    if (owner && !owner.blockedAt) {
       // Check Stripe subscription
       if (owner.subscriptionStatus === 'active') {
         return {

@@ -2,12 +2,31 @@ import { Request, Response, NextFunction } from "express";
 import { storage } from "../storage";
 import { hasActivePremium, checkCompanyHasPremiumAccess } from "../utils/premiumCheck";
 
+// Shared helper: destroy a session belonging to a blocked user and respond 403
+function rejectBlocked(req: Request, res: Response) {
+  req.session?.destroy(() => {});
+  return res.status(403).json({ error: "Account blocked", blocked: true });
+}
+
 // Middleware to require authentication
-export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  next();
+
+  try {
+    const user = await storage.getUserById(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (user.blockedAt) {
+      return rejectBlocked(req, res);
+    }
+    next();
+  } catch (error) {
+    console.error("Error checking auth status:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
 
 // Middleware to require admin privileges
@@ -20,6 +39,9 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
     const user = await storage.getUserById(req.session.userId);
     if (!user || !user.isAdmin) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+    if (user.blockedAt) {
+      return rejectBlocked(req, res);
     }
     next();
   } catch (error) {
@@ -64,6 +86,9 @@ export const requirePremiumOrAdmin = async (req: Request, res: Response, next: N
     const user = await storage.getUserById(req.session.userId);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
+    }
+    if (user.blockedAt) {
+      return rejectBlocked(req, res);
     }
     
     // System admins bypass premium requirement
@@ -110,6 +135,9 @@ export const requirePremiumOrCompanyAdmin = (companyIdParam: string = "id") => {
       if (!user) {
         console.log('[PremiumOrCompanyAdmin] User not found');
         return res.status(401).json({ error: "User not found" });
+      }
+      if (user.blockedAt) {
+        return rejectBlocked(req, res);
       }
       
       console.log('[PremiumOrCompanyAdmin] User found:', { 

@@ -25,6 +25,18 @@ import {
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Ban, ShieldCheck } from "lucide-react";
 
 import type { User, Person, Badge as BadgeType } from "@shared/schema";
 import { format } from "date-fns";
@@ -38,6 +50,9 @@ interface Member extends User {
   emailDriftDetectedAt?: string | null;
   emailDriftPersonEmail?: string | null;
   emailDriftAdminDismissedAt?: string | null;
+  blockedAt?: string | null;
+  blockedBy?: number | null;
+  blockReason?: string | null;
 }
 
 interface MemberPreviewProps {
@@ -49,6 +64,9 @@ interface MemberPreviewProps {
 export function MemberPreview({ member, members = [], onNavigate }: MemberPreviewProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [optimisticMember, setOptimisticMember] = useState<Member>(member);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showUnblockDialog, setShowUnblockDialog] = useState(false);
+  const [blockReason, setBlockReason] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -263,6 +281,46 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
     },
   });
 
+  const blockUserMutation = useMutation({
+    mutationFn: async (reason: string) => {
+      return await apiRequest(`/api/admin/users/${member.id}/block`, "POST", { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "User Blocked",
+        description: `${member.email} has been blocked.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to block user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unblockUserMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest(`/api/admin/users/${member.id}/unblock`, "POST");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
+      toast({
+        title: "User Unblocked",
+        description: `${member.email} can sign in again. Premium access was not restored.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to unblock user",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getViewProfileUrl = () => {
     if (member.person?.userName) {
       return `/people/${member.person.userName}`;
@@ -364,6 +422,26 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
           )}
         </div>
       </div>
+
+      {member.blockedAt && (
+        <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/30 dark:border-red-800 p-3 mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Ban className="h-4 w-4 text-red-500" />
+            <h4 className="font-medium text-sm text-red-800 dark:text-red-300">
+              Account Blocked
+            </h4>
+          </div>
+          {member.blockReason && (
+            <>
+              <p className="text-xs text-muted-foreground mb-1">Reason:</p>
+              <p className="text-sm font-medium mb-2">{member.blockReason}</p>
+            </>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Blocked {format(new Date(member.blockedAt), "PPP")}
+          </p>
+        </div>
+      )}
 
       {member.emailDriftDetectedAt && member.emailDriftPersonEmail && (
         <div className={`rounded-lg border p-3 mb-4 ${
@@ -506,6 +584,29 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <Mail className="h-4 w-4" />
               Resend Verification
             </Button>
+            {member.blockedAt ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400"
+                onClick={() => setShowUnblockDialog(true)}
+                disabled={unblockUserMutation.isPending}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                Unblock User
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400"
+                onClick={() => { setBlockReason(""); setShowBlockDialog(true); }}
+                disabled={blockUserMutation.isPending}
+              >
+                <Ban className="h-4 w-4" />
+                Block User
+              </Button>
+            )}
             {getViewProfileUrl() ? (
               <Button 
                 variant="outline" 
@@ -542,6 +643,55 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
           </div>
         </>
       )}
+
+      <AlertDialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Block {member.email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will immediately sign the user out, prevent them from logging in,
+              stop all emails, remove them from the Luma membership tier, and hide
+              them from public surfaces. Their premium access will be suspended.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Reason (optional)</label>
+            <Textarea
+              value={blockReason}
+              onChange={(e) => setBlockReason(e.target.value)}
+              placeholder="Why is this user being blocked?"
+              rows={3}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={() => blockUserMutation.mutate(blockReason.trim())}
+            >
+              Block User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showUnblockDialog} onOpenChange={setShowUnblockDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unblock {member.email}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The user will be able to sign in again and reappear on public surfaces.
+              Premium access is NOT automatically restored — grant it manually if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => unblockUserMutation.mutate()}>
+              Unblock User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

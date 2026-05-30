@@ -1,0 +1,1 @@
+- [User blocking system](user-blocking.md) — block revokes premium persistently (unblock won't restore), canSendTo fail-closed, session-table delete pattern, linked-email gap.

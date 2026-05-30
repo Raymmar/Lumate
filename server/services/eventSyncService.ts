@@ -58,7 +58,12 @@ async function syncEventAttendees(event: Event) {
 
         if (user.length > 0) {
           const currentUser = user[0];
-          
+
+          if (currentUser.blockedAt) {
+            console.log(`[EventSync] Skipping premium grant for blocked user: ${guest.email}`);
+            continue;
+          }
+
           const hasActiveStripePremium = currentUser.subscriptionStatus === 'active';
           
           if (!hasActiveStripePremium) {
@@ -122,6 +127,10 @@ async function syncEventAttendees(event: Event) {
 
               if (existingUser.length > 0) {
                 const eu = existingUser[0];
+                if (eu.blockedAt) {
+                  console.log(`[EventSync] Skipping premium grant for blocked user: ${guest.email}`);
+                  continue;
+                }
                 const hasActiveStripePremium = eu.subscriptionStatus === 'active';
                 if (!hasActiveStripePremium) {
                   const hasActiveLumaPremium = eu.premiumSource === 'luma' &&

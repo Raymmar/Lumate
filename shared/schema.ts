@@ -103,6 +103,10 @@ export const users = pgTable("users", {
   emailDriftDetectedAt: timestamp("email_drift_detected_at", { mode: 'string', withTimezone: true }),
   emailDriftPersonEmail: varchar("email_drift_person_email", { length: 255 }),
   emailDriftAdminDismissedAt: timestamp("email_drift_admin_dismissed_at", { mode: 'string', withTimezone: true }),
+  // Block / ban fields
+  blockedAt: timestamp("blocked_at", { mode: 'string', withTimezone: true }),
+  blockedBy: integer("blocked_by"),
+  blockReason: text("block_reason"),
   avatarUrl: varchar("avatar_url", { length: 512 }),
   featuredImageUrl: varchar("featured_image_url", { length: 255 }),
   bio: text("bio"),
@@ -125,6 +129,15 @@ export const userPeopleLinks = pgTable("user_people_links", {
   personId: integer("person_id").notNull().references(() => people.id),
   isPrimary: boolean("is_primary").notNull().default(false),
   linkedAt: timestamp("linked_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+});
+
+export const userBlockEvents = pgTable("user_block_events", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  action: varchar("action", { length: 20 }).notNull(), // 'block' | 'unblock'
+  reason: text("reason"),
+  performedBy: integer("performed_by"),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
 export const verificationTokens = pgTable("verification_tokens", {
@@ -316,9 +329,19 @@ export const insertUserSchema = createInsertSchema(users).omit({
   isVerified: true,
   createdAt: true,
   updatedAt: true,
-  isAdmin: true
+  isAdmin: true,
+  blockedAt: true,
+  blockedBy: true,
+  blockReason: true
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+export const insertUserBlockEventSchema = createInsertSchema(userBlockEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type UserBlockEvent = typeof userBlockEvents.$inferSelect;
+export type InsertUserBlockEvent = z.infer<typeof insertUserBlockEventSchema>;
 export const insertVerificationTokenSchema = createInsertSchema(verificationTokens).omit({ id: true, createdAt: true });
 export const insertEventRsvpStatusSchema = createInsertSchema(eventRsvpStatus).omit({ id: true, updatedAt: true });
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({ id: true, lastSyncedAt: true });

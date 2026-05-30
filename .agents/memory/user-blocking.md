@@ -1,0 +1,28 @@
+---
+name: User blocking system
+description: Non-obvious decisions/constraints in the Block/Ban User feature
+---
+
+# Block/Ban User system
+
+- **Blocking persistently revokes premium** (clears subscriptionStatus/premiumSource/
+  premiumExpiresAt/premiumGrantedBy/premiumGrantedAt in `blockUser`), it does NOT just
+  mask via `hasActivePremium`.
+  **Why:** requirement is "unblock does NOT auto-restore premium." If premium were only
+  masked while blocked, unblocking would silently restore it.
+  **How to apply:** never make unblock restore premium; admins re-grant manually.
+
+- **`canSendTo()` in server/email.ts is fail-closed** (returns false on DB error).
+  **Why:** the guarantee is "zero outbound email to blocked users"; failing open could
+  leak email during a transient DB error.
+  **How to apply:** keep fail-closed; if all email mysteriously stops, check this gate's
+  DB query first.
+
+- **Session invalidation uses connect-pg-simple's `session` table with a `json` `sess`
+  column.** Delete with `sess::jsonb -> 'userId' = '<id>'::jsonb` (the userId is stored
+  as a JSON number, so cast the id string to jsonb — it parses as a number).
+
+- **Known gap (see follow-ups):** suppression keys on the user's PRIMARY email only.
+  Linked alternate Luma profile emails (`user_people_links`) can still receive
+  newsletters / appear as attendees. Block route already removes linked emails from Luma,
+  but email/attendee/public filters do not yet cover them.

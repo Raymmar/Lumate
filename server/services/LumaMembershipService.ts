@@ -1,7 +1,7 @@
 import { lumaApiRequest } from '../routes';
 import { db } from '../db';
 import { users, people, userPeopleLinks } from '@shared/schema';
-import { eq, and, sql, or, gt, isNotNull } from 'drizzle-orm';
+import { eq, and, sql, or, gt, isNotNull, isNull } from 'drizzle-orm';
 
 export interface LumaMember {
   email: string;
@@ -133,6 +133,13 @@ export class LumaMembershipService {
   static async getActivePremiumEmails(): Promise<Map<string, { source: string; fromEventTicket?: boolean }>> {
     const premiumEmails = new Map<string, { source: string; fromEventTicket?: boolean }>();
 
+    // Blocked users are never premium and must never be pushed to Luma
+    const blockedRows = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(isNotNull(users.blockedAt));
+    const blockedEmails = new Set(blockedRows.map(b => b.email.toLowerCase()));
+
     const now = new Date().toISOString();
     const usersWithGrants = await db
       .select({ email: users.email, premiumSource: users.premiumSource, lumaTicketId: users.lumaTicketId })
@@ -140,6 +147,7 @@ export class LumaMembershipService {
       .where(
         and(
           isNotNull(users.premiumSource),
+          isNull(users.blockedAt),
           or(
             gt(users.premiumExpiresAt, now),
             sql`${users.premiumExpiresAt} IS NULL`
@@ -166,7 +174,7 @@ export class LumaMembershipService {
       );
       const rows = stripeActiveResult.rows as Array<{ email: string }>;
       for (const row of rows) {
-        if (row.email && !premiumEmails.has(row.email)) {
+        if (row.email && !blockedEmails.has(row.email) && !premiumEmails.has(row.email)) {
           premiumEmails.set(row.email, { source: 'stripe' });
         }
       }
@@ -178,7 +186,7 @@ export class LumaMembershipService {
         .where(eq(users.subscriptionStatus, 'active'));
       for (const u of fallbackUsers) {
         const lowerEmail = u.email.toLowerCase();
-        if (!premiumEmails.has(lowerEmail)) {
+        if (!blockedEmails.has(lowerEmail) && !premiumEmails.has(lowerEmail)) {
           premiumEmails.set(lowerEmail, { source: 'stripe' });
         }
       }
@@ -264,6 +272,12 @@ export class LumaMembershipService {
       if (matchingUsers.length === 0) continue;
 
       const user = matchingUsers[0];
+
+      // Never grant premium to a blocked user
+      if (user.blockedAt) {
+        console.log(`[LumaMembership] Skipping Luma premium grant for blocked user: ${email}`);
+        continue;
+      }
 
       const hasActiveStripe = user.subscriptionStatus === 'active';
       const hasActiveManual = user.premiumSource === 'manual' && user.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();

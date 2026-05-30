@@ -185,6 +185,13 @@ export async function registerRoutes(app: Express) {
   app.post("/api/register", async (req, res) => {
     try {
       const userData = await insertUserSchema.parseAsync(req.body);
+
+      // Reject re-registration of a blocked account
+      const existingByEmail = await storage.getUserByEmail(userData.email.toLowerCase());
+      if (existingByEmail?.blockedAt) {
+        return res.status(403).json({ error: "This account is not active. Please contact support." });
+      }
+
       const hashedPassword = await hashPassword(userData.password);
 
       // Create the user
@@ -1332,8 +1339,8 @@ export async function registerRoutes(app: Express) {
         .from(users)
         .where(
           searchQuery
-            ? sql`(LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.email}) LIKE ${`%${searchQuery}%`})`
-            : undefined as any
+            ? sql`${users.blockedAt} IS NULL AND (LOWER(${users.displayName}) LIKE ${`%${searchQuery}%`} OR LOWER(${users.email}) LIKE ${`%${searchQuery}%`})`
+            : sql`${users.blockedAt} IS NULL`
         );
 
       const membersWithStats = allMembers.map((member) => {
@@ -1491,6 +1498,10 @@ export async function registerRoutes(app: Express) {
       const user = await storage.getUserByEmail(verificationToken.email);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.blockedAt) {
+        return res.status(403).json({ error: "This account is not active. Please contact support." });
       }
 
       // Hash new password and update user
@@ -2329,10 +2340,16 @@ export async function registerRoutes(app: Express) {
           featuredImageUrl: users.featuredImageUrl,
           tags: users.tags,
           bio: users.bio,
+          blockedAt: users.blockedAt,
         })
         .from(users)
         .where(sql`LOWER(email) = LOWER(${person.email})`)
         .limit(1);
+
+      // Hide blocked users from public profile surface
+      if (user[0]?.blockedAt) {
+        return res.status(404).json({ error: "Person not found" });
+      }
 
       if (user[0]?.slug && req.headers.accept?.includes("text/html")) {
         return res.redirect(301, `/people/${encodeURIComponent(user[0].slug)}`);
@@ -2364,6 +2381,10 @@ export async function registerRoutes(app: Express) {
       });
 
       const userBySlug = await storage.getUserBySlug(username);
+
+      if (userBySlug?.blockedAt) {
+        return res.status(404).json({ error: "Member not found" });
+      }
 
       if (userBySlug) {
         const userBadgesList = await db
@@ -2805,6 +2826,10 @@ export async function registerRoutes(app: Express) {
       };
 
       let user = await storage.getUserByEmail(userData.email);
+      if (user?.blockedAt) {
+        console.log("Verification blocked for blocked account:", userData.email);
+        return res.status(403).json({ error: "This account is not active. Please contact support." });
+      }
       if (!user) {
         console.log(
           "Creating new user account for verified email:",
@@ -2860,6 +2885,11 @@ export async function registerRoutes(app: Express) {
       if (!user) {
         console.log("Password set failed: User not found for email:", email);
         return res.status(404).json({ error: "User not found" });
+      }
+
+      if (user.blockedAt) {
+        console.log("Password set blocked for blocked account:", email);
+        return res.status(403).json({ error: "This account is not active. Please contact support." });
       }
 
       const hashedPassword = await hashPassword(validatedPassword.password);
@@ -3082,6 +3112,11 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ error: "User not found" });
       }
 
+      if (user.blockedAt) {
+        req.session.destroy(() => {});
+        return res.status(403).json({ error: "Account blocked", blocked: true });
+      }
+
       let api_id = null;
       let displayName = user.displayName;
       let avatarUrl = user.avatarUrl;
@@ -3149,6 +3184,10 @@ export async function registerRoutes(app: Express) {
       const user = await storage.getUserByEmail(email.toLowerCase());
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      if (user.blockedAt) {
+        return res.status(403).json({ error: "This account is not active. Please contact support." });
       }
 
       if (!user.password) {
@@ -4809,6 +4848,8 @@ export async function registerRoutes(app: Express) {
         conditions.push(eq(users.isVerified, true));
       } else if (statusFilter === "pending") {
         conditions.push(eq(users.isVerified, false));
+      } else if (statusFilter === "blocked") {
+        conditions.push(sql`${users.blockedAt} IS NOT NULL`);
       }
 
       const whereClause = conditions.length > 0 ? and(...conditions) : sql`1=1`;
@@ -4840,6 +4881,9 @@ export async function registerRoutes(app: Express) {
           emailDriftDetectedAt: users.emailDriftDetectedAt,
           emailDriftPersonEmail: users.emailDriftPersonEmail,
           emailDriftAdminDismissedAt: users.emailDriftAdminDismissedAt,
+          blockedAt: users.blockedAt,
+          blockedBy: users.blockedBy,
+          blockReason: users.blockReason,
         })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
@@ -4940,6 +4984,120 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ error: "Failed to toggle admin status" });
     }
   });
+  app.post("/api/admin/users/:id/block", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const targetUserId = parseInt(req.params.id);
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      if (targetUserId === currentUser.id) {
+        return res.status(400).json({ error: "You cannot block your own account" });
+      }
+
+      const targetUser = await storage.getUser(targetUserId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : null;
+
+      const updatedUser = await storage.blockUser(targetUserId, currentUser.id, reason || null);
+
+      // Invalidate all sessions for the blocked user
+      try {
+        await db.execute(
+          sql`DELETE FROM session WHERE sess::jsonb -> 'userId' = ${String(targetUserId)}::jsonb`
+        );
+      } catch (sessionError) {
+        console.error("Failed to delete sessions for blocked user:", sessionError);
+      }
+
+      // Remove the user (and any linked Luma profiles) from the Luma membership tier
+      try {
+        const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+        const emailsToRemove = new Set<string>([targetUser.email.toLowerCase()]);
+        const linkedPeople = await LumaMembershipService.getLinkedPeople(targetUserId);
+        for (const person of linkedPeople) {
+          if (person?.email) emailsToRemove.add(person.email.toLowerCase());
+        }
+        for (const email of emailsToRemove) {
+          await LumaMembershipService.removeMemberFromLumaTier(email);
+        }
+      } catch (lumaError) {
+        console.error("Failed to remove blocked user from Luma tier:", lumaError);
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Failed to block user:", error);
+      res.status(500).json({ error: "Failed to block user" });
+    }
+  });
+
+  app.post("/api/admin/users/:id/unblock", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const targetUserId = parseInt(req.params.id);
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      const targetUser = await storage.getUser(targetUserId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Unblock does NOT auto-restore premium access
+      const updatedUser = await storage.unblockUser(targetUserId, currentUser.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Failed to unblock user:", error);
+      res.status(500).json({ error: "Failed to unblock user" });
+    }
+  });
+
+  app.get("/api/admin/users/:id/block-events", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const currentUser = await storage.getUser(req.session.userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+
+      const targetUserId = parseInt(req.params.id);
+      if (isNaN(targetUserId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      const events = await storage.getUserBlockEvents(targetUserId);
+      res.json({ events });
+    } catch (error) {
+      console.error("Failed to fetch block events:", error);
+      res.status(500).json({ error: "Failed to fetch block events" });
+    }
+  });
+
   app.get("/api/admin/roles", async (req, res) => {
     try {
       if (!req.session.userId) {
@@ -5402,14 +5560,20 @@ export async function registerRoutes(app: Express) {
         })
         .from(attendance)
         .leftJoin(people, eq(attendance.personId, people.id))
-        .where(eq(attendance.eventApiId, eventId))
+        .where(and(
+          eq(attendance.eventApiId, eventId),
+          sql`NOT EXISTS (SELECT 1 FROM users u WHERE LOWER(u.email) = LOWER(${attendance.userEmail}) AND u.blocked_at IS NOT NULL)`
+        ))
         .orderBy(sql`registered_at DESC`);
 
       // Get total count including those without profiles
       const totalCount = await db
         .select({ count: sql`count(*)` })
         .from(attendance)
-        .where(eq(attendance.eventApiId, eventId));
+        .where(and(
+          eq(attendance.eventApiId, eventId),
+          sql`NOT EXISTS (SELECT 1 FROM users u WHERE LOWER(u.email) = LOWER(${attendance.userEmail}) AND u.blocked_at IS NOT NULL)`
+        ));
 
       res.json({
         attendees: attendeesList,
@@ -5685,6 +5849,16 @@ export async function registerRoutes(app: Express) {
         .where(sql`${attendance.eventApiId} IN (${sql.join(eventApiIds.map(id => sql`${id}`), sql`, `)})`);
       const eventEmails = new Set(eventAttendees.map(a => a.email.toLowerCase()));
       recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
+    }
+
+    // Exclude blocked users from all newsletter audiences
+    const blockedUsers = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(sql`${users.blockedAt} IS NOT NULL`);
+    const blockedEmails = new Set(blockedUsers.map(u => u.email.toLowerCase()));
+    if (blockedEmails.size > 0) {
+      recipientEmails = new Set([...recipientEmails].filter(e => !blockedEmails.has(e)));
     }
 
     return recipientEmails;

@@ -1,5 +1,8 @@
 import { MailService } from '@sendgrid/mail';
 import { createHmac } from 'crypto';
+import { db } from './db';
+import { users } from '@shared/schema';
+import { sql } from 'drizzle-orm';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
@@ -40,6 +43,27 @@ export function generateUnsubscribeToken(email: string): string {
 export function verifyUnsubscribeToken(email: string, token: string): boolean {
   const expected = generateUnsubscribeToken(email);
   return token === expected;
+}
+
+// Returns false if the recipient is a blocked user (no outbound email allowed)
+export async function canSendTo(email: string): Promise<boolean> {
+  if (!email) return false;
+  try {
+    const result = await db
+      .select({ blockedAt: users.blockedAt })
+      .from(users)
+      .where(sql`LOWER(${users.email}) = LOWER(${email})`)
+      .limit(1);
+    if (result.length > 0 && result[0].blockedAt != null) {
+      console.log(`[Email] Suppressed — recipient is blocked: ${email}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    // Fail closed: if we cannot verify block status, do not send.
+    console.error('[Email] canSendTo check failed, suppressing send:', error);
+    return false;
+  }
 }
 
 // Generate email template based on follow-up stage
@@ -207,6 +231,7 @@ export async function sendVerificationEmail(
   eventInfo?: { title: string; url: string; startTime: string }
 ): Promise<boolean> {
   try {
+    if (!(await canSendTo(email))) return false;
     const purpose = typeof adminCreated === 'string' ? adminCreated : (adminCreated ? 'admin' : 'claim');
     console.log('Sending verification email to:', email, 'Purpose:', purpose, 'Stage:', emailStage, 'Has event:', !!eventInfo);
 
@@ -387,6 +412,7 @@ export async function sendCouponNotificationEmail(
   }
 ): Promise<boolean> {
   try {
+    if (!(await canSendTo(email))) return false;
     console.log('Sending coupon notification email to:', email, 'for event:', couponInfo.eventTitle);
 
     // In development, just log the details
@@ -507,6 +533,7 @@ export async function sendEventInviteEmail(
   eventInfo: { title: string; url: string; startTime: string }
 ): Promise<boolean> {
   try {
+    if (!(await canSendTo(email))) return false;
     console.log('Sending event invite email to:', email, 'for event:', eventInfo.title);
 
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
@@ -622,6 +649,7 @@ export async function sendEmailDriftNotification(
   driftedPersonEmail: string,
 ): Promise<boolean> {
   try {
+    if (!(await canSendTo(accountEmail))) return false;
     const settingsUrl = `${getEmailBaseUrl()}/settings`;
 
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
@@ -721,6 +749,7 @@ export async function sendNewsletterEmail(
   newsletterSendId?: number
 ): Promise<{ success: boolean; messageId?: string }> {
   try {
+    if (!(await canSendTo(email))) return { success: false };
     const baseUrl = getEmailBaseUrl();
 
     if (isDevelopment && !process.env.SENDGRID_API_KEY) {
@@ -832,6 +861,7 @@ export async function sendPasswordResetEmail(
   token: string
 ): Promise<boolean> {
   try {
+    if (!(await canSendTo(email))) return false;
     console.log('Starting password reset email process for:', email);
     const resetUrl = `${getEmailBaseUrl()}/reset-password?token=${token}`;
 

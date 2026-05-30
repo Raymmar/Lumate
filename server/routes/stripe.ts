@@ -175,6 +175,11 @@ router.get("/session-status", async (req, res) => {
         accountEmail = email;
         const existingUser = await storage.getUserByEmail(email);
 
+        if (existingUser?.blockedAt) {
+          console.log("⛔ Guest checkout blocked for blocked account:", email);
+          return res.status(403).json({ error: "This account is not active. Please contact support." });
+        }
+
         if (!existingUser) {
           console.log("🆕 Guest checkout: Creating account for", email);
 

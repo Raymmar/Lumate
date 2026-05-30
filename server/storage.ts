@@ -33,7 +33,8 @@ import {
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
   badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons, autoCouponEvents,
-  agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers
+  agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers,
+  userBlockEvents, UserBlockEvent
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or, isNull } from "drizzle-orm";
@@ -77,6 +78,10 @@ export interface IStorage {
   verifyUser(userId: number): Promise<User>;
   updateUserAdminStatus(userId: number, isAdmin: boolean): Promise<User>;
   updateUser(userId: number, data: Partial<User>): Promise<User>;
+  blockUser(userId: number, performedBy: number | null, reason: string | null): Promise<User>;
+  unblockUser(userId: number, performedBy: number | null): Promise<User>;
+  isUserBlocked(userId: number): Promise<boolean>;
+  getUserBlockEvents(userId: number): Promise<UserBlockEvent[]>;
   generateUniqueSlug(baseName: string, excludeUserId?: number): Promise<string>;
   backfillMissingSlugs(): Promise<number>;
 
@@ -1454,6 +1459,7 @@ export class PostgresStorage implements IStorage {
             .where(and(
               eq(people.id, cachedMember.personId),
               eq(users.isVerified, true),
+              sql`${users.blockedAt} IS NULL`,
               sql`companies.name IS NOT NULL AND companies.name != ''`,
               sql`(companies.bio IS NOT NULL AND companies.bio != '') OR (companies.description IS NOT NULL AND companies.description != '')`
             ));
@@ -1483,6 +1489,7 @@ export class PostgresStorage implements IStorage {
           .where(and(
             sql`(people.stats->>'totalEventsAttended')::int >= 10`,
             eq(users.isVerified, true),
+            sql`${users.blockedAt} IS NULL`,
             // Require company to have at least name and bio/description filled out
             sql`companies.name IS NOT NULL AND companies.name != ''`,
             sql`(companies.bio IS NOT NULL AND companies.bio != '') OR (companies.description IS NOT NULL AND companies.description != '')`
@@ -1508,6 +1515,7 @@ export class PostgresStorage implements IStorage {
             .innerJoin(companies, eq(companies.id, companyMembers.companyId))
             .where(and(
               eq(users.isVerified, true),
+              sql`${users.blockedAt} IS NULL`,
               sql`companies.name IS NOT NULL AND companies.name != ''`,
               sql`(companies.bio IS NOT NULL AND companies.bio != '') OR (companies.description IS NOT NULL AND companies.description != '')`
             ))
@@ -2169,6 +2177,81 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  async blockUser(userId: number, performedBy: number | null, reason: string | null): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        blockedAt: new Date().toISOString(),
+        blockedBy: performedBy,
+        blockReason: reason,
+        // Persistently revoke premium so unblock does NOT auto-restore it
+        subscriptionStatus: 'inactive',
+        premiumSource: null,
+        premiumExpiresAt: null,
+        premiumGrantedBy: null,
+        premiumGrantedAt: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new Error(`Failed to block user ${userId}`);
+    }
+
+    await db.insert(userBlockEvents).values({
+      userId,
+      action: 'block',
+      reason: reason || null,
+      performedBy: performedBy || null,
+    });
+
+    return updatedUser;
+  }
+
+  async unblockUser(userId: number, performedBy: number | null): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({
+        blockedAt: null,
+        blockedBy: null,
+        blockReason: null,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+
+    if (!updatedUser) {
+      throw new Error(`Failed to unblock user ${userId}`);
+    }
+
+    await db.insert(userBlockEvents).values({
+      userId,
+      action: 'unblock',
+      reason: null,
+      performedBy: performedBy || null,
+    });
+
+    return updatedUser;
+  }
+
+  async isUserBlocked(userId: number): Promise<boolean> {
+    const result = await db
+      .select({ blockedAt: users.blockedAt })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    return result.length > 0 && result[0].blockedAt != null;
+  }
+
+  async getUserBlockEvents(userId: number): Promise<UserBlockEvent[]> {
+    return await db
+      .select()
+      .from(userBlockEvents)
+      .where(eq(userBlockEvents.userId, userId))
+      .orderBy(sql`${userBlockEvents.createdAt} DESC`);
+  }
+
   async getUserByStripeCustomerId(customerId: string): Promise<User | null> {
     try {
       const result = await db
@@ -2672,7 +2755,10 @@ export class PostgresStorage implements IStorage {
         .from(companyMembers)
         .innerJoin(users, eq(companyMembers.userId, users.id))
         .leftJoin(people, eq(users.personId, people.id)) // Left join to include users without person records
-        .where(eq(companyMembers.companyId, companyId));
+        .where(and(
+          eq(companyMembers.companyId, companyId),
+          sql`${users.blockedAt} IS NULL`
+        ));
       
       console.log(`Found ${result.length} company members`);
       return result;

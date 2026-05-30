@@ -48,6 +48,9 @@ interface Member extends User {
   emailDriftDetectedAt?: string | null;
   emailDriftPersonEmail?: string | null;
   emailDriftAdminDismissedAt?: string | null;
+  blockedAt?: string | null;
+  blockedBy?: number | null;
+  blockReason?: string | null;
 }
 
 interface MembersResponse {
@@ -167,7 +170,16 @@ export function MembersTable() {
     {
       key: "isVerified",
       header: "Status",
-      cell: (row: Member) => (row.isVerified ? "Verified" : "Pending"),
+      cell: (row: Member) =>
+        row.blockedAt ? (
+          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+            Blocked
+          </span>
+        ) : row.isVerified ? (
+          "Verified"
+        ) : (
+          "Pending"
+        ),
     },
     {
       key: "badges",
@@ -245,6 +257,7 @@ export function MembersTable() {
               <SelectItem value="all">All</SelectItem>
               <SelectItem value="verified">Verified</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="blocked">Blocked</SelectItem>
             </SelectContent>
           </Select>
           <SearchInput
@@ -275,7 +288,11 @@ export function MembersTable() {
             actions={actions}
             onRowClick={(member) => setSelectedMember(member)}
             rowClassName={(member: Member) =>
-              member.emailDriftDetectedAt && !member.emailDriftAdminDismissedAt ? "bg-amber-50/50 dark:bg-amber-950/20" : ""
+              member.blockedAt
+                ? "bg-red-50/60 dark:bg-red-950/20"
+                : member.emailDriftDetectedAt && !member.emailDriftAdminDismissedAt
+                ? "bg-amber-50/50 dark:bg-amber-950/20"
+                : ""
             }
           />
         </div>
