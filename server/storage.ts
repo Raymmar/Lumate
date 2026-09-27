@@ -2178,7 +2178,20 @@ export class PostgresStorage implements IStorage {
   }
 
   async blockUser(userId: number, performedBy: number | null, reason: string | null): Promise<User> {
-    const [updatedUser] = await db
+    return db.transaction(async (tx) => {
+    // Serialize retries and preserve the original block reason and audit event.
+    const [existing] = await tx.select().from(users).where(eq(users.id, userId)).for("update");
+    if (!existing) throw new Error(`User ${userId} not found`);
+    // Durable marker precedes cleanup, including retries. A crash or lost HTTP
+    // response leaves pending work visible in the admin member list.
+    await tx.insert(cacheMetadata).values({
+      key: `block_cleanup:${userId}`, value: "pending",
+    }).onConflictDoUpdate({
+      target: cacheMetadata.key, set: { value: "pending" },
+    });
+    if (existing.blockedAt) return existing;
+
+    const [updatedUser] = await tx
       .update(users)
       .set({
         blockedAt: new Date().toISOString(),
@@ -2199,7 +2212,7 @@ export class PostgresStorage implements IStorage {
       throw new Error(`Failed to block user ${userId}`);
     }
 
-    await db.insert(userBlockEvents).values({
+    await tx.insert(userBlockEvents).values({
       userId,
       action: 'block',
       reason: reason || null,
@@ -2207,6 +2220,7 @@ export class PostgresStorage implements IStorage {
     });
 
     return updatedUser;
+    });
   }
 
   async unblockUser(userId: number, performedBy: number | null): Promise<User> {

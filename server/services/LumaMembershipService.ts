@@ -645,7 +645,7 @@ export class LumaMembershipService {
     }
   }
 
-  static async getLinkedPeople(userId: number) {
+  static async getLinkedPeople(userId: number, strict = false) {
     try {
       const links = await db
         .select({
@@ -663,6 +663,7 @@ export class LumaMembershipService {
       }));
     } catch (error) {
       console.error(`[LumaMembership] Error getting linked people for user ${userId}:`, error);
+      if (strict) throw error;
       return [];
     }
   }

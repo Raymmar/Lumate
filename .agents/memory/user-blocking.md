@@ -5,6 +5,18 @@ description: Non-obvious decisions/constraints in the Block/Ban User feature
 
 # Block/Ban User system
 
+- **Keep local containment committed when external cleanup fails.**
+  **Why:** rolling back a block because Luma or session cleanup is unavailable
+  would restore access precisely when containment is needed.
+  **How to apply:** report partial completion and allow cleanup retries without
+  replacing the original blocking decision or audit record.
+
+- **Session deletion is cleanup, not an authorization boundary.**
+  **Why:** a failed deletion or an in-flight login can leave a valid session for a
+  blocked admin, including access to older routes with inline admin checks.
+  **How to apply:** check current blocked state before routing every
+  session-bearing request; keep pending cleanup durable rather than toast-only.
+
 - **Blocking persistently revokes premium** (clears subscriptionStatus/premiumSource/
   premiumExpiresAt/premiumGrantedBy/premiumGrantedAt in `blockUser`), it does NOT just
   mask via `hasActivePremium`.

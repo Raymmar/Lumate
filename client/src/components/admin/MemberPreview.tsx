@@ -45,6 +45,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getBadgeIcon } from "@/lib/badge-icons";
 
 interface Member extends User {
+  blockCleanupPending?: boolean;
   person?: Person | null;
   badges?: BadgeType[];
   emailDriftDetectedAt?: string | null;
@@ -283,13 +284,16 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
 
   const blockUserMutation = useMutation({
     mutationFn: async (reason: string) => {
-      return await apiRequest(`/api/admin/users/${member.id}/block`, "POST", { reason });
+      return await apiRequest<{ cleanupComplete: boolean; warnings?: string[] }>(`/api/admin/users/${member.id}/block`, "POST", { reason });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       toast({
-        title: "User Blocked",
-        description: `${member.email} has been blocked.`,
+        title: result.cleanupComplete ? "User Blocked" : "User blocked — cleanup incomplete",
+        description: result.cleanupComplete
+          ? `${member.email} has been blocked.`
+          : `${result.warnings?.join(". ")}. Use Retry block cleanup; the account remains blocked.`,
+        variant: result.cleanupComplete ? "default" : "destructive",
       });
     },
     onError: (error: any) => {
@@ -585,16 +589,31 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               Resend Verification
             </Button>
             {member.blockedAt ? (
+              <>
+              {member.blockCleanupPending && (
+                <p role="alert" className="w-full text-sm text-destructive">
+                  Block cleanup is pending or incomplete. Retry to confirm session deletion and Luma removal.
+                </p>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => blockUserMutation.mutate("")}
+                disabled={blockUserMutation.isPending || unblockUserMutation.isPending}
+              >
+                Retry block cleanup
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="gap-1 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-400"
                 onClick={() => setShowUnblockDialog(true)}
-                disabled={unblockUserMutation.isPending}
+                disabled={unblockUserMutation.isPending || blockUserMutation.isPending}
               >
                 <ShieldCheck className="h-4 w-4" />
                 Unblock User
               </Button>
+              </>
             ) : (
               <Button
                 variant="outline"

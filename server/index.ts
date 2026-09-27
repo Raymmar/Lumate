@@ -12,6 +12,7 @@ import { emailInvitationService } from "./services/EmailInvitationService";
 import { LumaMembershipService } from "./services/LumaMembershipService";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { blockedSessionGuard } from "./routes/blockedSessionGuard";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -111,6 +112,8 @@ app.use(
     proxy: isProduction,
   }),
 );
+
+app.use(blockedSessionGuard(id => storage.getUserById(id)));
 
 (async () => {
   // Log startup configuration

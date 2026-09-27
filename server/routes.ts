@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
+import { runBlockCleanup } from "./services/blockCleanup";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { blockedEmailAddresses, isBlockedEmail } from "./blockedEmails";
@@ -45,6 +46,7 @@ import {
   newsletterRecipients,
   emailEvents,
   badgeRules,
+  cacheMetadata,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail, sendEventInviteEmail, sendNewsletterEmail, verifyUnsubscribeToken } from "./email";
@@ -4903,6 +4905,10 @@ export async function registerRoutes(app: Express) {
           blockedAt: users.blockedAt,
           blockedBy: users.blockedBy,
           blockReason: users.blockReason,
+          blockCleanupPending: sql<boolean>`EXISTS (
+            SELECT 1 FROM cache_metadata
+            WHERE key = 'block_cleanup:' || ${users.id}::text
+          )`,
         })
         .from(users)
         .leftJoin(people, eq(users.personId, people.id))
@@ -5032,31 +5038,38 @@ export async function registerRoutes(app: Express) {
 
       const updatedUser = await storage.blockUser(targetUserId, currentUser.id, reason || null);
 
-      // Invalidate all sessions for the blocked user
-      try {
-        await db.execute(
+      const failures = await runBlockCleanup({
+        primaryEmail: targetUser.email,
+        deleteSessions: () => db.execute(
           sql`DELETE FROM session WHERE sess::jsonb -> 'userId' = ${String(targetUserId)}::jsonb`
-        );
-      } catch (sessionError) {
-        console.error("Failed to delete sessions for blocked user:", sessionError);
+        ),
+        getEmails: async () => {
+          const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+          const linkedPeople = await LumaMembershipService.getLinkedPeople(targetUserId, true);
+          return linkedPeople.map(person => person.email).filter(Boolean);
+        },
+        removeEmail: async email => {
+          const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
+          return LumaMembershipService.removeMemberFromLumaTier(email);
+        },
+      });
+      if (!failures.length) {
+        try {
+          await db.delete(cacheMetadata).where(eq(cacheMetadata.key, `block_cleanup:${targetUserId}`));
+        } catch {
+          failures.push("Cleanup completed but its saved status could not be cleared");
+        }
+      }
+      if (failures.length) {
+        return res.status(207).json({
+          ...updatedUser,
+          cleanupComplete: false,
+          warnings: failures,
+          message: "User is blocked and premium revoked, but cleanup is incomplete. Retry block cleanup.",
+        });
       }
 
-      // Remove the user (and any linked Luma profiles) from the Luma membership tier
-      try {
-        const { LumaMembershipService } = await import("./services/LumaMembershipService.js");
-        const emailsToRemove = new Set<string>([targetUser.email.toLowerCase()]);
-        const linkedPeople = await LumaMembershipService.getLinkedPeople(targetUserId);
-        for (const person of linkedPeople) {
-          if (person?.email) emailsToRemove.add(person.email.toLowerCase());
-        }
-        for (const email of emailsToRemove) {
-          await LumaMembershipService.removeMemberFromLumaTier(email);
-        }
-      } catch (lumaError) {
-        console.error("Failed to remove blocked user from Luma tier:", lumaError);
-      }
-
-      res.json(updatedUser);
+      res.json({ ...updatedUser, cleanupComplete: true });
     } catch (error) {
       console.error("Failed to block user:", error);
       res.status(500).json({ error: "Failed to block user" });
