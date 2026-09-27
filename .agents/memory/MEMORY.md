@@ -1,1 +1,2 @@
-- [User blocking system](user-blocking.md) — block revokes premium persistently (unblock won't restore), canSendTo fail-closed, session-table delete pattern, linked-email gap.
+- [User blocking system](user-blocking.md) — block revokes premium persistently (unblock won't restore), canSendTo fail-closed, session-table delete pattern.
+- [Development side effects](development-side-effects.md) — development startup has triggered real invitation delivery; isolate tests from background services.

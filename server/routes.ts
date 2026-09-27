@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
+import { blockedEmailAddresses, isBlockedEmail } from "./blockedEmails";
 import { sendPasswordResetEmail, sendEmailDriftNotification } from "./email";
 import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
@@ -82,6 +83,10 @@ interface Post {
 
 // Register and configure express routes
 export async function registerRoutes(app: Express) {
+  async function hasBlockedEmail(email: string): Promise<boolean> {
+    const result = await db.execute(sql`SELECT ${isBlockedEmail(email)} AS blocked`);
+    return result.rows[0]?.blocked === true;
+  }
   // Initialize route handlers and middleware
   console.log("Registering routes...");
 
@@ -2319,7 +2324,7 @@ export async function registerRoutes(app: Express) {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
 
-      if (!person) {
+      if (!person || await hasBlockedEmail(person.email)) {
         return res.status(404).json({ error: "Person not found" });
       }
 
@@ -2382,7 +2387,7 @@ export async function registerRoutes(app: Express) {
 
       const userBySlug = await storage.getUserBySlug(username);
 
-      if (userBySlug?.blockedAt) {
+      if (userBySlug && (userBySlug.blockedAt || await hasBlockedEmail(userBySlug.email))) {
         return res.status(404).json({ error: "Member not found" });
       }
 
@@ -2411,6 +2416,10 @@ export async function registerRoutes(app: Express) {
         if (!personData) {
           const personByEmail = await storage.getPersonByEmail(userBySlug.email);
           personData = personByEmail;
+        }
+
+        if (personData && await hasBlockedEmail(personData.email)) {
+          return res.status(404).json({ error: "Member not found" });
         }
 
         const response = {
@@ -2453,7 +2462,7 @@ export async function registerRoutes(app: Express) {
       let person = await storage.getPersonByUsername(username);
       if (!person) {
         person = await storage.getPersonByApiId(username);
-        if (!person) {
+        if (!person || await hasBlockedEmail(person.email)) {
           return res.status(404).json({ error: "Person not found" });
         }
         if (person.userName) {
@@ -2462,6 +2471,10 @@ export async function registerRoutes(app: Express) {
             return res.redirect(301, `/people/${encodeURIComponent(formattedUsername)}`);
           }
         }
+      }
+
+      if (await hasBlockedEmail(person.email)) {
+        return res.status(404).json({ error: "Person not found" });
       }
 
       const user = await db
@@ -2564,7 +2577,7 @@ export async function registerRoutes(app: Express) {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
 
-      if (!person) {
+      if (!person || await hasBlockedEmail(person.email)) {
         return res.status(404).json({ error: "Person not found" });
       }
 
@@ -2601,7 +2614,7 @@ export async function registerRoutes(app: Express) {
       const personId = req.params.id;
       const person = await storage.getPersonByApiId(personId);
 
-      if (!person) {
+      if (!person || await hasBlockedEmail(person.email)) {
         return res.status(404).json({ error: "Person not found" });
       }
 
@@ -4216,7 +4229,7 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/admin/events/:eventId/attendees", async (req, res) => {
+  app.get("/api/admin/events/:eventId/attendees", requireAdmin, async (req, res) => {
     try {
       const eventId = req.params.eventId;
 
@@ -4224,7 +4237,10 @@ export async function registerRoutes(app: Express) {
       const attendanceCount = await db
         .select({ count: sql`count(*)` })
         .from(attendance)
-        .where(eq(attendance.eventApiId, eventId));
+        .where(and(
+          eq(attendance.eventApiId, eventId),
+          sql`NOT ${isBlockedEmail(sql`${attendance.userEmail}`)}`
+        ));
 
       // Get the attendees with their details
       const attendees = await db
@@ -4237,7 +4253,10 @@ export async function registerRoutes(app: Express) {
         })
         .from(attendance)
         .innerJoin(people, eq(attendance.personId, people.id))
-        .where(eq(attendance.eventApiId, eventId))
+        .where(and(
+          eq(attendance.eventApiId, eventId),
+          sql`NOT ${isBlockedEmail(sql`${attendance.userEmail}`)}`
+        ))
         .orderBy(sql`registered_at DESC`);
 
       res.json({
@@ -5562,7 +5581,7 @@ export async function registerRoutes(app: Express) {
         .leftJoin(people, eq(attendance.personId, people.id))
         .where(and(
           eq(attendance.eventApiId, eventId),
-          sql`NOT EXISTS (SELECT 1 FROM users u WHERE LOWER(u.email) = LOWER(${attendance.userEmail}) AND u.blocked_at IS NOT NULL)`
+          sql`NOT ${isBlockedEmail(sql`${attendance.userEmail}`)}`
         ))
         .orderBy(sql`registered_at DESC`);
 
@@ -5572,7 +5591,7 @@ export async function registerRoutes(app: Express) {
         .from(attendance)
         .where(and(
           eq(attendance.eventApiId, eventId),
-          sql`NOT EXISTS (SELECT 1 FROM users u WHERE LOWER(u.email) = LOWER(${attendance.userEmail}) AND u.blocked_at IS NOT NULL)`
+          sql`NOT ${isBlockedEmail(sql`${attendance.userEmail}`)}`
         ));
 
       res.json({
@@ -5851,12 +5870,9 @@ export async function registerRoutes(app: Express) {
       recipientEmails = new Set([...recipientEmails].filter(e => eventEmails.has(e)));
     }
 
-    // Exclude blocked users from all newsletter audiences
-    const blockedUsers = await db
-      .select({ email: users.email })
-      .from(users)
-      .where(sql`${users.blockedAt} IS NOT NULL`);
-    const blockedEmails = new Set(blockedUsers.map(u => u.email.toLowerCase()));
+    // Exclude primary and linked alternate emails from every audience.
+    const blockedAddresses = await db.execute(blockedEmailAddresses());
+    const blockedEmails = new Set(blockedAddresses.rows.map(row => String(row.email).toLowerCase()));
     if (blockedEmails.size > 0) {
       recipientEmails = new Set([...recipientEmails].filter(e => !blockedEmails.has(e)));
     }

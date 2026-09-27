@@ -1,8 +1,8 @@
 import { MailService } from '@sendgrid/mail';
 import { createHmac } from 'crypto';
 import { db } from './db';
-import { users } from '@shared/schema';
 import { sql } from 'drizzle-orm';
+import { isBlockedEmail } from './blockedEmails';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
@@ -49,12 +49,8 @@ export function verifyUnsubscribeToken(email: string, token: string): boolean {
 export async function canSendTo(email: string): Promise<boolean> {
   if (!email) return false;
   try {
-    const result = await db
-      .select({ blockedAt: users.blockedAt })
-      .from(users)
-      .where(sql`LOWER(${users.email}) = LOWER(${email})`)
-      .limit(1);
-    if (result.length > 0 && result[0].blockedAt != null) {
+    const result = await db.execute(sql`SELECT ${isBlockedEmail(email)} AS blocked`);
+    if (result.rows[0]?.blocked) {
       console.log(`[Email] Suppressed — recipient is blocked: ${email}`);
       return false;
     }

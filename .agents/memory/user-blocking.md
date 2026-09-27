@@ -22,7 +22,3 @@ description: Non-obvious decisions/constraints in the Block/Ban User feature
   column.** Delete with `sess::jsonb -> 'userId' = '<id>'::jsonb` (the userId is stored
   as a JSON number, so cast the id string to jsonb — it parses as a number).
 
-- **Known gap (see follow-ups):** suppression keys on the user's PRIMARY email only.
-  Linked alternate Luma profile emails (`user_people_links`) can still receive
-  newsletters / appear as attendees. Block route already removes linked emails from Luma,
-  but email/attendee/public filters do not yet cover them.
