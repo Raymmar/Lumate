@@ -361,8 +361,14 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
 
       eventSyncIntervals = await startEventSyncService(false);
       
-      // Start email invitation service (for claim detection and follow-ups only)
-      emailInvitationService.start();
+      // Start email invitation service (for claim detection and follow-ups only).
+      // It sends real emails as soon as it starts, so development restarts skip it
+      // unless it is explicitly enabled.
+      if (isProduction || process.env.ENABLE_DEV_EMAIL_INVITATIONS === "true") {
+        emailInvitationService.start();
+      } else {
+        console.log("[Server] Email invitation service disabled in development (set ENABLE_DEV_EMAIL_INVITATIONS=true to enable)");
+      }
       
       console.log('[Server] Background services initialized');
     } catch (error) {

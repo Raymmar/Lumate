@@ -191,10 +191,11 @@ type AgendaItem = {
   moderators: string[];
 };
 
+// Descriptions keep the exact wording from the original 2025 page.
 const AGENDA_2025: AgendaItem[] = [
   {
     title: "Let's Taco Bout Tech",
-    description: "Taco bar by Art Ovation. Arrival + food + networking + demo tables.",
+    description: "(Taco bar by Art Ovation) · Arrival + Food + Networking + Demo tables",
     start: [17, 0],
     end: [18, 0],
     sessionType: "networking",
@@ -203,7 +204,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "Opening Remarks",
-    description: "Main Ballroom. Opening remarks from the EDC of Sarasota County.",
+    description: "(Main Ballroom) · EDC of Sarasota County",
     start: [18, 0],
     end: [18, 5],
     sessionType: "talk",
@@ -212,7 +213,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "Is Sarasota Investable?",
-    description: "A panel on investment opportunities in Sarasota.",
+    description: null,
     start: [18, 5],
     end: [18, 35],
     sessionType: "panel",
@@ -221,7 +222,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "Emerging Tech Trends",
-    description: "The Good, The Bad, The Ugly of AI.",
+    description: "(The Good, The Bad, The Ugly of AI)",
     start: [18, 35],
     end: [19, 0],
     sessionType: "panel",
@@ -230,7 +231,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "How to move a city forward?",
-    description: "Fireside chat on shaping Sarasota's future.",
+    description: "Fireside chat with AG Lafley + Anand Pallegar",
     start: [19, 10],
     end: [19, 45],
     sessionType: "panel",
@@ -239,7 +240,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "Town hall discussion",
-    description: "Connecting the dots.",
+    description: "Connecting the dots",
     start: [19, 45],
     end: [20, 15],
     sessionType: "panel",
@@ -248,7 +249,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "Looking Ahead",
-    description: "Introducing the 2025 Sarasota Tech Board of Directors.",
+    description: "2025 Sarasota Tech Board of Directors",
     start: [20, 15],
     end: [20, 30],
     sessionType: "talk",
@@ -257,7 +258,7 @@ const AGENDA_2025: AgendaItem[] = [
   },
   {
     title: "VIP Afterparty",
-    description: "Art Ovation Lobby.",
+    description: "Art Ovation Lobby",
     start: [20, 30],
     end: [22, 0],
     sessionType: "networking",

@@ -29,6 +29,8 @@ import AdminPostsPage from "@/pages/admin/AdminPostsPage";
 import AboutPage from "@/pages/AboutPage";
 import SummitHubPage from "@/pages/SummitHubPage";
 import SummitYearPage from "@/pages/SummitYearPage";
+import LegacySummit2026Page from "@/pages/legacy/LegacySummit2026Page";
+import LegacySummit2025Page from "@/pages/legacy/LegacySummit2025Page";
 import SponsorShowcasePage from "@/pages/SponsorShowcasePage";
 import MembershipsPage from "@/pages/MembershipsPage";
 import NotFound from "@/pages/not-found";
@@ -48,6 +50,9 @@ function Router() {
           <Route path="/about" component={AboutPage} />
           <Route path="/summit" component={SummitHubPage} />
           <Route path="/summit/:year" component={SummitYearPage} />
+          {/* Original summit pages, kept for side-by-side comparison until the new pages are approved */}
+          <Route path="/summit-original/2026" component={LegacySummit2026Page} />
+          <Route path="/summit-original/2025" component={LegacySummit2025Page} />
           <Route path="/summit2025">
             <Redirect to="/summit/2025" replace />
           </Route>
