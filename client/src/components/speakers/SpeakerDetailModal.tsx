@@ -1,15 +1,10 @@
-import { Speaker } from "@shared/schema";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, ExternalLink, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SpeakerCardPreview } from "@/components/ui/card-creator";
 import { Link } from "wouter";
-
-export interface SpeakerWithPresentation extends Speaker {
-  isModerator?: boolean;
-  displayOrder?: number;
-}
+import { speakerPhotoSrc, type SpeakerWithPresentation } from "./SpeakerCard";
 
 interface SpeakerDetailModalProps {
   speaker: SpeakerWithPresentation | null;
@@ -68,7 +63,7 @@ export function SpeakerDetailModal({
           <div className="flex flex-col min-w-0 overflow-hidden">
             <div className="flex items-start gap-3 sm:gap-4 mb-4">
               <img
-                src={speaker.photo}
+                src={speakerPhotoSrc(speaker)}
                 alt={speaker.name}
                 className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover flex-shrink-0"
               />
@@ -91,6 +86,31 @@ export function SpeakerDetailModal({
               <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
                 {speaker.bio}
               </p>
+            )}
+
+            {speaker.summits && speaker.summits.length > 0 && (
+              <div className="mt-4 space-y-3" data-testid={`speaker-summits-${speaker.id}`}>
+                <h3 className="text-sm font-semibold">Summit appearances</h3>
+                {speaker.summits.map((summit) => (
+                  <div key={summit.year} className="space-y-1">
+                    <Link
+                      href={`/summit/${summit.year}`}
+                      className="text-sm font-medium text-primary hover:underline"
+                      data-testid={`link-speaker-summit-${summit.year}`}
+                    >
+                      {summit.year} {summit.title}
+                    </Link>
+                    <ul className="text-sm text-muted-foreground list-disc pl-5">
+                      {summit.sessions.map((session) => (
+                        <li key={session.id} className="break-words">
+                          {session.title}
+                          {session.isModerator && " (moderator)"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             )}
 
             {speaker.bioUrl && (

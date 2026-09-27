@@ -15,11 +15,22 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AgendaSectionProps {
   isAdmin?: boolean;
+  /** Summit year to show; omit to show every agenda item */
+  summitYear?: number;
+  /** Summit that new time blocks and sessions are saved to */
+  summitId?: number;
+}
+
+async function fetchAgendaData<T>(path: string, summitYear?: number): Promise<T> {
+  const url = summitYear ? `${path}?year=${summitYear}` : path;
+  const res = await fetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error(`Failed to load ${path}`);
+  return res.json();
 }
 
 const SPEAKERS_EXPANDED_KEY = "agenda-speakers-expanded";
 
-export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
+export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaSectionProps) {
   const [view, setView] = useState<"calendar" | "table">("calendar");
   const [isPresentationModalOpen, setIsPresentationModalOpen] = useState(false);
   const [isTimeBlockModalOpen, setIsTimeBlockModalOpen] = useState(false);
@@ -61,13 +72,16 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
   };
 
   const { data: timeBlocksData, isLoading: timeBlocksLoading } = useQuery<{ timeBlocks: TimeBlockWithPresentations[] }>({
-    queryKey: ["/api/time-blocks"],
+    // Keys keep the base path first so existing ["/api/time-blocks"] invalidations still match
+    queryKey: summitYear ? ["/api/time-blocks", { year: summitYear }] : ["/api/time-blocks"],
+    queryFn: () => fetchAgendaData("/api/time-blocks", summitYear),
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
 
   const { data: presentationsData, isLoading: presentationsLoading } = useQuery<{ presentations: PresentationWithSpeakers[] }>({
-    queryKey: ["/api/presentations"],
+    queryKey: summitYear ? ["/api/presentations", { year: summitYear }] : ["/api/presentations"],
+    queryFn: () => fetchAgendaData("/api/presentations", summitYear),
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
@@ -114,6 +128,7 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
       title: "",
       description: null,
       timeBlockId: timeBlock.id,
+      summitId: timeBlock.summitId ?? summitId ?? null,
       startTime: timeBlock.startTime,
       endTime: timeBlock.endTime,
       track: "main_stage",
@@ -317,12 +332,14 @@ export function AgendaSection({ isAdmin = false }: AgendaSectionProps) {
         isOpen={isPresentationModalOpen}
         onClose={handleClosePresentationModal}
         defaultTimeBlockId={addingToTimeBlockId}
+        summitId={summitId}
       />
 
       <TimeBlockModal
         timeBlock={editingTimeBlock}
         isOpen={isTimeBlockModalOpen}
         onClose={handleCloseTimeBlockModal}
+        summitId={summitId}
       />
     </>
   );

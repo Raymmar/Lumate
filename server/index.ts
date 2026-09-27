@@ -16,7 +16,7 @@ import { blockedSessionGuard } from "./routes/blockedSessionGuard";
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, isEventPage, isSummitPage, extractPostSlug, extractCompanySlug, extractUsername, extractEventSlug } from "./utils/crawlerDetection";
+import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, isEventPage, isSummitPage, extractSummitYear, extractPostSlug, extractCompanySlug, extractUsername, extractEventSlug } from "./utils/crawlerDetection";
 import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph, fetchEventForOpenGraph, fetchSummitForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from "./stripeClient";
@@ -133,6 +133,17 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
   const { runBadgeRulesMigration } = await import("./migrations/badge-rules-migration");
   await runBadgeRulesMigration();
 
+  // One-time summit backfill (2025/2026 summit records and year links). Skips once summits exist.
+  try {
+    const { backfillSummits } = await import("./services/summitBackfill");
+    const summitBackfill = await backfillSummits();
+    if (!summitBackfill.skipped) {
+      console.log("[Server] Summit backfill complete:", summitBackfill);
+    }
+  } catch (error) {
+    console.error("[Server] Summit backfill failed (is the summits schema applied?):", error);
+  }
+
   // Initialize Stripe schema and sync
   async function initStripe() {
     const databaseUrl = process.env.DATABASE_URL;
@@ -216,7 +227,7 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
             ogData = await fetchEventForOpenGraph(slug);
           }
         } else if (isSummitPage(url)) {
-          ogData = fetchSummitForOpenGraph();
+          ogData = await fetchSummitForOpenGraph(extractSummitYear(url));
         }
         
         if (ogData) {

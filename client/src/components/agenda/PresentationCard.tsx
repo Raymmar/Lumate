@@ -11,7 +11,8 @@ import { useState } from "react";
 import { SpeakerModal } from "./SpeakerModal";
 import { COLOR_MAP } from "./PresentationModal";
 import { motion, AnimatePresence } from "framer-motion";
-import { SpeakerDetailModal, SpeakerWithPresentation } from "@/components/speakers/SpeakerDetailModal";
+import { SpeakerDetailModal } from "@/components/speakers/SpeakerDetailModal";
+import type { SpeakerWithPresentation } from "@/components/speakers/SpeakerCard";
 
 interface PresentationCardProps {
   presentation: PresentationWithSpeakers;

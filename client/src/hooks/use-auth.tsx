@@ -38,6 +38,11 @@ function useLogoutMutation() {
       queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
 
+      // Drop summit-scoped data so draft summits seen as an admin don't linger after logout
+      for (const key of ["/api/summits", "/api/time-blocks", "/api/presentations", "/api/speakers"]) {
+        queryClient.resetQueries({ queryKey: [key] });
+      }
+
       toast({
         title: "Success",
         description: "Logged out successfully",

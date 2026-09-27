@@ -1,3 +1,4 @@
 - [User blocking system](user-blocking.md) — block revokes premium persistently (unblock won't restore), canSendTo fail-closed, session-table delete pattern.
 - [Development side effects](development-side-effects.md) — development startup has triggered real invitation delivery; isolate tests from background services.
 - [Post-merge safety](post-merge-safety.md) — restore locked dependencies automatically, but keep database schema pushes manual.
+- [Summit years](summit-years.md) — current summit is an explicit flag; speakers derived from sessions; summit schema via hand SQL before publish.

@@ -101,7 +101,16 @@ export function isEventPage(url: string): boolean {
  * @returns True if this is the summit page
  */
 export function isSummitPage(url: string): boolean {
-  return url === '/summit' || url.startsWith('/summit?') || url.startsWith('/summit#');
+  const path = url.split(/[?#]/)[0];
+  return path === '/summit' || /^\/summit\/\d{4}\/?$/.test(path);
+}
+
+/**
+ * Extracts the summit year from a /summit/:year URL (null for the /summit hub)
+ */
+export function extractSummitYear(url: string): number | null {
+  const match = url.split(/[?#]/)[0].match(/^\/summit\/(\d{4})\/?$/);
+  return match ? parseInt(match[1], 10) : null;
 }
 
 /**

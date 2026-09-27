@@ -30,14 +30,16 @@ import {
   Speaker, InsertSpeaker,
   PresentationSpeaker, InsertPresentationSpeaker,
   PresentationWithSpeakers,
+  Summit, InsertSummit, SpeakerWithSummits, SpeakerSummitParticipation,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
   badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons, autoCouponEvents,
   agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers,
-  userBlockEvents, UserBlockEvent
+  userBlockEvents, UserBlockEvent, summits
 } from "@shared/schema";
 import { db } from "./db";
-import { sql, eq, and, or, isNull } from "drizzle-orm";
+import { sql, eq, and, or, isNull, desc } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import crypto from "crypto";
 
 export interface IStorage {
@@ -276,14 +278,23 @@ export interface IStorage {
   deleteAgendaSessionType(id: number): Promise<void>;
 
   // Time Block management
-  getTimeBlocks(): Promise<TimeBlockWithPresentations[]>;
+  // Summit years
+  getSummits(options?: { includeUnpublished?: boolean }): Promise<Summit[]>;
+  getSummitByYear(year: number): Promise<Summit | null>;
+  getSummitById(id: number): Promise<Summit | null>;
+  getCurrentSummit(options?: { includeUnpublished?: boolean }): Promise<Summit | null>;
+  createSummit(data: InsertSummit): Promise<Summit>;
+  updateSummit(id: number, data: Partial<InsertSummit>): Promise<Summit>;
+  setCurrentSummit(id: number): Promise<Summit>;
+
+  getTimeBlocks(scope?: SummitScope): Promise<TimeBlockWithPresentations[]>;
   getTimeBlockById(id: number): Promise<TimeBlockWithPresentations | null>;
   createTimeBlock(data: InsertTimeBlock): Promise<TimeBlock>;
   updateTimeBlock(id: number, data: Partial<TimeBlock>): Promise<TimeBlock>;
   deleteTimeBlock(id: number): Promise<void>;
 
   // Presentation management (summit agenda)
-  getPresentations(): Promise<PresentationWithSpeakers[]>;
+  getPresentations(scope?: SummitScope): Promise<PresentationWithSpeakers[]>;
   getPresentationById(id: number): Promise<PresentationWithSpeakers | null>;
   createPresentation(data: InsertPresentation): Promise<Presentation>;
   updatePresentation(id: number, data: Partial<Presentation>): Promise<Presentation>;
@@ -291,6 +302,7 @@ export interface IStorage {
 
   // Speaker management
   getSpeakers(): Promise<Speaker[]>;
+  getSpeakersWithSummits(options: { year?: number; publishedOnly: boolean }): Promise<SpeakerWithSummits[]>;
   getSpeakerById(id: number): Promise<Speaker | null>;
   createSpeaker(data: InsertSpeaker): Promise<Speaker>;
   updateSpeaker(id: number, data: Partial<Speaker>): Promise<Speaker>;
@@ -327,7 +339,24 @@ export function isMemberStatsSyncing(): boolean {
   return memberStatsCache.isSyncing;
 }
 
+// Limits agenda queries to one summit, or hides content from unpublished summits
+export type SummitScope = { summitId?: number; publishedOnly?: boolean };
+
+function summitScopeCondition(column: AnyPgColumn, scope: SummitScope) {
+  if (scope.summitId !== undefined) return eq(column, scope.summitId);
+  if (scope.publishedOnly) {
+    return sql`(${column} IS NULL OR ${column} IN (SELECT id FROM summits WHERE is_published = true))`;
+  }
+  return undefined;
+}
+
 export class PostgresStorage implements IStorage {
+  /** Year of the current (published) summit, falling back to the calendar year. */
+  async getCurrentSummitYear(): Promise<number> {
+    const current = await this.getCurrentSummit();
+    return current?.year ?? new Date().getFullYear();
+  }
+
   async getEvents(): Promise<Event[]> {
     console.log('Fetching public events from database...');
     const result = await db.select().from(events).where(sql`visibility != 'private' OR visibility IS NULL`);
@@ -2611,7 +2640,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getFilteredCompanies(filter?: string, year: number = 2026): Promise<{
+  async getFilteredCompanies(filter?: string, year?: number): Promise<{
     companies: Company[];
     filters: {
       sponsors: { count: number; tiers: { name: string; count: number }[] };
@@ -2621,6 +2650,8 @@ export class PostgresStorage implements IStorage {
     try {
       // Define sponsor tier order (highest to lowest)
       const TIER_ORDER = ['Series A', 'Seed', 'Angel', 'Friends & Family', '501c3/.edu'];
+      // Sponsor filters follow the current summit year unless a year is requested
+      const sponsorYear = year ?? await this.getCurrentSummitYear();
 
       let filteredCompanies: Company[] = [];
 
@@ -2647,7 +2678,7 @@ export class PostgresStorage implements IStorage {
           .from(companies)
           .innerJoin(sponsors, and(
             eq(sponsors.companyId, companies.id),
-            eq(sponsors.year, year),
+            eq(sponsors.year, sponsorYear),
             isNull(sponsors.deletedAt)
           ))
           .orderBy(tierOrderExpr, companies.name);
@@ -2677,7 +2708,7 @@ export class PostgresStorage implements IStorage {
         })
         .from(sponsors)
         .where(and(
-          eq(sponsors.year, year),
+          eq(sponsors.year, sponsorYear),
           sql`${sponsors.deletedAt} IS NULL`
         ))
         .groupBy(sponsors.tier);
@@ -2713,7 +2744,7 @@ export class PostgresStorage implements IStorage {
         })
         .from(sponsors)
         .where(and(
-          eq(sponsors.year, year),
+          eq(sponsors.year, sponsorYear),
           sql`${sponsors.deletedAt} IS NULL`
         ));
 
@@ -3162,7 +3193,7 @@ export class PostgresStorage implements IStorage {
 
   async getActiveSponsorByCompanyId(companyId: number): Promise<Sponsor | null> {
     try {
-      const currentYear = new Date().getFullYear();
+      const currentYear = await this.getCurrentSummitYear();
       const result = await db
         .select()
         .from(sponsors)
@@ -4309,14 +4340,16 @@ export class PostgresStorage implements IStorage {
   }
 
   // Time Block management
-  async getTimeBlocks(): Promise<TimeBlockWithPresentations[]> {
+  async getTimeBlocks(scope: SummitScope = {}): Promise<TimeBlockWithPresentations[]> {
     try {
       const [allTimeBlocks, allPresentations, allSpeakerLinks] = await Promise.all([
         db.select()
           .from(timeBlocks)
+          .where(summitScopeCondition(timeBlocks.summitId, scope))
           .orderBy(timeBlocks.startTime, timeBlocks.displayOrder),
         db.select()
           .from(presentations)
+          .where(summitScopeCondition(presentations.summitId, scope))
           .orderBy(presentations.startTime, presentations.displayOrder),
         db.select({
           presentationId: presentationSpeakers.presentationId,
@@ -4481,12 +4514,13 @@ export class PostgresStorage implements IStorage {
   }
 
   // Presentation management (summit agenda)
-  async getPresentations(): Promise<PresentationWithSpeakers[]> {
+  async getPresentations(scope: SummitScope = {}): Promise<PresentationWithSpeakers[]> {
     try {
       // Fetch all presentations and all speaker links in parallel (2 queries instead of N+1)
       const [presentationsList, allSpeakerLinks] = await Promise.all([
         db.select()
           .from(presentations)
+          .where(summitScopeCondition(presentations.summitId, scope))
           .orderBy(presentations.startTime, presentations.displayOrder),
         db.select({
           presentationId: presentationSpeakers.presentationId,
@@ -4616,6 +4650,124 @@ export class PostgresStorage implements IStorage {
       console.error('Failed to get speakers:', error);
       throw error;
     }
+  }
+
+  async getSpeakersWithSummits(options: { year?: number; publishedOnly: boolean }): Promise<SpeakerWithSummits[]> {
+    try {
+      const [allSpeakers, participation] = await Promise.all([
+        db.select().from(speakers).orderBy(speakers.name),
+        db.select({
+          speakerId: presentationSpeakers.speakerId,
+          isModerator: presentationSpeakers.isModerator,
+          presentationId: presentations.id,
+          presentationTitle: presentations.title,
+          startTime: presentations.startTime,
+          year: summits.year,
+          summitTitle: summits.title,
+          isPublished: summits.isPublished,
+        })
+          .from(presentationSpeakers)
+          .innerJoin(presentations, eq(presentationSpeakers.presentationId, presentations.id))
+          .innerJoin(summits, eq(presentations.summitId, summits.id))
+          .orderBy(desc(summits.year), presentations.startTime),
+      ]);
+
+      const visible = participation.filter(p => !options.publishedOnly || p.isPublished);
+      // Speakers linked only to hidden (draft) summits are hidden from the public
+      const hiddenSpeakerIds = new Set(
+        participation.filter(p => options.publishedOnly && !p.isPublished).map(p => p.speakerId)
+      );
+
+      const bySpeaker = new Map<number, Map<number, SpeakerSummitParticipation>>();
+      for (const row of visible) {
+        if (!bySpeaker.has(row.speakerId)) bySpeaker.set(row.speakerId, new Map());
+        const years = bySpeaker.get(row.speakerId)!;
+        if (!years.has(row.year)) {
+          years.set(row.year, { year: row.year, title: row.summitTitle, sessions: [] });
+        }
+        years.get(row.year)!.sessions.push({
+          id: row.presentationId,
+          title: row.presentationTitle,
+          isModerator: row.isModerator,
+        });
+      }
+
+      return allSpeakers
+        .map(speaker => ({
+          ...speaker,
+          summits: Array.from(bySpeaker.get(speaker.id)?.values() ?? []),
+        }))
+        .filter(speaker => {
+          if (options.year !== undefined) {
+            return speaker.summits.some(s => s.year === options.year);
+          }
+          // "All years": everyone with a visible summit, plus speakers not yet on any agenda
+          return speaker.summits.length > 0 || !hiddenSpeakerIds.has(speaker.id);
+        });
+    } catch (error) {
+      console.error('Failed to get speakers with summits:', error);
+      throw error;
+    }
+  }
+
+  // Summit years
+  async getSummits(options: { includeUnpublished?: boolean } = {}): Promise<Summit[]> {
+    const query = db.select().from(summits);
+    const rows = options.includeUnpublished
+      ? await query.orderBy(desc(summits.year))
+      : await query.where(eq(summits.isPublished, true)).orderBy(desc(summits.year));
+    return rows;
+  }
+
+  async getSummitByYear(year: number): Promise<Summit | null> {
+    const [row] = await db.select().from(summits).where(eq(summits.year, year)).limit(1);
+    return row || null;
+  }
+
+  async getSummitById(id: number): Promise<Summit | null> {
+    const [row] = await db.select().from(summits).where(eq(summits.id, id)).limit(1);
+    return row || null;
+  }
+
+  async getCurrentSummit(options: { includeUnpublished?: boolean } = {}): Promise<Summit | null> {
+    const [flagged] = await db.select().from(summits).where(eq(summits.isCurrent, true)).limit(1);
+    if (flagged && (flagged.isPublished || options.includeUnpublished)) return flagged;
+    // Fall back to the most recent published summit when the flagged one is still a draft
+    const [latest] = await db
+      .select()
+      .from(summits)
+      .where(eq(summits.isPublished, true))
+      .orderBy(desc(summits.year))
+      .limit(1);
+    return latest || null;
+  }
+
+  async createSummit(data: InsertSummit): Promise<Summit> {
+    const [row] = await db.insert(summits).values(data).returning();
+    return row;
+  }
+
+  async updateSummit(id: number, data: Partial<InsertSummit>): Promise<Summit> {
+    const [row] = await db
+      .update(summits)
+      .set({ ...data, updatedAt: new Date().toISOString() })
+      .where(eq(summits.id, id))
+      .returning();
+    if (!row) throw new Error('Summit not found');
+    return row;
+  }
+
+  async setCurrentSummit(id: number): Promise<Summit> {
+    return await db.transaction(async (tx) => {
+      await tx.update(summits).set({ isCurrent: false }).where(eq(summits.isCurrent, true));
+      const [row] = await tx
+        .update(summits)
+        .set({ isCurrent: true, updatedAt: new Date().toISOString() })
+        .where(eq(summits.id, id))
+        .returning();
+      if (!row) throw new Error('Summit not found');
+      return row;
+    });
   }
 
   async getSpeakerById(id: number): Promise<Speaker | null> {

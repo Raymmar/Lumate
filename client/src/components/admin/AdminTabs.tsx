@@ -11,6 +11,7 @@ const ADMIN_TABS = [
   { id: "people", label: "People", path: "/admin/people" },
   { id: "companies", label: "Companies", path: "/admin/companies" },
   { id: "sponsors", label: "Sponsors", path: "/admin/sponsors" },
+  { id: "summits", label: "Summits", path: "/admin/summits" },
   { id: "industries", label: "Industries", path: "/admin/industries" },
   { id: "badges", label: "Badges", path: "/admin/badges" },
   { id: "roles", label: "Roles & Permissions", path: "/admin/roles" },

@@ -32,6 +32,8 @@ interface PresentationModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTimeBlockId?: number | null;
+  /** Summit that newly created sessions belong to (a chosen time block's summit takes precedence) */
+  summitId?: number;
 }
 
 const COLOR_OPTIONS = [
@@ -65,7 +67,7 @@ export const COLOR_MAP: Record<string, string> = {
 };
 
 
-export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBlockId }: PresentationModalProps) {
+export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBlockId, summitId }: PresentationModalProps) {
   const { toast } = useToast();
   const isEditing = !!presentation && presentation.id > 0;
 
@@ -166,7 +168,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       if (isEditing) {
         return apiRequest(`/api/presentations/${presentation.id}`, "PATCH", data);
       } else {
-        return apiRequest("/api/presentations", "POST", data);
+        return apiRequest("/api/presentations", "POST", summitId ? { ...data, summitId } : data);
       }
     },
     onSuccess: () => {

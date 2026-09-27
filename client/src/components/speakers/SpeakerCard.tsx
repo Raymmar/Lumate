@@ -1,4 +1,4 @@
-import { Speaker } from "@shared/schema";
+import type { Speaker, SpeakerSummitParticipation } from "@shared/schema";
 import { ExternalLink, Mic2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -6,6 +6,21 @@ import { motion } from "framer-motion";
 export interface SpeakerWithPresentation extends Speaker {
   isModerator?: boolean;
   displayOrder?: number;
+  /** Summit years and sessions, when loaded from the speakers directory */
+  summits?: SpeakerSummitParticipation[];
+}
+
+/** Speaker photo, or an initials avatar when no photo is on file. */
+export function speakerPhotoSrc(speaker: Pick<Speaker, "name" | "photo">): string {
+  if (speaker.photo) return speaker.photo;
+  const initials = speaker.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" fill="#e2e8f0"/><text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="sans-serif" font-size="36" fill="#475569">${initials}</text></svg>`;
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 interface SpeakerCardProps {
@@ -32,7 +47,7 @@ export function SpeakerCard({
       >
         <motion.img
           layoutId={layoutIdPrefix ? `${layoutIdPrefix}-avatar-${speaker.id}` : undefined}
-          src={speaker.photo}
+          src={speakerPhotoSrc(speaker)}
           alt={speaker.name}
           className="w-8 h-8 rounded-full object-cover flex-shrink-0"
           transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
@@ -69,7 +84,7 @@ export function SpeakerCard({
       <div className="flex items-center gap-3">
         <motion.img
           layoutId={layoutIdPrefix ? `${layoutIdPrefix}-avatar-${speaker.id}` : undefined}
-          src={speaker.photo}
+          src={speakerPhotoSrc(speaker)}
           alt={speaker.name}
           className="w-12 h-12 rounded-full object-cover flex-shrink-0"
           transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}

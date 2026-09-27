@@ -11,8 +11,10 @@ import { SponsorCard } from "./SponsorCard";
 import { SponsorModal } from "./SponsorModal";
 import { SPONSOR_TIERS } from "./sponsorConfig";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
+import { useCurrentSummit } from "@/hooks/use-summits";
 
 interface SponsorGridProps {
+  /** Sponsor year; defaults to the current summit's year */
   year?: number;
   title?: string;
   icon?: React.ReactNode;
@@ -21,7 +23,7 @@ interface SponsorGridProps {
 }
 
 export function SponsorGrid({
-  year = new Date().getFullYear(),
+  year: yearProp,
   title = "Sponsors",
   icon,
   showBecomeSponsorCTA = true,
@@ -35,9 +37,14 @@ export function SponsorGrid({
     queryKey: ["/api/auth/me"],
   });
 
-  const { data, isLoading } = useQuery<{ sponsors: Sponsor[] }>({
+  const { data: currentSummit, isLoading: currentSummitLoading } = useCurrentSummit();
+  const year = yearProp ?? currentSummit?.year ?? new Date().getFullYear();
+
+  const { data, isLoading: sponsorsLoading } = useQuery<{ sponsors: Sponsor[] }>({
     queryKey: [`/api/sponsors?year=${year}`],
+    enabled: yearProp !== undefined || !currentSummitLoading,
   });
+  const isLoading = sponsorsLoading || (yearProp === undefined && currentSummitLoading);
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {

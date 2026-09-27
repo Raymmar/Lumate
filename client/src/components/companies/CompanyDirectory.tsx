@@ -7,6 +7,7 @@ import { Building, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { SponsorGrid } from "@/components/sponsors";
+import { useCurrentSummit } from "@/hooks/use-summits";
 
 // Helper function as fallback only if slug isn't available
 const generateSlug = (name: string): string => {
@@ -53,6 +54,8 @@ interface Company {
 
 export default function CompanyDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { data: currentSummit } = useCurrentSummit();
+  const sponsorYear = currentSummit?.year ?? new Date().getFullYear();
   const [location, setLocation] = useLocation();
   
   // Get filter from URL params, default to "sponsors" (SSR-safe)
@@ -260,8 +263,8 @@ export default function CompanyDirectory() {
       </div>
       {activeFilter === "sponsors" ? (
         <SponsorGrid 
-          year={new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()}
-          title={`${new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()} Annual Sponsors`}
+          year={sponsorYear}
+          title={`${sponsorYear} Annual Sponsors`}
           showBecomeSponsorCTA={true}
         />
       ) : (

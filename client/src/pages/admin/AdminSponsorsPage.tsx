@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useCurrentSummit } from "@/hooks/use-summits";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SponsorGrid } from "@/components/sponsors";
 import { Building2, Calendar } from "lucide-react";
@@ -13,10 +14,18 @@ import {
 
 export default function AdminSponsorsPage() {
   const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(2026);
+  const { data: currentSummit } = useCurrentSummit();
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  // Default to the current summit's year until the admin picks one
+  useEffect(() => {
+    if (selectedYear === null && currentSummit) setSelectedYear(currentSummit.year);
+  }, [currentSummit, selectedYear]);
+  const activeYear = selectedYear ?? currentSummit?.year ?? currentYear;
   
-  // Generate year options (2 past years + current + 2 future years)
-  const yearOptions = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i);
+  // Generate year options (2 past years + current + 2 future years), plus the summit year if outside that range
+  const yearOptions = Array.from(
+    new Set([...Array.from({ length: 5 }, (_, i) => currentYear - 2 + i), activeYear]),
+  ).sort((a, b) => a - b);
 
   return (
     <>
@@ -35,7 +44,7 @@ export default function AdminSponsorsPage() {
             <div className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <Select
-                value={selectedYear.toString()}
+                value={activeYear.toString()}
                 onValueChange={(value) => setSelectedYear(parseInt(value))}
               >
                 <SelectTrigger className="w-32" data-testid="select-sponsor-year">
@@ -66,8 +75,8 @@ export default function AdminSponsorsPage() {
           </div>
 
           <SponsorGrid 
-            year={selectedYear}
-            title={`${selectedYear} Sponsors`}
+            year={activeYear}
+            title={`${activeYear} Sponsors`}
             icon={<Building2 className="h-5 w-5" />}
             showBecomeSponsorCTA={false}
           />

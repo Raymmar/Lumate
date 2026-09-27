@@ -6,6 +6,13 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### September 27, 2026 - Yearly Summit Hub and Archive
+- **Routes**: `/summit` is now a hub (featured current summit + archive of other years). `/summit/:year` is one data-driven page per year. `/summit2025` 301-redirects to `/summit/2025` (server) with a client-side fallback redirect. Admin screen at `/admin/summits` creates/edits years, publishes/unpublishes, and sets the current summit.
+- **Schema**: New `summits` table (one row per year; `is_published`, `is_current` with a partial unique index so only one summit is current). Nullable `summit_id` added to `posts`, `time_blocks`, and `presentations`. Speakers stay one profile per person; the years they spoke are derived from their sessions.
+- **Backfill**: `server/services/summitBackfill.ts` creates the 2025/2026 summits, assigns existing agenda + "2026 summit"-tagged posts to 2026, and moves the old hardcoded 2025 page content into data. It is idempotent and runs automatically on server startup (also runnable via `npx tsx scripts/backfill-summits.ts`). Posts tagged only with the generic "summit" tag are left unlinked; assign them with the Summit field in the post editor.
+- **Year scoping**: `/api/time-blocks`, `/api/presentations`, `/api/speakers` accept `?year=`; `/api/public/posts` accepts `?summitYear=`; `/api/sponsors` defaults to the current summit year. Drafts are hidden from non-admins (404 on `/api/summits/:year`).
+- **⚠️ Production schema change required before publishing**: apply `server/migrations/summits-schema.sql` to the production database (it is idempotent: `CREATE TABLE IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`). Do not use `db:push` — it is interactive and would try to drop tables that are not in the Drizzle schema (e.g. `session`). Post queries select `summit_id`, so publishing without this migration breaks news/posts. The data backfill runs by itself on the first production startup.
+
 ### April 14, 2026 - Newsletter Analytics UI
 - **Feature**: Analytics modal accessible from every newsletter touchpoint — posts table, post editor, send newsletter modal, and article page.
 - **NewsletterAnalyticsModal**: Full-screen modal showing delivery rate, open rate, click rate, bounce rate as stat cards, plus per-recipient breakdown table with status badges (delivered/opened/clicked/bounced/unsubscribed). Auto-refreshes every 30 seconds.

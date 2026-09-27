@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { isSummitPast, useCurrentSummit } from "@/hooks/use-summits";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,10 @@ const USER_BADGE_OPTIONS = ["Attendee", "Volunteer"] as const;
 type BadgeOption = typeof ALL_BADGE_OPTIONS[number];
 
 export default function CardCreatorPage() {
+  const { data: currentSummit } = useCurrentSummit();
+  // Link straight to tickets while the current summit is upcoming, otherwise to the summit page
+  const summitTicketUrl =
+    currentSummit?.ticketUrl && !isSummitPast(currentSummit) ? currentSummit.ticketUrl : null;
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.isAdmin === true;
@@ -682,11 +687,19 @@ export default function CardCreatorPage() {
                 Explore Speakers
               </Button>
             </Link>
-            <Link href="/summit">
-              <Button size="sm" className="text-xs sm:text-sm" data-testid="button-summit-tickets">
-                Get Summit Tickets
-              </Button>
-            </Link>
+            {summitTicketUrl ? (
+              <a href={summitTicketUrl} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" className="text-xs sm:text-sm" data-testid="button-summit-tickets">
+                  Get Summit Tickets
+                </Button>
+              </a>
+            ) : (
+              <Link href="/summit">
+                <Button size="sm" className="text-xs sm:text-sm" data-testid="button-summit-tickets">
+                  View Summit
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

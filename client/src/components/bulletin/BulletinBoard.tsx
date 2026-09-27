@@ -250,9 +250,8 @@ export function BulletinBoard() {
         onCreatePost={() => setIsCreating(true)}
       />
 
-      {/* Sponsor Grid - Shows 2026 sponsors through 2026, then current year after */}
+      {/* Sponsor Grid - Shows the current summit's sponsors */}
       <SponsorGrid 
-        year={new Date().getFullYear() <= 2026 ? 2026 : new Date().getFullYear()}
         title="Our Sponsors"
         showBecomeSponsorCTA={true}
       />

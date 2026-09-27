@@ -10,6 +10,7 @@ import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
 import unsplashRouter from "./routes/unsplash";
 import companiesRouter from "./routes/companies";
+import summitsRouter, { resolveSummitScope, getSummitVisibility } from "./routes/summits";
 import { resendVerification } from "./routes/admin/resendVerification";
 import { requireAuth as authenticateUser, requireAdmin } from "./routes/middleware";
 // Company migration import removed
@@ -125,6 +126,9 @@ export async function registerRoutes(app: Express) {
   app.use("/api/unsplash", unsplashRouter);
   app.use("/api/stripe", stripeRouter);
   app.use("/api/companies", companiesRouter);
+  app.use("/api/summits", summitsRouter);
+  // The 2025 summit moved from its own page to the standard year page
+  app.get("/summit2025", (_req, res) => res.redirect(301, "/summit/2025"));
 
   app.post("/api/webhooks/sendgrid", async (req, res) => {
     const { handleSendGridWebhook } = await import("./routes/sendgridWebhook");
@@ -426,6 +430,7 @@ export async function registerRoutes(app: Express) {
           ctaLink: posts.ctaLink,
           ctaLabel: posts.ctaLabel,
           redirectUrl: posts.redirectUrl,
+          summitId: posts.summitId,
           creatorId: posts.creatorId,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
@@ -434,9 +439,17 @@ export async function registerRoutes(app: Express) {
         .where(sql`${posts.status} = 'published' OR ${posts.status} IS NULL`)
         .orderBy(sql`created_at DESC`);
 
+      // Optional ?summitYear= filter for summit news
+      let scopedPosts = allPosts;
+      if (typeof req.query.summitYear === "string" && req.query.summitYear) {
+        const summitYear = parseInt(req.query.summitYear, 10);
+        const summit = Number.isNaN(summitYear) ? null : await storage.getSummitByYear(summitYear);
+        scopedPosts = summit ? allPosts.filter((post) => post.summitId === summit.id) : [];
+      }
+
       // Fetch creators for all posts
       const postsWithCreators = await Promise.all(
-        allPosts.map(async (post) => {
+        scopedPosts.map(async (post) => {
           const creator = await storage.getUser(post.creatorId);
 
           // Fetch tags for the post
@@ -488,7 +501,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/sponsors", async (req, res) => {
     try {
-      const year = req.query.year ? parseInt(req.query.year as string) : new Date().getFullYear();
+      const year = req.query.year ? parseInt(req.query.year as string) : await storage.getCurrentSummitYear();
       const sponsors = await storage.getSponsors(year);
       res.json({ sponsors });
     } catch (error) {
@@ -767,7 +780,9 @@ export async function registerRoutes(app: Express) {
   // Time Block routes
   app.get("/api/time-blocks", async (req, res) => {
     try {
-      const timeBlocks = await storage.getTimeBlocks();
+      const resolved = await resolveSummitScope(req, res);
+      if (!resolved) return;
+      const timeBlocks = await storage.getTimeBlocks(resolved.scope);
       res.json({ timeBlocks });
     } catch (error) {
       console.error("Failed to fetch time blocks:", error);
@@ -779,10 +794,16 @@ export async function registerRoutes(app: Express) {
     try {
       const timeBlockId = parseInt(req.params.id);
       const timeBlock = await storage.getTimeBlockById(timeBlockId);
-      if (!timeBlock) {
+      const canView = await getSummitVisibility(req);
+      if (!timeBlock || !canView(timeBlock.summitId)) {
         return res.status(404).json({ error: "Time block not found" });
       }
-      res.json({ timeBlock });
+      res.json({
+        timeBlock: {
+          ...timeBlock,
+          presentations: timeBlock.presentations.filter((p) => canView(p.summitId)),
+        },
+      });
     } catch (error) {
       console.error("Failed to fetch time block:", error);
       res.status(500).json({ error: "Failed to fetch time block" });
@@ -799,13 +820,17 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Auto-compute displayOrder as max + 1
-      const existingBlocks = await storage.getTimeBlocks();
+      // New blocks belong to the requested summit, or the current summit by default
+      const summitId = result.data.summitId ?? (await storage.getCurrentSummit({ includeUnpublished: true }))?.id ?? null;
+
+      // Auto-compute displayOrder as max + 1 within the summit
+      const existingBlocks = await storage.getTimeBlocks(summitId ? { summitId } : {});
       const maxDisplayOrder = existingBlocks.reduce((max, block) => 
         Math.max(max, block.displayOrder || 0), 0);
       
       const dataWithOrder = {
         ...result.data,
+        summitId,
         displayOrder: result.data.displayOrder ?? maxDisplayOrder + 1,
       };
       
@@ -877,8 +902,9 @@ export async function registerRoutes(app: Express) {
           continue;
         }
         
-        // Check if any existing time block covers this presentation's time range
+        // Check if any existing time block in the same summit covers this presentation's time range
         let matchingBlock = existingBlocks.find(block => {
+          if (block.summitId !== pres.summitId) return false;
           const blockStart = new Date(block.startTime);
           const blockEnd = new Date(block.endTime);
           return presStartTime >= blockStart && presEndTime <= blockEnd;
@@ -902,6 +928,7 @@ export async function registerRoutes(app: Express) {
             Math.max(max, block.displayOrder || 0), 0);
           
           const newBlock = await storage.createTimeBlock({
+            summitId: pres.summitId,
             title: autoTitle,
             description: null,
             startTime: pres.startTime,
@@ -912,7 +939,7 @@ export async function registerRoutes(app: Express) {
           // Refresh the blocks list to include the new block
           existingBlocks = await storage.getTimeBlocks();
           createdBlocks++;
-          matchingBlock = newBlock;
+          matchingBlock = { ...newBlock, presentations: [] };
         }
         
         // Assign presentation to the block
@@ -936,7 +963,9 @@ export async function registerRoutes(app: Express) {
   // Presentation routes (summit agenda)
   app.get("/api/presentations", async (req, res) => {
     try {
-      const presentations = await storage.getPresentations();
+      const resolved = await resolveSummitScope(req, res);
+      if (!resolved) return;
+      const presentations = await storage.getPresentations(resolved.scope);
       res.json({ presentations });
     } catch (error) {
       console.error("Failed to fetch presentations:", error);
@@ -948,7 +977,8 @@ export async function registerRoutes(app: Express) {
     try {
       const presentationId = parseInt(req.params.id);
       const presentation = await storage.getPresentationById(presentationId);
-      if (!presentation) {
+      const canView = await getSummitVisibility(req);
+      if (!presentation || !canView(presentation.summitId)) {
         return res.status(404).json({ error: "Presentation not found" });
       }
       res.json({ presentation });
@@ -969,10 +999,21 @@ export async function registerRoutes(app: Express) {
       }
       
       let presentationData = result.data;
+
+      // Sessions belong to their time block's summit, else the requested or current summit
+      const parentBlock = presentationData.timeBlockId
+        ? await storage.getTimeBlockById(presentationData.timeBlockId)
+        : null;
+      const summitId =
+        parentBlock?.summitId ??
+        presentationData.summitId ??
+        (await storage.getCurrentSummit({ includeUnpublished: true }))?.id ??
+        null;
+      presentationData = { ...presentationData, summitId };
       
-      // Auto-create or find time block if not provided
+      // Auto-create or find time block (within the same summit) if not provided
       if (!presentationData.timeBlockId) {
-        const timeBlocks = await storage.getTimeBlocks();
+        const timeBlocks = await storage.getTimeBlocks(summitId ? { summitId } : {});
         const presStartTime = new Date(presentationData.startTime);
         const presEndTime = new Date(presentationData.endTime);
         const presDate = presStartTime.toISOString().split('T')[0];
@@ -1000,6 +1041,7 @@ export async function registerRoutes(app: Express) {
           };
           
           const newBlock = await storage.createTimeBlock({
+            summitId,
             title: `${formatTime(presStartTime)} – ${formatTime(presEndTime)}`,
             description: null,
             startTime: presentationData.startTime,
@@ -1028,7 +1070,12 @@ export async function registerRoutes(app: Express) {
           details: result.error.format() 
         });
       }
-      const presentation = await storage.updatePresentation(presentationId, result.data);
+      let updates = result.data;
+      if (updates.timeBlockId) {
+        const block = await storage.getTimeBlockById(updates.timeBlockId);
+        if (block?.summitId) updates = { ...updates, summitId: block.summitId };
+      }
+      const presentation = await storage.updatePresentation(presentationId, updates);
       res.json(presentation);
     } catch (error) {
       console.error("Failed to update presentation:", error);
@@ -1048,9 +1095,16 @@ export async function registerRoutes(app: Express) {
   });
 
   // Speaker routes
+  // Speakers with the summit years/sessions they took part in.
+  // ?year=YYYY limits to that summit's speakers; no year (or "all") returns every speaker.
   app.get("/api/speakers", async (req, res) => {
     try {
-      const speakers = await storage.getSpeakers();
+      const resolved = await resolveSummitScope(req, res);
+      if (!resolved) return;
+      const speakers = await storage.getSpeakersWithSummits({
+        year: resolved.summit?.year,
+        publishedOnly: !resolved.isAdmin,
+      });
       res.json({ speakers });
     } catch (error) {
       console.error("Failed to fetch speakers:", error);
@@ -4792,6 +4846,7 @@ export async function registerRoutes(app: Express) {
           isPinned: posts.isPinned,
           membersOnly: posts.membersOnly,
           status: posts.status,
+          summitId: posts.summitId,
           createdAt: posts.createdAt,
           updatedAt: posts.updatedAt,
           creatorId: posts.creatorId,

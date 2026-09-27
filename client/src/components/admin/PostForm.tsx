@@ -16,6 +16,8 @@ import { X, Check, Loader2, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSummits } from "@/hooks/use-summits";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 export interface PostFormRef {
@@ -41,6 +43,8 @@ export const PostForm = forwardRef<PostFormRef, PostFormProps>(function PostForm
       setTags(defaultValues.tags);
     }
   }, [defaultValues?.tags]);
+
+  const { data: summits = [] } = useSummits();
 
   // Fetch existing tags
   const { data: existingTags } = useQuery<{ tags: { text: string }[] }>({
@@ -252,6 +256,38 @@ export const PostForm = forwardRef<PostFormRef, PostFormProps>(function PostForm
         </div>
 
         <div className="space-y-4 pt-4">
+          {summits.length > 0 && (
+            <FormField
+              control={form.control}
+              name="summitId"
+              render={({ field }) => (
+                <FormItem className="space-y-1">
+                  <FormLabel className="text-sm text-muted-foreground">Summit</FormLabel>
+                  <Select
+                    value={field.value ? String(field.value) : "none"}
+                    onValueChange={(value) => field.onChange(value === "none" ? null : Number(value))}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="border-0 bg-muted/50" data-testid="select-post-summit">
+                        <SelectValue placeholder="Not a summit post" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">Not a summit post</SelectItem>
+                      {summits.map((summit) => (
+                        <SelectItem key={summit.id} value={String(summit.id)}>
+                          {summit.year} Summit{summit.isPublished ? "" : " (draft)"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Shows this post in that year's summit news.</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
           <FormField
             control={form.control}
             name="featuredImage"

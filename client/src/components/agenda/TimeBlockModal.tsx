@@ -31,6 +31,8 @@ interface TimeBlockModalProps {
   timeBlock: TimeBlock | null;
   isOpen: boolean;
   onClose: () => void;
+  /** Summit that newly created blocks belong to (defaults to the current summit server-side) */
+  summitId?: number;
 }
 
 function extractDatePart(dateString: string): string {
@@ -48,7 +50,7 @@ function extractTimePart(dateString: string): string {
   return `${hours}:${minutes}`;
 }
 
-export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalProps) {
+export function TimeBlockModal({ timeBlock, isOpen, onClose, summitId }: TimeBlockModalProps) {
   const { toast } = useToast();
   const isEditing = !!timeBlock && timeBlock.id > 0;
 
@@ -80,7 +82,7 @@ export function TimeBlockModal({ timeBlock, isOpen, onClose }: TimeBlockModalPro
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      return await apiRequest("/api/time-blocks", "POST", data);
+      return await apiRequest("/api/time-blocks", "POST", summitId ? { ...data, summitId } : data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });

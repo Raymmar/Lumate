@@ -374,17 +374,31 @@ export async function fetchEventForOpenGraph(
   }
 }
 
+const DEFAULT_SUMMIT_OG_IMAGE =
+  "https://file-upload.replit.app/api/storage/images%2F1761584634963-Thumbnail-Main.png";
+
 /**
- * Returns static Open Graph data for the Summit page
- * @returns Static Open Graph data for the Summit page
+ * Open Graph data for the summit hub (/summit) or a summit year page (/summit/:year),
+ * built from the summit record. Unpublished summits fall back to generic data.
  */
-export function fetchSummitForOpenGraph(): OpenGraphData {
+export async function fetchSummitForOpenGraph(year: number | null): Promise<OpenGraphData> {
+  const summit = year !== null ? await storage.getSummitByYear(year) : await storage.getCurrentSummit();
+  const visible = summit && summit.isPublished ? summit : null;
+  const path = year !== null ? `/summit/${year}` : "/summit";
+  if (!visible) {
+    return {
+      title: "Sarasota Tech Summit",
+      description: "Florida's premier tech event.",
+      image: DEFAULT_SUMMIT_OG_IMAGE,
+      url: `https://sarasota.tech${path}`,
+    };
+  }
+  const when = visible.dateLabel || visible.startDate || String(visible.year);
   return {
-    title: "Sarasota Tech Summit - Jan 15, 2026",
-    description: "Florida's premier tech event.",
-    image:
-      "https://file-upload.replit.app/api/storage/images%2F1761584634963-Thumbnail-Main.png",
-    url: "https://sarasota.tech/summit",
+    title: `${visible.title} ${visible.year} - ${when}`,
+    description: visible.tagline || "Florida's premier tech event.",
+    image: visible.seoImage || visible.heroImage || DEFAULT_SUMMIT_OG_IMAGE,
+    url: `https://sarasota.tech${path}`,
   };
 }
 

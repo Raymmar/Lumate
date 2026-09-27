@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,15 +20,16 @@ import AdminEventsPage from "@/pages/admin/AdminEventsPage";
 import AdminPeoplePage from "@/pages/admin/AdminPeoplePage";
 import AdminCompaniesPage from "@/pages/admin/AdminCompaniesPage";
 import AdminSponsorsPage from "@/pages/admin/AdminSponsorsPage";
+import AdminSummitsPage from "@/pages/admin/AdminSummitsPage";
 import IndustriesPage from "@/pages/admin/IndustriesPage";
 import RolesPage from "@/pages/admin/RolesPage";
 import BadgesPage from "@/pages/admin/BadgesPage";
 import AdminCouponsPage from "@/pages/admin/AdminCouponsPage";
 import AdminPostsPage from "@/pages/admin/AdminPostsPage";
 import AboutPage from "@/pages/AboutPage";
-import SummitPage from "@/pages/SummitPage";
+import SummitHubPage from "@/pages/SummitHubPage";
+import SummitYearPage from "@/pages/SummitYearPage";
 import SponsorShowcasePage from "@/pages/SponsorShowcasePage";
-import Summit2025Page from "@/pages/Summit2025Page";
 import MembershipsPage from "@/pages/MembershipsPage";
 import NotFound from "@/pages/not-found";
 import SubscriptionSuccessPage from "@/pages/subscription/SuccessPage";
@@ -45,8 +46,11 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/about" component={AboutPage} />
-          <Route path="/summit" component={SummitPage} />
-          <Route path="/summit2025" component={Summit2025Page} />
+          <Route path="/summit" component={SummitHubPage} />
+          <Route path="/summit/:year" component={SummitYearPage} />
+          <Route path="/summit2025">
+            <Redirect to="/summit/2025" replace />
+          </Route>
           <Route path="/news" component={NewsPage} />
           <Route path="/post/:title" component={ArticlePage} />
           <Route path="/event/:title" component={EventPage} />
@@ -70,6 +74,7 @@ function Router() {
           <Route path="/admin/people" component={AdminPeoplePage} />
           <Route path="/admin/companies" component={AdminCompaniesPage} />
           <Route path="/admin/sponsors" component={AdminSponsorsPage} />
+          <Route path="/admin/summits" component={AdminSummitsPage} />
           <Route path="/admin/industries" component={IndustriesPage} />
           <Route path="/admin/badges" component={BadgesPage} />
           <Route path="/admin/roles" component={RolesPage} />

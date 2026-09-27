@@ -5,14 +5,57 @@ import { SpeakerGrid } from "@/components/speakers";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Users, Search } from "lucide-react";
-import { Speaker } from "@shared/schema";
+import type { SpeakerWithSummits } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useCurrentSummit, useSummits } from "@/hooks/use-summits";
+
+const ALL_YEARS = "all";
 
 export default function SpeakersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const { data: summits = [] } = useSummits();
+  const { data: currentSummit, isLoading: currentLoading } = useCurrentSummit();
 
-  const { data, isLoading, error } = useQuery<{ speakers: Speaker[] }>({
-    queryKey: ["/api/speakers"],
+  // Defaults to the current summit's speakers until the visitor picks a year
+  const yearFilter = selectedYear ?? (currentSummit ? String(currentSummit.year) : ALL_YEARS);
+
+  const { data, isLoading: speakersLoading, error } = useQuery<{ speakers: SpeakerWithSummits[] }>({
+    queryKey: yearFilter === ALL_YEARS ? ["/api/speakers"] : ["/api/speakers", { year: yearFilter }],
+    queryFn: async () => {
+      const url = yearFilter === ALL_YEARS ? "/api/speakers" : `/api/speakers?year=${yearFilter}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load speakers");
+      return res.json();
+    },
+    enabled: selectedYear !== null || !currentLoading,
   });
+  const isLoading = speakersLoading || (selectedYear === null && currentLoading);
+
+  const yearSelect = (
+    <Select value={yearFilter} onValueChange={setSelectedYear}>
+      <SelectTrigger
+        className="w-full sm:w-44 bg-white border-0 text-gray-900"
+        data-testid="select-speaker-year"
+      >
+        <SelectValue placeholder="Summit year" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={ALL_YEARS}>All years</SelectItem>
+        {summits.map((summit) => (
+          <SelectItem key={summit.id} value={String(summit.year)}>
+            {summit.year} Summit
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
 
   const speakers = data?.speakers || [];
 
@@ -74,7 +117,7 @@ export default function SpeakersPage() {
     );
   }
 
-  if (speakers.length === 0) {
+  if (speakers.length === 0 && yearFilter === ALL_YEARS) {
     return (
       <DashboardLayout>
         <div className="max-w-7xl mx-auto">
@@ -104,15 +147,18 @@ export default function SpeakersPage() {
             <p className="text-lg text-white/90 mb-8">
               Meet the thought leaders and innovators speaking at our events.
             </p>
-            <div className="w-full max-w-lg mx-auto relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input
-                placeholder="Search speakers..."
-                className="w-full bg-white border-0 focus-visible:ring-primary/70 pl-10 text-gray-900 placeholder:text-gray-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                data-testid="input-search-speakers"
-              />
+            <div className="w-full max-w-lg mx-auto flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Input
+                  placeholder="Search speakers..."
+                  className="w-full bg-white border-0 focus-visible:ring-primary/70 pl-10 text-gray-900 placeholder:text-gray-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  data-testid="input-search-speakers"
+                />
+              </div>
+              {summits.length > 0 && yearSelect}
             </div>
           </div>
         </div>
@@ -120,9 +166,13 @@ export default function SpeakersPage() {
         {filteredSpeakers.length === 0 ? (
           <div className="py-12 text-center">
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium">No speakers match your search</h3>
+            <h3 className="text-lg font-medium">
+              {speakers.length === 0 ? `No speakers for the ${yearFilter} summit yet` : "No speakers match your search"}
+            </h3>
             <p className="text-muted-foreground">
-              Try adjusting your search terms to find what you're looking for.
+              {speakers.length === 0
+                ? "Try another summit year."
+                : "Try adjusting your search terms to find what you're looking for."}
             </p>
           </div>
         ) : (

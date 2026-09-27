@@ -42,11 +42,13 @@ interface PublicPostsTableProps {
   onCreatePost?: () => void;
   onSendNewsletter?: (post: Post) => void;
   filterTags?: string[];
+  /** Only show posts linked to this summit */
+  filterSummitId?: number;
   title?: string;
   maxPosts?: number;
 }
 
-export function PublicPostsTable({ onSelect, onCreatePost, onSendNewsletter, filterTags, title = "Community News", maxPosts }: PublicPostsTableProps) {
+export function PublicPostsTable({ onSelect, onCreatePost, onSendNewsletter, filterTags, filterSummitId, title = "Community News", maxPosts }: PublicPostsTableProps) {
   const [displayCount, setDisplayCount] = useState(5);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -69,6 +71,9 @@ export function PublicPostsTable({ onSelect, onCreatePost, onSendNewsletter, fil
 
   // Filter posts by tags if filterTags is provided
   let filteredPosts = data?.posts || [];
+  if (filterSummitId !== undefined) {
+    filteredPosts = filteredPosts.filter((post) => post.summitId === filterSummitId);
+  }
   if (filterTags && filterTags.length > 0) {
     filteredPosts = filteredPosts.filter((post) =>
       post.tags?.some((tag) => {

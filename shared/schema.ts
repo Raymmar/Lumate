@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, varchar, json, boolean, integer, index } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, json, boolean, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -178,6 +178,101 @@ export const tags = pgTable("tags", {
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 });
 
+// Summit years: one record per annual Sarasota Tech Summit, holding the page details.
+export type SummitGalleryImage = {
+  src: string;
+  alt: string;
+  title?: string;
+  description?: string;
+};
+
+export type SummitHighlight = {
+  title: string;
+  description: string;
+  ctaLabel?: string;
+  ctaUrl?: string;
+};
+
+export type SummitLink = {
+  label: string;
+  url: string;
+};
+
+export const summits = pgTable("summits", {
+  id: serial("id").primaryKey(),
+  year: integer("year").notNull().unique(),
+  title: varchar("title", { length: 255 }).notNull(),
+  tagline: varchar("tagline", { length: 255 }),
+  description: text("description"),
+  startDate: varchar("start_date", { length: 10 }), // YYYY-MM-DD
+  endDate: varchar("end_date", { length: 10 }), // YYYY-MM-DD, optional for multi-day events
+  dateLabel: varchar("date_label", { length: 255 }), // Optional display override, e.g. "January 15th, 2026"
+  venueName: varchar("venue_name", { length: 255 }),
+  venueAddress: varchar("venue_address", { length: 500 }),
+  venueMapUrl: varchar("venue_map_url", { length: 500 }),
+  ticketUrl: varchar("ticket_url", { length: 500 }),
+  photosUrl: varchar("photos_url", { length: 500 }),
+  videoEmbedUrl: varchar("video_embed_url", { length: 500 }),
+  heroImage: varchar("hero_image", { length: 500 }),
+  logoImage: varchar("logo_image", { length: 500 }),
+  dateBlockImage: varchar("date_block_image", { length: 500 }),
+  seoImage: varchar("seo_image", { length: 500 }),
+  presentedByName: varchar("presented_by_name", { length: 255 }),
+  presentedByUrl: varchar("presented_by_url", { length: 500 }),
+  galleryImages: json("gallery_images").$type<SummitGalleryImage[]>().notNull().default([]),
+  highlights: json("highlights").$type<SummitHighlight[]>().notNull().default([]),
+  links: json("links").$type<SummitLink[]>().notNull().default([]),
+  isPublished: boolean("is_published").notNull().default(false),
+  isCurrent: boolean("is_current").notNull().default(false),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("summits_single_current_idx").on(table.isCurrent).where(sql`${table.isCurrent} = true`),
+]);
+
+const summitGalleryImageSchema = z.object({
+  src: z.string().min(1),
+  alt: z.string().default(""),
+  title: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const summitHighlightSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().default(""),
+  ctaLabel: z.string().optional(),
+  ctaUrl: z.string().optional(),
+});
+
+const summitLinkSchema = z.object({
+  label: z.string().min(1),
+  url: z.string().min(1),
+});
+
+const dateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+  .nullable()
+  .optional();
+
+export const insertSummitSchema = createInsertSchema(summits, {
+  year: z.number().int().min(2000).max(2100),
+  title: z.string().min(1, "Title is required"),
+  startDate: dateStringSchema,
+  endDate: dateStringSchema,
+  galleryImages: z.array(summitGalleryImageSchema).optional(),
+  highlights: z.array(summitHighlightSchema).optional(),
+  links: z.array(summitLinkSchema).optional(),
+}).omit({
+  id: true,
+  isCurrent: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Summit = typeof summits.$inferSelect;
+export type InsertSummit = z.infer<typeof insertSummitSchema>;
+
 // Add membersOnly field to posts table definition
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -192,6 +287,7 @@ export const posts = pgTable("posts", {
   isPinned: boolean("is_pinned").notNull().default(false),
   membersOnly: boolean("members_only").notNull().default(false),
   status: varchar("status", { length: 20 }).notNull().default('published'),
+  summitId: integer("summit_id").references(() => summits.id, { onDelete: 'set null' }),
   creatorId: serial("creator_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
@@ -875,6 +971,7 @@ export type InsertAgendaSessionType = z.infer<typeof insertAgendaSessionTypeSche
 // Time Blocks for organizing agenda (contains multiple presentations)
 export const timeBlocks = pgTable("time_blocks", {
   id: serial("id").primaryKey(),
+  summitId: integer("summit_id").references(() => summits.id, { onDelete: 'set null' }),
   title: varchar("title", { length: 255 }),
   description: text("description"),
   startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
@@ -884,6 +981,7 @@ export const timeBlocks = pgTable("time_blocks", {
   updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index("time_blocks_start_time_idx").on(table.startTime),
+  index("time_blocks_summit_idx").on(table.summitId),
 ]);
 
 export const insertTimeBlockSchema = createInsertSchema(timeBlocks).omit({
@@ -899,6 +997,7 @@ export type InsertTimeBlock = z.infer<typeof insertTimeBlockSchema>;
 export const presentations = pgTable("presentations", {
   id: serial("id").primaryKey(),
   timeBlockId: integer("time_block_id").references(() => timeBlocks.id, { onDelete: 'set null' }),
+  summitId: integer("summit_id").references(() => summits.id, { onDelete: 'set null' }),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   startTime: timestamp("start_time", { mode: 'string', withTimezone: true }).notNull(),
@@ -913,6 +1012,7 @@ export const presentations = pgTable("presentations", {
   index("presentations_start_time_idx").on(table.startTime),
   index("presentations_track_idx").on(table.track),
   index("presentations_time_block_idx").on(table.timeBlockId),
+  index("presentations_summit_idx").on(table.summitId),
 ]);
 
 // Speakers for presentations
@@ -973,6 +1073,17 @@ export type InsertPresentationSpeaker = z.infer<typeof insertPresentationSpeaker
 // Extended type for presentations with speakers
 export type PresentationWithSpeakers = Presentation & {
   speakers: (Speaker & { isModerator: boolean; displayOrder: number })[];
+};
+
+// A speaker's participation in one summit year, derived from their assigned sessions
+export type SpeakerSummitParticipation = {
+  year: number;
+  title: string;
+  sessions: { id: number; title: string; isModerator: boolean }[];
+};
+
+export type SpeakerWithSummits = Speaker & {
+  summits: SpeakerSummitParticipation[];
 };
 
 // Extended type for time blocks with presentations
