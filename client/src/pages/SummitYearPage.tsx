@@ -15,6 +15,8 @@ import { SummitLinksCard } from "@/components/summit/SummitLinksCard";
 import { SummitNewsSection } from "@/components/summit/SummitNewsSection";
 import { SummitGalleryCard } from "@/components/summit/SummitGalleryCard";
 import { SummitSpeakersSection } from "@/components/summit/SummitSpeakersSection";
+import { HiddenFromVisitorsNote } from "@/components/summit/HiddenFromVisitorsNote";
+import { useSummitContent } from "@/hooks/use-summit-content";
 
 const DEFAULT_SEO_IMAGE =
   "https://file-upload.replit.app/api/storage/images%2F1761584634963-Thumbnail-Main.png";
@@ -23,11 +25,15 @@ const DEFAULT_SEO_IMAGE =
 export default function SummitYearPage() {
   const params = useParams<{ year: string }>();
   const year = /^\d{4}$/.test(params.year ?? "") ? parseInt(params.year!, 10) : null;
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const isAdmin = user?.isAdmin ?? false;
 
-  const { data: summit, isLoading } = useSummit(year);
+  const { data: summit, isLoading: summitLoading } = useSummit(year);
   const { data: summits = [] } = useSummits();
+  const content = useSummitContent(year, summit?.id);
+
+  // Wait for content checks too, so visitors never see an empty section appear then vanish
+  const isLoading = summitLoading || authLoading || content.isLoading;
 
   if (isLoading) {
     return (
@@ -60,6 +66,13 @@ export default function SummitYearPage() {
   const isActive = summit.isCurrent || !isPast;
   const otherSummits = summits.filter((s) => s.id !== summit.id && s.isPublished);
 
+  // Visitors only see sections with content; admins see every section so they can fill it in
+  const showAgenda = isAdmin || content.hasAgenda;
+  const showNews = isAdmin || content.hasNews;
+  const showSponsors = isAdmin || content.hasSponsors;
+  const hasGallery = (summit.galleryImages?.length ?? 0) > 0 || !!summit.photosUrl;
+  const hasRightColumn = showNews || showSponsors || hasGallery;
+
   return (
     <SummitPageShell>
       <SEO
@@ -84,31 +97,49 @@ export default function SummitYearPage() {
           {summit.isCurrent && <AgendaUpdatesAlert />}
 
           {/* Event Agenda Section */}
-          <div className="mb-12">
-            <AgendaSection isAdmin={isAdmin} summitYear={summit.year} summitId={summit.id} />
-          </div>
+          {showAgenda && (
+            <div className="mb-12">
+              {!content.hasAgenda && <HiddenFromVisitorsNote testId="note-hidden-agenda" />}
+              <AgendaSection isAdmin={isAdmin} summitYear={summit.year} summitId={summit.id} />
+            </div>
+          )}
 
           <SummitSpeakersSection year={summit.year} />
 
           <div className="space-y-6">
-            <div className="grid gap-4 lg:grid-cols-3">
-              {/* Left Sidebar - Event Links */}
-              <div className="lg:col-span-1 space-y-4">
-                <SummitLinksCard summit={summit} otherSummits={otherSummits} showSponsorCta={isActive} />
-              </div>
+            {hasRightColumn ? (
+              <div className="grid gap-4 lg:grid-cols-3">
+                {/* Left Sidebar - Event Links */}
+                <div className="lg:col-span-1 space-y-4">
+                  <SummitLinksCard summit={summit} otherSummits={otherSummits} showSponsorCta={isActive} />
+                </div>
 
-              {/* Right Content - News Feed, Sponsors, and Gallery */}
-              <div className="lg:col-span-2 space-y-4 min-w-0">
-                <SummitNewsSection summit={summit} />
-                <SponsorGrid
-                  year={summit.year}
-                  title={isActive ? "Summit Sponsors" : `${summit.year} Sponsors`}
-                  icon={<Building2 className="h-5 w-5" />}
-                  showBecomeSponsorCTA={isActive}
-                />
-                <SummitGalleryCard images={summit.galleryImages ?? []} photosUrl={summit.photosUrl} />
+                {/* Right Content - News Feed, Sponsors, and Gallery */}
+                <div className="lg:col-span-2 space-y-4 min-w-0">
+                  {showNews && (
+                    <div>
+                      {!content.hasNews && <HiddenFromVisitorsNote testId="note-hidden-news" />}
+                      <SummitNewsSection summit={summit} />
+                    </div>
+                  )}
+                  {showSponsors && (
+                    <div>
+                      {!content.hasSponsors && <HiddenFromVisitorsNote testId="note-hidden-sponsors" />}
+                      <SponsorGrid
+                        year={summit.year}
+                        title={isActive ? "Summit Sponsors" : `${summit.year} Sponsors`}
+                        icon={<Building2 className="h-5 w-5" />}
+                        showBecomeSponsorCTA={isActive}
+                      />
+                    </div>
+                  )}
+                  <SummitGalleryCard images={summit.galleryImages ?? []} photosUrl={summit.photosUrl} />
+                </div>
               </div>
-            </div>
+            ) : (
+              // Nothing to show beside the links, so let them use the full width
+              <SummitLinksCard summit={summit} otherSummits={otherSummits} showSponsorCta={isActive} wide />
+            )}
           </div>
         </PageContainer>
       </div>

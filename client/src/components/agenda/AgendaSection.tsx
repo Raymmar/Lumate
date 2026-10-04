@@ -12,6 +12,7 @@ import { format, parseISO } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { presentationsQueryOptions, timeBlocksQueryOptions } from "./agendaQueries";
 
 interface AgendaSectionProps {
   isAdmin?: boolean;
@@ -21,12 +22,6 @@ interface AgendaSectionProps {
   summitId?: number;
 }
 
-async function fetchAgendaData<T>(path: string, summitYear?: number): Promise<T> {
-  const url = summitYear ? `${path}?year=${summitYear}` : path;
-  const res = await fetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(`Failed to load ${path}`);
-  return res.json();
-}
 
 const SPEAKERS_EXPANDED_KEY = "agenda-speakers-expanded";
 
@@ -71,20 +66,9 @@ export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaS
     return globalSpeakersExpanded;
   };
 
-  const { data: timeBlocksData, isLoading: timeBlocksLoading } = useQuery<{ timeBlocks: TimeBlockWithPresentations[] }>({
-    // Keys keep the base path first so existing ["/api/time-blocks"] invalidations still match
-    queryKey: summitYear ? ["/api/time-blocks", { year: summitYear }] : ["/api/time-blocks"],
-    queryFn: () => fetchAgendaData("/api/time-blocks", summitYear),
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: timeBlocksData, isLoading: timeBlocksLoading } = useQuery(timeBlocksQueryOptions(summitYear));
 
-  const { data: presentationsData, isLoading: presentationsLoading } = useQuery<{ presentations: PresentationWithSpeakers[] }>({
-    queryKey: summitYear ? ["/api/presentations", { year: summitYear }] : ["/api/presentations"],
-    queryFn: () => fetchAgendaData("/api/presentations", summitYear),
-    staleTime: 30000,
-    refetchOnWindowFocus: false,
-  });
+  const { data: presentationsData, isLoading: presentationsLoading } = useQuery(presentationsQueryOptions(summitYear));
 
   const { data: sessionTypesData } = useQuery<{ sessionTypes: AgendaSessionType[] }>({
     queryKey: ["/api/agenda-session-types"],

@@ -10,6 +10,8 @@ interface SummitLinksCardProps {
   /** Other published summit years to link to as archives. */
   otherSummits: Summit[];
   showSponsorCta: boolean;
+  /** Spread links across the full width when the card has the row to itself. */
+  wide?: boolean;
 }
 
 function ExternalLinkButton({ label, href, testId }: { label: string; href: string; testId?: string }) {
@@ -38,7 +40,7 @@ function ExternalLinkButton({ label, href, testId }: { label: string; href: stri
   );
 }
 
-export function SummitLinksCard({ summit, otherSummits, showSponsorCta }: SummitLinksCardProps) {
+export function SummitLinksCard({ summit, otherSummits, showSponsorCta, wide = false }: SummitLinksCardProps) {
   const links = summit.links ?? [];
   const [firstLink, ...restLinks] = links;
 
@@ -48,7 +50,7 @@ export function SummitLinksCard({ summit, otherSummits, showSponsorCta }: Summit
         <CardTitle>Event Links</CardTitle>
       </CardHeader>
       <CardContent className="p-3 md:p-4 pt-4">
-        <div className="flex flex-col gap-3">
+        <div className={wide ? "grid gap-3 sm:grid-cols-2 lg:grid-cols-3" : "flex flex-col gap-3"}>
           {firstLink && <ExternalLinkButton label={firstLink.label} href={firstLink.url} />}
           {showSponsorCta && (
             <a href={generateSponsorInquiryEmail()} className="block">
@@ -80,22 +82,22 @@ export function SummitLinksCard({ summit, otherSummits, showSponsorCta }: Summit
           <Button variant="outline" className="w-full justify-between font-normal hover:bg-muted" asChild>
             <Link href="/about">About Sarasota Tech</Link>
           </Button>
-
-          {summit.videoEmbedUrl && (
-            <div className="mt-4 w-full max-w-full">
-              <div className="relative w-full max-w-full overflow-hidden" style={{ paddingBottom: "56.25%" }}>
-                <iframe
-                  className="absolute top-0 left-0 w-full h-full rounded-lg"
-                  src={summit.videoEmbedUrl}
-                  title={`${summit.title} ${summit.year} video`}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  data-testid="video-youtube-embed"
-                />
-              </div>
-            </div>
-          )}
         </div>
+
+        {summit.videoEmbedUrl && (
+          <div className={wide ? "mt-6 w-full max-w-3xl mx-auto" : "mt-7 w-full max-w-full"}>
+            <div className="relative w-full max-w-full overflow-hidden" style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                className="absolute top-0 left-0 w-full h-full rounded-lg"
+                src={summit.videoEmbedUrl}
+                title={`${summit.title} ${summit.year} video`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                data-testid="video-youtube-embed"
+              />
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
