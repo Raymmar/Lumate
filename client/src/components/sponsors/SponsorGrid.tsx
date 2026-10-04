@@ -5,11 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Sponsor } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+import type { YearSponsor } from "@shared/schema";
 import { SponsorCard } from "./SponsorCard";
-import { SponsorModal } from "./SponsorModal";
+import { SponsorModal, type SponsorDetails } from "./SponsorModal";
+import { AddSponsorToYearDialog, ChangeTierDialog } from "./SponsorYearDialogs";
 import { SPONSOR_TIERS } from "./sponsorConfig";
+import { apiErrorMessage, invalidateSponsorQueries } from "./sponsorApi";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 import { useCurrentSummit } from "@/hooks/use-summits";
 
@@ -22,6 +24,13 @@ interface SponsorGridProps {
   tiers?: string[];
 }
 
+/** What the admin is doing: adding to the year, creating a new sponsor, or editing details. */
+type AdminDialog =
+  | { kind: "add"; presetTier?: string }
+  | { kind: "create"; name: string; tier?: string }
+  | { kind: "edit"; sponsor: SponsorDetails }
+  | null;
+
 export function SponsorGrid({
   year: yearProp,
   title = "Sponsors",
@@ -30,8 +39,8 @@ export function SponsorGrid({
   tiers,
 }: SponsorGridProps) {
   const { toast } = useToast();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingSponsor, setEditingSponsor] = useState<Sponsor | null>(null);
+  const [dialog, setDialog] = useState<AdminDialog>(null);
+  const [changingTier, setChangingTier] = useState<YearSponsor | null>(null);
 
   const { data: user } = useQuery({
     queryKey: ["/api/auth/me"],
@@ -40,27 +49,23 @@ export function SponsorGrid({
   const { data: currentSummit, isLoading: currentSummitLoading } = useCurrentSummit();
   const year = yearProp ?? currentSummit?.year ?? new Date().getFullYear();
 
-  const { data, isLoading: sponsorsLoading } = useQuery<{ sponsors: Sponsor[] }>({
+  const { data, isLoading: sponsorsLoading } = useQuery<{ sponsors: YearSponsor[] }>({
     queryKey: [`/api/sponsors?year=${year}`],
     enabled: yearProp !== undefined || !currentSummitLoading,
   });
   const isLoading = sponsorsLoading || (yearProp === undefined && currentSummitLoading);
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return apiRequest(`/api/sponsors/${id}`, "DELETE");
+  // Removes only this year's sponsorship; the sponsor and its other years stay
+  const removeMutation = useMutation({
+    mutationFn: (sponsor: YearSponsor) => apiRequest(`/api/sponsorships/${sponsor.sponsorshipId}`, "DELETE"),
+    onSuccess: async (_result, sponsor) => {
+      await invalidateSponsorQueries();
+      toast({ title: "Removed", description: `${sponsor.name} removed from ${sponsor.year}` });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/sponsors?year=${year}`] });
-      toast({
-        title: "Success",
-        description: "Sponsor deleted successfully",
-      });
-    },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to delete sponsor",
+        description: apiErrorMessage(error, "Failed to remove sponsor from this year"),
         variant: "destructive",
       });
     },
@@ -69,25 +74,10 @@ export function SponsorGrid({
   const isAdmin = (user as any)?.isAdmin || (user as any)?.is_admin;
   const sponsors = data?.sponsors || [];
 
-  const handleEdit = (sponsor: Sponsor) => {
-    setEditingSponsor(sponsor);
-    setIsModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm("Are you sure you want to delete this sponsor?")) {
-      deleteMutation.mutate(id);
+  const handleRemove = (sponsor: YearSponsor) => {
+    if (window.confirm(`Remove ${sponsor.name} from ${sponsor.year}? Their other years and details are kept.`)) {
+      removeMutation.mutate(sponsor);
     }
-  };
-
-  const handleAddNew = () => {
-    setEditingSponsor(null);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingSponsor(null);
   };
 
   if (isLoading) {
@@ -133,7 +123,7 @@ export function SponsorGrid({
               {isAdmin && (
                 <Button
                   size="sm"
-                  onClick={handleAddNew}
+                  onClick={() => setDialog({ kind: "add" })}
                   data-testid="button-add-sponsor"
                   className="whitespace-nowrap"
                 >
@@ -165,7 +155,7 @@ export function SponsorGrid({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={handleAddNew}
+                        onClick={() => setDialog({ kind: "add", presetTier: tier.key })}
                         className="flex items-center gap-2"
                         data-testid={`button-add-sponsor-${tier.key}`}
                       >
@@ -193,8 +183,10 @@ export function SponsorGrid({
                         key={sponsor.id}
                         sponsor={sponsor}
                         isAdmin={isAdmin}
-                        onEdit={handleEdit}
-                        onDelete={handleDelete}
+                        onEdit={(s) => setDialog({ kind: "edit", sponsor: s })}
+                        onChangeTier={setChangingTier}
+                        onRemove={handleRemove}
+                        removeLabel={`Remove from ${year}`}
                       />
                     ))}
 
@@ -220,12 +212,30 @@ export function SponsorGrid({
         </CardContent>
       </Card>
 
-      {isModalOpen && (
+      {isAdmin && (
+        <>
+          <AddSponsorToYearDialog
+            year={year}
+            open={dialog?.kind === "add"}
+            presetTier={dialog?.kind === "add" ? dialog.presetTier : undefined}
+            onClose={() => setDialog(null)}
+            onCreateNew={(name, tier) => setDialog({ kind: "create", name, tier })}
+          />
+          <ChangeTierDialog sponsorship={changingTier} onClose={() => setChangingTier(null)} />
+        </>
+      )}
+
+      {dialog?.kind === "create" && (
         <SponsorModal
-          sponsor={editingSponsor}
-          onClose={handleCloseModal}
+          sponsor={null}
+          initialName={dialog.name}
           year={year}
+          defaultTier={dialog.tier}
+          onClose={() => setDialog(null)}
         />
+      )}
+      {dialog?.kind === "edit" && (
+        <SponsorModal sponsor={dialog.sponsor} onClose={() => setDialog(null)} />
       )}
     </>
   );

@@ -1,5 +1,5 @@
 import { Calendar, ExternalLink, MapPin } from "lucide-react";
-import type { Summit } from "@shared/schema";
+import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { formatSummitDate } from "@/hooks/use-summits";
 
@@ -11,6 +11,11 @@ interface SummitHeroProps {
 /** Split hero: event imagery on the left, summit details and ticket link on the right. */
 export function SummitHero({ summit, isPast }: SummitHeroProps) {
   const ticketLabel = isPast ? "Event Page" : "Get Tickets";
+  // The linked sponsor's current name and link; the old text fields only when none is linked
+  const sponsor = summit.presentingSponsor;
+  const linked = summit.presentingSponsorId != null;
+  const presenterName = sponsor ? sponsor.name : linked ? null : summit.presentedByName;
+  const presenterUrl = sponsor ? sponsor.url : linked ? null : summit.presentedByUrl;
 
   return (
     <div className="w-full">
@@ -89,15 +94,15 @@ export function SummitHero({ summit, isPast }: SummitHeroProps) {
               </div>
             )}
 
-            {summit.presentedByName && (
-              <p className="text-md text-muted-foreground mt-6">
+            {presenterName && (
+              <p className="text-md text-muted-foreground mt-6" data-testid="summit-presented-by">
                 Presented by{" "}
-                {summit.presentedByUrl ? (
-                  <a href={summit.presentedByUrl} target="_blank" rel="noopener noreferrer">
-                    {summit.presentedByName}
+                {presenterUrl ? (
+                  <a href={presenterUrl} target="_blank" rel="noopener noreferrer">
+                    {presenterName}
                   </a>
                 ) : (
-                  summit.presentedByName
+                  presenterName
                 )}
               </p>
             )}

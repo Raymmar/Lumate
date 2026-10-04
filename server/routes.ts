@@ -48,6 +48,8 @@ import {
   emailEvents,
   badgeRules,
   cacheMetadata,
+  insertSponsorSchema,
+  insertSponsorshipSchema,
 } from "@shared/schema";
 import { z } from "zod";
 import { sendVerificationEmail, sendEventInviteEmail, sendNewsletterEmail, verifyUnsubscribeToken } from "./email";
@@ -499,9 +501,13 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Public: one year's sponsors (global sponsor details + that year's tier)
   app.get("/api/sponsors", async (req, res) => {
     try {
       const year = req.query.year ? parseInt(req.query.year as string) : await storage.getCurrentSummitYear();
+      if (Number.isNaN(year)) {
+        return res.status(400).json({ error: "Invalid year" });
+      }
       const sponsors = await storage.getSponsors(year);
       res.json({ sponsors });
     } catch (error) {
@@ -510,28 +516,84 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin: every sponsor with the years they sponsored and an Active / Past flag
+  app.get("/api/sponsors/all", requireAdmin, async (_req, res) => {
+    try {
+      const [sponsors, currentYear] = await Promise.all([
+        storage.getAllSponsorsWithHistory(),
+        storage.getCurrentSummitYear(),
+      ]);
+      res.json({ sponsors, currentYear });
+    } catch (error) {
+      console.error("Failed to fetch all sponsors:", error);
+      res.status(500).json({ error: "Failed to fetch sponsors" });
+    }
+  });
+
+  // Public: a single sponsor with its most recent tier (used by the SingleSponsor component)
+  app.get("/api/sponsors/:id", async (req, res) => {
+    try {
+      const sponsorId = parseInt(req.params.id);
+      if (Number.isNaN(sponsorId)) {
+        return res.status(400).json({ error: "Invalid sponsor id" });
+      }
+      const sponsor = await storage.getLatestYearSponsor(sponsorId);
+      if (!sponsor) {
+        return res.status(404).json({ error: "Sponsor not found" });
+      }
+      res.json({ sponsor });
+    } catch (error) {
+      console.error("Failed to fetch sponsor:", error);
+      res.status(500).json({ error: "Failed to fetch sponsor" });
+    }
+  });
+
+  // Create a sponsor record; optionally add it to a year in the same request
   app.post("/api/sponsors", requireAdmin, async (req, res) => {
     try {
-      const sponsorData = req.body;
-      const sponsor = await storage.createSponsor(sponsorData);
-      res.json(sponsor);
+      const parsed = insertSponsorSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid sponsor data", details: parsed.error.format() });
+      }
+      let sponsorship: { year: number; tier: string } | null = null;
+      if (req.body.sponsorship) {
+        const parsedSponsorship = insertSponsorshipSchema.omit({ sponsorId: true }).safeParse(req.body.sponsorship);
+        if (!parsedSponsorship.success) {
+          return res.status(400).json({ error: "Invalid sponsorship", details: parsedSponsorship.error.format() });
+        }
+        sponsorship = parsedSponsorship.data;
+      }
+      const sponsor = await storage.createSponsor(parsed.data);
+      const createdSponsorship = sponsorship
+        ? await storage.addSponsorship({ sponsorId: sponsor.id, ...sponsorship })
+        : null;
+      res.status(201).json({ sponsor, sponsorship: createdSponsorship });
     } catch (error) {
       console.error("Failed to create sponsor:", error);
       res.status(500).json({ error: "Failed to create sponsor" });
     }
   });
 
+  // Update a sponsor's global details (applies to every year)
   app.patch("/api/sponsors/:id", requireAdmin, async (req, res) => {
     try {
       const sponsorId = parseInt(req.params.id);
-      const sponsor = await storage.updateSponsor(sponsorId, req.body);
-      res.json(sponsor);
+      const parsed = insertSponsorSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid sponsor data", details: parsed.error.format() });
+      }
+      if (!(await storage.getSponsorById(sponsorId))) {
+        return res.status(404).json({ error: "Sponsor not found" });
+      }
+      const sponsor = await storage.updateSponsor(sponsorId, parsed.data);
+      res.json({ sponsor });
     } catch (error) {
       console.error("Failed to update sponsor:", error);
       res.status(500).json({ error: "Failed to update sponsor" });
     }
   });
 
+  // Soft-delete a sponsor everywhere (all years). To drop one year, remove the sponsorship instead.
   app.delete("/api/sponsors/:id", requireAdmin, async (req, res) => {
     try {
       const sponsorId = parseInt(req.params.id);
@@ -541,6 +603,62 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Failed to delete sponsor:", error);
       res.status(500).json({ error: "Failed to delete sponsor" });
+    }
+  });
+
+  // Add an existing sponsor to a year with a tier
+  app.post("/api/sponsorships", requireAdmin, async (req, res) => {
+    try {
+      const parsed = insertSponsorshipSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid sponsorship", details: parsed.error.format() });
+      }
+      const sponsor = await storage.getSponsorById(parsed.data.sponsorId);
+      if (!sponsor) {
+        return res.status(404).json({ error: "Sponsor not found" });
+      }
+      const sponsorship = await storage.addSponsorship(parsed.data);
+      if (!sponsorship) {
+        return res.status(409).json({ error: `${sponsor.name} is already a ${parsed.data.year} sponsor` });
+      }
+      res.status(201).json({ sponsorship });
+    } catch (error) {
+      console.error("Failed to add sponsorship:", error);
+      res.status(500).json({ error: "Failed to add sponsor to year" });
+    }
+  });
+
+  // Change a sponsor's tier for one year
+  app.patch("/api/sponsorships/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const parsed = insertSponsorshipSchema.pick({ tier: true }).safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid tier", details: parsed.error.format() });
+      }
+      const sponsorship = await storage.updateSponsorshipTier(id, parsed.data.tier);
+      if (!sponsorship) {
+        return res.status(404).json({ error: "Sponsorship not found" });
+      }
+      res.json({ sponsorship });
+    } catch (error) {
+      console.error("Failed to update sponsorship:", error);
+      res.status(500).json({ error: "Failed to update sponsorship" });
+    }
+  });
+
+  // Remove a sponsor from one year only
+  app.delete("/api/sponsorships/:id", requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const removed = await storage.removeSponsorship(id, req.session.userId!);
+      if (!removed) {
+        return res.status(404).json({ error: "Sponsorship not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to remove sponsorship:", error);
+      res.status(500).json({ error: "Failed to remove sponsorship" });
     }
   });
 

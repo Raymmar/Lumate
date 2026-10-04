@@ -5,22 +5,36 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreVertical, Pencil, Trash2 } from "lucide-react";
-import type { Sponsor } from "@shared/schema";
+import { Layers, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import type { YearSponsor } from "@shared/schema";
 
-interface SponsorCardProps {
-  sponsor: Sponsor;
+/** The fields a sponsor card needs; `tier` decides the logo's aspect ratio. */
+export type SponsorCardData = Pick<YearSponsor, "id" | "name" | "logo" | "url" | "logoPadding" | "companyId"> & {
+  tier?: string | null;
+  year?: number;
+  sponsorshipId?: number;
+};
+
+interface SponsorCardProps<T extends SponsorCardData> {
+  sponsor: T;
   isAdmin?: boolean;
-  onEdit?: (sponsor: Sponsor) => void;
-  onDelete?: (id: number) => void;
+  /** Edit the sponsor's global details */
+  onEdit?: (sponsor: T) => void;
+  /** Change this year's tier */
+  onChangeTier?: (sponsor: T) => void;
+  /** Remove this year's sponsorship */
+  onRemove?: (sponsor: T) => void;
+  removeLabel?: string;
 }
 
-export function SponsorCard({
+export function SponsorCard<T extends SponsorCardData>({
   sponsor,
   isAdmin = false,
   onEdit,
-  onDelete,
-}: SponsorCardProps) {
+  onChangeTier,
+  onRemove,
+  removeLabel = "Remove from this year",
+}: SponsorCardProps<T>) {
   return (
     <a
       href={sponsor.url || undefined}
@@ -46,7 +60,7 @@ export function SponsorCard({
           </h4>
         </div>
       </div>
-      {isAdmin && (
+      {isAdmin && (onEdit || onChangeTier || onRemove) && (
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <DropdownMenu>
             <DropdownMenuTrigger
@@ -63,27 +77,43 @@ export function SponsorCard({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  onEdit?.(sponsor);
-                }}
-                data-testid={`button-edit-sponsor-${sponsor.id}`}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  onDelete?.(sponsor.id);
-                }}
-                className="text-destructive"
-                data-testid={`button-delete-sponsor-${sponsor.id}`}
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
+              {onEdit && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onEdit(sponsor);
+                  }}
+                  data-testid={`button-edit-sponsor-${sponsor.id}`}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Edit sponsor details
+                </DropdownMenuItem>
+              )}
+              {onChangeTier && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onChangeTier(sponsor);
+                  }}
+                  data-testid={`button-change-tier-${sponsor.id}`}
+                >
+                  <Layers className="h-4 w-4 mr-2" />
+                  Change tier{sponsor.year ? ` for ${sponsor.year}` : ""}
+                </DropdownMenuItem>
+              )}
+              {onRemove && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onRemove(sponsor);
+                  }}
+                  className="text-destructive"
+                  data-testid={`button-remove-sponsor-${sponsor.id}`}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {removeLabel}
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Plus, Trash2, Loader2 } from "lucide-react";
-import type { Summit, SummitGalleryImage, SummitHighlight, SummitLink } from "@shared/schema";
+import type { SummitWithSponsor as Summit, SummitGalleryImage, SummitHighlight, SummitLink } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { SponsorPicker } from "@/components/sponsors/SponsorPicker";
+import { SponsorModal } from "@/components/sponsors/SponsorModal";
+import { apiErrorMessage } from "@/components/sponsors/sponsorApi";
 
 type TextFields = {
   title: string;
@@ -28,14 +31,12 @@ type TextFields = {
   logoImage: string;
   dateBlockImage: string;
   seoImage: string;
-  presentedByName: string;
-  presentedByUrl: string;
 };
 
 const TEXT_FIELD_KEYS: (keyof TextFields)[] = [
   "title", "tagline", "description", "startDate", "endDate", "dateLabel", "venueName", "venueAddress",
   "venueMapUrl", "ticketUrl", "photosUrl", "videoEmbedUrl", "heroImage", "logoImage", "dateBlockImage",
-  "seoImage", "presentedByName", "presentedByUrl",
+  "seoImage",
 ];
 
 function emptyText(): TextFields {
@@ -63,6 +64,15 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
   const [links, setLinks] = useState<SummitLink[]>([]);
   const [highlights, setHighlights] = useState<SummitHighlight[]>([]);
   const [gallery, setGallery] = useState<SummitGalleryImage[]>([]);
+  const [presentingSponsorId, setPresentingSponsorId] = useState<number | null>(null);
+  // Old free-text "Presented by" (shown only when no sponsor is linked); can be cleared
+  const [legacyPresenterCleared, setLegacyPresenterCleared] = useState(false);
+  const [newSponsorName, setNewSponsorName] = useState<string | null>(null);
+  const initialPresentingSponsorId = summit?.presentingSponsorId ?? null;
+  const legacyPresenter =
+    summit && !summit.presentingSponsorId && summit.presentedByName && !legacyPresenterCleared
+      ? summit.presentedByName
+      : null;
 
   useEffect(() => {
     if (!open) return;
@@ -73,6 +83,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
       setLinks(summit.links ?? []);
       setHighlights(summit.highlights ?? []);
       setGallery(summit.galleryImages ?? []);
+      setPresentingSponsorId(summit.presentingSponsorId ?? null);
     } else {
       setYear(String(suggestedYear));
       setText({ ...emptyText(), title: "Sarasota Tech Summit" });
@@ -80,7 +91,10 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
       setLinks([]);
       setHighlights([]);
       setGallery([]);
+      setPresentingSponsorId(null);
     }
+    setLegacyPresenterCleared(false);
+    setNewSponsorName(null);
   }, [open, summit, suggestedYear]);
 
   const saveMutation = useMutation({
@@ -93,6 +107,12 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
         links: links.filter((l) => l.label.trim() && l.url.trim()),
         highlights: highlights.filter((h) => h.title.trim()),
         galleryImages: gallery.filter((g) => g.src.trim()),
+        // Only send the presenting sponsor when it changed; null also clears the old text fallback
+        ...(presentingSponsorId !== initialPresentingSponsorId
+          ? { presentingSponsorId }
+          : legacyPresenterCleared
+            ? { presentingSponsorId: null }
+            : {}),
       };
       return summit
         ? apiRequest(`/api/summits/${summit.id}`, "PATCH", payload)
@@ -100,11 +120,19 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/summits"] });
+      // Choosing a presenting sponsor may have added them to that year's sponsors
+      queryClient.invalidateQueries({
+        predicate: (query) => String(query.queryKey[0] ?? "").startsWith("/api/sponsors"),
+      });
       toast({ title: summit ? "Summit updated" : "Summit created" });
       onOpenChange(false);
     },
     onError: (error: Error) => {
-      toast({ title: "Couldn't save summit", description: error.message, variant: "destructive" });
+      toast({
+        title: "Couldn't save summit",
+        description: apiErrorMessage(error, "Failed to save summit"),
+        variant: "destructive",
+      });
     },
   });
 
@@ -173,8 +201,39 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             {field("ticketUrl", "Ticket / event link")}
             {field("photosUrl", "Photo album link")}
             {field("videoEmbedUrl", "Video embed URL", { placeholder: "https://www.youtube.com/embed/..." })}
-            {field("presentedByName", "Presented by")}
-            {field("presentedByUrl", "Presenter link")}
+            <div className="space-y-1 sm:col-span-2">
+              <Label htmlFor="summit-presenting-sponsor">Presenting sponsor</Label>
+              <SponsorPicker
+                id="summit-presenting-sponsor"
+                value={presentingSponsorId}
+                onChange={(sponsor) => {
+                  setPresentingSponsorId(sponsor?.id ?? null);
+                  if (!sponsor) setLegacyPresenterCleared(true);
+                }}
+                onCreateNew={(name) => setNewSponsorName(name)}
+                allowClear
+                placeholder="No presenting sponsor"
+              />
+              {legacyPresenter && presentingSponsorId === null ? (
+                <p className="text-xs text-muted-foreground">
+                  Currently shows "{legacyPresenter}" as plain text. Pick a sponsor to link it, or{" "}
+                  <button
+                    type="button"
+                    className="text-destructive hover:underline"
+                    onClick={() => setLegacyPresenterCleared(true)}
+                    data-testid="button-clear-legacy-presenter"
+                  >
+                    remove it
+                  </button>
+                  .
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Shown as "Presented by" with the sponsor's current name and link. They're also added to this
+                  year's sponsors if they aren't already.
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2">
@@ -237,6 +296,14 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
           </DialogFooter>
         </form>
       </DialogContent>
+      {newSponsorName !== null && (
+        <SponsorModal
+          sponsor={null}
+          initialName={newSponsorName}
+          onClose={() => setNewSponsorName(null)}
+          onSaved={(sponsor) => setPresentingSponsorId(sponsor.id)}
+        />
+      )}
     </Dialog>
   );
 }

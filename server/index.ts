@@ -133,6 +133,18 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
   const { runBadgeRulesMigration } = await import("./migrations/badge-rules-migration");
   await runBadgeRulesMigration();
 
+  // Data-only step: legacy per-year sponsor rows -> one sponsor + yearly sponsorships.
+  // Runs before the summit backfill so the backfill finds merged sponsor records.
+  const sponsorshipMigration = await import("./services/sponsorshipMigration");
+  try {
+    const migrated = await sponsorshipMigration.migrateLegacySponsors();
+    if (migrated.legacyRows > 0) {
+      console.log("[Server] Sponsorship migration complete:", migrated);
+    }
+  } catch (error) {
+    console.error("[Server] Sponsorship migration failed (is the sponsorships schema applied?):", error);
+  }
+
   // One-time summit backfill (2025/2026 summit records and year links). Skips once summits exist.
   try {
     const { backfillSummits } = await import("./services/summitBackfill");
@@ -142,6 +154,16 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
     }
   } catch (error) {
     console.error("[Server] Summit backfill failed (is the summits schema applied?):", error);
+  }
+
+  // Link summits' "Presented by" text to the matching sponsor (after summits exist)
+  try {
+    const linkedPresenters = await sponsorshipMigration.linkPresentingSponsors();
+    if (linkedPresenters > 0) {
+      console.log(`[Server] Linked ${linkedPresenters} summit presenting sponsor(s)`);
+    }
+  } catch (error) {
+    console.error("[Server] Linking presenting sponsors failed:", error);
   }
 
   // Initialize Stripe schema and sync

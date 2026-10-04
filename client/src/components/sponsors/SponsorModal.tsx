@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -17,27 +18,48 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import type { Sponsor } from "@shared/schema";
 import { SPONSOR_TIERS } from "./sponsorConfig";
+import { apiErrorMessage, invalidateSponsorQueries } from "./sponsorApi";
+
+/** The global sponsor fields this form edits. */
+export type SponsorDetails = Pick<Sponsor, "id" | "name" | "logo" | "url" | "logoPadding" | "companyId">;
 
 interface SponsorModalProps {
-  sponsor: Sponsor | null;
+  /** Sponsor to edit; null creates a new sponsor. */
+  sponsor: SponsorDetails | null;
   onClose: () => void;
+  /** Name to prefill when creating (e.g. what was typed in the sponsor search) */
+  initialName?: string;
+  /** When creating: also add the new sponsor to this year with the chosen tier */
   year?: number;
+  /** Initial tier for the new sponsor's year */
+  defaultTier?: string;
+  /** Called with the saved sponsor */
+  onSaved?: (sponsor: Sponsor) => void;
 }
 
+/**
+ * Form for a sponsor's global details (name, logo, link, logo padding, company).
+ * Changes apply to every year the sponsor appears in. When creating a sponsor for
+ * a year, a tier picker for that year is shown as well.
+ */
 export function SponsorModal({
   sponsor,
   onClose,
-  year = new Date().getFullYear(),
+  initialName = "",
+  year,
+  defaultTier = "Series A",
+  onSaved,
 }: SponsorModalProps) {
   const { toast } = useToast();
-  const [name, setName] = useState(sponsor?.name || "");
-  const [tier, setTier] = useState(sponsor?.tier || "Series A");
+  const isNew = !sponsor;
+  const showTier = isNew && year !== undefined;
+  const [name, setName] = useState(sponsor?.name || initialName);
+  const [tier, setTier] = useState(defaultTier);
   const [logo, setLogo] = useState(sponsor?.logo || "");
   const [url, setUrl] = useState(sponsor?.url || "");
-  const [sponsorYear, setSponsorYear] = useState(sponsor?.year || year);
   const [companyId, setCompanyId] = useState<number | null>(
     sponsor?.companyId || null,
   );
@@ -65,30 +87,32 @@ export function SponsorModal({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const data = { name, tier, logo, url, year: sponsorYear, companyId, logoPadding };
-
+      const data = { name: name.trim(), logo, url: url.trim() || null, companyId, logoPadding };
       if (sponsor) {
-        return apiRequest(`/api/sponsors/${sponsor.id}`, "PATCH", data);
-      } else {
-        return apiRequest("/api/sponsors", "POST", data);
+        return apiRequest<{ sponsor: Sponsor }>(`/api/sponsors/${sponsor.id}`, "PATCH", data);
       }
+      return apiRequest<{ sponsor: Sponsor }>("/api/sponsors", "POST", {
+        ...data,
+        ...(showTier ? { sponsorship: { year, tier } } : {}),
+      });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/sponsors?year=${sponsorYear}`] });
-      if (sponsor && sponsor.year !== sponsorYear) {
-        queryClient.invalidateQueries({ queryKey: [`/api/sponsors?year=${sponsor.year}`] });
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/sponsors"] });
+    onSuccess: async (result) => {
+      await invalidateSponsorQueries();
       toast({
         title: "Success",
-        description: `Sponsor ${sponsor ? "updated" : "created"} successfully`,
+        description: sponsor
+          ? "Sponsor updated everywhere it appears"
+          : showTier
+            ? `Sponsor created and added to ${year}`
+            : "Sponsor created",
       });
+      onSaved?.(result.sponsor);
       onClose();
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: "Error",
-        description: `Failed to ${sponsor ? "update" : "create"} sponsor`,
+        description: apiErrorMessage(error, `Failed to ${sponsor ? "update" : "create"} sponsor`),
         variant: "destructive",
       });
     },
@@ -137,10 +161,10 @@ export function SponsorModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !tier || !logo) {
+    if (!name.trim() || !logo || (showTier && !tier)) {
       toast({
         title: "Validation Error",
-        description: "Name, tier, and logo are required",
+        description: showTier ? "Name, tier, and logo are required" : "Name and logo are required",
         variant: "destructive",
       });
       return;
@@ -156,6 +180,13 @@ export function SponsorModal({
           <DialogTitle>
             {sponsor ? "Edit Sponsor" : "Add New Sponsor"}
           </DialogTitle>
+          <DialogDescription>
+            {sponsor
+              ? "Changes to the name, logo and link apply to every year this sponsor appears in."
+              : showTier
+                ? `Creates the sponsor once and adds it to ${year}. Reuse it in later years from "Add Sponsor".`
+                : "Creates the sponsor once. Reuse it in any year from \"Add Sponsor\"."}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -174,9 +205,10 @@ export function SponsorModal({
             />
           </div>
 
+          {showTier && (
           <div className="space-y-2">
             <Label htmlFor="sponsor-tier" className="text-sm font-medium">
-              Tier *
+              {year} Tier *
             </Label>
             <Select value={tier} onValueChange={setTier}>
               <SelectTrigger
@@ -194,6 +226,7 @@ export function SponsorModal({
               </SelectContent>
             </Select>
           </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="sponsor-logo" className="text-sm font-medium">
@@ -257,19 +290,6 @@ export function SponsorModal({
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://example.com"
               data-testid="input-sponsor-url"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="sponsor-year" className="text-sm font-medium">
-              Year
-            </Label>
-            <Input
-              id="sponsor-year"
-              type="number"
-              value={sponsorYear}
-              onChange={(e) => setSponsorYear(parseInt(e.target.value))}
-              data-testid="input-sponsor-year"
             />
           </div>
 

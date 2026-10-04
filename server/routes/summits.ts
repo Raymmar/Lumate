@@ -5,6 +5,14 @@ import { requireAdmin } from "./middleware";
 
 const router = Router();
 
+/** Responds 400 and returns false when the presenting sponsor doesn't exist (or was deleted). */
+async function validatePresentingSponsor(res: Response, sponsorId: number | null | undefined): Promise<boolean> {
+  if (sponsorId == null) return true;
+  if (await storage.getSponsorById(sponsorId)) return true;
+  res.status(400).json({ error: "Presenting sponsor not found" });
+  return false;
+}
+
 /** True when the request comes from a signed-in, non-blocked admin. */
 export async function isAdminRequest(req: Request): Promise<boolean> {
   if (!req.session.userId) return false;
@@ -109,6 +117,11 @@ router.post("/", requireAdmin, async (req: Request, res: Response) => {
     if (await storage.getSummitByYear(result.data.year)) {
       return res.status(409).json({ error: `A summit for ${result.data.year} already exists` });
     }
+    if (!(await validatePresentingSponsor(res, result.data.presentingSponsorId))) return;
+    // The presenting sponsor is also a sponsor of that summit's year
+    if (result.data.presentingSponsorId != null) {
+      await storage.ensureSponsorship(result.data.presentingSponsorId, result.data.year);
+    }
     const summit = await storage.createSummit(result.data);
     res.status(201).json({ summit });
   } catch (error) {
@@ -135,7 +148,20 @@ router.patch("/:id", requireAdmin, async (req: Request, res: Response) => {
         return res.status(409).json({ error: `A summit for ${result.data.year} already exists` });
       }
     }
-    const summit = await storage.updateSummit(id, result.data);
+    const data = { ...result.data };
+    if (!(await validatePresentingSponsor(res, data.presentingSponsorId))) return;
+    // Clearing the presenting sponsor also empties the old "Presented by" text fallback
+    if ("presentingSponsorId" in data && data.presentingSponsorId === null) {
+      data.presentedByName = null;
+      data.presentedByUrl = null;
+    }
+    const presentingSponsorId =
+      data.presentingSponsorId !== undefined ? data.presentingSponsorId : existing.presentingSponsorId;
+    const year = data.year ?? existing.year;
+    if (presentingSponsorId != null && (data.presentingSponsorId !== undefined || data.year !== undefined)) {
+      await storage.ensureSponsorship(presentingSponsorId, year);
+    }
+    const summit = await storage.updateSummit(id, data);
     res.json({ summit });
   } catch (error) {
     console.error("Failed to update summit:", error);

@@ -1,4 +1,5 @@
 import { pgTable, text, serial, timestamp, varchar, json, boolean, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
@@ -219,6 +220,8 @@ export const summits = pgTable("summits", {
   seoImage: varchar("seo_image", { length: 500 }),
   presentedByName: varchar("presented_by_name", { length: 255 }),
   presentedByUrl: varchar("presented_by_url", { length: 500 }),
+  // Linked presenting sponsor; the presentedBy* text columns are only a fallback
+  presentingSponsorId: integer("presenting_sponsor_id").references((): AnyPgColumn => sponsors.id, { onDelete: "set null" }),
   galleryImages: json("gallery_images").$type<SummitGalleryImage[]>().notNull().default([]),
   highlights: json("highlights").$type<SummitHighlight[]>().notNull().default([]),
   links: json("links").$type<SummitLink[]>().notNull().default([]),
@@ -272,6 +275,10 @@ export const insertSummitSchema = createInsertSchema(summits, {
 
 export type Summit = typeof summits.$inferSelect;
 export type InsertSummit = z.infer<typeof insertSummitSchema>;
+
+/** The linked presenting sponsor's current details, as included in summit responses. */
+export type SummitPresentingSponsor = { id: number; name: string; url: string | null; logo: string };
+export type SummitWithSponsor = Summit & { presentingSponsor: SummitPresentingSponsor | null };
 
 // Add membersOnly field to posts table definition
 export const posts = pgTable("posts", {
@@ -791,13 +798,16 @@ export type InsertCompanyTag = z.infer<typeof insertCompanyTagSchema>;
 export type CompanyIndustry = typeof companyIndustries.$inferSelect;
 export type InsertCompanyIndustry = z.infer<typeof insertCompanyIndustrySchema>;
 
+// One record per sponsor. Name, logo and link are global: editing them updates every year.
 export const sponsors = pgTable("sponsors", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  tier: varchar("tier", { length: 50 }).notNull(),
+  // Legacy per-year columns: no longer written (tier and year live on sponsorships).
+  // Kept until the sponsorship data has been copied in production, then dropped.
+  tier: varchar("tier", { length: 50 }),
   logo: varchar("logo", { length: 255 }).notNull(),
   url: varchar("url", { length: 255 }),
-  year: integer("year").notNull(),
+  year: integer("year"),
   logoPadding: integer("logo_padding").default(16),
   companyId: integer("company_id").references(() => companies.id),
   deletedAt: timestamp("deleted_at", { mode: 'string', withTimezone: true }),
@@ -808,8 +818,14 @@ export const sponsors = pgTable("sponsors", {
   index("sponsors_active_idx").on(table.companyId, table.year).where(sql`${table.deletedAt} IS NULL`),
 ]);
 
-export const insertSponsorSchema = createInsertSchema(sponsors).omit({
+export const insertSponsorSchema = createInsertSchema(sponsors, {
+  name: z.string().trim().min(1, "Name is required"),
+  logo: z.string().trim().min(1, "Logo is required"),
+  logoPadding: z.number().int().min(0).max(128).nullable().optional(),
+}).omit({
   id: true,
+  tier: true,
+  year: true,
   createdAt: true,
   updatedAt: true,
   deletedAt: true,
@@ -818,6 +834,43 @@ export const insertSponsorSchema = createInsertSchema(sponsors).omit({
 
 export type Sponsor = typeof sponsors.$inferSelect;
 export type InsertSponsor = z.infer<typeof insertSponsorSchema>;
+
+// A sponsor's tier in one summit year. At most one active sponsorship per sponsor per year.
+export const sponsorships = pgTable("sponsorships", {
+  id: serial("id").primaryKey(),
+  sponsorId: integer("sponsor_id").notNull().references(() => sponsors.id),
+  year: integer("year").notNull(),
+  tier: varchar("tier", { length: 50 }).notNull(),
+  deletedAt: timestamp("deleted_at", { mode: 'string', withTimezone: true }),
+  deletedBy: integer("deleted_by").references(() => users.id),
+  createdAt: timestamp("created_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("sponsorships_active_sponsor_year_idx").on(table.sponsorId, table.year).where(sql`${table.deletedAt} IS NULL`),
+  index("sponsorships_active_year_idx").on(table.year).where(sql`${table.deletedAt} IS NULL`),
+]);
+
+export const insertSponsorshipSchema = z.object({
+  sponsorId: z.number().int().positive(),
+  year: z.number().int().min(2000).max(2100),
+  tier: z.string().trim().min(1, "Tier is required").max(50),
+});
+
+export type Sponsorship = typeof sponsorships.$inferSelect;
+export type InsertSponsorship = z.infer<typeof insertSponsorshipSchema>;
+
+/** A sponsor as shown for one year: global details plus that year's tier. */
+export type YearSponsor = Omit<Sponsor, "tier" | "year"> & {
+  tier: string;
+  year: number;
+  sponsorshipId: number;
+};
+
+/** A sponsor with its full sponsorship history (newest year first). */
+export type SponsorWithHistory = Omit<Sponsor, "tier" | "year"> & {
+  sponsorships: { id: number; year: number; tier: string }[];
+  isActive: boolean;
+};
 
 // Email invitations tracking for automated follow-ups
 export const emailInvitations = pgTable("email_invitations", {

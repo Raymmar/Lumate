@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { ArrowRight, Calendar, Loader2, MapPin } from "lucide-react";
-import type { Summit } from "@shared/schema";
+import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

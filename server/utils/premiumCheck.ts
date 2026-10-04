@@ -1,7 +1,7 @@
 import { User } from "@shared/schema";
 import { db } from "../db";
-import { users, events, attendance, sponsors, companyMembers } from "@shared/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { users, events, attendance, sponsors, sponsorships, companyMembers } from "@shared/schema";
+import { eq, and, sql, isNull, desc } from "drizzle-orm";
 
 /**
  * Checks if a user has active premium access from any source
@@ -318,13 +318,16 @@ export async function hasCompanyPremiumAccess(companyId: number): Promise<Compan
     // Check 1: Is the company an active sponsor for the current or next year?
     // We check both because sponsors are often set up in advance for the upcoming year
     const activeSponsor = await db
-      .select()
-      .from(sponsors)
+      .select({ year: sponsorships.year, tier: sponsorships.tier })
+      .from(sponsorships)
+      .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
       .where(and(
         eq(sponsors.companyId, companyId),
-        sql`${sponsors.year} IN (${currentYear}, ${nextYear})`,
-        sql`${sponsors.deletedAt} IS NULL`
+        sql`${sponsorships.year} IN (${currentYear}, ${nextYear})`,
+        isNull(sponsorships.deletedAt),
+        isNull(sponsors.deletedAt)
       ))
+      .orderBy(desc(sponsorships.year))
       .limit(1);
     
     if (activeSponsor.length > 0) {

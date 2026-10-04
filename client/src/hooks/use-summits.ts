@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { Summit } from "@shared/schema";
+import type { SummitWithSponsor as Summit } from "@shared/schema";
 
 export const SUMMITS_QUERY_KEY = ["/api/summits"] as const;
 

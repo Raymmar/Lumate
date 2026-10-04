@@ -75,10 +75,11 @@ export default function SponsorShowcasePage() {
             <div className="bg-muted/50 border border-border rounded-lg p-4 space-y-2">
               <h3 className="font-semibold text-sm">How Multi-Year Sponsorships Work:</h3>
               <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                <li>Each sponsor entry is tied to a specific year</li>
-                <li>If a company sponsors multiple years, create a separate entry for each year</li>
+                <li>Each sponsor exists once, with one name, logo and link used in every year</li>
+                <li>A sponsor's years and tiers are kept as a sponsorship history; reuse an existing sponsor for a new year instead of re-entering it</li>
+                <li>"Add Sponsor" searches all sponsors; pick an existing one to add it to the selected year, or choose "Add new sponsor"</li>
+                <li>Editing a sponsor's logo, name or link updates it on every page, including past years</li>
                 <li>Use the year selector above to view sponsors from different years</li>
-                <li>When adding/editing sponsors, you can set which year they're sponsoring</li>
               </ul>
             </div>
           </div>
@@ -263,10 +264,9 @@ export default function SponsorShowcasePage() {
                   <div className="bg-muted p-3 rounded text-sm space-y-1">
                     <div><strong>Props:</strong></div>
                     <div>• sponsorId: number - The sponsor ID to display (required)</div>
-                    <div>• showAdminControls?: boolean - Show edit/delete (default: true)</div>
+                    <div>• showAdminControls?: boolean - Show admin controls (default: true)</div>
                     <div>• isAdmin?: boolean - Override admin detection</div>
-                    <div>• onEdit?: (sponsor) =&gt; void - Custom edit handler</div>
-                    <div>• onDelete?: (id) =&gt; void - Custom delete handler</div>
+                    <div>• onEdit?: (sponsor) =&gt; void - Edit the sponsor's global details</div>
                   </div>
                 </div>
 
@@ -277,10 +277,11 @@ export default function SponsorShowcasePage() {
                   </p>
                   <div className="bg-muted p-3 rounded text-sm space-y-1">
                     <div><strong>Props:</strong></div>
-                    <div>• sponsor: Sponsor - The sponsor object (required)</div>
+                    <div>• sponsor: YearSponsor - Sponsor details plus that year's tier (required)</div>
                     <div>• isAdmin?: boolean - Show admin controls</div>
-                    <div>• onEdit?: (sponsor) =&gt; void - Edit callback</div>
-                    <div>• onDelete?: (id) =&gt; void - Delete callback</div>
+                    <div>• onEdit?: (sponsor) =&gt; void - Edit global details (all years)</div>
+                    <div>• onChangeTier?: (sponsor) =&gt; void - Change this year's tier</div>
+                    <div>• onRemove?: (sponsor) =&gt; void - Remove from this year only</div>
                   </div>
                 </div>
 

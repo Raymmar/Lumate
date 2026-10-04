@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { CalendarRange, ExternalLink, Pencil, Plus, Star } from "lucide-react";
-import type { Summit } from "@shared/schema";
+import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SummitFormDialog } from "@/components/admin/SummitFormDialog";
 import { Badge } from "@/components/ui/badge";

@@ -7,6 +7,7 @@ import {
   speakers,
   presentationSpeakers,
   sponsors,
+  sponsorships,
   companies,
   posts,
   type Summit,
@@ -290,6 +291,7 @@ export type SummitBackfillResult = {
   created2025Speakers: number;
   reused2025Speakers: number;
   created2025Sponsors: number;
+  created2025Sponsorships: number;
 };
 
 async function ensureSummit(
@@ -394,33 +396,59 @@ async function backfill2025Agenda(tx: Tx, summit: Summit, result: SummitBackfill
   }
 }
 
+/**
+ * Gives each 2025 sponsor a 2025 sponsorship. Reuses the existing sponsor record
+ * (same name, or the record linked to the same-named company) so the sponsor's
+ * current logo and link are shown in every year; only unknown sponsors are created.
+ */
 async function backfill2025Sponsors(tx: Tx, result: SummitBackfillResult) {
   for (const sponsor of SPONSORS_2025) {
-    const lowerName = sponsor.name.toLowerCase();
-    const [existing] = await tx
+    const lowerName = sponsor.name.toLowerCase().trim();
+    const [byName] = await tx
       .select({ id: sponsors.id })
       .from(sponsors)
-      .where(and(eq(sponsors.year, 2025), isNull(sponsors.deletedAt), sql`lower(${sponsors.name}) = ${lowerName}`));
-    if (existing) continue;
-
-    // Reuse a company link from another year's sponsor entry, or an exact company name match
-    const [otherYear] = await tx
-      .select({ companyId: sponsors.companyId })
-      .from(sponsors)
-      .where(and(sql`lower(${sponsors.name}) = ${lowerName}`, sql`${sponsors.companyId} is not null`))
+      .where(and(isNull(sponsors.deletedAt), sql`lower(trim(${sponsors.name})) = ${lowerName}`))
+      .orderBy(sql`coalesce(${sponsors.year}, 0) desc`, sql`${sponsors.id} desc`)
       .limit(1);
-    let companyId = otherYear?.companyId ?? null;
-    if (!companyId) {
+    let sponsorId = byName?.id ?? null;
+
+    let companyId: number | null = null;
+    if (!sponsorId) {
       const [company] = await tx
         .select({ id: companies.id })
         .from(companies)
-        .where(sql`lower(${companies.name}) = ${lowerName}`)
+        .where(sql`lower(trim(${companies.name})) = ${lowerName}`)
         .limit(1);
       companyId = company?.id ?? null;
+      if (companyId) {
+        const [byCompany] = await tx
+          .select({ id: sponsors.id })
+          .from(sponsors)
+          .where(and(isNull(sponsors.deletedAt), eq(sponsors.companyId, companyId)))
+          .orderBy(sql`coalesce(${sponsors.year}, 0) desc`, sql`${sponsors.id} desc`)
+          .limit(1);
+        sponsorId = byCompany?.id ?? null;
+      }
     }
 
-    await tx.insert(sponsors).values({ ...sponsor, year: 2025, companyId });
-    result.created2025Sponsors++;
+    if (!sponsorId) {
+      const [inserted] = await tx
+        .insert(sponsors)
+        .values({ name: sponsor.name, logo: sponsor.logo, url: sponsor.url, companyId })
+        .returning({ id: sponsors.id });
+      sponsorId = inserted.id;
+      result.created2025Sponsors++;
+    }
+
+    const [existing] = await tx
+      .select({ id: sponsorships.id })
+      .from(sponsorships)
+      .where(and(eq(sponsorships.sponsorId, sponsorId), eq(sponsorships.year, 2025)))
+      .limit(1);
+    // Any row, even a removed one, means this was already handled (respect admin removals)
+    if (existing) continue;
+    await tx.insert(sponsorships).values({ sponsorId, year: 2025, tier: sponsor.tier });
+    result.created2025Sponsorships++;
   }
 }
 
@@ -479,6 +507,7 @@ export async function backfillSummits(options: { force?: boolean } = {}): Promis
     created2025Speakers: 0,
     reused2025Speakers: 0,
     created2025Sponsors: 0,
+    created2025Sponsorships: 0,
   };
 
   if (!options.force) {

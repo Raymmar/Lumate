@@ -1,28 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SponsorCard } from "./SponsorCard";
-import type { Sponsor } from "@shared/schema";
+import type { YearSponsor } from "@shared/schema";
 
 interface SingleSponsorProps {
   sponsorId: number;
   isAdmin?: boolean;
-  onEdit?: (sponsor: Sponsor) => void;
-  onDelete?: (id: number) => void;
+  onEdit?: (sponsor: YearSponsor) => void;
   showAdminControls?: boolean;
 }
 
+/** One sponsor's card (global details, sized by their most recent tier). */
 export function SingleSponsor({
   sponsorId,
   isAdmin = false,
   onEdit,
-  onDelete,
   showAdminControls = true,
 }: SingleSponsorProps) {
   const { data: user } = useQuery({
     queryKey: ["/api/auth/me"],
   });
 
-  const { data, isLoading } = useQuery<{ sponsor: Sponsor }>({
+  const { data, isLoading } = useQuery<{ sponsor: YearSponsor }>({
     queryKey: [`/api/sponsors/${sponsorId}`],
   });
 
@@ -41,7 +40,6 @@ export function SingleSponsor({
       sponsor={data.sponsor}
       isAdmin={effectiveIsAdmin}
       onEdit={onEdit}
-      onDelete={onDelete}
     />
   );
 }

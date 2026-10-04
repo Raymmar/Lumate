@@ -17,7 +17,8 @@ import {
   Company, InsertCompany,
   CompanyMember, InsertCompanyMember,
   CompanyTag, InsertCompanyTag,
-  Sponsor, InsertSponsor,
+  Sponsor, InsertSponsor, Sponsorship, InsertSponsorship, YearSponsor, SponsorWithHistory,
+  SummitWithSponsor,
   EmailInvitation, InsertEmailInvitation,
   TimelineEvent, InsertTimelineEvent,
   Coupon, InsertCoupon,
@@ -33,12 +34,12 @@ import {
   Summit, InsertSummit, SpeakerWithSummits, SpeakerSummitParticipation,
   events, people, users, roles, permissions, userRoles, rolePermissions,
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
-  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, emailInvitations, timelineEvents, coupons, autoCouponEvents,
+  badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, sponsorships, emailInvitations, timelineEvents, coupons, autoCouponEvents,
   agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers,
   userBlockEvents, UserBlockEvent, summits
 } from "@shared/schema";
 import { db } from "./db";
-import { sql, eq, and, or, isNull, desc } from "drizzle-orm";
+import { sql, eq, and, or, isNull, desc, inArray } from "drizzle-orm";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import crypto from "crypto";
 
@@ -221,12 +222,21 @@ export interface IStorage {
   getUnclaimedPeople(): Promise<Person[]>;
 
   // Sponsor management
-  getSponsors(year: number): Promise<Sponsor[]>;
+  getSponsors(year: number): Promise<YearSponsor[]>;
   getSponsorById(id: number): Promise<Sponsor | null>;
+  getLatestYearSponsor(id: number): Promise<YearSponsor | null>;
+  getAllSponsorsWithHistory(): Promise<SponsorWithHistory[]>;
   createSponsor(sponsorData: InsertSponsor): Promise<Sponsor>;
-  updateSponsor(sponsorId: number, data: Partial<Sponsor>): Promise<Sponsor>;
+  updateSponsor(sponsorId: number, data: Partial<InsertSponsor>): Promise<Sponsor>;
   deleteSponsor(sponsorId: number, deletedBy: number): Promise<void>;
-  getActiveSponsorByCompanyId(companyId: number): Promise<Sponsor | null>;
+  getSponsorshipById(id: number): Promise<Sponsorship | null>;
+  getActiveSponsorship(sponsorId: number, year: number): Promise<Sponsorship | null>;
+  getLastSponsorshipTier(sponsorId: number): Promise<string | null>;
+  addSponsorship(data: InsertSponsorship): Promise<Sponsorship | null>;
+  ensureSponsorship(sponsorId: number, year: number): Promise<Sponsorship>;
+  updateSponsorshipTier(id: number, tier: string): Promise<Sponsorship | null>;
+  removeSponsorship(id: number, deletedBy: number): Promise<boolean>;
+  getActiveSponsorByCompanyId(companyId: number): Promise<YearSponsor | null>;
   
   // Company premium access
   getCompanyOwner(companyId: number): Promise<User | null>;
@@ -279,13 +289,13 @@ export interface IStorage {
 
   // Time Block management
   // Summit years
-  getSummits(options?: { includeUnpublished?: boolean }): Promise<Summit[]>;
-  getSummitByYear(year: number): Promise<Summit | null>;
-  getSummitById(id: number): Promise<Summit | null>;
-  getCurrentSummit(options?: { includeUnpublished?: boolean }): Promise<Summit | null>;
-  createSummit(data: InsertSummit): Promise<Summit>;
-  updateSummit(id: number, data: Partial<InsertSummit>): Promise<Summit>;
-  setCurrentSummit(id: number): Promise<Summit>;
+  getSummits(options?: { includeUnpublished?: boolean }): Promise<SummitWithSponsor[]>;
+  getSummitByYear(year: number): Promise<SummitWithSponsor | null>;
+  getSummitById(id: number): Promise<SummitWithSponsor | null>;
+  getCurrentSummit(options?: { includeUnpublished?: boolean }): Promise<SummitWithSponsor | null>;
+  createSummit(data: InsertSummit): Promise<SummitWithSponsor>;
+  updateSummit(id: number, data: Partial<InsertSummit>): Promise<SummitWithSponsor>;
+  setCurrentSummit(id: number): Promise<SummitWithSponsor>;
 
   getTimeBlocks(scope?: SummitScope): Promise<TimeBlockWithPresentations[]>;
   getTimeBlockById(id: number): Promise<TimeBlockWithPresentations | null>;
@@ -2660,7 +2670,7 @@ export class PostgresStorage implements IStorage {
         // Only fetch companies that are sponsors for this year, sorted by tier
         // Query companies with sponsor data
         const tierOrderExpr = sql<number>`
-          CASE ${sponsors.tier}
+          CASE ${sponsorships.tier}
             WHEN 'Series A' THEN 0
             WHEN 'Seed' THEN 1
             WHEN 'Angel' THEN 2
@@ -2678,13 +2688,20 @@ export class PostgresStorage implements IStorage {
           .from(companies)
           .innerJoin(sponsors, and(
             eq(sponsors.companyId, companies.id),
-            eq(sponsors.year, sponsorYear),
             isNull(sponsors.deletedAt)
+          ))
+          .innerJoin(sponsorships, and(
+            eq(sponsorships.sponsorId, sponsors.id),
+            eq(sponsorships.year, sponsorYear),
+            isNull(sponsorships.deletedAt)
           ))
           .orderBy(tierOrderExpr, companies.name);
 
-        // Extract just the company objects from the joined result
-        filteredCompanies = result.map(row => row.company);
+        // Extract just the company objects (once each, at their best tier)
+        const seenCompanyIds = new Set<number>();
+        filteredCompanies = result
+          .map(row => row.company)
+          .filter(company => !seenCompanyIds.has(company.id) && Boolean(seenCompanyIds.add(company.id)));
       } else if (filter) {
         // Filter by specific industry
         filteredCompanies = await db
@@ -2703,15 +2720,17 @@ export class PostgresStorage implements IStorage {
       // Query 2: Get sponsor tier counts (aggregate at database level)
       const sponsorTierCountsResult = await db
         .select({
-          tier: sponsors.tier,
+          tier: sponsorships.tier,
           count: sql<number>`COUNT(DISTINCT ${sponsors.companyId})`
         })
-        .from(sponsors)
+        .from(sponsorships)
+        .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
         .where(and(
-          eq(sponsors.year, sponsorYear),
-          sql`${sponsors.deletedAt} IS NULL`
+          eq(sponsorships.year, sponsorYear),
+          isNull(sponsorships.deletedAt),
+          isNull(sponsors.deletedAt)
         ))
-        .groupBy(sponsors.tier);
+        .groupBy(sponsorships.tier);
 
       // Process tier counts to match expected format
       const sponsorTierCounts: Record<string, number> = {};
@@ -2742,10 +2761,12 @@ export class PostgresStorage implements IStorage {
         .select({
           count: sql<number>`COUNT(DISTINCT ${sponsors.companyId})`
         })
-        .from(sponsors)
+        .from(sponsorships)
+        .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
         .where(and(
-          eq(sponsors.year, sponsorYear),
-          sql`${sponsors.deletedAt} IS NULL`
+          eq(sponsorships.year, sponsorYear),
+          isNull(sponsorships.deletedAt),
+          isNull(sponsors.deletedAt)
         ));
 
       const totalSponsorsCount = Number(totalSponsorsResult[0]?.count || 0);
@@ -3114,16 +3135,37 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getSponsors(year: number): Promise<Sponsor[]> {
+  /** Columns of a sponsor joined with one of its sponsorships, in the YearSponsor shape. */
+  private yearSponsorColumns() {
+    return {
+      id: sponsors.id,
+      name: sponsors.name,
+      logo: sponsors.logo,
+      url: sponsors.url,
+      logoPadding: sponsors.logoPadding,
+      companyId: sponsors.companyId,
+      deletedAt: sponsors.deletedAt,
+      deletedBy: sponsors.deletedBy,
+      createdAt: sponsors.createdAt,
+      updatedAt: sponsors.updatedAt,
+      tier: sponsorships.tier,
+      year: sponsorships.year,
+      sponsorshipId: sponsorships.id,
+    };
+  }
+
+  async getSponsors(year: number): Promise<YearSponsor[]> {
     try {
-      const result = await db
-        .select()
-        .from(sponsors)
+      return await db
+        .select(this.yearSponsorColumns())
+        .from(sponsorships)
+        .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
         .where(and(
-          eq(sponsors.year, year),
-          sql`${sponsors.deletedAt} IS NULL`
-        ));
-      return result;
+          eq(sponsorships.year, year),
+          isNull(sponsorships.deletedAt),
+          isNull(sponsors.deletedAt),
+        ))
+        .orderBy(sponsorships.id);
     } catch (error) {
       console.error('Failed to get sponsors:', error);
       throw error;
@@ -3135,13 +3177,54 @@ export class PostgresStorage implements IStorage {
       const result = await db
         .select()
         .from(sponsors)
-        .where(eq(sponsors.id, id))
+        .where(and(eq(sponsors.id, id), isNull(sponsors.deletedAt)))
         .limit(1);
       return result[0] || null;
     } catch (error) {
       console.error('Failed to get sponsor by id:', error);
       throw error;
     }
+  }
+
+  /** A sponsor with its most recent sponsorship's tier and year (null when it has none). */
+  async getLatestYearSponsor(id: number): Promise<YearSponsor | null> {
+    const [row] = await db
+      .select(this.yearSponsorColumns())
+      .from(sponsorships)
+      .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
+      .where(and(eq(sponsors.id, id), isNull(sponsors.deletedAt), isNull(sponsorships.deletedAt)))
+      .orderBy(desc(sponsorships.year))
+      .limit(1);
+    return row || null;
+  }
+
+  async getAllSponsorsWithHistory(): Promise<SponsorWithHistory[]> {
+    const currentYear = await this.getCurrentSummitYear();
+    const sponsorRows = await db
+      .select()
+      .from(sponsors)
+      .where(isNull(sponsors.deletedAt))
+      .orderBy(sponsors.name);
+    const history = await db
+      .select({
+        id: sponsorships.id,
+        sponsorId: sponsorships.sponsorId,
+        year: sponsorships.year,
+        tier: sponsorships.tier,
+      })
+      .from(sponsorships)
+      .where(isNull(sponsorships.deletedAt))
+      .orderBy(desc(sponsorships.year));
+    const bySponsor = new Map<number, { id: number; year: number; tier: string }[]>();
+    for (const row of history) {
+      const list = bySponsor.get(row.sponsorId) ?? [];
+      list.push({ id: row.id, year: row.year, tier: row.tier });
+      bySponsor.set(row.sponsorId, list);
+    }
+    return sponsorRows.map(({ tier: _tier, year: _year, ...sponsor }) => {
+      const list = bySponsor.get(sponsor.id) ?? [];
+      return { ...sponsor, sponsorships: list, isActive: list.some((s) => s.year === currentYear) };
+    });
   }
 
   async createSponsor(sponsorData: InsertSponsor): Promise<Sponsor> {
@@ -3157,12 +3240,12 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async updateSponsor(sponsorId: number, data: Partial<Sponsor>): Promise<Sponsor> {
+  async updateSponsor(sponsorId: number, data: Partial<InsertSponsor>): Promise<Sponsor> {
     try {
       const result = await db
         .update(sponsors)
         .set({ ...data, updatedAt: new Date().toISOString() })
-        .where(eq(sponsors.id, sponsorId))
+        .where(and(eq(sponsors.id, sponsorId), isNull(sponsors.deletedAt)))
         .returning();
       
       if (!result[0]) {
@@ -3176,31 +3259,110 @@ export class PostgresStorage implements IStorage {
     }
   }
 
+  /**
+   * Soft-deletes a sponsor, hiding it everywhere. Summits it presented fall back
+   * to no presenter (their old text is cleared too, so nothing stale is shown).
+   */
   async deleteSponsor(sponsorId: number, deletedBy: number): Promise<void> {
     try {
-      await db
-        .update(sponsors)
-        .set({ 
-          deletedAt: new Date().toISOString(),
-          deletedBy: deletedBy
-        })
-        .where(eq(sponsors.id, sponsorId));
+      await db.transaction(async (tx) => {
+        await tx
+          .update(sponsors)
+          .set({ deletedAt: new Date().toISOString(), deletedBy })
+          .where(eq(sponsors.id, sponsorId));
+        await tx
+          .update(summits)
+          .set({ presentingSponsorId: null, presentedByName: null, presentedByUrl: null, updatedAt: new Date().toISOString() })
+          .where(eq(summits.presentingSponsorId, sponsorId));
+      });
     } catch (error) {
       console.error('Failed to delete sponsor:', error);
       throw error;
     }
   }
 
-  async getActiveSponsorByCompanyId(companyId: number): Promise<Sponsor | null> {
+  async getSponsorshipById(id: number): Promise<Sponsorship | null> {
+    const [row] = await db
+      .select()
+      .from(sponsorships)
+      .where(and(eq(sponsorships.id, id), isNull(sponsorships.deletedAt)))
+      .limit(1);
+    return row || null;
+  }
+
+  async getActiveSponsorship(sponsorId: number, year: number): Promise<Sponsorship | null> {
+    const [row] = await db
+      .select()
+      .from(sponsorships)
+      .where(and(eq(sponsorships.sponsorId, sponsorId), eq(sponsorships.year, year), isNull(sponsorships.deletedAt)))
+      .limit(1);
+    return row || null;
+  }
+
+  /** Tier of the sponsor's most recent sponsorship, or null if it never sponsored. */
+  async getLastSponsorshipTier(sponsorId: number): Promise<string | null> {
+    const [row] = await db
+      .select({ tier: sponsorships.tier })
+      .from(sponsorships)
+      .where(and(eq(sponsorships.sponsorId, sponsorId), isNull(sponsorships.deletedAt)))
+      .orderBy(desc(sponsorships.year))
+      .limit(1);
+    return row?.tier ?? null;
+  }
+
+  /** Adds a sponsor to a year. Returns null when it already sponsors that year. */
+  async addSponsorship(data: InsertSponsorship): Promise<Sponsorship | null> {
+    if (await this.getActiveSponsorship(data.sponsorId, data.year)) return null;
+    try {
+      const [row] = await db.insert(sponsorships).values(data).returning();
+      return row;
+    } catch (error: any) {
+      // Unique index on (sponsor, year) for active rows: lost a race with another add
+      if (error?.code === '23505') return null;
+      throw error;
+    }
+  }
+
+  /** Ensures the sponsor has a sponsorship in `year`, defaulting to their last tier. */
+  async ensureSponsorship(sponsorId: number, year: number): Promise<Sponsorship> {
+    const existing = await this.getActiveSponsorship(sponsorId, year);
+    if (existing) return existing;
+    const tier = (await this.getLastSponsorshipTier(sponsorId)) ?? 'Series A';
+    const created = await this.addSponsorship({ sponsorId, year, tier });
+    return created ?? (await this.getActiveSponsorship(sponsorId, year))!;
+  }
+
+  async updateSponsorshipTier(id: number, tier: string): Promise<Sponsorship | null> {
+    const [row] = await db
+      .update(sponsorships)
+      .set({ tier, updatedAt: new Date().toISOString() })
+      .where(and(eq(sponsorships.id, id), isNull(sponsorships.deletedAt)))
+      .returning();
+    return row || null;
+  }
+
+  /** Removes one year's sponsorship; the sponsor and its other years are untouched. */
+  async removeSponsorship(id: number, deletedBy: number): Promise<boolean> {
+    const rows = await db
+      .update(sponsorships)
+      .set({ deletedAt: new Date().toISOString(), deletedBy, updatedAt: new Date().toISOString() })
+      .where(and(eq(sponsorships.id, id), isNull(sponsorships.deletedAt)))
+      .returning({ id: sponsorships.id });
+    return rows.length > 0;
+  }
+
+  async getActiveSponsorByCompanyId(companyId: number): Promise<YearSponsor | null> {
     try {
       const currentYear = await this.getCurrentSummitYear();
       const result = await db
-        .select()
-        .from(sponsors)
+        .select(this.yearSponsorColumns())
+        .from(sponsorships)
+        .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
         .where(and(
           eq(sponsors.companyId, companyId),
-          eq(sponsors.year, currentYear),
-          sql`${sponsors.deletedAt} IS NULL`
+          eq(sponsorships.year, currentYear),
+          isNull(sponsorships.deletedAt),
+          isNull(sponsors.deletedAt),
         ))
         .limit(1);
       return result[0] || null;
@@ -4711,27 +4873,49 @@ export class PostgresStorage implements IStorage {
   }
 
   // Summit years
-  async getSummits(options: { includeUnpublished?: boolean } = {}): Promise<Summit[]> {
+  /** Adds the linked presenting sponsor's current name, link and logo (hidden if deleted). */
+  private async withPresentingSponsor(rows: Summit[]): Promise<SummitWithSponsor[]> {
+    const ids = Array.from(new Set(rows.map((r) => r.presentingSponsorId).filter((id): id is number => id != null)));
+    const found = ids.length
+      ? await db
+          .select({ id: sponsors.id, name: sponsors.name, url: sponsors.url, logo: sponsors.logo })
+          .from(sponsors)
+          .where(and(inArray(sponsors.id, ids), isNull(sponsors.deletedAt)))
+      : [];
+    const byId = new Map(found.map((s) => [s.id, s]));
+    return rows.map((row) => ({
+      ...row,
+      presentingSponsor: row.presentingSponsorId != null ? byId.get(row.presentingSponsorId) ?? null : null,
+    }));
+  }
+
+  private async oneWithPresentingSponsor(row: Summit | undefined | null): Promise<SummitWithSponsor | null> {
+    if (!row) return null;
+    const [withSponsor] = await this.withPresentingSponsor([row]);
+    return withSponsor;
+  }
+
+  async getSummits(options: { includeUnpublished?: boolean } = {}): Promise<SummitWithSponsor[]> {
     const query = db.select().from(summits);
     const rows = options.includeUnpublished
       ? await query.orderBy(desc(summits.year))
       : await query.where(eq(summits.isPublished, true)).orderBy(desc(summits.year));
-    return rows;
+    return this.withPresentingSponsor(rows);
   }
 
-  async getSummitByYear(year: number): Promise<Summit | null> {
+  async getSummitByYear(year: number): Promise<SummitWithSponsor | null> {
     const [row] = await db.select().from(summits).where(eq(summits.year, year)).limit(1);
-    return row || null;
+    return this.oneWithPresentingSponsor(row);
   }
 
-  async getSummitById(id: number): Promise<Summit | null> {
+  async getSummitById(id: number): Promise<SummitWithSponsor | null> {
     const [row] = await db.select().from(summits).where(eq(summits.id, id)).limit(1);
-    return row || null;
+    return this.oneWithPresentingSponsor(row);
   }
 
-  async getCurrentSummit(options: { includeUnpublished?: boolean } = {}): Promise<Summit | null> {
+  async getCurrentSummit(options: { includeUnpublished?: boolean } = {}): Promise<SummitWithSponsor | null> {
     const [flagged] = await db.select().from(summits).where(eq(summits.isCurrent, true)).limit(1);
-    if (flagged && (flagged.isPublished || options.includeUnpublished)) return flagged;
+    if (flagged && (flagged.isPublished || options.includeUnpublished)) return this.oneWithPresentingSponsor(flagged);
     // Fall back to the most recent published summit when the flagged one is still a draft
     const [latest] = await db
       .select()
@@ -4739,26 +4923,26 @@ export class PostgresStorage implements IStorage {
       .where(eq(summits.isPublished, true))
       .orderBy(desc(summits.year))
       .limit(1);
-    return latest || null;
+    return this.oneWithPresentingSponsor(latest);
   }
 
-  async createSummit(data: InsertSummit): Promise<Summit> {
+  async createSummit(data: InsertSummit): Promise<SummitWithSponsor> {
     const [row] = await db.insert(summits).values(data).returning();
-    return row;
+    return (await this.oneWithPresentingSponsor(row))!;
   }
 
-  async updateSummit(id: number, data: Partial<InsertSummit>): Promise<Summit> {
+  async updateSummit(id: number, data: Partial<InsertSummit>): Promise<SummitWithSponsor> {
     const [row] = await db
       .update(summits)
       .set({ ...data, updatedAt: new Date().toISOString() })
       .where(eq(summits.id, id))
       .returning();
     if (!row) throw new Error('Summit not found');
-    return row;
+    return (await this.oneWithPresentingSponsor(row))!;
   }
 
-  async setCurrentSummit(id: number): Promise<Summit> {
-    return await db.transaction(async (tx) => {
+  async setCurrentSummit(id: number): Promise<SummitWithSponsor> {
+    const row = await db.transaction(async (tx) => {
       await tx.update(summits).set({ isCurrent: false }).where(eq(summits.isCurrent, true));
       const [row] = await tx
         .update(summits)
@@ -4768,6 +4952,7 @@ export class PostgresStorage implements IStorage {
       if (!row) throw new Error('Summit not found');
       return row;
     });
+    return (await this.oneWithPresentingSponsor(row))!;
   }
 
   async getSpeakerById(id: number): Promise<Speaker | null> {

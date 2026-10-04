@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { CARD_OVERLAYS, getDefaultOverlay, type CardOverlay } from "@/config/cardOverlays";
 import { SPONSOR_TIERS } from "@/components/sponsors/sponsorConfig";
-import type { Speaker, Sponsor } from "@shared/schema";
+import type { Speaker, YearSponsor as Sponsor } from "@shared/schema";
 
 const CANVAS_SIZE = 1080;
 const USER_IMAGE_SIZE = CANVAS_SIZE * 0.6;

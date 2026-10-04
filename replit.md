@@ -6,6 +6,13 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### October 4, 2026 - Global Sponsors with Yearly Sponsorships
+- **Model**: `sponsors` is one record per sponsor (name, logo, url, logo padding, linked company; IDs preserved). Years and tiers live in the new `sponsorships` table (one active row per sponsor per year). No per-year logo by design: editing a sponsor updates every year.
+- **Legacy columns**: `sponsors.year` / `sponsors.tier` are nullable and no longer written. They stay until production has run the conversion; drop them in a separate, later change.
+- **Startup data step** (`server/services/sponsorshipMigration.ts`): converts legacy per-year rows into sponsorships, merges duplicates (same company, else same name) into the most recent year's record, and links each summit's presenting sponsor from its "Presented by" text. Idempotent; data only, no DDL.
+- **API**: `GET /api/sponsors?year=` (year's sponsors with tier), `GET /api/sponsors/all` (admin; history + Active/Past), sponsor CRUD on `/api/sponsors`, and `POST/PATCH/DELETE /api/sponsorships` for adding to a year, changing tier, and removing from one year. Summits have `presentingSponsorId`; choosing one also adds them to that year.
+- **Admin UI**: Sponsors page has a year view and an "All sponsors" view; a shared `SponsorPicker` is used for "Add sponsor" and the summit "Presenting sponsor" field.
+
 ### September 27, 2026 - Yearly Summit Hub and Archive
 - **Routes**: `/summit` is now a hub (featured current summit + archive of other years). `/summit/:year` is one data-driven page per year. `/summit2025` 301-redirects to `/summit/2025` (server) with a client-side fallback redirect. Admin screen at `/admin/summits` creates/edits years, publishes/unpublishes, and sets the current summit.
 - **Schema**: New `summits` table (one row per year; `is_published`, `is_current` with a partial unique index so only one summit is current). Nullable `summit_id` added to `posts`, `time_blocks`, and `presentations`. Speakers stay one profile per person; the years they spoke are derived from their sessions.
