@@ -22,8 +22,8 @@ export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHero
   return (
     <div className="w-full">
       <div className="grid lg:grid-cols-2 min-h-[50vh] lg:min-h-[600px]" style={{ minHeight: "max(50vh, 500px)" }}>
-        {/* Left Side - Full Background Image */}
-        <div className="relative min-h-[50vh] lg:min-h-[70vh] bg-muted" style={{ minHeight: "max(50vh, 500px)" }}>
+        {/* Transparent image container with corners matching the hero image. */}
+        <div className="relative min-h-[50vh] lg:min-h-[70vh] rounded-r-lg" style={{ minHeight: "max(50vh, 500px)" }}>
           {summit.heroImage && (
             <img
               src={summit.heroImage}
