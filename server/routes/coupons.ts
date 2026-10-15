@@ -7,6 +7,7 @@ import { requireAdmin, requireAuth } from "./middleware";
 import { lumaApiRequest } from "../routes";
 import { z } from "zod";
 import { issueMemberCoupon, getEventByApiId, previewCouponBackfill, runRuleBackfill } from "../services/memberCoupons";
+import { couponSideEffectsEnabled, COUPONS_DISABLED_MESSAGE } from "../services/couponSideEffects";
 
 const router = Router();
 
@@ -94,6 +95,9 @@ router.get("/api/admin/coupons", requireAdmin, async (req, res) => {
 });
 
 router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
+  if (!couponSideEffectsEnabled()) {
+    return res.status(403).json({ error: COUPONS_DISABLED_MESSAGE });
+  }
   try {
     const adminUserId = req.session!.userId!;
     const validatedData = generateCouponsSchema.parse(req.body);
@@ -611,6 +615,10 @@ router.put("/api/admin/auto-coupons/:eventApiId", requireAdmin, async (req, res)
     if (!data.isActive) {
       const rule = existing ? await storage.updateAutoCouponEvent(existing.id, { isActive: false }) : null;
       return res.json({ rule, backfill: null });
+    }
+
+    if (!couponSideEffectsEnabled()) {
+      return res.status(403).json({ error: COUPONS_DISABLED_MESSAGE });
     }
 
     const event = await getEventByApiId(eventApiId);

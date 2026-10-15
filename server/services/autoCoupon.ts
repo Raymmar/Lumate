@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { getEventByApiId, issueMemberCoupon, specFromRule } from "./memberCoupons";
+import { couponSideEffectsEnabled, COUPONS_DISABLED_MESSAGE } from "./couponSideEffects";
 
 export class AutoCouponService {
   /**
@@ -17,6 +18,11 @@ export class AutoCouponService {
       couponsCreated: 0,
       errors: [] as string[],
     };
+
+    if (!couponSideEffectsEnabled()) {
+      console.log(`[AutoCoupon] ${COUPONS_DISABLED_MESSAGE}`);
+      return results;
+    }
 
     console.log(`[AutoCoupon] Checking auto-coupon events for new subscriber: ${userEmail} (user ${userId})`);
 

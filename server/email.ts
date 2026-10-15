@@ -3,6 +3,7 @@ import { createHmac } from 'crypto';
 import { db } from './db';
 import { sql } from 'drizzle-orm';
 import { isBlockedEmail } from './blockedEmails';
+import { assertCouponSideEffectsEnabled } from './services/couponSideEffects';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
@@ -406,6 +407,7 @@ export async function sendCouponNotificationEmail(
     expirationDate?: string;
   }
 ): Promise<boolean> {
+  assertCouponSideEffectsEnabled();
   try {
     if (!(await canSendTo(email))) return false;
     console.log('Sending coupon notification email to:', email, 'for event:', couponInfo.eventTitle);

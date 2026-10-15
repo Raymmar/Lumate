@@ -5,6 +5,7 @@ import { storage } from "../storage";
 import { sendCouponNotificationEmail } from "../email";
 import { lumaApiRequest } from "./lumaHelpers";
 import { fetchAllLumaCouponsForEvent } from "./couponSyncService";
+import { assertCouponSideEffectsEnabled } from "./couponSideEffects";
 import {
   couponsMissingLuma,
   runCouponBackfill,
@@ -59,6 +60,7 @@ async function createLumaCoupon(fields: {
   validStartAt?: string | null;
   validEndAt?: string | null;
 }): Promise<string | null> {
+  assertCouponSideEffectsEnabled();
   const payload: Record<string, unknown> = {
     code: fields.code,
     event_api_id: fields.eventApiId,
@@ -123,6 +125,7 @@ export async function issueMemberCoupon(
   spec: CouponSpec,
   recipient: CouponRecipientInfo,
 ): Promise<{ status: "created"; coupon: Coupon } | { status: "skipped" }> {
+  assertCouponSideEffectsEnabled();
   const email = recipient.email.trim();
   return withAdvisoryLock(`coupon:${spec.eventApiId}:${email.toLowerCase()}`, async () => {
     if (await findExistingCoupon(spec.eventApiId, { email, userId: recipient.userId })) {
@@ -234,6 +237,7 @@ export async function previewCouponBackfill(eventApiId: string) {
 
 /** Sends a rule's coupon to every active Premium member who is missing one, and repairs missing Luma coupons. */
 export async function runRuleBackfill(rule: AutoCouponEvent, event: Event, adminUserId: number): Promise<BackfillResult> {
+  assertCouponSideEffectsEnabled();
   const spec = specFromRule(rule, event, adminUserId);
   let lumaCodes: Map<string, string> | null = null;
 
