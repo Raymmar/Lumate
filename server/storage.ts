@@ -4191,13 +4191,16 @@ export class PostgresStorage implements IStorage {
 
   async getCouponsByUser(userId: number, userEmail: string): Promise<Coupon[]> {
     try {
+      const normalizedEmail = userEmail.trim().toLowerCase();
       const result = await db
         .select()
         .from(coupons)
         .where(
           or(
             eq(coupons.recipientUserId, userId),
-            eq(coupons.recipientEmail, userEmail)
+            normalizedEmail
+              ? sql`lower(${coupons.recipientEmail}) = ${normalizedEmail}`
+              : undefined
           )
         )
         .orderBy(sql`${coupons.createdAt} DESC`);
