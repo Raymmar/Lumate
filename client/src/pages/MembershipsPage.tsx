@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Briefcase, UserCircle2, Building2, Sparkles } from "lucide-react";
+import { Check, Briefcase, UserCircle2, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscription } from "@/hooks/use-subscription";
 import { useAuth } from "@/hooks/use-auth";
@@ -126,22 +126,6 @@ export default function MembershipsPage() {
         accent: true,
       },
     },
-    {
-      name: "Growth",
-      price: "Custom",
-      description: "Enhanced features for larger organizations",
-      icon: <Building2 className="h-6 w-6" />,
-      features: [
-        { text: "Everything in Pro plan", included: true },
-        { text: "Link multiple member profiles", included: true },
-        { text: "Featured placement in directory", included: true },
-        { text: "Corporate sponsorship recognition", included: true },
-      ],
-      cta: {
-        text: "Contact Us",
-        action: handleSponsorInquiry,
-      },
-    },
   ];
 
   return (
@@ -176,7 +160,7 @@ export default function MembershipsPage() {
             )}
 
             {/* Pricing Plans */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-8">
               {pricingPlans.map((plan) => (
                 <Card
                   key={plan.name}
@@ -258,16 +242,17 @@ export default function MembershipsPage() {
               ))}
             </div>
 
-            {/* Corporate sponsorship */}
+            {/* Growth sponsorship */}
             <Card className="bg-muted/50 mt-8">
               <CardContent className="p-8">
                 <div className="flex flex-col md:flex-row gap-8 items-center">
                   <div className="flex-1">
-                    <h2 className="text-2xl font-bold mb-3">Corporate Sponsorship</h2>
+                    <h2 className="text-2xl font-bold mb-3">Growth Sponsorship</h2>
+                    <p className="text-lg font-semibold mb-3">Custom pricing</p>
                     <p className="text-muted-foreground mb-4">
                       Support the Sarasota tech community while gaining visibility for your brand. 
-                      Our corporate sponsors receive exclusive benefits including premium placement 
-                      in our directory, recognition at all events, and opportunities to engage
+                      Enhanced features for larger organizations combine Premium membership benefits
+                      with corporate sponsorship recognition at all events and opportunities to engage
                       directly with the local tech ecosystem.
                     </p>
                     <Button onClick={handleSponsorInquiry}>
@@ -280,7 +265,19 @@ export default function MembershipsPage() {
                       <ul className="space-y-2">
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-primary" />
+                          <span>Everything in Premium</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-primary" />
+                          <span>Link multiple member profiles</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-primary" />
                           <span>Featured placement in directory</span>
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-primary" />
+                          <span>Corporate sponsorship recognition at all events</span>
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-primary" />
