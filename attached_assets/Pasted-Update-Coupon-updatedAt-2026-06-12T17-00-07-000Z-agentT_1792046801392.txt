@@ -1,0 +1,4421 @@
+Update Coupon
+
+---
+updatedAt: 2026-06-12T17:00:07.000Z
+agentTools:
+  projectIndex: https://docs.luma.com/llms.txt
+---
+
+# Update Coupon
+
+# OpenAPI definition
+
+```json
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Luma API",
+    "version": "1.0.0",
+    "description": "API for interacting with Luma's event platform.\n\n## Rate Limits\n\nThe Luma API uses a per-minute rate limit shared across `GET` and `POST` requests:\n\n- **Calendar API keys** and OAuth tokens: **200 requests/minute** per calendar.\n- **Organization API keys**: **500 requests/minute** per organization.\n\nWhen you exceed the limit the API returns `429 Too Many Requests`. Back off before retrying.",
+    "contact": {
+      "name": "Luma Support",
+      "url": "https://help.luma.com"
+    },
+    "license": {
+      "name": "Proprietary"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://public-api.luma.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Events"
+    },
+    {
+      "name": "Webhook Types"
+    }
+  ],
+  "paths": {
+    "/v1/events/coupons/update": {
+      "post": {
+        "tags": [
+          "Events"
+        ],
+        "summary": "Update Coupon",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "event_id": {
+                    "type": "string",
+                    "description": "Event ID, this usually starts with evt-"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "remaining_count": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "valid_start_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "valid_end_at": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "event_id",
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Empty response",
+                  "properties": {},
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-luma-api-key",
+        "description": "API key to authenticate requests to the Luma API. Generate an API key on your Luma dashboard."
+      }
+    },
+    "schemas": {
+      "Address": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string"
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "city_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "full_address": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "google_maps_place_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "apple_maps_place_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "address",
+          "city",
+          "region",
+          "country",
+          "city_state",
+          "full_address",
+          "google_maps_place_id",
+          "apple_maps_place_id",
+          "description"
+        ]
+      },
+      "Calendar": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "launch_status": {
+            "type": "string",
+            "enum": [
+              "launched",
+              "coming-soon",
+              "archived"
+            ],
+            "description": "Calendar status: launched means Active; coming-soon shows a placeholder page; archived stops new follows and visitor event submissions."
+          },
+          "tint_color": {
+            "anyOf": [
+              {
+                "description": "A hex color like '#bb2dc7'. Shorthand (#rgb) is expanded and alpha channels (#rgba, #rrggbbaa) are stripped.",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "social_image_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_image_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_personal": {
+            "type": "boolean"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "city": {
+                    "type": "string",
+                    "description": "City name, e.g. 'New York'."
+                  },
+                  "region": {
+                    "description": "State or province, e.g. 'New York' or 'California'.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "country": {
+                    "description": "Country name, e.g. 'United States'. Null for cities in disputed territories where Google omits the country.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "country_code": {
+                    "description": "ISO 3166-1 alpha-2 country code, e.g. 'US'.",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "timezone": {
+                    "type": "string",
+                    "description": "IANA timezone of the city, e.g. 'America/New_York'."
+                  }
+                },
+                "required": [
+                  "city",
+                  "region",
+                  "country",
+                  "country_code",
+                  "timezone"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "City the calendar is based in (e.g. for city calendars). Null when the calendar isn't tied to a place."
+          },
+          "coordinate": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "longitude": {
+                    "type": "number"
+                  },
+                  "latitude": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "longitude",
+                  "latitude"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latitude and longitude of the calendar's primary location (e.g. city calendars). Null when the calendar isn't tied to a place."
+          },
+          "instagram_handle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "twitter_handle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "youtube_handle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tiktok_handle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "linkedin_handle": {
+            "description": "LinkedIn path, e.g. '/company/luma' or '/in/username'.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "launch_status",
+          "tint_color",
+          "name",
+          "slug",
+          "avatar_url",
+          "url",
+          "description",
+          "social_image_url",
+          "cover_image_url",
+          "is_personal",
+          "location",
+          "coordinate",
+          "instagram_handle",
+          "twitter_handle",
+          "youtube_handle",
+          "tiktok_handle",
+          "linkedin_handle",
+          "website"
+        ]
+      },
+      "Currency": {
+        "type": "string",
+        "enum": [
+          "solana_sol",
+          "solana_usdc",
+          "aed",
+          "afn",
+          "all",
+          "amd",
+          "ang",
+          "aoa",
+          "ars",
+          "aud",
+          "awg",
+          "azn",
+          "bam",
+          "bbd",
+          "bdt",
+          "bgn",
+          "bhd",
+          "bif",
+          "bmd",
+          "bnd",
+          "bob",
+          "brl",
+          "bsd",
+          "bwp",
+          "byn",
+          "bzd",
+          "cad",
+          "cdf",
+          "chf",
+          "clp",
+          "cny",
+          "cop",
+          "crc",
+          "cve",
+          "czk",
+          "djf",
+          "dkk",
+          "dop",
+          "dzd",
+          "egp",
+          "etb",
+          "eur",
+          "fjd",
+          "fkp",
+          "gbp",
+          "gel",
+          "ghs",
+          "gip",
+          "gmd",
+          "gnf",
+          "gtq",
+          "gyd",
+          "hkd",
+          "hnl",
+          "htg",
+          "huf",
+          "idr",
+          "ils",
+          "inr",
+          "isk",
+          "jmd",
+          "jod",
+          "jpy",
+          "kes",
+          "kgs",
+          "khr",
+          "kmf",
+          "krw",
+          "kwd",
+          "kyd",
+          "kzt",
+          "lak",
+          "lbp",
+          "lkr",
+          "lrd",
+          "lsl",
+          "mad",
+          "mdl",
+          "mga",
+          "mkd",
+          "mmk",
+          "mnt",
+          "mop",
+          "mur",
+          "mvr",
+          "mwk",
+          "mxn",
+          "myr",
+          "mzn",
+          "nad",
+          "ngn",
+          "nio",
+          "nok",
+          "npr",
+          "nzd",
+          "omr",
+          "pab",
+          "pen",
+          "pgk",
+          "php",
+          "pkr",
+          "pln",
+          "pyg",
+          "qar",
+          "ron",
+          "rsd",
+          "rub",
+          "rwf",
+          "sar",
+          "sbd",
+          "scr",
+          "sek",
+          "sgd",
+          "shp",
+          "sle",
+          "sos",
+          "srd",
+          "std",
+          "szl",
+          "thb",
+          "tjs",
+          "tnd",
+          "top",
+          "try",
+          "ttd",
+          "twd",
+          "tzs",
+          "uah",
+          "ugx",
+          "usd",
+          "uyu",
+          "uzs",
+          "vnd",
+          "vuv",
+          "wst",
+          "xaf",
+          "xcd",
+          "xof",
+          "xpf",
+          "yer",
+          "zar",
+          "zmw"
+        ]
+      },
+      "EventTicket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "amount_discount": {
+            "type": "number"
+          },
+          "amount_tax": {
+            "type": "number"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Currency"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checked_in_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event_ticket_type_id": {
+            "type": "string"
+          },
+          "is_captured": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "amount_discount",
+          "amount_tax",
+          "currency",
+          "checked_in_at",
+          "event_ticket_type_id",
+          "is_captured",
+          "name"
+        ]
+      },
+      "EventTicketLegacy": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "amount_discount": {
+            "type": "number"
+          },
+          "amount_tax": {
+            "type": "number"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Currency"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "checked_in_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "event_ticket_type_id": {
+            "type": "string"
+          },
+          "is_captured": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "api_id": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Use `id` instead."
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "amount_discount",
+          "amount_tax",
+          "currency",
+          "checked_in_at",
+          "event_ticket_type_id",
+          "is_captured",
+          "name",
+          "api_id"
+        ]
+      },
+      "EventTicketOrderLegacy": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "amount_discount": {
+            "type": "number"
+          },
+          "amount_tax": {
+            "type": "number"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Currency"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coupon_info": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "api_id": {
+                    "type": "string"
+                  },
+                  "percent_off": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "cents_off": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "currency": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/Currency"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "code": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "api_id",
+                  "percent_off",
+                  "cents_off",
+                  "currency",
+                  "code"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The coupon that was applied to this ticket order, if any."
+          },
+          "is_captured": {
+            "type": "boolean"
+          },
+          "amount_refunded": {
+            "type": "number",
+            "description": "Total amount refunded on this order so far, in minor units of `currency`. Includes partial refunds; `amount - amount_refunded` is the amount kept."
+          },
+          "api_id": {
+            "type": "string",
+            "deprecated": true,
+            "description": "Use `id` instead."
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "amount_discount",
+          "amount_tax",
+          "currency",
+          "coupon_info",
+          "is_captured",
+          "amount_refunded",
+          "api_id"
+        ]
+      },
+      "PublicUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar_url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "avatar_url"
+        ]
+      },
+      "RegistrationQuestion": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "agree-check"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "company"
+              },
+              "collect_job_title": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "job_title_label": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "github"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "instagram"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "linkedin"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "phone-number"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "select"
+              },
+              "options": {
+                "maxItems": 250,
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "multiple": {
+                "description": "When true, guests can pick more than one option.",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type",
+              "options"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "telegram"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "text"
+              },
+              "multiline": {
+                "description": "When true, guests get a multi-line text area.",
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "twitter"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "url"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "source": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar"
+                  },
+                  "calendar_api_id": {
+                    "type": "string"
+                  },
+                  "question_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "type",
+                  "calendar_api_id",
+                  "question_id"
+                ]
+              },
+              "question_type": {
+                "type": "string",
+                "const": "youtube"
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "question_type": {
+                "type": "string",
+                "const": "terms"
+              },
+              "terms": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "content_type": {
+                        "type": "string",
+                        "const": "text"
+                      },
+                      "content_md": {
+                        "type": "string",
+                        "description": "Markdown content for the terms. Luma converts this to rich text internally."
+                      },
+                      "collect_signature": {
+                        "type": "boolean"
+                      },
+                      "require_review": {
+                        "description": "When true, guests must open the hosted terms before accepting.",
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "content_type",
+                      "content_md",
+                      "collect_signature"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "content_type": {
+                        "type": "string",
+                        "const": "link"
+                      },
+                      "url": {
+                        "type": "string",
+                        "format": "uri"
+                      },
+                      "collect_signature": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "content_type",
+                      "url",
+                      "collect_signature"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "required",
+              "question_type",
+              "terms"
+            ]
+          }
+        ]
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar_url": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "first_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "avatar_url",
+          "email",
+          "first_name",
+          "last_name"
+        ]
+      },
+      "WebhookCalendarEvent": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string",
+                "const": "luma"
+              },
+              "id": {
+                "type": "string",
+                "description": "The event ID"
+              },
+              "api_id": {
+                "description": "Deprecated, use id instead",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "cover_url": {
+                "type": "string"
+              },
+              "start_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              "end_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "calendar": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Calendar"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The event's owning calendar."
+              },
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicUser"
+                }
+              }
+            },
+            "required": [
+              "platform",
+              "id",
+              "name",
+              "url",
+              "cover_url",
+              "start_at",
+              "end_at",
+              "timezone",
+              "calendar",
+              "hosts"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string",
+                "const": "external"
+              },
+              "id": {
+                "type": "string",
+                "description": "The calendar event ID"
+              },
+              "api_id": {
+                "description": "Deprecated, use id instead",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "start_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              "end_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "timezone": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "host_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "platform",
+              "id",
+              "name",
+              "url",
+              "start_at",
+              "end_at",
+              "timezone",
+              "host_name"
+            ]
+          }
+        ]
+      },
+      "WebhookCalendarEventSubmission": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string",
+                "const": "luma"
+              },
+              "id": {
+                "type": "string",
+                "description": "The event ID"
+              },
+              "api_id": {
+                "description": "Deprecated, use id instead",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "cover_url": {
+                "type": "string"
+              },
+              "start_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              "end_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "calendar": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/Calendar"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The event's owning calendar."
+              },
+              "hosts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PublicUser"
+                }
+              },
+              "submitted_to_calendar": {
+                "description": "The calendar the event was submitted to. With an organization API key, pass its `id` as the `x-luma-calendar-id` header when approving or rejecting the submission.",
+                "$ref": "#/components/schemas/Calendar"
+              }
+            },
+            "required": [
+              "platform",
+              "id",
+              "name",
+              "url",
+              "cover_url",
+              "start_at",
+              "end_at",
+              "timezone",
+              "calendar",
+              "hosts",
+              "submitted_to_calendar"
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "platform": {
+                "type": "string",
+                "const": "external"
+              },
+              "id": {
+                "type": "string",
+                "description": "The calendar event ID"
+              },
+              "api_id": {
+                "description": "Deprecated, use id instead",
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "start_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              "end_at": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "timezone": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "host_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "submitted_to_calendar": {
+                "description": "The calendar the event was submitted to. With an organization API key, pass its `id` as the `x-luma-calendar-id` header when approving or rejecting the submission.",
+                "$ref": "#/components/schemas/Calendar"
+              }
+            },
+            "required": [
+              "platform",
+              "id",
+              "name",
+              "url",
+              "start_at",
+              "end_at",
+              "timezone",
+              "host_name",
+              "submitted_to_calendar"
+            ]
+          }
+        ]
+      },
+      "WebhookCalendarPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+          },
+          "event_approved_count": {
+            "type": "number"
+          },
+          "event_checked_in_count": {
+            "type": "number"
+          },
+          "revenue_usd_cents": {
+            "type": "number"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            }
+          },
+          "membership": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "pending",
+                      "approved-pending-payment",
+                      "declined"
+                    ]
+                  },
+                  "calendar_membership_tier_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "registration_answers": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "boolean"
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "agree-check"
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": "object",
+                              "properties": {
+                                "company": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "job_title": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "company"
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "phone-number"
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "select"
+                            },
+                            "multiple": {
+                              "anyOf": [
+                                {
+                                  "type": "boolean",
+                                  "const": false
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "select"
+                            },
+                            "multiple": {
+                              "type": "boolean",
+                              "const": true
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type",
+                            "multiple"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "anyOf": [
+                                {
+                                  "anyOf": [
+                                    {
+                                      "type": "string"
+                                    },
+                                    {
+                                      "type": "boolean",
+                                      "const": true
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "terms"
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "question_type": {
+                              "anyOf": [
+                                {
+                                  "type": "string",
+                                  "const": "github"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "instagram"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "linkedin"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "telegram"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "text"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "twitter"
+                                },
+                                {
+                                  "type": "string",
+                                  "const": "youtube"
+                                }
+                              ]
+                            },
+                            "multiline": {
+                              "type": [
+                                "boolean",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "label": {
+                              "type": "string"
+                            },
+                            "question_id": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "question_type": {
+                              "type": "string",
+                              "const": "url"
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "question_id",
+                            "value",
+                            "question_type"
+                          ]
+                        }
+                      ]
+                    },
+                    "description": "The member’s answers to the tier’s registration questions."
+                  }
+                },
+                "required": [
+                  "status",
+                  "calendar_membership_tier_id",
+                  "registration_answers"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "email": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "event_approved_count",
+          "event_checked_in_count",
+          "revenue_usd_cents",
+          "tags",
+          "membership",
+          "email",
+          "user"
+        ]
+      },
+      "WebhookEvent": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "const": "luma"
+          },
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "calendar_id": {
+            "type": "string"
+          },
+          "start_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+          },
+          "duration_interval": {
+            "type": "string",
+            "description": "ISO 8601 Duration. For example, PT2H"
+          },
+          "end_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "IANA Timezone, e.g. America/New_York. https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+          },
+          "name": {
+            "type": "string"
+          },
+          "geo_address_json": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "coordinate": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "longitude": {
+                    "type": "number"
+                  },
+                  "latitude": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "longitude",
+                  "latitude"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latitude and longitude of the event location. Null for online events or when the address can't be geocoded."
+          },
+          "meeting_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location_type": {
+            "type": "string",
+            "enum": [
+              "discord",
+              "meet",
+              "twitch",
+              "twitter",
+              "youtube",
+              "zoom",
+              "offline",
+              "missing",
+              "unknown"
+            ],
+            "description": "`offline` for in-person events. Online events have the meeting platform (`zoom`, `meet`, etc.), or `unknown` if we don't recognize the meeting link. `missing` if the event has no location set."
+          },
+          "location_visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "guests-only"
+            ],
+            "description": "Whether the event's address is shown to everyone or only to approved guests. Events you manage always return the full address."
+          },
+          "cover_url": {
+            "type": "string"
+          },
+          "registration_questions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegistrationQuestion"
+            }
+          },
+          "url": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "members-only",
+              "private"
+            ]
+          },
+          "waitlist_status": {
+            "type": "string",
+            "enum": [
+              "disabled",
+              "enabled"
+            ],
+            "description": "`enabled` if the event has a waitlist. New registrations join the waitlist once the event reaches capacity."
+          },
+          "registration_open": {
+            "type": "boolean",
+            "description": "Whether the host is accepting registrations. When `false`, registration is closed and new guests can't sign up. Independent of capacity — a sold-out event with `waitlist_status` disabled still reports `true`."
+          },
+          "require_approval": {
+            "type": "boolean",
+            "description": "`true` if registering requires host approval — i.e. any currently available ticket has approval turned on."
+          },
+          "max_capacity": {
+            "description": "The maximum number of approved tickets allowed across all ticket types, as configured by the host. Null when the event has no capacity limit (individual ticket types may still be capped). `spots_remaining` reports how many are left.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "can_register_for_multiple_tickets": {
+            "type": "boolean",
+            "description": "Whether a guest can register for multiple tickets in one registration (Group Registration). When `true`, each ticket counts toward `max_capacity`."
+          },
+          "spots_remaining": {
+            "description": "Spots left before the event hits its max capacity. Null when the event has no capacity limit (even if individual ticket types are capped). Refreshed by a background job, so this can lag a few seconds behind registrations.",
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "display_price": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "description": "Starting (lowest) ticket price in the currency's minor unit (e.g. cents for USD), tax included."
+                  },
+                  "currency": {
+                    "description": "Lowercase ISO 4217 currency code, e.g. `usd`.",
+                    "$ref": "#/components/schemas/Currency"
+                  },
+                  "is_flexible": {
+                    "type": "boolean",
+                    "description": "`true` for pay-what-you-want pricing — `amount` is the suggested price and guests can pay more."
+                  }
+                },
+                "required": [
+                  "amount",
+                  "currency",
+                  "is_flexible"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The starting ticket price shown on the event card. Null when registration is free — or, rarely, when nothing is currently purchasable (e.g. all paid tickets have expired). Refreshed by a background job, so this can lag a few seconds behind ticket changes."
+          },
+          "feedback_email": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether to send the feedback email."
+              },
+              "delay": {
+                "description": "How long after the event ends to send the feedback email. Defaults to PT0M (immediately). Maximum is P30D. A negative duration (e.g. -PT30M) sends it before the event ends — at most P1D before, and never before the event starts.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "description": "Settings for the post-event feedback email sent to guests."
+          },
+          "description": {
+            "type": "string"
+          },
+          "description_md": {
+            "type": "string"
+          },
+          "geo_latitude": {
+            "deprecated": true,
+            "description": "Use `coordinate.latitude` instead.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "geo_longitude": {
+            "deprecated": true,
+            "description": "Use `coordinate.longitude` instead.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "platform",
+          "id",
+          "user_id",
+          "calendar_id",
+          "start_at",
+          "duration_interval",
+          "end_at",
+          "created_at",
+          "timezone",
+          "name",
+          "geo_address_json",
+          "coordinate",
+          "meeting_url",
+          "location_type",
+          "location_visibility",
+          "cover_url",
+          "url",
+          "visibility",
+          "waitlist_status",
+          "registration_open",
+          "require_approval",
+          "max_capacity",
+          "can_register_for_multiple_tickets",
+          "spots_remaining",
+          "display_price",
+          "feedback_email",
+          "description",
+          "description_md",
+          "geo_latitude",
+          "geo_longitude",
+          "tags"
+        ]
+      },
+      "WebhookEventTicket": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_email": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_first_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_last_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approval_status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "session",
+              "pending_approval",
+              "invited",
+              "declined",
+              "waitlist"
+            ]
+          },
+          "check_in_qr_code": {
+            "type": "string"
+          },
+          "eth_address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest was invited to the event. Null if they registered on their own."
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest first clicked the virtual join link (luma.com/join/...). Only set for online events. Null if the guest has not joined."
+          },
+          "phone_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest registered for the event."
+          },
+          "registration_answers": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "boolean"
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "agree-check"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "object",
+                          "properties": {
+                            "company": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "job_title": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "company"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "phone-number"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "select"
+                        },
+                        "multiple": {
+                          "anyOf": [
+                            {
+                              "type": "boolean",
+                              "const": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "select"
+                        },
+                        "multiple": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type",
+                        "multiple"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "boolean",
+                                  "const": true
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "terms"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": "github"
+                            },
+                            {
+                              "type": "string",
+                              "const": "instagram"
+                            },
+                            {
+                              "type": "string",
+                              "const": "linkedin"
+                            },
+                            {
+                              "type": "string",
+                              "const": "telegram"
+                            },
+                            {
+                              "type": "string",
+                              "const": "text"
+                            },
+                            {
+                              "type": "string",
+                              "const": "twitter"
+                            },
+                            {
+                              "type": "string",
+                              "const": "youtube"
+                            }
+                          ]
+                        },
+                        "multiline": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "url"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "solana_address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[5KL1-9A-HJ-NP-Za-km-z]{32,44}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "utm_source": {
+            "description": "The UTM source parameter captured when the guest registered (from the `?utm_source=` query parameter).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attribution_params": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "enum": [
+                    "utm_source",
+                    "utm_medium",
+                    "utm_campaign",
+                    "utm_term",
+                    "utm_content",
+                    "fbclid",
+                    "gclid",
+                    "wbraid",
+                    "gbraid",
+                    "twclid",
+                    "li_fat_id",
+                    "ttclid",
+                    "rdt_cid",
+                    "yclid"
+                  ]
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Marketing parameters captured from the URL when the guest registered: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, and ad click IDs such as `gclid` or `fbclid`. Only parameters present on the URL are included. Null when none were captured."
+          },
+          "event_tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTicketLegacy"
+            }
+          },
+          "custom_source": {
+            "deprecated": true,
+            "description": "Use `utm_source` instead.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_ticket_orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTicketOrderLegacy"
+            },
+            "description": "Detailed ticket orders for this guest. Use this to inspect applied coupon_info per order."
+          },
+          "event": {
+            "$ref": "#/components/schemas/WebhookEvent"
+          },
+          "event_ticket": {
+            "$ref": "#/components/schemas/EventTicket"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "user_email",
+          "user_name",
+          "user_first_name",
+          "user_last_name",
+          "approval_status",
+          "check_in_qr_code",
+          "eth_address",
+          "invited_at",
+          "joined_at",
+          "phone_number",
+          "registered_at",
+          "registration_answers",
+          "solana_address",
+          "utm_source",
+          "attribution_params",
+          "event_tickets",
+          "custom_source",
+          "event_ticket_orders",
+          "event",
+          "event_ticket"
+        ]
+      },
+      "WebhookGuest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_email": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_first_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_last_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approval_status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "session",
+              "pending_approval",
+              "invited",
+              "declined",
+              "waitlist"
+            ]
+          },
+          "check_in_qr_code": {
+            "type": "string"
+          },
+          "eth_address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest was invited to the event. Null if they registered on their own."
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest first clicked the virtual join link (luma.com/join/...). Only set for online events. Null if the guest has not joined."
+          },
+          "phone_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest registered for the event."
+          },
+          "registration_answers": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "boolean"
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "agree-check"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "object",
+                          "properties": {
+                            "company": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "job_title": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "company"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "phone-number"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "select"
+                        },
+                        "multiple": {
+                          "anyOf": [
+                            {
+                              "type": "boolean",
+                              "const": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "select"
+                        },
+                        "multiple": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type",
+                        "multiple"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "boolean",
+                                  "const": true
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "terms"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": "github"
+                            },
+                            {
+                              "type": "string",
+                              "const": "instagram"
+                            },
+                            {
+                              "type": "string",
+                              "const": "linkedin"
+                            },
+                            {
+                              "type": "string",
+                              "const": "telegram"
+                            },
+                            {
+                              "type": "string",
+                              "const": "text"
+                            },
+                            {
+                              "type": "string",
+                              "const": "twitter"
+                            },
+                            {
+                              "type": "string",
+                              "const": "youtube"
+                            }
+                          ]
+                        },
+                        "multiline": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "url"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "solana_address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[5KL1-9A-HJ-NP-Za-km-z]{32,44}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "utm_source": {
+            "description": "The UTM source parameter captured when the guest registered (from the `?utm_source=` query parameter).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attribution_params": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "enum": [
+                    "utm_source",
+                    "utm_medium",
+                    "utm_campaign",
+                    "utm_term",
+                    "utm_content",
+                    "fbclid",
+                    "gclid",
+                    "wbraid",
+                    "gbraid",
+                    "twclid",
+                    "li_fat_id",
+                    "ttclid",
+                    "rdt_cid",
+                    "yclid"
+                  ]
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Marketing parameters captured from the URL when the guest registered: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, and ad click IDs such as `gclid` or `fbclid`. Only parameters present on the URL are included. Null when none were captured."
+          },
+          "event_tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTicketLegacy"
+            }
+          },
+          "custom_source": {
+            "deprecated": true,
+            "description": "Use `utm_source` instead.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_ticket_orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTicketOrderLegacy"
+            },
+            "description": "Detailed ticket orders for this guest. Use this to inspect applied coupon_info per order."
+          },
+          "event": {
+            "$ref": "#/components/schemas/WebhookEvent"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "user_email",
+          "user_name",
+          "user_first_name",
+          "user_last_name",
+          "approval_status",
+          "check_in_qr_code",
+          "eth_address",
+          "invited_at",
+          "joined_at",
+          "phone_number",
+          "registered_at",
+          "registration_answers",
+          "solana_address",
+          "utm_source",
+          "attribution_params",
+          "event_tickets",
+          "custom_source",
+          "event_ticket_orders",
+          "event"
+        ]
+      },
+      "WebhookGuestRefunded": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "user_email": {
+            "type": "string"
+          },
+          "user_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_first_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_last_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "approval_status": {
+            "type": "string",
+            "enum": [
+              "approved",
+              "session",
+              "pending_approval",
+              "invited",
+              "declined",
+              "waitlist"
+            ]
+          },
+          "check_in_qr_code": {
+            "type": "string"
+          },
+          "eth_address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "invited_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest was invited to the event. Null if they registered on their own."
+          },
+          "joined_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest first clicked the virtual join link (luma.com/join/...). Only set for online events. Null if the guest has not joined."
+          },
+          "phone_number": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "registered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 Datetime. For example, 2022-10-19T03:27:13.673Z"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the guest registered for the event."
+          },
+          "registration_answers": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "boolean"
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "agree-check"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "object",
+                          "properties": {
+                            "company": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "job_title": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          }
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "company"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "phone-number"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "select"
+                        },
+                        "multiple": {
+                          "anyOf": [
+                            {
+                              "type": "boolean",
+                              "const": false
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "select"
+                        },
+                        "multiple": {
+                          "type": "boolean",
+                          "const": true
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type",
+                        "multiple"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "anyOf": [
+                            {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "boolean",
+                                  "const": true
+                                }
+                              ]
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "terms"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "anyOf": [
+                            {
+                              "type": "string",
+                              "const": "github"
+                            },
+                            {
+                              "type": "string",
+                              "const": "instagram"
+                            },
+                            {
+                              "type": "string",
+                              "const": "linkedin"
+                            },
+                            {
+                              "type": "string",
+                              "const": "telegram"
+                            },
+                            {
+                              "type": "string",
+                              "const": "text"
+                            },
+                            {
+                              "type": "string",
+                              "const": "twitter"
+                            },
+                            {
+                              "type": "string",
+                              "const": "youtube"
+                            }
+                          ]
+                        },
+                        "multiline": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "question_id": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "question_type": {
+                          "type": "string",
+                          "const": "url"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "question_id",
+                        "value",
+                        "question_type"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "solana_address": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[5KL1-9A-HJ-NP-Za-km-z]{32,44}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "utm_source": {
+            "description": "The UTM source parameter captured when the guest registered (from the `?utm_source=` query parameter).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attribution_params": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string",
+                  "enum": [
+                    "utm_source",
+                    "utm_medium",
+                    "utm_campaign",
+                    "utm_term",
+                    "utm_content",
+                    "fbclid",
+                    "gclid",
+                    "wbraid",
+                    "gbraid",
+                    "twclid",
+                    "li_fat_id",
+                    "ttclid",
+                    "rdt_cid",
+                    "yclid"
+                  ]
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Marketing parameters captured from the URL when the guest registered: `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`, and ad click IDs such as `gclid` or `fbclid`. Only parameters present on the URL are included. Null when none were captured."
+          },
+          "event_tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTicketLegacy"
+            }
+          },
+          "custom_source": {
+            "deprecated": true,
+            "description": "Use `utm_source` instead.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event_ticket_orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventTicketOrderLegacy"
+            },
+            "description": "Detailed ticket orders for this guest. Use this to inspect applied coupon_info per order."
+          },
+          "event": {
+            "$ref": "#/components/schemas/WebhookEvent"
+          },
+          "refund": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number",
+                "description": "The amount of this refund, in minor units of `currency`."
+              },
+              "currency": {
+                "$ref": "#/components/schemas/Currency"
+              },
+              "event_ticket_order_id": {
+                "description": "The refunded ticket order. Null when the refund covered all of the guest’s charges rather than a single order.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "invalidated_event_ticket_ids": {
+                "anyOf": [
+                  {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Tickets invalidated as part of this refund, if the host chose to invalidate them."
+              }
+            },
+            "required": [
+              "amount",
+              "currency",
+              "event_ticket_order_id",
+              "invalidated_event_ticket_ids"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "user_email",
+          "user_name",
+          "user_first_name",
+          "user_last_name",
+          "approval_status",
+          "check_in_qr_code",
+          "eth_address",
+          "invited_at",
+          "joined_at",
+          "phone_number",
+          "registered_at",
+          "registration_answers",
+          "solana_address",
+          "utm_source",
+          "attribution_params",
+          "event_tickets",
+          "custom_source",
+          "event_ticket_orders",
+          "event",
+          "refund"
+        ]
+      }
+    }
+  },
+  "webhooks": {
+    "event.created": {
+      "post": {
+        "summary": "Event Created",
+        "description": "Triggered when a new event is created on your calendar.",
+        "operationId": "webhook_event_created",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "event.created"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookEvent"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "event.updated": {
+      "post": {
+        "summary": "Event Updated",
+        "description": "Triggered when an event's details are updated (name, time, location, etc.) or a ticket type is created, updated, or deleted. The payload is the event; fetch ticket types from `/v1/events/ticket-types/list` for ticket details.",
+        "operationId": "webhook_event_updated",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "event.updated"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookEvent"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "event.canceled": {
+      "post": {
+        "summary": "Event Canceled",
+        "description": "Triggered when an event is canceled.",
+        "operationId": "webhook_event_canceled",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "event.canceled"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookEvent"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "guest.registered": {
+      "post": {
+        "summary": "Guest Registered",
+        "description": "Triggered when a guest registers for an event, including re-registrations after cancellation.",
+        "operationId": "webhook_guest_registered",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "guest.registered"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookGuest"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "guest.updated": {
+      "post": {
+        "summary": "Guest Updated",
+        "description": "Triggered when a guest's registration is updated (approval status changed, answers updated, etc.).",
+        "operationId": "webhook_guest_updated",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "guest.updated"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookGuest"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "guest.refunded": {
+      "post": {
+        "summary": "Guest Refunded",
+        "description": "Triggered when a host refunds a guest’s payment through Luma, including partial refunds. `refund` describes the refund that just happened; the guest’s `event_ticket_orders` reflect cumulative refunds per order. Not triggered for refunds issued directly in Stripe.",
+        "operationId": "webhook_guest_refunded",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "guest.refunded"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookGuestRefunded"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "ticket.registered": {
+      "post": {
+        "summary": "Ticket Registered",
+        "description": "Triggered when a ticket is purchased or registered. Includes ticket and guest details.",
+        "operationId": "webhook_ticket_registered",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "ticket.registered"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookEventTicket"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "calendar.person.subscribed": {
+      "post": {
+        "summary": "Calendar Person Subscribed",
+        "description": "Triggered when someone subscribes to your calendar (becomes a follower).",
+        "operationId": "webhook_calendar_person_subscribed",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar.person.subscribed"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCalendarPerson"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "calendar.person.unsubscribed": {
+      "post": {
+        "summary": "Calendar Person Unsubscribed",
+        "description": "Triggered when a person on your calendar opts out of hearing from you — an unsubscribe, block, or spam report; the payload does not say which. Use it to mirror the opt-out in an external CRM. Only fires for people who were already on your calendar.",
+        "operationId": "webhook_calendar_person_unsubscribed",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar.person.unsubscribed"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCalendarPerson"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "calendar.event.added": {
+      "post": {
+        "summary": "Calendar Event Added",
+        "description": "Triggered when an event is added to a calendar — created on it, approved, transferred in, or made public. This can be a Luma event or an external event.",
+        "operationId": "webhook_calendar_event_added",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar.event.added"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCalendarEvent"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    },
+    "calendar.event.submitted": {
+      "post": {
+        "summary": "Calendar Event Submitted",
+        "description": "Triggered when an event is submitted to your calendar and is pending approval. This can be a Luma event or an external event. Use the `id` with the Approve Event or Reject Event endpoint to process the submission — with an organization API key, pass `submitted_to_calendar.id` as the `x-luma-calendar-id` header.",
+        "operationId": "webhook_calendar_event_submitted",
+        "tags": [
+          "Webhook Types"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "const": "calendar.event.submitted"
+                  },
+                  "data": {
+                    "$ref": "#/components/schemas/WebhookCalendarEventSubmission"
+                  }
+                },
+                "required": [
+                  "type",
+                  "data"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Return a 2xx status to acknowledge receipt of the webhook."
+          }
+        }
+      }
+    }
+  }
+}
+```
