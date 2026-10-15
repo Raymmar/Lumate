@@ -185,7 +185,7 @@ function BoardMembersSection() {
         alt="Sarasota Tech Founding Board Members"
         className="w-full max-h-[50vh] rounded-lg object-cover"
       />
-      <h2 className="text-3xl font-bold text-center">Founding Board Members</h2>
+      <h2 className="text-3xl font-bold text-center">Founding Bored Members</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
           <a
@@ -429,7 +429,7 @@ export default function AboutPage() {
             <BadgeMembersSection
               title="Bored of Directors"
               badgeName="Bored of Directors"
-              subtitle="A reminder to ourselves to not take any of this too seriously"
+              subtitle="Yes, we spell it that way on purpose. As a reminder to ourselves to not take any of this too seriously"
               largeAvatars
             />
             <BoardMembersSection />
