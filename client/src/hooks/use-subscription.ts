@@ -22,7 +22,8 @@ export function useSubscription() {
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
   });
 
-  // Honor existing non-Stripe grants too; buying again must not be suggested.
+  // Premium access and a paid recurring membership are separate concepts.
+  const hasActiveSubscription = subscriptionStatus?.status === "active" && !!subscriptionStatus.subscriptionId;
   const isPremium = user?.isAdmin || subscriptionStatus?.status === "active" ||
     subscriptionStatus?.hasPremiumAccess === true;
   
@@ -86,6 +87,7 @@ export function useSubscription() {
     isError,
     refetch,
     isPremium,
+    hasActiveSubscription,
     startSubscription,
     startGuestSubscription,
   };

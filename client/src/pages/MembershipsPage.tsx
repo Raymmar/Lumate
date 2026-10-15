@@ -51,8 +51,8 @@ interface PremiumPriceData {
 
 export default function MembershipsPage() {
   const { toast } = useToast();
-  const { isPremium, startSubscription, startGuestSubscription, isLoading, isError: subscriptionError, refetch: refetchSubscription } = useSubscription();
-  const { user, isLoading: authLoading, error: authError } = useAuth();
+  const { isPremium, hasActiveSubscription, startSubscription, startGuestSubscription, isLoading } = useSubscription();
+  const { user } = useAuth();
   const isLoggedIn = !!user;
 
   const { data: premiumPrice, isLoading: isPriceLoading } = useQuery<PremiumPriceData>({
@@ -64,7 +64,7 @@ export default function MembershipsPage() {
   const priceInterval = premiumPrice?.interval || "year";
 
   // The current summit's ticket is sold as a Premium membership purchase
-  const { summit: ticketSummit, claim, coupons } = useSummitTicket();
+  const { summit: ticketSummit, claim, pending, lookupError, onRetry } = useSummitTicket();
 
   const buyTicket = async () => {
     try {
@@ -115,13 +115,13 @@ export default function MembershipsPage() {
         { text: "Includes Tech Summit ticket", included: true },
       ],
       cta: {
-        text: isPremium
+        text: hasActiveSubscription
           ? "Current Plan"
           : isLoading
           ? "Loading..."
           : isLoggedIn ? "Upgrade Now" : "Get Premium",
-        action: isPremium ? undefined : isLoggedIn ? startSubscription : startGuestSubscription,
-        disabled: isPremium || isLoading,
+        action: hasActiveSubscription ? undefined : isLoggedIn ? startSubscription : startGuestSubscription,
+        disabled: hasActiveSubscription || isLoading,
         accent: true,
       },
     },
@@ -152,16 +152,13 @@ export default function MembershipsPage() {
                 summit={ticketSummit}
                 price={premiumPrice?.formattedPrice ?? null}
                 interval={priceInterval}
-                isPremium={!!isPremium}
+                hasActiveSubscription={hasActiveSubscription}
                 onBuy={buyTicket}
                 disabled={isLoading}
                 claim={claim}
-                pending={authLoading || (!!user && (coupons.isPending || (!claim && isLoading)))}
-                lookupError={!!authError || (!!user && (coupons.isError || (!claim && subscriptionError)))}
-                onRetry={() => {
-                  if (authError) window.location.reload();
-                  else if (user) { void coupons.refetch(); void refetchSubscription(); }
-                }}
+                pending={pending}
+                lookupError={lookupError}
+                onRetry={onRetry}
               />
             )}
 

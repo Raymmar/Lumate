@@ -22,12 +22,12 @@ function load(path: string, dependencies: Record<string, any>) {
   return module.exports;
 }
 
-for (const premiumSource of ["manual", "luma"]) {
-  test(`an active prior-year ${premiumSource} grant with no featured Summit coupon is Premium, not a new purchase`, async () => {
+for (const premiumSource of ["manual", "luma", "admin"]) {
+  test(`a prior-year ${premiumSource} grant retains Premium but does not count as a recurring membership`, async () => {
     const user = {
       id: 12, email: "member@example.test", subscriptionStatus: "inactive",
       premiumSource, premiumExpiresAt: "2099-12-31T23:59:59Z",
-      premiumGrantedAt: "2025-01-01T00:00:00Z", isAdmin: false,
+      premiumGrantedAt: "2025-01-01T00:00:00Z", isAdmin: premiumSource === "admin",
     };
     const { hasActivePremium } = load("server/utils/premiumCheck.ts", {
       "../db": {}, "@shared/schema": {}, "drizzle-orm": {},
@@ -53,10 +53,26 @@ for (const premiumSource of ["manual", "luma"]) {
     assert.equal(response.hasPremiumAccess, true);
     // /auth/me need not expose the grant fields: the hook uses the actual status response.
     const { useSubscription } = load("client/src/hooks/use-subscription.ts", {
-      "./use-auth": { useAuth: () => ({ user: { id: 12, isAdmin: false } }) },
+      "./use-auth": { useAuth: () => ({ user: { id: 12, isAdmin: user.isAdmin } }) },
       "@tanstack/react-query": { useQuery: () => ({ data: response, isLoading: false, isError: false }) },
     });
     assert.equal(useSubscription().isPremium, true);
+    assert.equal(useSubscription().hasActiveSubscription, false);
     assert.equal(selectSummitCoupon([], "featured-summit"), undefined);
   });
 }
+
+test("only an actual active Stripe subscription counts as a recurring membership", () => {
+  for (const [data, expected] of [
+    [{ status: "active", subscriptionId: "sub-active" }, true],
+    [{ status: "inactive", hasPremiumAccess: true }, false],
+    [{ status: "active" }, false],
+    [{ status: "canceled", subscriptionId: "sub-old" }, false],
+  ] as const) {
+    const { useSubscription } = load("client/src/hooks/use-subscription.ts", {
+      "./use-auth": { useAuth: () => ({ user: { id: 12, isAdmin: false } }) },
+      "@tanstack/react-query": { useQuery: () => ({ data, isLoading: false, isError: false }) },
+    });
+    assert.equal(useSubscription().hasActiveSubscription, expected);
+  }
+});

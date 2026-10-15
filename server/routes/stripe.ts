@@ -380,11 +380,7 @@ router.get("/subscription-status", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    // If user is admin, they always have access
-    if (user.isAdmin) {
-      return res.json({ status: "active", hasPremiumAccess: true });
-    }
-
+    // Admin/granted access is not evidence of a recurring Stripe subscription.
     // Check subscription status using synced Stripe data
     // This method checks by customer ID first, then falls back to email lookup
     // and auto-reconciles any customer ID mismatches

@@ -4,6 +4,7 @@ import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { formatSummitDate } from "@/hooks/use-summits";
 import { internalPath } from "@/lib/links";
+import { useSummitClaim } from "@/hooks/use-summit-ticket";
 
 interface SummitHeroProps {
   summit: Summit;
@@ -13,9 +14,11 @@ interface SummitHeroProps {
 
 /** Split hero: event imagery on the left, summit details and ticket link on the right. */
 export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHeroProps) {
-  const ticketLabel = isPast ? "Event Page" : "Get Tickets";
+  const { claimUrl, pending, lookupError, hasActiveSubscription, onRetry } = useSummitClaim(summit);
+  const ticketUrl = isPast ? summit.ticketUrl : claimUrl || summit.ticketUrl;
+  const ticketLabel = isPast ? "Event Page" : claimUrl ? "Claim Your Ticket" : "Get Tickets";
   // A site link (e.g. the Memberships ticket offer) stays in this tab; external links open a new one
-  const ticketPath = internalPath(summit.ticketUrl);
+  const ticketPath = internalPath(ticketUrl);
   // The linked sponsor's current name and link; the old text fields only when none is linked
   const sponsor = summit.presentingSponsor;
   const linked = summit.presentingSponsorId != null;
@@ -88,14 +91,23 @@ export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHero
               <p className="text-lg text-muted-foreground mb-8 whitespace-pre-line">{summit.description}</p>
             )}
 
-            {(summit.ticketUrl || showLearnMore) && (
+            {(ticketUrl || showLearnMore || !isPast) && (
               <div className="flex flex-col sm:flex-row flex-wrap gap-3">
-                {summit.ticketUrl && (
+                {!isPast && pending ? (
+                  <Button disabled size="lg" className="text-base w-full sm:w-auto" role="status">Checking your ticket…</Button>
+                ) : !isPast && lookupError ? (
+                  <div role="alert">
+                    <p className="text-muted-foreground">We couldn't check your ticket.</p>
+                    <Button variant="outline" onClick={onRetry}>Try again</Button>
+                  </div>
+                ) : !isPast && !claimUrl && hasActiveSubscription ? (
+                  <p className="text-muted-foreground" role="status">No available coupon for this Summit</p>
+                ) : ticketUrl && (
                   <Button asChild size="lg" className="text-base w-full sm:w-auto" data-testid="button-summit-tickets">
                     {ticketPath ? (
                       <Link href={ticketPath}>{ticketLabel}</Link>
                     ) : (
-                      <a href={summit.ticketUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={ticketUrl} target="_blank" rel="noopener noreferrer">
                         {ticketLabel}
                         <ExternalLink className="ml-2 h-4 w-4" />
                       </a>

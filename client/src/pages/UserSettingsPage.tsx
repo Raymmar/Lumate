@@ -412,7 +412,7 @@ export default function UserSettingsPage() {
   }
 
   return (
-    <DashboardLayout aboveLayout={<CurrentSummitTicket claimOnly />}>
+    <DashboardLayout aboveLayout={<CurrentSummitTicket />}>
       <div className="container max-w-3xl mx-auto pt-3 pb-24">
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
