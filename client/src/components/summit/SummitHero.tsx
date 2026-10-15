@@ -21,7 +21,7 @@ export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHero
 
   return (
     <div className="w-full">
-      <div className="grid lg:grid-cols-2 items-center">
+      <div className="grid xl:grid-cols-2 items-center">
         {/* Transparent image container with corners matching the hero image. */}
         <div className="relative self-start rounded-r-lg">
           {summit.heroImage && (
