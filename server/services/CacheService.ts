@@ -31,11 +31,18 @@ export class CacheService extends EventEmitter {
   private readonly SYNC_INTERVAL = 6 * 60 * 60 * 1000;
   private readonly FULL_PEOPLE_REFRESH_INTERVAL = 24 * 60 * 60 * 1000;
   private readonly FULL_PEOPLE_REFRESH_KEY = 'last_full_people_refresh';
+  // When a sync is due at startup, wait briefly so the server can answer its first requests.
+  private readonly STARTUP_SYNC_DELAY = 30 * 1000;
+  // Incremental people syncs re-read people created shortly before the last sync,
+  // so clock skew or a sync that overlapped a sign-up can't drop anyone.
+  private readonly PEOPLE_INCREMENTAL_OVERLAP = 60 * 60 * 1000;
+  private initialSyncTimer: NodeJS.Timeout | null = null;
+  private nextSyncAt: Date | null = null;
 
   private constructor() {
     super();
     this.logSync('Starting CacheService...');
-    this.startSync();
+    this.startSync({ startup: true });
   }
 
   static getInstance() {
@@ -55,48 +62,108 @@ export class CacheService extends EventEmitter {
     });
   }
 
-  private startSync() {
+  /**
+   * Starts the sync schedule. On server startup the first sync is skipped when the
+   * last successful sync is newer than the normal interval; the schedule then picks
+   * up where it left off. A forced (manual) start always syncs right away, with a
+   * full people refresh.
+   */
+  private startSync(options: { startup?: boolean; forceFull?: boolean } = {}) {
     const now = new Date();
     this.logSync('Starting sync service...', {
       startTime: now.toISOString()
     });
 
+    this.clearSchedule();
+
+    if (options.startup) {
+      this.scheduleStartupSync().catch(err => {
+        this.logSync('Could not check last sync time at startup, syncing now:', err);
+        this.beginSchedule(0);
+      });
+      return;
+    }
+
+    this.beginSchedule(0, { forceFullPeople: options.forceFull });
+  }
+
+  private clearSchedule() {
+    if (this.initialSyncTimer) {
+      clearTimeout(this.initialSyncTimer);
+      this.initialSyncTimer = null;
+    }
     if (this.cacheInterval) {
       clearInterval(this.cacheInterval);
       this.cacheInterval = null;
       this.logSync('Cleared existing sync interval');
     }
+    this.nextSyncAt = null;
+  }
 
-    this.logSync('Running initial sync...');
-    this.updateCache().catch(err => {
-      this.logSync('Initial sync failed:', err);
-    });
+  private async scheduleStartupSync() {
+    const lastUpdate = await storage.getLastCacheUpdate();
+    const sinceLast = lastUpdate ? Date.now() - lastUpdate.getTime() : NaN;
 
-    this.cacheInterval = setInterval(() => {
-      const currentTime = new Date();
-      this.logSync('Interval triggered', {
-        currentTime: currentTime.toISOString(),
-        isCaching: this.isCaching
-      });
-
-      if (!this.isCaching) {
-        this.logSync('Starting 6-hour sync...');
-        this.updateCache().catch(err => {
-          this.logSync('6-hour sync failed:', err);
-        });
-      } else {
-        this.logSync('Previous sync still in progress, skipping this interval');
-      }
-    }, this.SYNC_INTERVAL);
-
-    if (this.cacheInterval.ref) {
-      this.cacheInterval.ref();
+    if (lastUpdate && sinceLast >= 0 && sinceLast < this.SYNC_INTERVAL) {
+      const delay = this.SYNC_INTERVAL - sinceLast;
+      const nextSync = new Date(Date.now() + delay);
+      console.log(
+        `[CacheService] Skipping startup Luma sync: last successful sync was ${Math.round(sinceLast / 60000)} min ago ` +
+        `(${lastUpdate.toISOString()}), within the ${this.SYNC_INTERVAL / 3600000}h sync interval. ` +
+        `Next scheduled sync at ${nextSync.toISOString()}.`
+      );
+      this.beginSchedule(delay);
+      return;
     }
 
-    this.logSync('Sync scheduler started', {
-      interval: `${this.SYNC_INTERVAL / 1000 / 60} minutes`,
-      nextSync: new Date(Date.now() + this.SYNC_INTERVAL).toISOString()
-    });
+    this.logSync(`Luma sync is due at startup (last successful sync: ${lastUpdate ? lastUpdate.toISOString() : 'never'}); starting in ${this.STARTUP_SYNC_DELAY / 1000}s`);
+    this.beginSchedule(this.STARTUP_SYNC_DELAY);
+  }
+
+  /** Runs the first sync after `initialDelay`, then every SYNC_INTERVAL. */
+  private beginSchedule(initialDelay: number, firstRun: { forceFullPeople?: boolean } = {}) {
+    const runFirst = () => {
+      this.initialSyncTimer = null;
+      this.logSync('Running initial sync...');
+      this.updateCache(firstRun).catch(err => {
+        this.logSync('Initial sync failed:', err);
+      });
+
+      this.cacheInterval = setInterval(() => {
+        const currentTime = new Date();
+        this.nextSyncAt = new Date(currentTime.getTime() + this.SYNC_INTERVAL);
+        this.logSync('Interval triggered', {
+          currentTime: currentTime.toISOString(),
+          isCaching: this.isCaching
+        });
+
+        if (!this.isCaching) {
+          this.logSync('Starting 6-hour sync...');
+          this.updateCache().catch(err => {
+            this.logSync('6-hour sync failed:', err);
+          });
+        } else {
+          this.logSync('Previous sync still in progress, skipping this interval');
+        }
+      }, this.SYNC_INTERVAL);
+
+      if (this.cacheInterval.ref) {
+        this.cacheInterval.ref();
+      }
+
+      this.nextSyncAt = new Date(Date.now() + this.SYNC_INTERVAL);
+      this.logSync('Sync scheduler started', {
+        interval: `${this.SYNC_INTERVAL / 1000 / 60} minutes`,
+        nextSync: this.nextSyncAt.toISOString()
+      });
+    };
+
+    if (initialDelay <= 0) {
+      runFirst();
+    } else {
+      this.nextSyncAt = new Date(Date.now() + initialDelay);
+      this.initialSyncTimer = setTimeout(runFirst, initialDelay);
+    }
   }
 
 
@@ -169,12 +236,8 @@ export class CacheService extends EventEmitter {
 
       this.isCaching = false;
 
-      if (this.cacheInterval) {
-        clearInterval(this.cacheInterval);
-        this.cacheInterval = null;
-      }
-
-      this.startSync();
+      // Manual trigger: sync now and re-read every person from Luma
+      this.startSync({ forceFull: true });
 
       return true;
     } catch (error) {
@@ -183,7 +246,7 @@ export class CacheService extends EventEmitter {
     }
   }
 
-  private async updateCache() {
+  private async updateCache(options: { forceFullPeople?: boolean } = {}) {
     if (this.isCaching) {
       this.logSync('Cache update already in progress, skipping...');
       return;
@@ -202,11 +265,13 @@ export class CacheService extends EventEmitter {
       const now = new Date();
       const lastUpdateTime = lastUpdate || new Date(0);
 
-      const doFullPeopleRefresh = await this.shouldDoFullPeopleRefresh();
+      const doFullPeopleRefresh = options.forceFullPeople || await this.shouldDoFullPeopleRefresh();
       const peopleLastUpdateTime = doFullPeopleRefresh ? new Date(0) : lastUpdateTime;
 
       if (doFullPeopleRefresh) {
-        this.logSync('Full people refresh triggered (>24h since last full refresh)');
+        this.logSync(options.forceFullPeople
+          ? 'Full people refresh triggered (manual sync)'
+          : 'Full people refresh triggered (>24h since last full refresh)');
       }
 
       this.emitProgress('Fetching events and people from Luma API...', 10);
@@ -436,11 +501,19 @@ export class CacheService extends EventEmitter {
     return allEvents;
   }
 
+  /**
+   * Luma ignores `created_after` on list-people, so an incremental sync asks for
+   * the newest people first and stops paging once it reaches people created
+   * before the last sync (minus a safety overlap). A full refresh (first run,
+   * daily refresh, or manual sync) pages through everyone.
+   */
   private async fetchAllPeople(lastUpdateTime: Date): Promise<any[]> {
     const isFullRefresh = lastUpdateTime.getTime() === 0;
+    const cutoff = isFullRefresh ? null : new Date(lastUpdateTime.getTime() - this.PEOPLE_INCREMENTAL_OVERLAP);
     this.logSync('Starting fetch of people from Luma API...', {
       lastUpdateTime: lastUpdateTime.toISOString(),
-      isFullRefresh
+      isFullRefresh,
+      ...(cutoff ? { createdOnOrAfter: cutoff.toISOString() } : {})
     });
 
     const allPeople: any[] = [];
@@ -448,12 +521,17 @@ export class CacheService extends EventEmitter {
     let hasMore = true;
     let nextCursor: string | null = null;
     let pageCount = 0;
+    let reachedSyncedPeople = false;
 
     while (hasMore) {
       const params: Record<string, string> = {
         pagination_limit: String(this.BATCH_SIZE),
-        created_after: lastUpdateTime.toISOString()
       };
+
+      if (cutoff) {
+        params.sort_column = 'created_at';
+        params.sort_direction = 'desc';
+      }
 
       if (nextCursor) {
         params.pagination_cursor = nextCursor;
@@ -479,6 +557,14 @@ export class CacheService extends EventEmitter {
             return false;
           }
 
+          if (cutoff && person.created_at) {
+            const createdAt = new Date(person.created_at);
+            if (!isNaN(createdAt.getTime()) && createdAt < cutoff) {
+              reachedSyncedPeople = true;
+              return false;
+            }
+          }
+
           const isNew = !seenPeopleIds.has(person.api_id);
           if (isNew) {
             seenPeopleIds.add(person.api_id);
@@ -491,6 +577,11 @@ export class CacheService extends EventEmitter {
           total: allPeople.length,
           page: pageCount
         });
+
+        if (reachedSyncedPeople) {
+          this.logSync(`Reached people created before ${cutoff!.toISOString()} on page ${pageCount}; stopping incremental fetch`);
+          break;
+        }
 
         hasMore = response.has_more === true;
         nextCursor = response.next_cursor;
@@ -741,14 +832,11 @@ export class CacheService extends EventEmitter {
 
 
   getNextSyncTime() {
-    return this.cacheInterval ? new Date(Date.now() + this.SYNC_INTERVAL) : null;
+    return this.nextSyncAt;
   }
 
   stopCaching() {
-    if (this.cacheInterval) {
-      clearInterval(this.cacheInterval);
-      this.cacheInterval = null;
-    }
+    this.clearSchedule();
     this.isCaching = false;
     this.logSync('Cache service stopped');
   }

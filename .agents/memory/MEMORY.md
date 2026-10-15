@@ -1,7 +1,7 @@
 - [User blocking system](user-blocking.md) — block revokes premium persistently (unblock won't restore), canSendTo fail-closed, session-table delete pattern.
-- [Dev startup performance](dev-startup-performance.md) — orphan server after merges; startup Luma/Stripe syncs slow requests ~50x; no route lazy loading.
+- [Dev startup performance](dev-startup-performance.md) — orphan server after merges; startup syncs throttled via cache_metadata timestamps; lazy routes.
 - [Development side effects](development-side-effects.md) — dev invitation mailer is env-gated; never enable it casually.
 - [Post-merge safety](post-merge-safety.md) — post-merge restores deps and re-applies idempotent SQL to dev; never drizzle push.
 - [Summit years](summit-years.md) — current flag explicit; schema via dev SQL + Publish; original pages kept until owner approves.
 - [Sponsorships](sponsorships.md) — one global sponsor + yearly sponsorships; no per-year logo; legacy year/tier columns dropped only in a later stage.
-- [Luma API quirks](luma-api-quirks.md) — list-events omits description; every sync refetches all events; geo address field meanings.
+- [Luma API quirks](luma-api-quirks.md) — list-events omits description; created_after ignored (people sort by created_at desc works); geo fields.

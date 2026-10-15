@@ -19,7 +19,7 @@ import fs from "fs";
 import { isCrawler, isSupportedPage, isPostPage, isCompanyPage, isUserPage, isEventPage, isSummitPage, extractSummitYear, extractPostSlug, extractCompanySlug, extractUsername, extractEventSlug } from "./utils/crawlerDetection";
 import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph, fetchEventForOpenGraph, fetchSummitForOpenGraph, injectOpenGraphTags } from "./utils/openGraphInjection";
 import { runMigrations } from 'stripe-replit-sync';
-import { getStripeSync } from "./stripeClient";
+import { startStripeBackgroundSync, stopStripeBackgroundSync } from "./services/stripeStartupSync";
 import { WebhookHandlers } from "./webhookHandlers";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -166,57 +166,22 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
     console.error("[Server] Linking presenting sponsors failed:", error);
   }
 
-  // Initialize Stripe schema and sync
-  async function initStripe() {
-    const databaseUrl = process.env.DATABASE_URL;
-
-    if (!databaseUrl) {
-      console.warn('DATABASE_URL not found, skipping Stripe initialization');
-      return;
-    }
-
+  // Stripe schema migrations are local database work, so they stay before the
+  // server starts answering. Webhook setup and the backfill (Stripe network calls)
+  // run in the background once the server is listening.
+  if (process.env.DATABASE_URL) {
     try {
       console.log('[Stripe] Initializing Stripe schema...');
-      await runMigrations({ 
-        databaseUrl
+      await runMigrations({
+        databaseUrl: process.env.DATABASE_URL,
       });
       console.log('[Stripe] Stripe schema ready');
-
-      const stripeSync = await getStripeSync();
-
-      console.log('[Stripe] Setting up managed webhook...');
-      const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
-      const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
-        `${webhookBaseUrl}/api/stripe/webhook`,
-        {
-          enabled_events: ['*'],
-          description: 'Managed webhook for Stripe sync',
-        }
-      );
-      console.log(`[Stripe] Webhook configured: ${webhook.url} (UUID: ${uuid})`);
-
-      console.log('[Stripe] Starting background sync of Stripe data...');
-      stripeSync.syncBackfill()
-        .then(async () => {
-          console.log('[Stripe] Stripe data synced successfully');
-          
-          // Run subscription reconciliation after sync completes
-          try {
-            const { StripeService } = await import('./services/stripe');
-            await StripeService.reconcileAllSubscriptions();
-          } catch (reconcileError) {
-            console.error('[Stripe] Error during subscription reconciliation:', reconcileError);
-          }
-        })
-        .catch((err: any) => {
-          console.error('[Stripe] Error syncing Stripe data:', err);
-        });
     } catch (error) {
-      console.error('[Stripe] Failed to initialize Stripe:', error);
+      console.error('[Stripe] Failed to initialize Stripe schema:', error);
     }
+  } else {
+    console.warn('DATABASE_URL not found, skipping Stripe initialization');
   }
-
-  await initStripe();
 
   // Open Graph middleware for crawlers - must come before Vite/static setup
   app.use(async (req: Request, res: Response, next: NextFunction) => {
@@ -370,6 +335,8 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
     }
 
     // Start background services after server is listening
+    startStripeBackgroundSync();
+
     try {
       // Resolve Luma membership tier dynamically before sync services start
       try {
@@ -436,6 +403,8 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
       console.log('[Server] Cleared event sync intervals');
     }
     
+    stopStripeBackgroundSync();
+
     // Stop email invitation service
     emailInvitationService.stop();
     console.log('[Server] Stopped email invitation service');

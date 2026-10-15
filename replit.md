@@ -6,6 +6,12 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### October 15, 2026 - Faster Page Loading and Lighter Startup
+- **Pages load on demand**: `client/src/App.tsx` lazy-loads every page except Home and Not Found; admin screens are separate chunks public visitors never download. In-app navigation keeps the current page visible while the next page's code loads (routing uses a location updated inside a React transition); a small delayed spinner (`PageLoader`) shows only on fresh loads.
+- **Startup no longer waits on Stripe**: schema migrations still run before listening (local DB work); webhook setup and the backfill run afterwards in `server/services/stripeStartupSync.ts`. The backfill runs only when `cache_metadata.last_stripe_backfill` is older than 24h (checked hourly); webhooks keep data current in between.
+- **No redundant Luma sync on restart**: CacheService skips the startup sync when `last_cache_update` is within the 6h interval and schedules the next run for last sync + 6h. A due sync waits 30s after startup. Each skip logs one line.
+- **Incremental people sync**: Luma ignores `created_after` on `calendar/list-people`, so incremental syncs request `sort_column=created_at&sort_direction=desc` and stop at people created before the last sync (1h overlap). The daily full refresh and the admin reset (`forceSync`) still read everyone.
+
 ### October 4, 2026 - Summit Pages Linked to Luma Events
 - **Link**: `summits.luma_event_api_id` (stable Luma `api_id`, set by admins in the summit dialog; IDs differ between dev and prod) and `summits.luma_overrides` (Luma-supplied fields where the summit's own value wins). Luma-supplied fields: start/end date (in the event timezone), description, venue name/address/map link, ticket link, social share image (cover).
 - **Merge on read**: `server/services/summitLuma.ts` fills those fields from the synced `events` row on every summit read (public + admin + Open Graph). Nothing Luma-derived is saved into the summit unless the admin picks "Copy Luma values" when unlinking. Missing event = falls back to the summit's own values; admins get a broken-link warning via `lumaLink`.
