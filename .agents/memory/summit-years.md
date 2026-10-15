@@ -11,3 +11,6 @@ description: Decisions behind per-year summit pages, current-summit semantics, a
 - Original hardcoded summit pages are kept at hidden comparison routes until the owner explicitly approves removal.
   **Why:** the owner requires sign-off before removal, and the 2025 layout is not fully reproduced by the generic year page.
 - Real summit content lives in production; dev only has sample data. Judge backfill results against production, not dev.
+- Summit hero artwork must stay at its original aspect ratio, full-width and uncropped, with no background fill.
+  **Why:** The artwork contains text. The owner accepted unequal image/text panel heights rather than cropping or adding empty bands.
+  **How to apply:** Preserve the edge-to-edge layout and rounded right corners; let image height follow its proportions on desktop and mobile.

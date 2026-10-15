@@ -21,14 +21,14 @@ export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHero
 
   return (
     <div className="w-full">
-      <div className="grid lg:grid-cols-2 min-h-[50vh] lg:min-h-[600px]" style={{ minHeight: "max(50vh, 500px)" }}>
+      <div className="grid lg:grid-cols-2 items-center">
         {/* Transparent image container with corners matching the hero image. */}
-        <div className="relative min-h-[50vh] lg:min-h-[70vh] rounded-r-lg" style={{ minHeight: "max(50vh, 500px)" }}>
+        <div className="relative self-start rounded-r-lg">
           {summit.heroImage && (
             <img
               src={summit.heroImage}
               alt={`${summit.title} ${summit.year}`}
-              className="absolute inset-0 w-full h-full object-cover rounded-r-lg"
+              className="block w-full h-auto rounded-r-lg"
             />
           )}
           {summit.logoImage && (
