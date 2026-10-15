@@ -232,13 +232,13 @@ interface BadgeUsersResponse {
   users: Member[];
 }
 
-function FoundingMembersSection() {
+function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; badgeName: string; subtitle?: string }) {
   const { data, isLoading, error } = useQuery<BadgeUsersResponse>({
-    queryKey: ['/api/badges/Founding Member/users'],
+    queryKey: [`/api/badges/${encodeURIComponent(badgeName)}/users`],
     enabled: true,
   });
   
-  // Fisher-Yates shuffle algorithm to randomize the order of founding members
+  // Fisher-Yates shuffle algorithm to randomize the order of badge members
   const shuffleArray = <T,>(array: T[]): T[] => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -248,13 +248,19 @@ function FoundingMembersSection() {
     return shuffled;
   };
   
-  // Shuffle the founding members whenever the component renders
-  const foundingMembers = data?.users ? shuffleArray(data.users) : [];
+  // Shuffle the badge members whenever the component renders
+  const badgeMembers = data?.users ? shuffleArray(data.users) : [];
+  const heading = (
+    <div className="pt-12 space-y-3 text-center">
+      <h2 className="text-3xl font-bold">{title}</h2>
+      {subtitle && <p className="text-muted-foreground">{subtitle}</p>}
+    </div>
+  );
   
   if (isLoading) {
     return (
       <div className="space-y-12">
-        <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
+        {heading}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="text-center">
@@ -271,9 +277,9 @@ function FoundingMembersSection() {
   if (error) {
     return (
       <div className="space-y-4">
-        <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
+        {heading}
         <p className="text-center text-muted-foreground">
-          Unable to load founding members. Please try again later.
+          Unable to load {title.toLowerCase()}. Please try again later.
         </p>
       </div>
     );
@@ -281,14 +287,14 @@ function FoundingMembersSection() {
   
   return (
     <div className="space-y-12">
-      <h2 className="text-3xl pt-12 font-bold text-center">Founding Members</h2>
-      {foundingMembers.length === 0 ? (
+      {heading}
+      {badgeMembers.length === 0 ? (
         <p className="text-center text-muted-foreground">
-          No founding members found.
+          No {title.toLowerCase()} found.
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
-          {foundingMembers.map((member: Member) => {
+          {badgeMembers.map((member: Member) => {
             const displayName = member.displayName || member.email?.split('@')[0];
             const initials = displayName
               .split(" ")
@@ -430,8 +436,13 @@ export default function AboutPage() {
             </div>
             <TestimonialsSection />
             <TimelineSection />
+            <BadgeMembersSection
+              title="Bored of Directors"
+              badgeName="Bored of Directors"
+              subtitle="A reminder to ourselves to not take any of this too seriously"
+            />
             <BoardMembersSection />
-            <FoundingMembersSection />
+            <BadgeMembersSection title="Founding Members" badgeName="Founding Member" />
           </PageContainer>
         </div>
       </div>
