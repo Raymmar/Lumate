@@ -21,7 +21,7 @@ import { apiErrorMessage, invalidateSponsorQueries, useAllSponsors } from "./spo
 
 /**
  * Every sponsor once, with the years they sponsored (and tier) and an Active /
- * Past label computed from whether they sponsor the current summit year.
+ * Past/Upcoming label computed against the current annual calendar year.
  */
 export function AllSponsorsList() {
   const { toast } = useToast();
@@ -154,8 +154,11 @@ export function AllSponsorsList() {
                       {sponsor.isActive ? (
                         <Badge data-testid={`status-active-${sponsor.id}`}>Active</Badge>
                       ) : (
-                        <Badge variant="secondary" data-testid={`status-past-${sponsor.id}`}>
-                          Past
+                        <Badge
+                          variant="secondary"
+                          data-testid={`status-${sponsor.sponsorships.some((s) => s.year > (data?.currentYear ?? Infinity)) ? "upcoming" : "past"}-${sponsor.id}`}
+                        >
+                          {sponsor.sponsorships.some((s) => s.year > (data?.currentYear ?? Infinity)) ? "Upcoming" : "Past"}
                         </Badge>
                       )}
                     </TableCell>

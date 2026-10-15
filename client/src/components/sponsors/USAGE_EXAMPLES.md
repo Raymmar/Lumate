@@ -2,6 +2,10 @@
 
 The sponsor components are now fully modular and can be used anywhere on the site. Here are all the ways you can use them:
 
+`SponsorGrid` and `SingleSponsor` default to the annual calendar year (January 1–December 31 in Sarasota).
+Publishing or featuring a summit does not change this default. Dated event pages must pass their explicit
+`year` so historical pages retain their own speakers and sponsors; year selectors should pass the chosen year too.
+
 ## 1. Full Sponsor Grid (All Tiers)
 
 Show all sponsors for a specific year:

@@ -39,9 +39,7 @@ export default function AdminSummitsPage() {
     mutationFn: (summit: Summit) => apiRequest(`/api/summits/${summit.id}/current`, "POST"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/summits"] });
-      // Year-defaulted lists (sponsors, speakers) follow the current summit
-      queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
-      toast({ title: "Current summit updated" });
+      toast({ title: "Featured summit updated" });
     },
     onError,
   });
@@ -68,8 +66,10 @@ export default function AdminSummitsPage() {
         }
       >
         <p className="text-sm text-muted-foreground mb-4">
-          Each year gets its own page at /summit/&lt;year&gt;. The current summit is featured on /summit and sets the
-          default year for sponsors and speakers. Add agenda items and news from a year's page while signed in as an admin.
+          Each year gets its own page at /summit/&lt;year&gt;. Publishing makes that page public;
+          "Set current" separately chooses the featured event on /summit. Neither changes the general speaker directory
+          (all years) or annual sponsors (calendar year). Past summit pages keep their own year's content.
+          Add agenda items and news from a year's page while signed in as an admin.
         </p>
 
         {isLoading ? (

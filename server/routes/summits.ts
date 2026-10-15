@@ -89,7 +89,7 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
-// The featured summit: the one marked current (if published), else the latest published
+// The featured summit is explicitly selected; publishing alone does not feature a page.
 router.get("/current", async (req: Request, res: Response) => {
   try {
     const summit = await storage.getCurrentSummit();

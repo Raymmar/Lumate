@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useCurrentSummit } from "@/hooks/use-summits";
+import { useState } from "react";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SponsorGrid } from "@/components/sponsors";
 import { AllSponsorsList } from "@/components/sponsors/AllSponsorsList";
@@ -15,17 +15,12 @@ import {
 } from "@/components/ui/select";
 
 export default function AdminSponsorsPage() {
-  const currentYear = new Date().getFullYear();
-  const { data: currentSummit } = useCurrentSummit();
+  const currentYear = getAnnualSponsorYear();
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [view, setView] = useState<"year" | "all">("year");
-  // Default to the current summit's year until the admin picks one
-  useEffect(() => {
-    if (selectedYear === null && currentSummit) setSelectedYear(currentSummit.year);
-  }, [currentSummit, selectedYear]);
-  const activeYear = selectedYear ?? currentSummit?.year ?? currentYear;
+  const activeYear = selectedYear ?? currentYear;
   
-  // Generate year options (2 past years + current + 2 future years), plus the summit year if outside that range
+  // Include the selected year even when it is outside the usual range.
   const yearOptions = Array.from(
     new Set([...Array.from({ length: 5 }, (_, i) => currentYear - 2 + i), activeYear]),
   ).sort((a, b) => a - b);
@@ -75,7 +70,7 @@ export default function AdminSponsorsPage() {
               <li>To add a returning sponsor to a year, use "Add Sponsor" and search for them; their logo and link are reused and the tier defaults to their last one</li>
               <li>Only use "Add new sponsor" for a sponsor that has never been entered before</li>
               <li>"Remove from this year" removes only that year's sponsorship; the sponsor and their other years are kept</li>
-              <li>"All sponsors" lists every sponsor with the years they sponsored. Active means they sponsor the current summit year</li>
+              <li>"All sponsors" lists every sponsor with the years they sponsored. Active means they sponsor the current calendar year, January through December</li>
               <li>You can link sponsors to company profiles; linked companies get free premium membership while sponsoring</li>
             </ul>
           </div>

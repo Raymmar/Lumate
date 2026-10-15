@@ -13,10 +13,10 @@ import { AddSponsorToYearDialog, ChangeTierDialog } from "./SponsorYearDialogs";
 import { SPONSOR_TIERS } from "./sponsorConfig";
 import { apiErrorMessage, invalidateSponsorQueries } from "./sponsorApi";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
-import { useCurrentSummit } from "@/hooks/use-summits";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 
 interface SponsorGridProps {
-  /** Sponsor year; defaults to the current summit's year */
+  /** Annual sponsor year; defaults to the calendar year. Dated summit pages pass their year. */
   year?: number;
   title?: string;
   icon?: React.ReactNode;
@@ -46,14 +46,11 @@ export function SponsorGrid({
     queryKey: ["/api/auth/me"],
   });
 
-  const { data: currentSummit, isLoading: currentSummitLoading } = useCurrentSummit();
-  const year = yearProp ?? currentSummit?.year ?? new Date().getFullYear();
+  const year = yearProp ?? getAnnualSponsorYear();
 
-  const { data, isLoading: sponsorsLoading } = useQuery<{ sponsors: YearSponsor[] }>({
+  const { data, isLoading } = useQuery<{ sponsors: YearSponsor[] }>({
     queryKey: [`/api/sponsors?year=${year}`],
-    enabled: yearProp !== undefined || !currentSummitLoading,
   });
-  const isLoading = sponsorsLoading || (yearProp === undefined && currentSummitLoading);
 
   // Removes only this year's sponsorship; the sponsor and its other years stay
   const removeMutation = useMutation({

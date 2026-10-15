@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import { runBlockCleanup } from "./services/blockCleanup";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
@@ -508,7 +509,7 @@ export async function registerRoutes(app: Express) {
   // Public: one year's sponsors (global sponsor details + that year's tier)
   app.get("/api/sponsors", async (req, res) => {
     try {
-      const year = req.query.year ? parseInt(req.query.year as string) : await storage.getCurrentSummitYear();
+      const year = req.query.year ? parseInt(req.query.year as string) : getAnnualSponsorYear();
       if (Number.isNaN(year)) {
         return res.status(400).json({ error: "Invalid year" });
       }
@@ -523,10 +524,8 @@ export async function registerRoutes(app: Express) {
   // Admin: every sponsor with the years they sponsored and an Active / Past flag
   app.get("/api/sponsors/all", requireAdmin, async (_req, res) => {
     try {
-      const [sponsors, currentYear] = await Promise.all([
-        storage.getAllSponsorsWithHistory(),
-        storage.getCurrentSummitYear(),
-      ]);
+      const currentYear = getAnnualSponsorYear();
+      const sponsors = await storage.getAllSponsorsWithHistory(currentYear);
       res.json({ sponsors, currentYear });
     } catch (error) {
       console.error("Failed to fetch all sponsors:", error);
@@ -534,14 +533,15 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Public: a single sponsor with its most recent tier (used by the SingleSponsor component)
+  // Public: a single sponsor for an annual year (calendar year unless explicitly scoped)
   app.get("/api/sponsors/:id", async (req, res) => {
     try {
       const sponsorId = parseInt(req.params.id);
-      if (Number.isNaN(sponsorId)) {
+      const year = req.query.year ? parseInt(req.query.year as string) : getAnnualSponsorYear();
+      if (Number.isNaN(sponsorId) || Number.isNaN(year)) {
         return res.status(400).json({ error: "Invalid sponsor id" });
       }
-      const sponsor = await storage.getLatestYearSponsor(sponsorId);
+      const sponsor = await storage.getYearSponsor(sponsorId, year);
       if (!sponsor) {
         return res.status(404).json({ error: "Sponsor not found" });
       }

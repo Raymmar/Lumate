@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SponsorGrid, SingleSponsor, SponsorCard } from "@/components/sponsors";
 import { Sparkles, GraduationCap, Building2, Rocket, Calendar } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui/select";
 
 export default function SponsorShowcasePage() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = getAnnualSponsorYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
   
   const { data: user, isLoading } = useQuery({
@@ -179,9 +180,9 @@ export default function SponsorShowcasePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <SingleSponsor sponsorId={1} showAdminControls={false} />
-                  <SingleSponsor sponsorId={2} showAdminControls={false} />
-                  <SingleSponsor sponsorId={3} showAdminControls={false} />
+                  <SingleSponsor sponsorId={1} year={selectedYear} showAdminControls={false} />
+                  <SingleSponsor sponsorId={2} year={selectedYear} showAdminControls={false} />
+                  <SingleSponsor sponsorId={3} year={selectedYear} showAdminControls={false} />
                 </div>
               </CardContent>
             </Card>
@@ -193,7 +194,7 @@ export default function SponsorShowcasePage() {
               <CardContent>
                 <div className="max-w-xs">
                   <h3 className="text-sm font-semibold mb-3">Featured Partner</h3>
-                  <SingleSponsor sponsorId={1} showAdminControls={false} />
+                  <SingleSponsor sponsorId={1} year={selectedYear} showAdminControls={false} />
                 </div>
               </CardContent>
             </Card>
@@ -221,10 +222,10 @@ export default function SponsorShowcasePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <SingleSponsor sponsorId={1} showAdminControls={false} />
-                  <SingleSponsor sponsorId={2} showAdminControls={false} />
-                  <SingleSponsor sponsorId={3} showAdminControls={false} />
-                  <SingleSponsor sponsorId={4} showAdminControls={false} />
+                  <SingleSponsor sponsorId={1} year={selectedYear} showAdminControls={false} />
+                  <SingleSponsor sponsorId={2} year={selectedYear} showAdminControls={false} />
+                  <SingleSponsor sponsorId={3} year={selectedYear} showAdminControls={false} />
+                  <SingleSponsor sponsorId={4} year={selectedYear} showAdminControls={false} />
                 </div>
               </CardContent>
             </Card>

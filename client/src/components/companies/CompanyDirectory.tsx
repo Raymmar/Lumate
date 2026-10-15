@@ -7,7 +7,7 @@ import { Building, Search } from "lucide-react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { SponsorGrid } from "@/components/sponsors";
-import { useCurrentSummit } from "@/hooks/use-summits";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 
 // Helper function as fallback only if slug isn't available
 const generateSlug = (name: string): string => {
@@ -54,8 +54,8 @@ interface Company {
 
 export default function CompanyDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
-  const { data: currentSummit } = useCurrentSummit();
-  const sponsorYear = currentSummit?.year ?? new Date().getFullYear();
+  // Annual directory visibility follows the calendar, independently of the live summit.
+  const sponsorYear = getAnnualSponsorYear();
   const [location, setLocation] = useLocation();
   
   // Get filter from URL params, default to "sponsors" (SSR-safe)
@@ -82,9 +82,9 @@ export default function CompanyDirectory() {
   }, [activeFilter, setLocation]);
   
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/companies", activeFilter],
+    queryKey: ["/api/companies", activeFilter, sponsorYear],
     queryFn: async () => {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({ year: String(sponsorYear) });
       if (activeFilter) {
         params.set("filter", activeFilter);
       }
@@ -156,7 +156,7 @@ export default function CompanyDirectory() {
   }
 
   // Render empty state if no companies found
-  if (companies.length === 0) {
+  if (activeFilter !== "sponsors" && companies.length === 0) {
     return (
       <div className="py-12 text-center">
         <Building className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -169,7 +169,7 @@ export default function CompanyDirectory() {
   }
 
   // Render empty search results
-  if (filteredCompanies.length === 0) {
+  if (activeFilter !== "sponsors" && filteredCompanies.length === 0) {
     return (
       <div className="space-y-4">
         <div className="relative w-full min-h-[30vh] bg-cover bg-center mb-6 rounded-lg overflow-hidden shadow-sm flex items-center justify-center" style={{ 

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { isSummitPast, useCurrentSummit } from "@/hooks/use-summits";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,7 @@ type BadgeOption = typeof ALL_BADGE_OPTIONS[number];
 
 export default function CardCreatorPage() {
   const { data: currentSummit } = useCurrentSummit();
+  const sponsorYear = getAnnualSponsorYear();
   // Link straight to tickets while the current summit is upcoming, otherwise to the summit page
   const summitTicketUrl =
     currentSummit?.ticketUrl && !isSummitPast(currentSummit) ? currentSummit.ticketUrl : null;
@@ -102,7 +104,7 @@ export default function CardCreatorPage() {
   });
 
   const { data: sponsorsData, isLoading: loadingSponsors } = useQuery<{ sponsors: Sponsor[] }>({
-    queryKey: ["/api/sponsors"],
+    queryKey: [`/api/sponsors?year=${sponsorYear}`],
   });
 
   const speakers = speakersData?.speakers || [];

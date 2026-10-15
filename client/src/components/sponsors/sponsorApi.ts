@@ -1,24 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SponsorWithHistory } from "@shared/schema";
 import { queryClient } from "@/lib/queryClient";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 
 export const ALL_SPONSORS_QUERY_KEY = ["/api/sponsors/all"] as const;
 
 /** Every sponsor with its sponsorship history (admin only). */
 export function useAllSponsors(enabled = true) {
   return useQuery<{ sponsors: SponsorWithHistory[]; currentYear: number }>({
-    queryKey: ALL_SPONSORS_QUERY_KEY,
+    queryKey: [...ALL_SPONSORS_QUERY_KEY, getAnnualSponsorYear()],
     enabled,
   });
 }
 
-/** Refreshes every sponsor list (all years) and summits, which show the presenting sponsor. */
+/** Refreshes sponsor lists, directory counts, and summits' presenting sponsors. */
 export function invalidateSponsorQueries() {
   return Promise.all([
     queryClient.invalidateQueries({
       predicate: (query) => String(query.queryKey[0] ?? "").startsWith("/api/sponsors"),
     }),
     queryClient.invalidateQueries({ queryKey: ["/api/summits"] }),
+    queryClient.invalidateQueries({ queryKey: ["/api/companies"] }),
   ]);
 }
 

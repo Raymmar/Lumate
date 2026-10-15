@@ -2,17 +2,21 @@ import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SponsorCard } from "./SponsorCard";
 import type { YearSponsor } from "@shared/schema";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 
 interface SingleSponsorProps {
   sponsorId: number;
+  /** Defaults to the annual calendar year; pass a year for historical displays. */
+  year?: number;
   isAdmin?: boolean;
   onEdit?: (sponsor: YearSponsor) => void;
   showAdminControls?: boolean;
 }
 
-/** One sponsor's card (global details, sized by their most recent tier). */
+/** One year's sponsor card, using that year's tier, never a future or expired tier. */
 export function SingleSponsor({
   sponsorId,
+  year = getAnnualSponsorYear(),
   isAdmin = false,
   onEdit,
   showAdminControls = true,
@@ -22,7 +26,7 @@ export function SingleSponsor({
   });
 
   const { data, isLoading } = useQuery<{ sponsor: YearSponsor }>({
-    queryKey: [`/api/sponsors/${sponsorId}`],
+    queryKey: [`/api/sponsors/${sponsorId}?year=${year}`],
   });
 
   const effectiveIsAdmin = showAdminControls && (isAdmin || (user as any)?.isAdmin || (user as any)?.is_admin);

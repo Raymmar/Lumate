@@ -13,20 +13,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useCurrentSummit, useSummits } from "@/hooks/use-summits";
+import { useSummits } from "@/hooks/use-summits";
 
 const ALL_YEARS = "all";
 
 export default function SpeakersPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+  const [yearFilter, setSelectedYear] = useState(ALL_YEARS);
   const { data: summits = [] } = useSummits();
-  const { data: currentSummit, isLoading: currentLoading } = useCurrentSummit();
 
-  // Defaults to the current summit's speakers until the visitor picks a year
-  const yearFilter = selectedYear ?? (currentSummit ? String(currentSummit.year) : ALL_YEARS);
-
-  const { data, isLoading: speakersLoading, error } = useQuery<{ speakers: SpeakerWithSummits[] }>({
+  const { data, isLoading, error } = useQuery<{ speakers: SpeakerWithSummits[] }>({
     queryKey: yearFilter === ALL_YEARS ? ["/api/speakers"] : ["/api/speakers", { year: yearFilter }],
     queryFn: async () => {
       const url = yearFilter === ALL_YEARS ? "/api/speakers" : `/api/speakers?year=${yearFilter}`;
@@ -34,9 +30,7 @@ export default function SpeakersPage() {
       if (!res.ok) throw new Error("Failed to load speakers");
       return res.json();
     },
-    enabled: selectedYear !== null || !currentLoading,
   });
-  const isLoading = speakersLoading || (selectedYear === null && currentLoading);
 
   const yearSelect = (
     <Select value={yearFilter} onValueChange={setSelectedYear}>

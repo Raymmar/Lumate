@@ -43,6 +43,7 @@ import { sql, eq, and, or, isNull, desc, inArray, getTableColumns } from "drizzl
 import { errorDetails } from "./errorDetails";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import crypto from "crypto";
+import { getAnnualSponsorYear } from "@shared/sponsorYear";
 
 // The public featured-member endpoint deliberately selects only public user fields.
 type FeaturedMember = Omit<Person, "user"> & {
@@ -238,8 +239,8 @@ export interface IStorage {
   // Sponsor management
   getSponsors(year: number): Promise<YearSponsor[]>;
   getSponsorById(id: number): Promise<Sponsor | null>;
-  getLatestYearSponsor(id: number): Promise<YearSponsor | null>;
-  getAllSponsorsWithHistory(): Promise<SponsorWithHistory[]>;
+  getYearSponsor(id: number, year: number): Promise<YearSponsor | null>;
+  getAllSponsorsWithHistory(year?: number): Promise<SponsorWithHistory[]>;
   createSponsor(sponsorData: InsertSponsor): Promise<Sponsor>;
   updateSponsor(sponsorId: number, data: Partial<InsertSponsor>): Promise<Sponsor>;
   deleteSponsor(sponsorId: number, deletedBy: number): Promise<void>;
@@ -2670,8 +2671,8 @@ export class PostgresStorage implements IStorage {
     try {
       // Define sponsor tier order (highest to lowest)
       const TIER_ORDER = ['Series A', 'Seed', 'Angel', 'Friends & Family', '501c3/.edu'];
-      // Sponsor filters follow the current summit year unless a year is requested
-      const sponsorYear = year ?? await this.getCurrentSummitYear();
+      // General company lists and sponsor counts follow the annual calendar year.
+      const sponsorYear = year ?? getAnnualSponsorYear();
 
       let filteredCompanies: Company[] = [];
 
@@ -3202,20 +3203,23 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  /** A sponsor with its most recent sponsorship's tier and year (null when it has none). */
-  async getLatestYearSponsor(id: number): Promise<YearSponsor | null> {
+  /** One annual sponsorship, never falling back to another year's tier. */
+  async getYearSponsor(id: number, year: number): Promise<YearSponsor | null> {
     const [row] = await db
       .select(this.yearSponsorColumns())
       .from(sponsorships)
       .innerJoin(sponsors, eq(sponsorships.sponsorId, sponsors.id))
-      .where(and(eq(sponsors.id, id), isNull(sponsors.deletedAt), isNull(sponsorships.deletedAt)))
-      .orderBy(desc(sponsorships.year))
+      .where(and(
+        eq(sponsors.id, id),
+        eq(sponsorships.year, year),
+        isNull(sponsors.deletedAt),
+        isNull(sponsorships.deletedAt),
+      ))
       .limit(1);
     return row || null;
   }
 
-  async getAllSponsorsWithHistory(): Promise<SponsorWithHistory[]> {
-    const currentYear = await this.getCurrentSummitYear();
+  async getAllSponsorsWithHistory(currentYear = getAnnualSponsorYear()): Promise<SponsorWithHistory[]> {
     const sponsorRows = await db
       .select()
       .from(sponsors)
@@ -3369,7 +3373,7 @@ export class PostgresStorage implements IStorage {
 
   async getActiveSponsorByCompanyId(companyId: number): Promise<YearSponsor | null> {
     try {
-      const currentYear = await this.getCurrentSummitYear();
+      const currentYear = getAnnualSponsorYear();
       const result = await db
         .select(this.yearSponsorColumns())
         .from(sponsorships)
@@ -4932,14 +4936,9 @@ export class PostgresStorage implements IStorage {
   async getCurrentSummit(options: { includeUnpublished?: boolean } = {}): Promise<SummitWithSponsor | null> {
     const [flagged] = await db.select().from(summits).where(eq(summits.isCurrent, true)).limit(1);
     if (flagged && (flagged.isPublished || options.includeUnpublished)) return this.oneWithPresentingSponsor(flagged);
-    // Fall back to the most recent published summit when the flagged one is still a draft
-    const [latest] = await db
-      .select()
-      .from(summits)
-      .where(eq(summits.isPublished, true))
-      .orderBy(desc(summits.year))
-      .limit(1);
-    return this.oneWithPresentingSponsor(latest);
+    // Publishing a page must not implicitly feature it. Only the explicit flag
+    // controls promotion; historical content is selected independently.
+    return null;
   }
 
   async createSummit(data: InsertSummit): Promise<SummitWithSponsor> {

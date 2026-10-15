@@ -12,7 +12,7 @@ export function useSummits() {
   });
 }
 
-/** The featured summit: marked current and published, else the latest published. */
+/** The explicitly featured summit, when published (admins can also see a featured draft). */
 export function useCurrentSummit() {
   return useQuery<{ summit: Summit | null }, Error, Summit | null>({
     queryKey: ["/api/summits", "current"],

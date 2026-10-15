@@ -250,7 +250,7 @@ export function BulletinBoard() {
         onCreatePost={() => setIsCreating(true)}
       />
 
-      {/* Sponsor Grid - Shows the current summit's sponsors */}
+      {/* General sponsor displays follow the annual calendar year, not the featured summit. */}
       <SponsorGrid 
         title="Our Sponsors"
         showBecomeSponsorCTA={true}
