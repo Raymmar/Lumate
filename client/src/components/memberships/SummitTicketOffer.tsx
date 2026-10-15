@@ -90,7 +90,7 @@ export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, d
                 <div className="flex items-end gap-1">
                   <span className="text-5xl font-extrabold" data-testid="text-ticket-price">{priceText}</span>
                 </div>
-                <p className="mt-1 font-semibold text-[#FEA30E]">Premium membership included free</p>
+                <p className="mt-1 font-semibold text-[#FEA30E]">Premium membership included</p>
               </div>
               <Button
                 size="lg"
@@ -118,7 +118,7 @@ export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, d
       {!isPremium && (
         <p className="text-sm text-muted-foreground" data-testid="text-ticket-terms">
           Checkout starts an annual Premium membership that renews automatically at {renewal} until you cancel.
-          Find your free Summit ticket coupon in your email or in your account settings.
+          Find your Summit ticket coupon in your email or in your account settings.
         </p>
       )}
     </section>
