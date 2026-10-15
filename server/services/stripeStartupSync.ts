@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { cacheMetadata } from "@shared/schema";
-import { getStripeSync } from "../stripeClient";
+import { getStripeSecretKey, getStripeSync } from "../stripeClient";
+import { readWebhookSetupEnv, setUpManagedWebhookForEnvironment } from "./stripeWebhookSetup";
 
 /**
  * Stripe background work that used to block startup: the managed webhook setup
@@ -91,16 +92,14 @@ async function runBackfillIfDue(reason: "startup" | "scheduled"): Promise<void> 
 
 async function setUpManagedWebhook(): Promise<void> {
   const stripeSync = await getStripeSync();
+  const env = readWebhookSetupEnv(await getStripeSecretKey());
   console.log("[Stripe] Setting up managed webhook...");
-  const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
-  const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
-    `${webhookBaseUrl}/api/stripe/webhook`,
-    {
-      enabled_events: ["*"],
-      description: "Managed webhook for Stripe sync",
-    },
-  );
-  console.log(`[Stripe] Webhook configured: ${webhook.url} (UUID: ${uuid})`);
+  const result = await setUpManagedWebhookForEnvironment(stripeSync, env);
+  if (result.action === "skipped") {
+    console.log(`[Stripe] Skipping managed webhook setup: ${result.reason}`);
+  } else {
+    console.log(`[Stripe] Webhook configured (${result.action}): ${result.url} (UUID: ${result.uuid})`);
+  }
 }
 
 /** Starts webhook setup and the backfill schedule. Never throws; call after the server is listening. */
