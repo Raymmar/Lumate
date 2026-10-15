@@ -232,7 +232,9 @@ interface BadgeUsersResponse {
   users: Member[];
 }
 
-function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; badgeName: string; subtitle?: string }) {
+function BadgeMembersSection({ title, badgeName, subtitle, largeAvatars = false }: { title: string; badgeName: string; subtitle?: string; largeAvatars?: boolean }) {
+  const avatarSize = largeAvatars ? "w-24 h-24" : "w-16 h-16";
+  const gridColumns = largeAvatars ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6";
   const { data, isLoading, error } = useQuery<BadgeUsersResponse>({
     queryKey: [`/api/badges/${encodeURIComponent(badgeName)}/users`],
     enabled: true,
@@ -261,10 +263,10 @@ function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; ba
     return (
       <div className="space-y-12">
         {heading}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
+        <div className={`grid ${gridColumns} gap-x-4 gap-y-12`}>
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="text-center">
-              <Skeleton className="w-16 h-16 mx-auto mb-2 rounded-full" />
+              <Skeleton className={`${avatarSize} mx-auto mb-2 rounded-full`} />
               <Skeleton className="h-4 w-20 mx-auto" />
               <Skeleton className="h-3 w-16 mx-auto mt-2" />
             </div>
@@ -293,7 +295,7 @@ function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; ba
           No {title.toLowerCase()} found.
         </p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-12">
+        <div className={`grid ${gridColumns} gap-x-4 gap-y-12`}>
           {badgeMembers.map((member: Member) => {
             const displayName = member.displayName || member.email?.split('@')[0];
             const initials = displayName
@@ -304,7 +306,7 @@ function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; ba
             
             const memberElement = (
               <div className="text-center">
-                <Avatar className="w-16 h-16 mx-auto mb-2">
+                <Avatar className={`${avatarSize} mx-auto mb-2`}>
                   {member.person?.avatarUrl ? (
                     <AvatarImage src={member.person.avatarUrl} alt={displayName} />
                   ) : (
@@ -328,6 +330,7 @@ function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; ba
         </div>
       )}
       
+      {badgeName === "Founding Member" && (
       <div className="text-center mt-8">
         <p className="text-muted-foreground mb-4">
           If you are a founding member and do not see your name listed here, reach out to set up your account.
@@ -339,6 +342,7 @@ function BadgeMembersSection({ title, badgeName, subtitle }: { title: string; ba
           </Button>
         </a>
       </div>
+      )}
     </div>
   );
 }
@@ -440,6 +444,7 @@ export default function AboutPage() {
               title="Bored of Directors"
               badgeName="Bored of Directors"
               subtitle="A reminder to ourselves to not take any of this too seriously"
+              largeAvatars
             />
             <BoardMembersSection />
             <BadgeMembersSection title="Founding Members" badgeName="Founding Member" />
