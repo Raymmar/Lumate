@@ -11,6 +11,6 @@ description: Rules for issuing Summit/event coupons to Premium members, backfill
   **Why:** owner was angry about extra UI; quote: "I just want to edit the actual generate coupon logic."
 - Dev has a real SendGrid key and Luma key. Coupon side effects must stay opt-in outside production; see [Development side effects](development-side-effects.md). Verify with read-only previews and unit tests instead.
 - Summit tickets are sold as Premium membership (live Stripe Premium price) via `/memberships`; there is no separate ticket product.
-- The Memberships ticket offer is just Premium checkout. Do NOT tie it (visibility, wording, eligibility) to coupon rules, coupon records or event start times. Coupon automation is a separate, optional back-office layer.
+- The Memberships ticket purchase offer is just Premium checkout. Its availability must not depend on coupon automation; actual existing coupons may additionally be presented as personal claim tickets.
   **Why:** the owner was explicit (Oct 2026): "the membership is just something you buy, and then, if we want, we add this other automation in the back."
-  **How to apply:** coupon changes stay in the admin Coupons tools; membership/ticket UI changes stay free of coupon logic.
+  **How to apply:** Keep coupon issuance in admin/back-office tools, never page rendering. The owner subsequently requested personalized claim tickets on Memberships, home/dashboard, and a compact account reminder (2026-10-15); that presentation may read existing coupons without making membership sales depend on them.
