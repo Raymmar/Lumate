@@ -179,7 +179,7 @@ function BoardMembersSection() {
   ];
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-12 pt-8">
       <img
         src="https://file-upload.replit.app/api/storage/images%2F1742362765806-LAS-105%201.png"
         alt="Sarasota Tech Founding Board Members"
