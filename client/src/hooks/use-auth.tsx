@@ -31,6 +31,7 @@ function useLogoutMutation() {
     onSuccess: () => {
       // Clear and invalidate auth query
       queryClient.setQueryData(["/api/auth/me"], null);
+      clearPrivateTicketQueries();
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
       
       // Invalidate posts and events queries to refresh content based on new auth state
@@ -63,6 +64,13 @@ function useLogoutMutation() {
 function resetSummitQueries() {
   for (const key of ["/api/summits", "/api/time-blocks", "/api/presentations", "/api/speakers"]) {
     queryClient.resetQueries({ queryKey: [key] });
+  }
+}
+
+function clearPrivateTicketQueries() {
+  for (const key of ["/api/user/coupons", "/api/subscription/status"]) {
+    void queryClient.cancelQueries({ queryKey: [key] });
+    queryClient.removeQueries({ queryKey: [key] });
   }
 }
 
@@ -104,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       const userData = data.user || data;
+      clearPrivateTicketQueries();
       
       // Invalidate auth query
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });

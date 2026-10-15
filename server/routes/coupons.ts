@@ -422,6 +422,8 @@ router.patch("/api/admin/coupons/:couponId/status", requireAdmin, async (req, re
 });
 
 router.get("/api/user/coupons", requireAuth, async (req, res) => {
+  res.setHeader("Cache-Control", "private, no-store");
+  res.vary("Cookie");
   try {
     const userId = req.session!.userId!;
     

@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSummitTicket } from "@/hooks/use-summit-ticket";
+import { CurrentSummitTicket } from "@/components/memberships/CurrentSummitTicket";
+import { couponRegistrationUrl, isUsableTicketCoupon } from "@shared/summitTicket";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,17 +35,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
-interface UserCoupon {
-  id: number;
-  eventApiId: string;
-  eventTitle: string;
-  eventUrl: string | null;
-  code: string;
-  discountPercent: number;
-  status: string;
-  validEndAt: string | null;
-}
 
 interface LinkedPerson {
   id: number;
@@ -303,10 +295,9 @@ export default function UserSettingsPage() {
   const hasActiveSubscription =
     user?.isAdmin || subscriptionStatus?.status === "active";
 
-  const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: UserCoupon[]; hasUnclaimedCoupons: boolean }>({
-    queryKey: ["/api/user/coupons"],
-    enabled: !!user,
-  });
+  const { claim, coupons: couponQuery } = useSummitTicket();
+  const { data: couponsData, isLoading: isLoadingCoupons } = couponQuery;
+  const otherCoupons = couponQuery.isError ? [] : (couponsData?.coupons ?? []).filter(c => c.eventApiId !== claim?.eventApiId);
 
   const copyToClipboard = async (text: string, isLink: boolean = false) => {
     await navigator.clipboard.writeText(text);
@@ -421,7 +412,7 @@ export default function UserSettingsPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout aboveLayout={<CurrentSummitTicket claimOnly />}>
       <div className="container max-w-3xl mx-auto pt-3 pb-24">
         <Card className="border-none shadow-none">
           <CardHeader className="px-6 pb-2">
@@ -868,12 +859,12 @@ export default function UserSettingsPage() {
             </div>
 
             {/* Event Coupons Section */}
-            {hasActiveSubscription && (
+            {(hasActiveSubscription || otherCoupons.length > 0) && (
               <div className="mt-6 pt-6 border-t">
                 <div className="flex items-center gap-2 mb-4">
                   <Ticket className="h-5 w-5 text-primary" />
                   <h3 className="font-semibold">Your Event Coupons</h3>
-                  {couponsData?.hasUnclaimedCoupons && (
+                  {otherCoupons.some(c => c.status === "issued") && (
                     <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
                       New
                     </span>
@@ -884,10 +875,12 @@ export default function UserSettingsPage() {
                   <div className="flex justify-center py-4">
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
-                ) : couponsData?.coupons && couponsData.coupons.length > 0 ? (
+                ) : couponQuery.isError ? (
+                  <p role="alert">Couldn't load your coupons. <Button variant="link" onClick={() => { void couponQuery.refetch(); }}>Try again</Button></p>
+                ) : otherCoupons.length > 0 ? (
                   <div className="space-y-3">
-                    {couponsData.coupons.map((coupon) => {
-                      const couponLink = coupon.eventUrl ? `${coupon.eventUrl}?coupon=${coupon.code}` : null;
+                    {otherCoupons.map((coupon) => {
+                      const couponLink = isUsableTicketCoupon(coupon) ? couponRegistrationUrl(coupon.eventUrl, coupon.code) : null;
                       return (
                         <div 
                           key={coupon.id} 

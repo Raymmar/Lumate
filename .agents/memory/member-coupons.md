@@ -22,4 +22,7 @@ description: Rules for issuing Summit/event coupons to Premium members, backfill
   **How to apply:** Share the existing Memberships visibility rule; keep this home-only placement outside the feed/sidebar grid.
 - Reuse the exact full-width Memberships ticket on home and the member dashboard/account area; never substitute a compact card.
   **Why:** The owner corrected the compact-card plan on 2026-10-15 and explicitly requires the same prominent ticket, spanning full width even in the dashboard.
-  **How to apply:** Keep the same responsive ticket design above the page columns. A possible dismiss control is not permission to shrink or redesign it.
+  **How to apply:** Keep the same responsive ticket design above the page columns. A possible dismiss control is not permission to shrink or redesign it. Claim eligibility comes from the linked event's usable coupon, not membership status. Luma synchronization confirms redemption, never a claim click.
+- The home ticket must align with the core grid's horizontal content padding without changing its vertical spacing.
+  **Why:** The owner explicitly corrected the wider home ticket on 2026-10-15 and specified left/right padding only.
+  **How to apply:** Apply the grid's responsive horizontal inset only on home; keep the full-width ticket above both columns and leave other placements unchanged.

@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 import { useQuery } from "@tanstack/react-query";
-import { isSummitPast, useCurrentSummit } from "@/hooks/use-summits";
+import { useSummitTicket } from "@/hooks/use-summit-ticket";
 import { SummitTicketOffer } from "@/components/memberships/SummitTicketOffer";
 
 interface PlanFeature {
@@ -51,8 +51,8 @@ interface PremiumPriceData {
 
 export default function MembershipsPage() {
   const { toast } = useToast();
-  const { isPremium, startSubscription, startGuestSubscription, isLoading } = useSubscription();
-  const { user } = useAuth();
+  const { isPremium, startSubscription, startGuestSubscription, isLoading, isError: subscriptionError, refetch: refetchSubscription } = useSubscription();
+  const { user, isLoading: authLoading, error: authError } = useAuth();
   const isLoggedIn = !!user;
 
   const { data: premiumPrice, isLoading: isPriceLoading } = useQuery<PremiumPriceData>({
@@ -64,8 +64,7 @@ export default function MembershipsPage() {
   const priceInterval = premiumPrice?.interval || "year";
 
   // The current summit's ticket is sold as a Premium membership purchase
-  const { data: currentSummit } = useCurrentSummit();
-  const ticketSummit = currentSummit && !isSummitPast(currentSummit) ? currentSummit : null;
+  const { summit: ticketSummit, claim, coupons } = useSummitTicket();
 
   const buyTicket = async () => {
     try {
@@ -156,6 +155,13 @@ export default function MembershipsPage() {
                 isPremium={!!isPremium}
                 onBuy={buyTicket}
                 disabled={isLoading}
+                claim={claim}
+                pending={authLoading || (!!user && (coupons.isPending || (!claim && isLoading)))}
+                lookupError={!!authError || (!!user && (coupons.isError || (!claim && subscriptionError)))}
+                onRetry={() => {
+                  if (authError) window.location.reload();
+                  else if (user) { void coupons.refetch(); void refetchSubscription(); }
+                }}
               />
             )}
 

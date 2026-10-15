@@ -5,6 +5,7 @@ import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { formatSummitDate } from "@/hooks/use-summits";
 import ticketBackground from "@/assets/summit-ticket-background.png";
+import { couponRegistrationUrl, type TicketCoupon } from "@shared/summitTicket";
 
 interface SummitTicketOfferProps {
   summit: Summit;
@@ -15,16 +16,21 @@ interface SummitTicketOfferProps {
   /** Starts the regular Premium checkout (signed-in or guest). */
   onBuy: () => Promise<void>;
   disabled?: boolean;
+  claim?: TicketCoupon;
+  pending?: boolean;
+  lookupError?: boolean;
+  onRetry?: () => void;
 }
 
 // Summit artwork rings; the perforation notches are cut with the page background colour.
 const TICKET_BACKGROUND = `url(${ticketBackground}) center bottom / cover no-repeat, #000`;
 
 /** Premium membership presented as a Summit ticket; the membership itself comes free with it. */
-export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, disabled }: SummitTicketOfferProps) {
+export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, disabled, claim, pending, lookupError, onRetry }: SummitTicketOfferProps) {
   const [isStarting, setIsStarting] = useState(false);
   const priceText = price ?? "…";
   const renewal = price ? `${price}/${interval}` : `the Premium price each ${interval}`;
+  const claimUrl = claim && couponRegistrationUrl(claim.eventUrl, claim.code);
 
   const handleBuy = async () => {
     setIsStarting(true);
@@ -49,7 +55,7 @@ export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, d
           <h2 id="summit-ticket-heading" className="mt-4 text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
             {summit.title} <span className="text-[#FEA30E]">{summit.year}</span>
           </h2>
-          <p className="mt-2 text-lg text-white/80">Your Summit ticket, with a year of Premium membership included free.</p>
+          <p className="mt-2 text-lg text-white/80">{claimUrl ? "Your Summit ticket is ready to claim. Complete your registration on Luma." : "Your Summit ticket, with a year of Premium membership included free."}</p>
           <div className="mt-6 grid gap-2 text-white/80">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 shrink-0 text-[#FEA30E]" />
@@ -76,12 +82,28 @@ export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, d
 
         {/* Stub: price and action */}
         <div className="flex flex-col justify-center gap-4 p-6 sm:p-8 md:w-80 md:p-10 bg-black/40">
-          {isPremium ? (
+          {pending ? (
+            <p role="status" className="text-white/80"><Loader2 className="mb-2 h-6 w-6 animate-spin" />Checking your ticket…</p>
+          ) : lookupError ? (
+            <div role="alert" className="space-y-2">
+              <p>We couldn't check your ticket. Please try again before purchasing.</p>
+              <Button variant="secondary" onClick={onRetry}>Try again</Button>
+            </div>
+          ) : claimUrl && claim ? (
+            <div className="space-y-3" data-testid="ticket-offer-claim">
+              <p className="text-xl font-bold">Your ticket coupon</p>
+              <code className="block break-all rounded bg-white/10 p-3 text-lg">{claim.code}</code>
+              <Button asChild size="lg" className="w-full bg-[#FEA30E] hover:bg-[#E5930D] text-black font-semibold">
+                <a href={claimUrl} target="_blank" rel="noopener noreferrer" data-testid="button-claim-summit-ticket">Claim your ticket</a>
+              </Button>
+              <p className="text-sm text-white/80">You must finish registration on Luma. This coupon is not a completed registration. Confirmation here may take time to sync.</p>
+            </div>
+          ) : isPremium ? (
             <div className="space-y-2" data-testid="ticket-offer-member">
               <MailCheck className="h-8 w-8 text-[#FEA30E]" />
               <p className="text-xl font-bold">You're a Premium member</p>
               <p className="text-white/80">
-                Find your Summit ticket coupon in your email or in your account settings under "Your Event Coupons."
+                Your Premium access is active. No available coupon was found for this Summit.
               </p>
             </div>
           ) : (
@@ -115,10 +137,10 @@ export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, d
           </Button>
         </div>
       </div>
-      {!isPremium && (
+      {!isPremium && !claimUrl && !pending && !lookupError && (
         <p className="text-sm text-muted-foreground" data-testid="text-ticket-terms">
           Checkout starts an annual Premium membership that renews automatically at {renewal} until you cancel.
-          Find your Summit ticket coupon in your email or in your account settings.
+          Any issued Summit coupon will appear in your account settings.
         </p>
       )}
     </section>

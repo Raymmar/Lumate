@@ -1,7 +1,8 @@
 import { storage } from "../storage";
 import { db } from "../db";
 import { coupons, events } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
+import { missingLumaCouponIds } from "./couponAvailability";
 
 interface LumaCoupon {
   api_id: string;
@@ -76,6 +77,15 @@ export async function syncCouponsForEvent(eventApiId: string): Promise<{
   try {
     const lumaCoupons = await fetchAllLumaCouponsForEvent(eventApiId);
     console.log(`[CouponSync] Found ${lumaCoupons.length} coupons in Luma for event ${eventApiId}`);
+
+    // Only a successful, complete Luma listing can confirm a removed coupon.
+    // Never do this during page rendering or after a failed/partial fetch.
+    const localCoupons = await db.select().from(coupons).where(eq(coupons.eventApiId, eventApiId));
+    const missingIds = missingLumaCouponIds(localCoupons, lumaCoupons);
+    if (missingIds.length) {
+      await db.update(coupons).set({ status: "expired", remainingCount: 0 })
+        .where(inArray(coupons.id, missingIds));
+    }
 
     const eventData = await db
       .select()

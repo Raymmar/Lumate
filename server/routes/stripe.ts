@@ -11,6 +11,7 @@ import { StripeService } from "../services/stripe";
 import { LumaMembershipService } from "../services/LumaMembershipService";
 import { AutoCouponService } from "../services/autoCoupon";
 import { sendVerificationEmail } from "../email";
+import { hasActivePremium } from "../utils/premiumCheck";
 
 const router = express.Router();
 
@@ -381,7 +382,7 @@ router.get("/subscription-status", async (req, res) => {
 
     // If user is admin, they always have access
     if (user.isAdmin) {
-      return res.json({ status: "active" });
+      return res.json({ status: "active", hasPremiumAccess: true });
     }
 
     // Check subscription status using synced Stripe data
@@ -392,7 +393,7 @@ router.get("/subscription-status", async (req, res) => {
       user.email
     );
 
-    return res.json(subscriptionStatus);
+    return res.json({ ...subscriptionStatus, hasPremiumAccess: hasActivePremium(user) });
   } catch (error: any) {
     console.error("Error checking subscription status:", error);
     return res.status(500).json({

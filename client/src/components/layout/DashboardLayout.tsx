@@ -7,9 +7,10 @@ import { PageContainer } from "./PageContainer";
 interface DashboardLayoutProps {
   children: ReactNode;
   hideSidebar?: boolean;
+  aboveLayout?: ReactNode;
 }
 
-export default function DashboardLayout({ children, hideSidebar = false }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, hideSidebar = false, aboveLayout }: DashboardLayoutProps) {
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children, hideSidebar = false }: Dashb
       </div>
 
       <PageContainer>
+        {aboveLayout}
         <div className="flex">
           {!hideSidebar && (
             <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">

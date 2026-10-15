@@ -5,13 +5,14 @@ interface SubscriptionStatus {
   status: "active" | "inactive" | "canceled" | "past_due" | "unpaid" | "incomplete" | string;
   currentPeriodEnd?: number;
   subscriptionId?: string;
+  hasPremiumAccess?: boolean;
 }
 
 export function useSubscription() {
   const { user } = useAuth();
   
-  const { data: subscriptionStatus, isLoading } = useQuery<SubscriptionStatus>({
-    queryKey: ["/api/subscription/status"],
+  const { data: subscriptionStatus, isLoading, isError, refetch } = useQuery<SubscriptionStatus>({
+    queryKey: ["/api/subscription/status", user?.id],
     queryFn: async () => {
       const response = await fetch("/api/stripe/subscription-status");
       if (!response.ok) throw new Error("Failed to check subscription status");
@@ -21,7 +22,9 @@ export function useSubscription() {
     refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
   });
 
-  const isPremium = user?.isAdmin || subscriptionStatus?.status === "active";
+  // Honor existing non-Stripe grants too; buying again must not be suggested.
+  const isPremium = user?.isAdmin || subscriptionStatus?.status === "active" ||
+    subscriptionStatus?.hasPremiumAccess === true;
   
   // Function to start a subscription checkout
   const startSubscription = async () => {
@@ -80,6 +83,8 @@ export function useSubscription() {
   return {
     subscriptionStatus,
     isLoading,
+    isError,
+    refetch,
     isPremium,
     startSubscription,
     startGuestSubscription,

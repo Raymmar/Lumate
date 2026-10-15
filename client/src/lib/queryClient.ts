@@ -61,3 +61,10 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Public components also observe this key. Their default query must treat a
+// signed-out session just like AuthProvider does, rather than poisoning auth
+// state with an expected 401 while the home page mounts.
+queryClient.setQueryDefaults(["/api/auth/me"], {
+  queryFn: getQueryFn({ on401: "returnNull" }),
+});

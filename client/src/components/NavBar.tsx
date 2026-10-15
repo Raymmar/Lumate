@@ -21,7 +21,7 @@ import { useState } from "react";
 import PeopleDirectory from "@/components/people/PeopleDirectory";
 import { PremiumBadge } from "@/components/PremiumBadge";
 import { useSubscription } from "@/hooks/use-subscription";
-import { useQuery } from "@tanstack/react-query";
+import { useUserCoupons } from "@/hooks/use-user-coupons";
 
 export function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -32,13 +32,9 @@ export function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
   const { isPremium, startSubscription, isLoading } = useSubscription();
 
-  const { data: couponsData } = useQuery<{ hasUnclaimedCoupons: boolean }>({
-    queryKey: ["/api/user/coupons"],
-    enabled: !!user && isPremium,
-    staleTime: 60000,
-  });
+  const { data: couponsData, isError: couponError } = useUserCoupons();
 
-  const hasNewCoupons = couponsData?.hasUnclaimedCoupons || false;
+  const hasNewCoupons = !couponError && (couponsData?.hasUnclaimedCoupons || false);
 
   const profileUrl = user?.slug ? 
     `/people/${encodeURIComponent(user.slug)}` : 
