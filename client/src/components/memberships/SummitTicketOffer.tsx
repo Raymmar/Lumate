@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Calendar, Loader2, MailCheck, MapPin, Ticket } from "lucide-react";
 import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,15 @@ export function SummitTicketOffer({ summit, price, interval, isPremium, onBuy, d
               </Button>
             </>
           )}
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="w-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
+            data-testid="button-ticket-learn-more"
+          >
+            <Link href={`/summit/${summit.year}`}>Learn more</Link>
+          </Button>
         </div>
       </div>
       {!isPremium && (
