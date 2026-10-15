@@ -14,6 +14,9 @@ description: Rules for issuing Summit/event coupons to Premium members, backfill
 - The Memberships ticket purchase offer is just Premium checkout. Its availability must not depend on coupon automation; actual existing coupons may additionally be presented as personal claim tickets.
   **Why:** the owner was explicit (Oct 2026): "the membership is just something you buy, and then, if we want, we add this other automation in the back."
   **How to apply:** Keep coupon issuance in admin/back-office tools, never page rendering. Personalized claim tickets on Memberships and home/dashboard/account may read existing coupons without making membership sales depend on them.
+- Premium access is not proof of a current Summit coupon or entitlement to future tickets. Confirm an actual usable coupon before claiming it exists or telling someone to find it in email/settings.
+  **Why:** The owner explained that a previous year's ticket may have granted membership without an active subscription; admin/granted Premium access must not imply future tickets.
+  **How to apply:** Base personalized ticket messaging on the person's issued coupon for that exact event, not admin, Premium, or subscription flags. Do not expand coupon issuance eligibility as a UI fix.
 - The home-page ticket belongs below the main navigation, above the entire core grid, and follows Memberships' active/current and not-past Summit visibility.
   **Why:** The owner explicitly selected this placement and date gating for the home CTA on 2026-10-15; it is not meant to appear on every dashboard-layout page.
   **How to apply:** Share the existing Memberships visibility rule; keep this home-only placement outside the feed/sidebar grid.
