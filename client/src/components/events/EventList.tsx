@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatInTimeZone } from 'date-fns-tz';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, ExternalLink, Users, CalendarPlus, CalendarDays, Crown } from "lucide-react";
+import { Calendar, Users, CalendarPlus, CalendarDays, Crown } from "lucide-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -299,7 +299,6 @@ function EventCard({ event, compact }: { event: Event; compact?: boolean }) {
 }
 
 export default function EventList({ compact }: EventListProps) {
-  const { user } = useAuth();
   const { data, isLoading, error } = useQuery<EventsResponse>({
     queryKey: ["/api/events"],
     queryFn: async () => {
@@ -319,20 +318,6 @@ export default function EventList({ compact }: EventListProps) {
     .filter(event => new Date(event.startTime) > now)
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
     .slice(0, 3);
-  const upcomingEvent = upcomingEvents[0];
-  const isEventEnded = upcomingEvent && new Date(upcomingEvent.endTime) < now;
-
-  const { data: rsvpStatus } = useQuery({
-    queryKey: ['/api/events/check-rsvp', upcomingEvent?.api_id],
-    queryFn: async () => {
-      const response = await fetch(`/api/events/check-rsvp?event_api_id=${upcomingEvent?.api_id}`);
-      if (!response.ok) {
-        throw new Error('Failed to check RSVP status');
-      }
-      return response.json();
-    },
-    enabled: !!user && !!upcomingEvent?.api_id
-  });
 
   if (error) {
     return (
@@ -344,21 +329,6 @@ export default function EventList({ compact }: EventListProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between pb-1">
-        <h2 className="text-sm font-medium">Upcoming Events</h2>
-        {upcomingEvent && rsvpStatus?.isGoing && !isEventEnded && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => window.open(generateCalendarUrl(upcomingEvent), '_blank')}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors px-2 h-7"
-          >
-            <span>Add to Calendar</span>
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
-        )}
-      </div>
-
       {isLoading ? (
         <div className="space-y-2">
           <Skeleton className="h-[88px]" />
