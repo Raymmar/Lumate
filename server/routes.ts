@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
+import { canAutoAssignPresentation } from "@shared/agenda";
 import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import { runBlockCleanup } from "./services/blockCleanup";
 import { sql } from "drizzle-orm";
@@ -996,8 +997,13 @@ export async function registerRoutes(app: Express) {
   // Backfill time blocks for existing presentations without them
   app.post("/api/admin/backfill-time-blocks", requireAdmin, async (req, res) => {
     try {
-      const presentations = await storage.getPresentations();
-      let existingBlocks = await storage.getTimeBlocks();
+      const result = z.object({ summitId: z.number().int().positive().optional() }).safeParse(req.body ?? {});
+      if (!result.success) {
+        return res.status(400).json({ error: "Invalid summit id" });
+      }
+      const scope = result.data.summitId === undefined ? {} : { summitId: result.data.summitId };
+      const presentations = await storage.getPresentations(scope);
+      let existingBlocks = await storage.getTimeBlocks(scope);
       
       let createdBlocks = 0;
       let assignedPresentations = 0;
@@ -1007,22 +1013,14 @@ export async function registerRoutes(app: Express) {
       const unassignedPresentations = presentations.filter(p => !p.timeBlockId);
       
       for (const pres of unassignedPresentations) {
-        // Validate that presentation has valid start and end times
-        if (!pres.startTime || !pres.endTime) {
-          console.log(`Skipping presentation ${pres.id} - missing startTime or endTime`);
+        if (!canAutoAssignPresentation(pres)) {
+          console.log(`Skipping presentation ${pres.id} - missing or invalid startTime or endTime`);
           skippedPresentations++;
           continue;
         }
         
         const presStartTime = new Date(pres.startTime);
         const presEndTime = new Date(pres.endTime);
-        
-        // Validate the dates are valid
-        if (isNaN(presStartTime.getTime()) || isNaN(presEndTime.getTime())) {
-          console.log(`Skipping presentation ${pres.id} - invalid date format`);
-          skippedPresentations++;
-          continue;
-        }
         
         // Check if any existing time block in the same summit covers this presentation's time range
         let matchingBlock = existingBlocks.find(block => {
@@ -1045,7 +1043,7 @@ export async function registerRoutes(app: Express) {
           const autoTitle = `${formatTime(presStartTime)} – ${formatTime(presEndTime)}`;
           
           // Re-fetch blocks to get current max displayOrder (handles concurrent updates)
-          existingBlocks = await storage.getTimeBlocks();
+          existingBlocks = await storage.getTimeBlocks(scope);
           const maxDisplayOrder = existingBlocks.reduce((max, block) => 
             Math.max(max, block.displayOrder || 0), 0);
           
@@ -1059,7 +1057,7 @@ export async function registerRoutes(app: Express) {
           });
           
           // Refresh the blocks list to include the new block
-          existingBlocks = await storage.getTimeBlocks();
+          existingBlocks = await storage.getTimeBlocks(scope);
           createdBlocks++;
           matchingBlock = { ...newBlock, presentations: [] };
         }

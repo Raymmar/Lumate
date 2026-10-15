@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useSummit } from "@/hooks/use-summits";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -586,6 +587,7 @@ function ImageGalleryCard() {
 export default function LegacySummit2026Page() {
   const { user } = useAuth();
   const isAdmin = user?.isAdmin ?? false;
+  const { data: summit } = useSummit(2026);
 
   const vcSponsors = [
     {
@@ -860,7 +862,7 @@ export default function LegacySummit2026Page() {
 
           {/* Event Agenda Section */}
           <div className="mb-12">
-            <AgendaSection isAdmin={isAdmin} summitYear={2026} />
+            <AgendaSection isAdmin={isAdmin} summitYear={2026} summitId={summit?.id} />
           </div>
 
           <div className="space-y-6">

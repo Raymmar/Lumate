@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { presentationsQueryOptions, timeBlocksQueryOptions } from "./agendaQueries";
+import { canAutoAssignPresentation } from "@shared/agenda";
 
 interface AgendaSectionProps {
   isAdmin?: boolean;
@@ -157,12 +158,17 @@ export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaS
 
   const { toast } = useToast();
   
-  // Count unassigned presentations
-  const unassignedCount = allPresentations.filter(p => !p.timeBlockId).length;
+  // Count only presentations the backfill can actually assign.
+  const unassignedCount = allPresentations.filter(canAutoAssignPresentation).length;
 
   const backfillMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest<{ message: string; createdBlocks: number; assignedPresentations: number }>("/api/admin/backfill-time-blocks", "POST");
+      if (summitYear !== undefined && summitId === undefined) {
+        throw new Error("The summit must be loaded before auto-assigning presentations.");
+      }
+      return await apiRequest<{ message: string; createdBlocks: number; assignedPresentations: number }>(
+        "/api/admin/backfill-time-blocks", "POST", summitId === undefined ? undefined : { summitId },
+      );
     },
     onSuccess: (data) => {
       toast({
@@ -301,7 +307,7 @@ export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaS
                 <Button 
                   variant="secondary" 
                   onClick={() => backfillMutation.mutate()}
-                  disabled={backfillMutation.isPending}
+                  disabled={backfillMutation.isPending || (summitYear !== undefined && summitId === undefined)}
                   className="gap-2"
                   data-testid="button-backfill-time-blocks"
                 >

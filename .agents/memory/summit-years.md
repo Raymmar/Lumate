@@ -16,6 +16,9 @@ description: Decisions behind per-year summit pages, current-summit semantics, a
   **Why:** `db:push` would drop tables that live outside the Drizzle schema; a merge once left dev without the new tables, so the new pages were blank.
 - Original hardcoded summit pages are kept at hidden comparison routes until the owner explicitly approves removal.
   **Why:** the owner requires sign-off before removal, and the 2025 layout is not fully reproduced by the generic year page.
+- Legacy comparison pages are not necessarily read-only; include them when auditing summit-year admin actions.
+  **Why:** the retained 2026 comparison page still exposes agenda admin controls, so checking only the generic summit and admin pages misses a reachable write path.
+  **How to apply:** verify year isolation on retained comparison pages as well as the primary pages.
 - Real summit content lives in production; dev only has sample data. Judge backfill results against production, not dev.
 - Summit hero artwork must stay at its original aspect ratio, full-width and uncropped, with no background fill.
   **Why:** The artwork contains text. The owner accepted unequal image/text panel heights rather than cropping or adding empty bands.
