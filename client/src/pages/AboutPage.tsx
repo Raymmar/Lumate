@@ -234,7 +234,10 @@ interface BadgeUsersResponse {
 
 function BadgeMembersSection({ title, badgeName, subtitle, largeAvatars = false }: { title: string; badgeName: string; subtitle?: string; largeAvatars?: boolean }) {
   const avatarSize = largeAvatars ? "w-24 h-24" : "w-16 h-16";
-  const gridColumns = largeAvatars ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6";
+  const gridColumns = largeAvatars
+    ? "grid-cols-2 lg:flex lg:flex-wrap lg:justify-center lg:gap-x-0"
+    : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6";
+  const memberWidth = largeAvatars ? "lg:w-1/4 lg:px-2" : undefined;
   const { data, isLoading, error } = useQuery<BadgeUsersResponse>({
     queryKey: [`/api/badges/${encodeURIComponent(badgeName)}/users`],
     enabled: true,
@@ -265,7 +268,7 @@ function BadgeMembersSection({ title, badgeName, subtitle, largeAvatars = false 
         {heading}
         <div className={`grid ${gridColumns} gap-x-4 gap-y-12`}>
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="text-center">
+            <div key={i} className={`text-center ${memberWidth ?? ""}`}>
               <Skeleton className={`${avatarSize} mx-auto mb-2 rounded-full`} />
               <Skeleton className="h-4 w-20 mx-auto" />
               <Skeleton className="h-3 w-16 mx-auto mt-2" />
@@ -318,11 +321,11 @@ function BadgeMembersSection({ title, badgeName, subtitle, largeAvatars = false 
             );
             
             return userName ? (
-              <Link key={member.id} href={`/people/${userName}`}>
+              <Link key={member.id} href={`/people/${userName}`} className={memberWidth}>
                 {memberElement}
               </Link>
             ) : (
-              <div key={member.id}>
+              <div key={member.id} className={memberWidth}>
                 {memberElement}
               </div>
             );
