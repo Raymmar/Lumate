@@ -2080,8 +2080,13 @@ export async function registerRoutes(app: Express) {
               badgeId: badge[0].id,
               assignedAt: new Date().toISOString(),
             })
+            .onConflictDoNothing({ target: [userBadgesTable.userId, userBadgesTable.badgeId] })
             .returning();
-          console.log("Successfully inserted badge assignment:", insertedBadge);
+          if (insertedBadge) {
+            console.log("Successfully inserted badge assignment:", insertedBadge);
+          } else {
+            console.log("Badge was already assigned by another pass");
+          }
         } catch (insertError) {
           console.error("Failed to insert badge assignment:", insertError);
           throw insertError;

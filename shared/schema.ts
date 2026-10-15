@@ -392,7 +392,9 @@ export const userBadges = pgTable("user_badges", {
   badgeId: integer("badge_id").notNull().references(() => badges.id),
   assignedBy: integer("assigned_by").references(() => users.id),
   assignedAt: timestamp("assigned_at", { mode: 'string', withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => ({
+  userBadgeUnique: uniqueIndex("user_badges_user_badge_unique").on(table.userId, table.badgeId),
+}));
 
 export const badgeRules = pgTable("badge_rules", {
   id: serial("id").primaryKey(),

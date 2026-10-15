@@ -61,6 +61,8 @@ export class BadgeService {
           badgeId,
           assignedAt: new Date().toISOString(),
         })
+        // Another pass may have awarded this badge since getExistingBadges.
+        .onConflictDoNothing({ target: [userBadges.userId, userBadges.badgeId] })
         .returning();
 
       return assignment;
@@ -148,13 +150,13 @@ export class BadgeService {
       const shouldAssign = this.evaluateRules(rules, userAttendance, user);
       if (shouldAssign) {
         assignments.push(this.assignBadge(user.id, badge.id));
-        console.log(`Assigning ${badge.name} badge to ${user.email}`);
       }
     }
 
     if (assignments.length > 0) {
-      await Promise.all(assignments);
-      console.log(`Completed ${assignments.length} badge assignments for ${user.email}`);
+      const results = await Promise.all(assignments);
+      const awardedCount = results.filter(Boolean).length;
+      console.log(`Completed ${awardedCount} new badge assignments for ${user.email}`);
     }
   }
 
