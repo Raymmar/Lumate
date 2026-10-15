@@ -10,7 +10,7 @@ import { SocialLinks } from "@/components/ui/social-links";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
-import { ExternalLink, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { TimelineModal } from "@/components/timeline/TimelineModal";
 import { TimelineCard } from "@/components/timeline/TimelineCard";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -328,20 +328,6 @@ function BadgeMembersSection({ title, badgeName, subtitle, largeAvatars = false 
             );
           })}
         </div>
-      )}
-      
-      {badgeName === "Founding Member" && (
-      <div className="text-center mt-8">
-        <p className="text-muted-foreground mb-4">
-          If you are a founding member and do not see your name listed here, reach out to set up your account.
-        </p>
-        <a href="https://calendly.com/srqyou/full" target="_blank" rel="noopener noreferrer">
-          <Button variant="outline" className="gap-2">
-            Schedule a Meeting
-            <ExternalLink size={16} />
-          </Button>
-        </a>
-      </div>
       )}
     </div>
   );
