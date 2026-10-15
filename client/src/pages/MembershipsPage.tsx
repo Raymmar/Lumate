@@ -248,7 +248,6 @@ export default function MembershipsPage() {
                 <div className="flex flex-col md:flex-row gap-8 items-center">
                   <div className="flex-1">
                     <h2 className="text-2xl font-bold mb-3">Growth Sponsorship</h2>
-                    <p className="text-lg font-semibold mb-3">Custom pricing</p>
                     <p className="text-muted-foreground mb-4">
                       Support the Sarasota tech community while gaining visibility for your brand. 
                       Enhanced features for larger organizations combine Premium membership benefits
