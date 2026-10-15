@@ -12,3 +12,9 @@ description: Why the dev preview loads slowly after restarts/merges, the orphan-
 
 **Why:** Diagnosed 2026-10-15 when the owner asked why the app loads slowly; throttling added the same day.
 **How to apply:** Check for orphan servers and startup syncs before blaming new code for slow loads; keep new background jobs off the pre-listen path.
+
+Development frontend errors must not terminate the backend through a custom logger.
+
+**Why:** A frontend transform error can be transient during edits or dependency restoration; treating every Vite error as fatal takes down the entire preview and prevents recovery.
+
+**How to apply:** Let Vite log and display frontend errors normally. Reserve process termination for genuinely fatal startup failures.
