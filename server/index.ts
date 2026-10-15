@@ -298,9 +298,7 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
   // Schedule daily badge assignment (run async after server starts)
   setTimeout(async () => {
     try {
-      console.log("Running initial badge assignment...");
-      await badgeService.runDailyBadgeAssignment();
-      console.log("Initial badge assignment completed");
+      await badgeService.runStartupBadgeAssignment();
     } catch (error) {
       console.error("Failed to run initial badge assignment:", error);
     }

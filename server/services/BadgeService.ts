@@ -1,7 +1,10 @@
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 import { eq } from "drizzle-orm";
-import { users, attendance, badges, userBadges, badgeRules } from "@shared/schema";
+import { users, attendance, badges, userBadges, badgeRules, cacheMetadata } from "@shared/schema";
+
+const LAST_BADGE_ASSIGNMENT_KEY = "last_badge_assignment";
+const BADGE_ASSIGNMENT_MAX_AGE = 24 * 60 * 60 * 1000;
 
 export class BadgeService {
   private static instance: BadgeService;
@@ -155,6 +158,29 @@ export class BadgeService {
     }
   }
 
+  public async runStartupBadgeAssignment() {
+    try {
+      const [metadata] = await db
+        .select()
+        .from(cacheMetadata)
+        .where(eq(cacheMetadata.key, LAST_BADGE_ASSIGNMENT_KEY))
+        .limit(1);
+      const lastRun = metadata ? new Date(metadata.value) : null;
+      const age = lastRun ? Date.now() - lastRun.getTime() : Infinity;
+
+      if (lastRun && age >= 0 && age < BADGE_ASSIGNMENT_MAX_AGE) {
+        console.log(
+          `[Badges] Skipping startup badge assignment: last successful run was ${lastRun.toISOString()} (under 24h ago); daily schedule remains active.`,
+        );
+        return;
+      }
+    } catch (error) {
+      console.error("[Badges] Could not read last successful run time, running badge assignment:", error);
+    }
+
+    await this.runDailyBadgeAssignment();
+  }
+
   public async runDailyBadgeAssignment() {
     console.log('Starting daily badge assignment process');
 
@@ -162,13 +188,29 @@ export class BadgeService {
       const allUsers = await db.select().from(users);
       console.log(`Processing ${allUsers.length} users for badge assignment`);
 
+      let failedUsers = 0;
       for (const user of allUsers) {
         try {
           await this.processUserBadges(user);
         } catch (error) {
+          failedUsers++;
           console.error(`Failed to process badges for user ${user.email}:`, error);
         }
       }
+
+      if (failedUsers > 0) {
+        console.error(`Daily badge assignment finished with ${failedUsers} failed users; last successful run time was not updated`);
+        return false;
+      }
+
+      const completedAt = new Date().toISOString();
+      await db
+        .insert(cacheMetadata)
+        .values({ key: LAST_BADGE_ASSIGNMENT_KEY, value: completedAt })
+        .onConflictDoUpdate({
+          target: cacheMetadata.key,
+          set: { value: completedAt, updatedAt: completedAt },
+        });
 
       console.log('Completed daily badge assignment process');
       return true;
