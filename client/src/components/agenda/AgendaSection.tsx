@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { presentationsQueryOptions, timeBlocksQueryOptions } from "./agendaQueries";
 import { canAutoAssignPresentation } from "@shared/agenda";
+import { compareSessionSpeakers } from "@shared/speakerOrder";
 
 interface AgendaSectionProps {
   isAdmin?: boolean;
@@ -587,7 +588,7 @@ function TableView({ presentations, isAdmin, onEdit, onDuplicate, sessionTypes, 
             {presentation.speakers.length > 0 && (
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <Users className="h-3 w-3 text-muted-foreground" />
-                {presentation.speakers.map((speaker) => (
+                {[...presentation.speakers].sort(compareSessionSpeakers).map((speaker) => (
                   <div key={speaker.id} className="flex items-center gap-1">
                     <img
                       src={speaker.photo}

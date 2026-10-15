@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TimeInput } from "@/components/ui/time-input";
-import { Loader2, Plus, Trash2, Mic2, Pencil, X, Check } from "lucide-react";
+import { Loader2, Plus, Trash2, Mic2, Pencil, X, Check, ArrowUp, ArrowDown } from "lucide-react";
 import { Presentation, PresentationWithSpeakers, Speaker, AgendaTrack, AgendaSessionType } from "@shared/schema";
+import { compareSessionSpeakers, moveSessionSpeaker } from "@shared/speakerOrder";
 import { SpeakerModal } from "./SpeakerModal";
 import { Badge } from "@/components/ui/badge";
 
@@ -199,9 +200,11 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
   });
 
   const invalidateAgenda = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
+    return Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] }),
+      queryClient.invalidateQueries({ queryKey: ["/api/speakers"] }),
+    ]);
   };
 
   const addSpeakerMutation = useMutation({
@@ -209,7 +212,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       return apiRequest(`/api/presentations/${presentation!.id}/speakers`, "POST", {
         speakerId,
         isModerator: false,
-        displayOrder: presentation!.speakers.length,
+        displayOrder: Math.max(-1, ...presentation!.speakers.map(speaker => speaker.displayOrder)) + 1,
       });
     },
     onSuccess: () => {
@@ -247,6 +250,34 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       toast({ title: "Error", description: "Failed to update speaker", variant: "destructive" });
     },
   });
+
+  const reorderSpeakersMutation = useMutation({
+    mutationFn: async ({ speakerId, direction }: { speakerId: number; direction: -1 | 1 }) => {
+      const reordered = moveSessionSpeaker(presentation!.speakers, speakerId, direction);
+      if (!reordered) return;
+      // Wait for every PATCH, even on partial failure, before refreshing authoritative data.
+      const results = await Promise.allSettled(reordered.map(speaker =>
+        apiRequest(`/api/presentations/${presentation!.id}/speakers/${speaker.id}`, "PATCH", {
+          displayOrder: speaker.displayOrder,
+        })
+      ));
+      if (results.some(result => result.status === "rejected")) {
+        throw new Error("Failed to save the complete speaker order");
+      }
+    },
+    onError: () => {
+      toast({
+        title: "Could not save speaker order",
+        description: "Some changes may have saved. The list has been refreshed; please try again.",
+        variant: "destructive",
+      });
+    },
+    onSettled: invalidateAgenda,
+  });
+
+  const sortedSpeakers = [...(presentation?.speakers ?? [])].sort(compareSessionSpeakers);
+  const speakerChangesPending = reorderSpeakersMutation.isPending || addSpeakerMutation.isPending ||
+    removeSpeakerMutation.isPending || toggleModeratorMutation.isPending;
 
   const createTrackMutation = useMutation({
     mutationFn: async (): Promise<AgendaTrack> => {
@@ -705,7 +736,10 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
 
                 {presentation.speakers.length > 0 && (
                   <div className="space-y-2">
-                    {presentation.speakers.map((speaker) => (
+                    <p className="text-xs text-muted-foreground">
+                      Use the arrows to reorder speakers. Moderators stay first. Changes save immediately.
+                    </p>
+                    {sortedSpeakers.map((speaker, index) => (
                       <div
                         key={speaker.id}
                         className="flex items-center justify-between p-2 bg-muted/50 rounded-lg"
@@ -726,8 +760,37 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
                         <div className="flex items-center gap-1">
                           <Button
                             type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            aria-label={`Move ${speaker.name} up`}
+                            title={`Move ${speaker.name} up`}
+                            disabled={speakerChangesPending || index === 0 ||
+                              sortedSpeakers[index - 1]?.isModerator !== speaker.isModerator}
+                            onClick={() => reorderSpeakersMutation.mutate({ speakerId: speaker.id, direction: -1 })}
+                            data-testid={`button-move-speaker-up-${speaker.id}`}
+                          >
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            aria-label={`Move ${speaker.name} down`}
+                            title={`Move ${speaker.name} down`}
+                            disabled={speakerChangesPending || index === sortedSpeakers.length - 1 ||
+                              sortedSpeakers[index + 1]?.isModerator !== speaker.isModerator}
+                            onClick={() => reorderSpeakersMutation.mutate({ speakerId: speaker.id, direction: 1 })}
+                            data-testid={`button-move-speaker-down-${speaker.id}`}
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
                             variant={speaker.isModerator ? "default" : "ghost"}
                             size="sm"
+                            disabled={speakerChangesPending}
                             onClick={() =>
                               toggleModeratorMutation.mutate({
                                 speakerId: speaker.id,
@@ -745,6 +808,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
                             variant="ghost"
                             size="sm"
                             onClick={() => removeSpeakerMutation.mutate(speaker.id)}
+                            disabled={speakerChangesPending}
                             className="h-7 w-7 p-0 text-destructive"
                             data-testid={`button-remove-speaker-${speaker.id}`}
                           >
@@ -759,7 +823,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
                 {availableSpeakers.length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-sm text-muted-foreground">Add Existing Speaker</Label>
-                    <Select onValueChange={(val) => addSpeakerMutation.mutate(parseInt(val))}>
+                    <Select disabled={speakerChangesPending} onValueChange={(val) => addSpeakerMutation.mutate(parseInt(val))}>
                       <SelectTrigger data-testid="select-add-speaker">
                         <SelectValue placeholder="Select a speaker..." />
                       </SelectTrigger>

@@ -31,3 +31,6 @@ description: Decisions behind per-year summit pages, current-summit semantics, a
   **How to apply:** keep card content consistent across both pages; retain summit years and session appearances in the clicked speaker detail dialog, including when opened from an agenda session. The request to remove labels applies only beneath the admin grid cards, not the detail view.
 - Summit-scoped queries (summits, agenda, speakers) return more for admins, so they are reset on both login and logout.
   **Why:** a public copy cached before login otherwise hides draft years/speakers from admin pages (staleTime is infinite).
+- A year-specific speaker lineup uses a person's first scheduled appearance when they speak in several sessions; the all-years directory stays alphabetical.
+  **Why:** One deduplicated grid cannot simultaneously represent conflicting speaker orders from multiple panels. First appearance gives a predictable agenda-based order without duplicating profiles.
+  **How to apply:** Session-level ordering remains authoritative within each panel; do not treat it as a separate global ranking for the person.

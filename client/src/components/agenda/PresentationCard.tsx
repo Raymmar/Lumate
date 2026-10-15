@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { SpeakerModal } from "./SpeakerModal";
 import { COLOR_MAP } from "./PresentationModal";
+import { compareSessionSpeakers } from "@shared/speakerOrder";
 import { motion, AnimatePresence } from "framer-motion";
 import { SpeakerDetailModal } from "@/components/speakers/SpeakerDetailModal";
 import type { SpeakerWithPresentation } from "@/components/speakers/SpeakerCard";
@@ -117,11 +118,7 @@ export function PresentationCard({
   const sessionTypeColor = sessionTypeConfig?.color || "gray";
   const sessionTypeLabel = sessionTypeConfig?.label || presentation.sessionType;
 
-  const sortedSpeakers = [...presentation.speakers].sort((a, b) => {
-    if (a.isModerator && !b.isModerator) return -1;
-    if (!a.isModerator && b.isModerator) return 1;
-    return a.displayOrder - b.displayOrder;
-  });
+  const sortedSpeakers = [...presentation.speakers].sort(compareSessionSpeakers);
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;

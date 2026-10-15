@@ -44,6 +44,7 @@ import { errorDetails } from "./errorDetails";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import crypto from "crypto";
 import { getAnnualSponsorYear } from "@shared/sponsorYear";
+import { orderSummitSpeakers } from "@shared/speakerOrder";
 
 // The public featured-member endpoint deliberately selects only public user fields.
 type FeaturedMember = Omit<Person, "user"> & {
@@ -4851,7 +4852,10 @@ export class PostgresStorage implements IStorage {
           .from(presentationSpeakers)
           .innerJoin(presentations, eq(presentationSpeakers.presentationId, presentations.id))
           .innerJoin(summits, eq(presentations.summitId, summits.id))
-          .orderBy(desc(summits.year), presentations.startTime),
+          .orderBy(
+            desc(summits.year), presentations.startTime, presentations.displayOrder, presentations.id,
+            desc(presentationSpeakers.isModerator), presentationSpeakers.displayOrder, presentationSpeakers.speakerId,
+          ),
       ]);
 
       const visible = participation.filter(p => !options.publishedOnly || p.isPublished);
@@ -4874,7 +4878,7 @@ export class PostgresStorage implements IStorage {
         });
       }
 
-      return allSpeakers
+      const result = allSpeakers
         .map(speaker => ({
           ...speaker,
           summits: Array.from(bySpeaker.get(speaker.id)?.values() ?? []),
@@ -4886,6 +4890,8 @@ export class PostgresStorage implements IStorage {
           // "All years": everyone with a visible summit, plus speakers not yet on any agenda
           return speaker.summits.length > 0 || !hiddenSpeakerIds.has(speaker.id);
         });
+      // Year-specific lineups follow the agenda; the all-years directory stays alphabetical.
+      return orderSummitSpeakers(result, visible, options.year);
     } catch (error) {
       console.error('Failed to get speakers with summits:', error);
       throw error;
