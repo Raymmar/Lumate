@@ -180,6 +180,11 @@ function BoardMembersSection() {
 
   return (
     <div className="space-y-12">
+      <img
+        src="https://file-upload.replit.app/api/storage/images%2F1742362765806-LAS-105%201.png"
+        alt="Sarasota Tech Founding Board Members"
+        className="w-full max-h-[50vh] rounded-lg object-cover"
+      />
       <h2 className="text-3xl font-bold text-center">Founding Board Members</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {members.map((member) => (
@@ -202,11 +207,6 @@ function BoardMembersSection() {
           </a>
         ))}
       </div>
-      <img
-        src="https://file-upload.replit.app/api/storage/images%2F1742362765806-LAS-105%201.png"
-        alt="Sarasota Tech Founding Board Members"
-        className="w-full max-h-[50vh] rounded-lg object-cover"
-      />
     </div>
   );
 }
