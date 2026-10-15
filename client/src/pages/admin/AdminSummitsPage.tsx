@@ -69,7 +69,11 @@ export default function AdminSummitsPage() {
           Each year gets its own page at /summit/&lt;year&gt;. Publishing makes that page public;
           "Set current" separately chooses the featured event on /summit. Neither changes the general speaker directory
           (all years) or annual sponsors (calendar year). Past summit pages keep their own year's content.
-          Add agenda items and news from a year's page while signed in as an admin.
+          Manage time blocks and sessions on the{" "}
+          <Link href="/admin/agenda" className="underline" data-testid="link-admin-agenda">Agenda</Link> page and speaker
+          profiles on the{" "}
+          <Link href="/admin/speakers" className="underline" data-testid="link-admin-speakers">Speakers</Link> page.
+          News is added from a year's page while signed in as an admin.
         </p>
 
         {isLoading ? (
@@ -136,6 +140,9 @@ export default function AdminSummitsPage() {
                             Set current
                           </Button>
                         )}
+                        <Button variant="outline" size="sm" asChild data-testid={`button-agenda-${summit.year}`}>
+                          <Link href={`/admin/agenda?year=${summit.year}`}>Agenda</Link>
+                        </Button>
                         <Button variant="ghost" size="sm" asChild>
                           <Link href={`/summit/${summit.year}`}>
                             View <ExternalLink className="h-4 w-4 ml-1" />

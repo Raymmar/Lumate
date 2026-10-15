@@ -2,6 +2,8 @@ import type { Speaker, SpeakerSummitParticipation } from "@shared/schema";
 import { ExternalLink, Mic2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import { SpeakerActions } from "./SpeakerActions";
 
 export interface SpeakerWithPresentation extends Speaker {
   isModerator?: boolean;
@@ -36,6 +38,8 @@ export function SpeakerCard({
   onClick,
   layoutIdPrefix = "speaker"
 }: SpeakerCardProps) {
+  const { user } = useAuth();
+  const actions = user?.isAdmin ? <SpeakerActions speaker={speaker} /> : null;
   if (variant === "compact") {
     return (
       <motion.div 
@@ -69,6 +73,7 @@ export function SpeakerCard({
             </span>
           )}
         </motion.div>
+        {actions}
       </motion.div>
     );
   }
@@ -81,7 +86,8 @@ export function SpeakerCard({
       data-testid={`speaker-card-${speaker.id}`}
       transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
     >
-      <div className="flex items-center gap-3">
+      {actions && <div className="absolute top-2 right-2">{actions}</div>}
+      <div className={`flex items-center gap-3 ${actions ? "pr-6" : ""}`}>
         <motion.img
           layoutId={layoutIdPrefix ? `${layoutIdPrefix}-avatar-${speaker.id}` : undefined}
           src={speakerPhotoSrc(speaker)}

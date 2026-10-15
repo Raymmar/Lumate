@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { TimeInput } from "@/components/ui/time-input";
 import { Loader2, Plus, Trash2, Mic2, Pencil, X, Check } from "lucide-react";
-import { PresentationWithSpeakers, Speaker, AgendaTrack, AgendaSessionType } from "@shared/schema";
+import { Presentation, PresentationWithSpeakers, Speaker, AgendaTrack, AgendaSessionType } from "@shared/schema";
 import { SpeakerModal } from "./SpeakerModal";
 import { Badge } from "@/components/ui/badge";
 
@@ -34,6 +34,8 @@ interface PresentationModalProps {
   defaultTimeBlockId?: number | null;
   /** Summit that newly created sessions belong to (a chosen time block's summit takes precedence) */
   summitId?: number;
+  /** Called with a newly created session; when provided the dialog stays open for adding speakers */
+  onCreated?: (presentation: Presentation) => void;
 }
 
 const COLOR_OPTIONS = [
@@ -67,7 +69,7 @@ export const COLOR_MAP: Record<string, string> = {
 };
 
 
-export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBlockId, summitId }: PresentationModalProps) {
+export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBlockId, summitId, onCreated }: PresentationModalProps) {
   const { toast } = useToast();
   const isEditing = !!presentation && presentation.id > 0;
 
@@ -136,7 +138,8 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       setDisplayOrder(0);
       setTimeBlockId(defaultTimeBlockId || null);
     }
-  }, [presentation, isOpen, defaultTimeBlockId]);
+    // Keyed on id so refreshed data for the open session (e.g. after adding a speaker) keeps unsaved edits
+  }, [presentation?.id, isOpen, defaultTimeBlockId]);
 
   function formatDateTimeForInput(isoString: string): string {
     const date = new Date(isoString);
@@ -149,7 +152,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
   }
 
   const saveMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<Presentation> => {
       const startDate = new Date(startTime);
       const endDate = new Date(endTime);
       
@@ -171,9 +174,15 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
         return apiRequest("/api/presentations", "POST", summitId ? { ...data, summitId } : data);
       }
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
+      if (!isEditing && onCreated && saved?.id) {
+        toast({ title: "Presentation created", description: "You can now add speakers." });
+        onCreated(saved);
+        return;
+      }
       toast({
         title: "Success",
         description: `Presentation ${isEditing ? "updated" : "created"} successfully`,
@@ -189,6 +198,12 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
     },
   });
 
+  const invalidateAgenda = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
+  };
+
   const addSpeakerMutation = useMutation({
     mutationFn: async (speakerId: number) => {
       return apiRequest(`/api/presentations/${presentation!.id}/speakers`, "POST", {
@@ -198,7 +213,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      invalidateAgenda();
       toast({ title: "Speaker added" });
     },
     onError: () => {
@@ -211,7 +226,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       return apiRequest(`/api/presentations/${presentation!.id}/speakers/${speakerId}`, "DELETE");
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      invalidateAgenda();
       toast({ title: "Speaker removed" });
     },
     onError: () => {
@@ -226,7 +241,7 @@ export function PresentationModal({ presentation, isOpen, onClose, defaultTimeBl
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
+      invalidateAgenda();
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update speaker", variant: "destructive" });

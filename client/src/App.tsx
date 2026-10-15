@@ -42,6 +42,8 @@ const AdminPeoplePage = lazy(() => import("@/pages/admin/AdminPeoplePage"));
 const AdminCompaniesPage = lazy(() => import("@/pages/admin/AdminCompaniesPage"));
 const AdminSponsorsPage = lazy(() => import("@/pages/admin/AdminSponsorsPage"));
 const AdminSummitsPage = lazy(() => import("@/pages/admin/AdminSummitsPage"));
+const AdminAgendaPage = lazy(() => import("@/pages/admin/AdminAgendaPage"));
+const AdminSpeakersPage = lazy(() => import("@/pages/admin/AdminSpeakersPage"));
 const IndustriesPage = lazy(() => import("@/pages/admin/IndustriesPage"));
 const RolesPage = lazy(() => import("@/pages/admin/RolesPage"));
 const BadgesPage = lazy(() => import("@/pages/admin/BadgesPage"));
@@ -109,6 +111,8 @@ function Router() {
             <Route path="/admin/companies" component={AdminCompaniesPage} />
             <Route path="/admin/sponsors" component={AdminSponsorsPage} />
             <Route path="/admin/summits" component={AdminSummitsPage} />
+            <Route path="/admin/agenda" component={AdminAgendaPage} />
+            <Route path="/admin/speakers" component={AdminSpeakersPage} />
             <Route path="/admin/industries" component={IndustriesPage} />
             <Route path="/admin/badges" component={BadgesPage} />
             <Route path="/admin/roles" component={RolesPage} />

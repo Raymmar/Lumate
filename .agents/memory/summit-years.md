@@ -20,3 +20,11 @@ description: Decisions behind per-year summit pages, current-summit semantics, a
 - Summit hero artwork must stay at its original aspect ratio, full-width and uncropped, with no background fill.
   **Why:** The artwork contains text. The owner accepted unequal image/text panel heights rather than cropping or adding empty bands.
   **How to apply:** Preserve the edge-to-edge layout and rounded right corners; let image height follow its proportions on desktop and mobile.
+- Admin agenda/speaker management reuses the same agenda editor and dialogs as the summit page; do not build separate admin forms.
+  **Why:** owner asked for minimal code and one set of controls; fixes to the shared dialogs benefit both places.
+  **How to apply:** put admin-only behavior behind the editor's existing admin flag instead of forking components.
+- Speaker management should use the shared public speaker cards with an admin-only action menu on both public and admin pages. Do not add year/session labels beneath cards or separate Edit/Delete buttons.
+  **Why:** the owner explicitly rejected the added card clutter and chose shared card actions over admin tables or side sheets.
+  **How to apply:** keep card content consistent across both pages; retain summit years and session appearances in the clicked speaker detail dialog, including when opened from an agenda session. The request to remove labels applies only beneath the admin grid cards, not the detail view.
+- Summit-scoped queries (summits, agenda, speakers) return more for admins, so they are reset on both login and logout.
+  **Why:** a public copy cached before login otherwise hides draft years/speakers from admin pages (staleTime is infinite).

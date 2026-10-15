@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { SpeakerCardPreview } from "@/components/ui/card-creator";
 import { Link } from "wouter";
 import { speakerPhotoSrc, type SpeakerWithPresentation } from "./SpeakerCard";
+import { useQuery } from "@tanstack/react-query";
+import type { SpeakerWithSummits } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface SpeakerDetailModalProps {
   speaker: SpeakerWithPresentation | null;
@@ -25,9 +28,20 @@ export function SpeakerDetailModal({
   hasPrevious = false,
   hasNext = false
 }: SpeakerDetailModalProps) {
+  // Agenda cards carry only the speaker's role in that one session. Load the full
+  // profile's appearances when opening the shared detail dialog from an agenda.
+  const { data: appearances, isLoading: appearancesLoading, isError: appearancesError } = useQuery({
+    queryKey: ["/api/speakers", "appearances", speaker?.id],
+    queryFn: async () => {
+      const data = await apiRequest<{ speakers: SpeakerWithSummits[] }>("/api/speakers");
+      return data.speakers.find((item) => item.id === speaker?.id)?.summits ?? [];
+    },
+    enabled: isOpen && !!speaker && speaker.summits === undefined,
+  });
   if (!speaker) return null;
 
   const speakerTitle = [speaker.title, speaker.company].filter(Boolean).join(", ");
+  const summits = speaker.summits ?? appearances;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -88,10 +102,16 @@ export function SpeakerDetailModal({
               </p>
             )}
 
-            {speaker.summits && speaker.summits.length > 0 && (
+            {appearancesLoading && speaker.summits === undefined && (
+              <p className="mt-4 text-sm text-muted-foreground">Loading summit appearances…</p>
+            )}
+            {appearancesError && speaker.summits === undefined && (
+              <p role="alert" className="mt-4 text-sm text-destructive">Could not load summit appearances.</p>
+            )}
+            {summits && summits.length > 0 && (
               <div className="mt-4 space-y-3" data-testid={`speaker-summits-${speaker.id}`}>
                 <h3 className="text-sm font-semibold">Summit appearances</h3>
-                {speaker.summits.map((summit) => (
+                {summits.map((summit) => (
                   <div key={summit.year} className="space-y-1">
                     <Link
                       href={`/summit/${summit.year}`}

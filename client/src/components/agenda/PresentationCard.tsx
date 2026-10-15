@@ -61,6 +61,7 @@ export function PresentationCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
       toast({ title: "Speaker added" });
     },
     onError: () => {
@@ -75,6 +76,7 @@ export function PresentationCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
       toast({ title: "Speaker removed from presentation" });
     },
     onError: () => {
@@ -89,6 +91,7 @@ export function PresentationCard({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/presentations"] });
       queryClient.invalidateQueries({ queryKey: ["/api/time-blocks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/speakers"] });
       toast({
         title: "Success",
         description: "Presentation deleted successfully",

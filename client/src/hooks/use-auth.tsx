@@ -39,9 +39,7 @@ function useLogoutMutation() {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
 
       // Drop summit-scoped data so draft summits seen as an admin don't linger after logout
-      for (const key of ["/api/summits", "/api/time-blocks", "/api/presentations", "/api/speakers"]) {
-        queryClient.resetQueries({ queryKey: [key] });
-      }
+      resetSummitQueries();
 
       toast({
         title: "Success",
@@ -56,6 +54,16 @@ function useLogoutMutation() {
       });
     },
   });
+}
+
+/**
+ * Summit data differs by role (admins also see draft summits and their speakers),
+ * so cached copies must be refetched whenever the signed-in user changes.
+ */
+function resetSummitQueries() {
+  for (const key of ["/api/summits", "/api/time-blocks", "/api/presentations", "/api/speakers"]) {
+    queryClient.resetQueries({ queryKey: [key] });
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -105,6 +113,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ["/api/public/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/public/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+
+      // Refetch summit data so admins see draft years and speakers cached from before login
+      resetSummitQueries();
       
       toast({
         title: "Success",

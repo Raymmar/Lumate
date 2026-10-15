@@ -88,6 +88,12 @@ export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaS
 
   const isLoading = timeBlocksLoading || presentationsLoading;
 
+  // Show the latest copy of the session being edited so speaker changes appear in the open dialog
+  const livePresentation =
+    editingPresentation && editingPresentation.id > 0
+      ? allPresentations.find((p) => p.id === editingPresentation.id) ?? editingPresentation
+      : editingPresentation;
+
   const handleEditPresentation = (presentation: PresentationWithSpeakers) => {
     setEditingPresentation(presentation);
     setAddingToTimeBlockId(presentation.timeBlockId || null);
@@ -267,6 +273,7 @@ export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaS
               allSpeakers={allSpeakers}
               isPresentationExpanded={isPresentationExpanded}
               onTogglePresentationExpanded={togglePresentationExpanded}
+              unscheduledPresentations={isAdmin ? allPresentations.filter((p) => !p.timeBlockId) : []}
             />
           ) : (
             <TableView
@@ -312,11 +319,16 @@ export function AgendaSection({ isAdmin = false, summitYear, summitId }: AgendaS
       </Card>
 
       <PresentationModal
-        presentation={editingPresentation}
+        presentation={livePresentation}
         isOpen={isPresentationModalOpen}
         onClose={handleClosePresentationModal}
         defaultTimeBlockId={addingToTimeBlockId}
         summitId={summitId}
+        onCreated={(created) => {
+          // Keep the dialog open on the new session so speakers can be added right away
+          setEditingPresentation({ ...created, speakers: [] });
+          setAddingToTimeBlockId(created.timeBlockId ?? null);
+        }}
       />
 
       <TimeBlockModal
@@ -340,6 +352,8 @@ interface CalendarViewProps {
   allSpeakers: Speaker[];
   isPresentationExpanded: (presentationId: number) => boolean;
   onTogglePresentationExpanded: (presentationId: number) => void;
+  /** Sessions without a time block (e.g. after their block was deleted); shown to admins only */
+  unscheduledPresentations?: PresentationWithSpeakers[];
 }
 
 function CalendarView({ 
@@ -352,7 +366,8 @@ function CalendarView({
   sessionTypes, 
   allSpeakers, 
   isPresentationExpanded, 
-  onTogglePresentationExpanded 
+  onTogglePresentationExpanded,
+  unscheduledPresentations = [],
 }: CalendarViewProps) {
   return (
     <div className="space-y-4">
@@ -490,6 +505,29 @@ function CalendarView({
           </div>
         );
       })}
+
+      {unscheduledPresentations.length > 0 && (
+        <div className="border border-dashed rounded-lg overflow-hidden" data-testid="unscheduled-presentations">
+          <div className="bg-muted/50 px-4 py-2 text-sm font-medium border-b">
+            Unscheduled ({unscheduledPresentations.length}) — not in a time block, hidden from visitors' calendar view
+          </div>
+          <div className="divide-y">
+            {unscheduledPresentations.map((presentation) => (
+              <PresentationCard
+                key={presentation.id}
+                presentation={presentation}
+                isAdmin={isAdmin}
+                onEdit={onEditPresentation}
+                onDuplicate={onDuplicatePresentation}
+                sessionTypes={sessionTypes}
+                allSpeakers={allSpeakers}
+                isExpanded={isPresentationExpanded(presentation.id)}
+                onToggleExpanded={() => onTogglePresentationExpanded(presentation.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
