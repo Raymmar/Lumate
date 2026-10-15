@@ -480,7 +480,7 @@ router.post("/api/admin/sync-premium-for-existing-users", requireAdmin, async (r
         if (result.granted) {
           premiumGranted++;
           grantedUsers.push({
-            name: user.name || user.email,
+            name: user.displayName || user.email,
             email: user.email,
             expiresAt: result.expiresAt || '',
           });

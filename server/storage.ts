@@ -39,9 +39,23 @@ import {
   userBlockEvents, UserBlockEvent, summits
 } from "@shared/schema";
 import { db } from "./db";
-import { sql, eq, and, or, isNull, desc, inArray } from "drizzle-orm";
+import { sql, eq, and, or, isNull, desc, inArray, getTableColumns } from "drizzle-orm";
+import { errorDetails } from "./errorDetails";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import crypto from "crypto";
+
+// The public featured-member endpoint deliberately selects only public user fields.
+type FeaturedMember = Omit<Person, "user"> & {
+  user: (Pick<User, "id" | "email" | "displayName" | "bio" | "isAdmin" | "slug"> & {
+    badges?: Pick<Badge, "id" | "name" | "description" | "icon" | "isAutomatic">[];
+  }) | null;
+};
+
+type CompanyMemberWithUser = CompanyMember & {
+  user: Pick<User, "id" | "email" | "displayName" | "avatarUrl" | "bio" | "isVerified" | "slug"> & {
+    person: Pick<Person, "id" | "api_id" | "userName" | "fullName" | "avatarUrl"> | null;
+  };
+};
 
 export interface IStorage {
   // Events
@@ -62,7 +76,7 @@ export interface IStorage {
   getPersonByApiId(apiId: string): Promise<Person | null>;
   insertPerson(person: InsertPerson): Promise<Person>;
   clearPeople(): Promise<void>;
-  getFeaturedMember(): Promise<(Person & { user?: User & { badges?: Array<Badge> } }) | null>;
+  getFeaturedMember(): Promise<FeaturedMember | null>;
   setFeaturedMember(personId: number): Promise<void>;
 
   // Cache metadata
@@ -204,7 +218,7 @@ export interface IStorage {
   }>;
   
   // Company members management
-  getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User })[]>;
+  getCompanyMembers(companyId: number): Promise<CompanyMemberWithUser[]>;
   addMemberToCompany(companyMembership: InsertCompanyMember): Promise<CompanyMember>;
   updateCompanyMemberRole(companyId: number, userId: number, role: string): Promise<CompanyMember>;
   removeCompanyMember(companyId: number, userId: number): Promise<void>;
@@ -608,7 +622,7 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await db
         .select({
-          ...people,
+          ...getTableColumns(people),
           isAdmin: users.isAdmin
         })
         .from(people)
@@ -1467,7 +1481,7 @@ export class PostgresStorage implements IStorage {
     }
   }
 
-  async getFeaturedMember(): Promise<(Person & { user?: User & { badges?: Array<Badge> } }) | null> {
+  async getFeaturedMember(): Promise<FeaturedMember | null> {
     try {
       const FEATURED_MEMBER_KEY = 'featured_member';
       const EXPIRATION_TIME = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -1582,7 +1596,7 @@ export class PostgresStorage implements IStorage {
       
       const personData = await db
         .select({
-          ...people,
+          ...getTableColumns(people),
           user: {
             id: users.id,
             email: users.email,
@@ -1602,7 +1616,7 @@ export class PostgresStorage implements IStorage {
       }
       
       // Get user badges if there's a user
-      let featuredMember = personData[0];
+      const featuredMember = personData[0];
       if (featuredMember.user && featuredMember.user.id) {
         const userBadges = await db
           .select({
@@ -1613,10 +1627,10 @@ export class PostgresStorage implements IStorage {
             isAutomatic: badges.isAutomatic
           })
           .from(userBadgesTable)
-          .leftJoin(badges, eq(badges.id, userBadgesTable.badgeId))
+          .innerJoin(badges, eq(badges.id, userBadgesTable.badgeId))
           .where(eq(userBadgesTable.userId, featuredMember.user.id));
         
-        featuredMember = {
+        return {
           ...featuredMember,
           user: {
             ...featuredMember.user,
@@ -2054,7 +2068,7 @@ export class PostgresStorage implements IStorage {
       return await db
         .select({
           id: tags.id,
-          name: tags.name,
+          text: tags.text,
           createdAt: tags.createdAt
         })
         .from(postTags)
@@ -2204,11 +2218,7 @@ export class PostgresStorage implements IStorage {
     } catch (error) {
       console.error('🔴 Storage: Failed to update user', {
         userId,
-        error: {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        },
+        error: errorDetails(error),
         updateData: JSON.stringify(data, null, 2),
         timestamp: new Date().toISOString()
       });
@@ -2388,7 +2398,7 @@ export class PostgresStorage implements IStorage {
       // Get all matching people ordered by creation date (oldest first)
       const result = await db
         .select({
-          ...people,
+          ...getTableColumns(people),
           isAdmin: users.isAdmin
         })
         .from(people)
@@ -2805,17 +2815,30 @@ export class PostgresStorage implements IStorage {
   }
 
   // Company members management methods
-  async getCompanyMembers(companyId: number): Promise<(CompanyMember & { user: User & { person?: Person } })[]> {
+  async getCompanyMembers(companyId: number): Promise<CompanyMemberWithUser[]> {
     try {
       console.log(`Getting members for company ID: ${companyId}`);
       
       // First join company_members with users
       const result = await db
         .select({
-          ...companyMembers,
+          ...getTableColumns(companyMembers),
+          // This query feeds a public endpoint: never select passwords or billing/block fields.
           user: {
-            ...users,
-            person: people
+            id: users.id,
+            email: users.email,
+            displayName: users.displayName,
+            avatarUrl: users.avatarUrl,
+            bio: users.bio,
+            isVerified: users.isVerified,
+            slug: users.slug,
+          },
+          person: {
+            id: people.id,
+            api_id: people.api_id,
+            userName: people.userName,
+            fullName: people.fullName,
+            avatarUrl: people.avatarUrl,
           }
         })
         .from(companyMembers)
@@ -2827,7 +2850,10 @@ export class PostgresStorage implements IStorage {
         ));
       
       console.log(`Found ${result.length} company members`);
-      return result;
+      return result.map(({ person, ...member }) => ({
+        ...member,
+        user: { ...member.user, person }
+      }));
     } catch (error) {
       console.error('Failed to get company members:', error);
       throw error;
@@ -2942,7 +2968,7 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await db
         .select({
-          ...companies,
+          ...getTableColumns(companies),
           role: companyMembers.role
         })
         .from(companyMembers)
@@ -3001,7 +3027,7 @@ export class PostgresStorage implements IStorage {
     try {
       const result = await db
         .select({
-          ...tags
+          ...getTableColumns(tags)
         })
         .from(companyTags)
         .innerJoin(tags, eq(companyTags.tagId, tags.id))
@@ -3107,17 +3133,7 @@ export class PostgresStorage implements IStorage {
       // Find people who have an email but no associated user account
       const result = await db
         .select({
-          id: people.id,
-          api_id: people.api_id,
-          createdAt: people.createdAt,
-          email: people.email,
-          userName: people.userName,
-          fullName: people.fullName,
-          avatarUrl: people.avatarUrl,
-          role: people.role,
-          phoneNumber: people.phoneNumber,
-          bio: people.bio,
-          stats: people.stats
+          ...getTableColumns(people)
         })
         .from(people)
         .leftJoin(users, eq(users.email, people.email))

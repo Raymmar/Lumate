@@ -1,5 +1,6 @@
 import { db } from '../db.js';
 import { sql } from 'drizzle-orm';
+import { pathToFileURL } from 'node:url';
 
 /**
  * Migration to remove the category column from the industries table
@@ -20,7 +21,7 @@ export async function removeIndustryCategoryColumn() {
 }
 
 // Allow the migration to be run directly from the command line
-if (import.meta.url === import.meta.main) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   removeIndustryCategoryColumn()
     .then(result => {
       console.log('Migration result:', result);

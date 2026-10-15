@@ -36,7 +36,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
   const businessData = {
     name: user.companyName || user.displayName || 'Business Profile',
     description: user.companyDescription || user.bio || '',
-    address: typeof user.address === 'object' ? user.address : undefined,
+    address: user.address ? { address: user.address, formatted_address: user.address } : undefined,
     phone: user.isPhonePublic ? user.phoneNumber : undefined,
     email: user.isEmailPublic ? user.email : undefined,
     customLinks: user.customLinks?.filter(link => link.url && link.title) || [],
@@ -48,7 +48,7 @@ export const MemberDetails: React.FC<MemberDetailsProps> = ({ user }) => {
   return (
     <div className="w-full max-w-full space-y-4 overflow-hidden">
       <SEO title={seoTitle} description={seoDescription} image={seoImage} />
-      <BusinessProfile {...businessData} containerClassName="w-full max-w-full" />
+      <BusinessProfile {...businessData} />
     </div>
   );
 };

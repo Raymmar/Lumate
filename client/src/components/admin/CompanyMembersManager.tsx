@@ -107,7 +107,7 @@ export function CompanyMembersManager({
     const scoredUsers = usersWithStatus
       .map(item => {
         const displayName = (item.user.displayName || "").toLowerCase();
-        const userName = (item.user.userName || "").toLowerCase();
+        const userName = (item.user.slug || "").toLowerCase();
         const email = (item.user.email || "").toLowerCase();
         
         let score = 0;
@@ -217,12 +217,12 @@ export function CompanyMembersManager({
                               )} />
                               <div className="flex flex-col flex-1">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">{user.displayName || user.userName || user.email}</span>
+                                  <span className="font-medium">{user.displayName || user.slug || user.email}</span>
                                   {isAlreadyMember && (
                                     <span className="text-xs text-muted-foreground">(Already a member)</span>
                                   )}
                                 </div>
-                                {(user.displayName || user.userName) && (
+                                {(user.displayName || user.slug) && (
                                   <span className="text-xs text-muted-foreground">{user.email}</span>
                                 )}
                               </div>

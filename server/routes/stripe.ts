@@ -189,7 +189,6 @@ router.get("/session-status", async (req, res) => {
             email,
             personId: person?.id || null,
             displayName: person?.userName || person?.fullName || undefined,
-            isVerified: false,
             stripeCustomerId: sessionDetails.subscriptionDetails?.customerId || null,
             subscriptionStatus: "active",
             subscriptionId: sessionDetails.subscriptionDetails?.id || null,

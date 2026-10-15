@@ -65,6 +65,7 @@ interface UserCompany {
 
 interface Person {
   id: number;
+  createdAt: string | null;
   api_id: string;
   email: string;
   userName: string;

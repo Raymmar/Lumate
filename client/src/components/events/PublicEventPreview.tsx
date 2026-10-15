@@ -118,7 +118,7 @@ export function PublicEventPreview({
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
 
   // Query to fetch attendees for this event
-  const { data: attendees = [], isLoading: isLoadingAttendees } = useQuery<Person[]>({
+  const { data: attendees = { attendees: [], total: 0 }, isLoading: isLoadingAttendees } = useQuery<{ attendees: Person[]; total: number }>({
     queryKey: [`/api/events/${event.api_id}/attendees`],
     queryFn: async () => {
       const response = await fetch(`/api/events/${event.api_id}/attendees`);
@@ -257,21 +257,9 @@ export function PublicEventPreview({
                 </div>
               )}
 
-              {/* Image Footer with Tags and Actions */}
+              {/* Image Footer with Actions */}
               <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent rounded-b-lg">
                 <div className="flex justify-between items-center">
-                  {/* Tags Section */}
-                  <div className="flex gap-2">
-                    {event.tags?.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="bg-black/30 hover:bg-black/40 text-white border-none"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
 
                   {/* Action Menu */}
                   {showActions && (

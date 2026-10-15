@@ -7,7 +7,13 @@ import { isBlockedEmail } from './blockedEmails';
 const isDevelopment = process.env.NODE_ENV !== 'production';
 const mailService = new MailService();
 
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL;
+const FROM_EMAIL = (() => {
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+  if (!fromEmail) {
+    throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
+  }
+  return fromEmail;
+})();
 
 // Get the base URL for email links - must be set via APP_URL environment variable
 function getEmailBaseUrl(): string {
@@ -28,9 +34,6 @@ if (process.env.SENDGRID_API_KEY) {
   console.warn("SENDGRID_API_KEY not set. Email functionality will be mocked in development.");
 }
 
-if (!FROM_EMAIL) {
-  throw new Error("SENDGRID_FROM_EMAIL environment variable must be set");
-}
 
 const UNSUBSCRIBE_SECRET = process.env.SESSION_SECRET || 'unsubscribe-fallback-secret';
 
@@ -387,12 +390,8 @@ export async function sendVerificationEmail(
     return true;
   } catch (error) {
     console.error('Failed to send verification email:', error);
-    if (error.response) {
-      console.error('SendGrid API Error:', {
-        statusCode: error.response.statusCode,
-        body: error.response.body,
-        headers: error.response.headers,
-      });
+    if (typeof error === "object" && error !== null && "response" in error) {
+      console.error('SendGrid API Error:', error.response);
     }
     return false;
   }
@@ -513,12 +512,8 @@ You can also access this coupon anytime by logging into your Sarasota Tech accou
     return true;
   } catch (error) {
     console.error('Failed to send coupon notification email:', error);
-    if (error.response) {
-      console.error('SendGrid API Error:', {
-        statusCode: error.response.statusCode,
-        body: error.response.body,
-        headers: error.response.headers,
-      });
+    if (typeof error === "object" && error !== null && "response" in error) {
+      console.error('SendGrid API Error:', error.response);
     }
     return false;
   }

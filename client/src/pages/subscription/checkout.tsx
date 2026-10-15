@@ -13,14 +13,9 @@ export default function SubscriptionCheckout() {
     const initializeCheckout = async () => {
       try {
         console.log('Starting checkout process...');
-        const response = await apiRequest('POST', '/api/stripe/create-checkout-session');
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to initialize checkout');
-        }
-
-        const data = await response.json();
+        const data = await apiRequest<{ url: string }>(
+          '/api/stripe/create-checkout-session', 'POST'
+        );
         if (data.url) {
           console.log('Redirecting to Stripe checkout:', data.url);
           window.location.href = data.url;

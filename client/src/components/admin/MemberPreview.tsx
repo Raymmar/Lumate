@@ -48,12 +48,6 @@ interface Member extends User {
   blockCleanupPending?: boolean;
   person?: Person | null;
   badges?: BadgeType[];
-  emailDriftDetectedAt?: string | null;
-  emailDriftPersonEmail?: string | null;
-  emailDriftAdminDismissedAt?: string | null;
-  blockedAt?: string | null;
-  blockedBy?: number | null;
-  blockReason?: string | null;
 }
 
 interface MemberPreviewProps {
@@ -417,11 +411,10 @@ export function MemberPreview({ member, members = [], onNavigate }: MemberPrevie
               <span>Profile linked to {member.person.fullName || member.person.userName || "event attendee"}</span>
             </div>
           )}
-          {member.person?.organizationName && (
+          {member.companyName && (
             <div className="flex items-center gap-2">
               <Building className="h-4 w-4 text-muted-foreground" />
-              <span>{member.person.organizationName}</span>
-              {member.person.jobTitle && <span className="text-muted-foreground">({member.person.jobTitle})</span>}
+              <span>{member.companyName}</span>
             </div>
           )}
         </div>
@@ -741,11 +734,11 @@ function PremiumMembershipManagement({ member }: { member: Member }) {
       const response = await apiRequest(`/api/admin/members/${member.id}/premium`, 'PATCH', data);
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/members"] });
       toast({
         title: "Success",
-        description: data.grantPremium 
+        description: variables.grantPremium
           ? `Premium access granted to ${member.email}` 
           : `Premium access removed from ${member.email}`,
       });

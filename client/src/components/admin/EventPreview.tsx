@@ -45,7 +45,7 @@ export function EventPreview({ event, events = [], onSync, onStartSync, onNaviga
   });
   const queryClient = useQueryClient();
 
-  const { data: attendanceData = { attendees: [], total: 0 }, isLoading: isLoadingAttendees } = useQuery({
+  const { data: attendanceData = { attendees: [], total: 0 }, isLoading: isLoadingAttendees } = useQuery<{ attendees: Person[]; total: number }>({
     queryKey: [`/api/admin/events/${event.api_id}/attendees`],
     queryFn: async () => {
       const response = await fetch(`/api/admin/events/${event.api_id}/attendees`);

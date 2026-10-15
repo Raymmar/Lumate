@@ -229,22 +229,6 @@ export function EventContent({
               </div>
             )}
 
-            {event.tags && event.tags.length > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/50 to-transparent rounded-b-lg">
-                <div className="flex gap-2">
-                  {event.tags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="secondary"
-                      className="bg-black/30 hover:bg-black/40 text-white border-none"
-                      data-testid={`badge-tag-${tag}`}
-                    >
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
@@ -435,7 +419,7 @@ export function EventContent({
                     <div key={i} className="h-12 bg-muted animate-pulse rounded-md" />
                   ))}
                 </div>
-              ) : attendeesData?.attendees?.length > 0 ? (
+              ) : attendeesData && attendeesData.attendees.length > 0 ? (
                 <div className="space-y-2">
                   {attendeesData.attendees.map((person) => {
                     const profilePath = `/people/${encodeURIComponent(formatUsernameForUrl(person.userName, person.api_id))}`;

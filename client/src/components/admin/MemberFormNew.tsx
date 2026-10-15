@@ -97,7 +97,7 @@ export function MemberFormNew({ onSuccess, onCancel }: MemberFormProps) {
 
   // Add "Not linked" option to the list
   const formattedOptions = [
-    { id: -1, value: "none", label: "Not linked to existing person" },
+    { id: -1, value: "none", label: "Not linked to existing person", details: "" },
     ...(peopleOptions?.map(person => ({
       id: person.id,
       value: person.id.toString(),
@@ -289,7 +289,7 @@ export function MemberFormNew({ onSuccess, onCancel }: MemberFormProps) {
                 <Input
                   placeholder="user@example.com"
                   {...field}
-                  disabled={selectedPersonId && selectedPersonId !== "none"}
+                  disabled={!!selectedPersonId && selectedPersonId !== "none"}
                 />
               </FormControl>
               <FormMessage />

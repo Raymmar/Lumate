@@ -2,6 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { Building } from "lucide-react";
 import { Link } from "wouter";
+import { formatCompanyNameForUrl } from "@/lib/utils";
 
 interface CompanyCardProps {
   id: number;
@@ -11,10 +12,11 @@ interface CompanyCardProps {
   industry: string | null;
   bio: string | null;
   tags: string[] | null;
-  slug: string;
+  slug: string | null;
 }
 
 export function CompanyCard({ 
+  id,
   name, 
   logoUrl, 
   featuredImageUrl, 
@@ -24,7 +26,7 @@ export function CompanyCard({
   slug 
 }: CompanyCardProps) {
   return (
-    <Link href={`/companies/${slug}`} className="no-underline">
+    <Link href={`/companies/${slug || formatCompanyNameForUrl(name, id.toString())}`} className="no-underline">
       <Card className="h-full overflow-hidden transition-all hover:shadow-md cursor-pointer">
         <div className="relative aspect-video w-full overflow-hidden bg-muted">
           {featuredImageUrl ? (

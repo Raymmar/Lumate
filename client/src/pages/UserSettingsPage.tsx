@@ -76,7 +76,7 @@ export default function UserSettingsPage() {
     mutationFn: async (action: "update-email" | "link-both" | "dismiss") => {
       return await apiRequest("/api/user/resolve-drift", "POST", { action });
     },
-    onSuccess: (_data: any, action: string) => {
+    onSuccess: (_data, action) => {
       const messages: Record<string, string> = {
         "update-email": "Your email has been updated to match your Luma profile",
         "link-both": "Both email profiles have been linked to your account",

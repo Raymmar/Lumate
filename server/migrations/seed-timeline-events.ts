@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import { timelineEvents } from '../../shared/schema.js';
 import { sql } from 'drizzle-orm';
+import { pathToFileURL } from 'node:url';
 
 export async function seedTimelineEvents() {
   console.log('Starting timeline events seed...');
@@ -58,7 +59,7 @@ export async function seedTimelineEvents() {
 }
 
 // Allow the migration to be run directly from the command line
-if (import.meta.url === import.meta.main) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   seedTimelineEvents()
     .then(result => {
       console.log('Seed result:', result);

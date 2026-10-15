@@ -45,12 +45,6 @@ import { useToast } from "@/hooks/use-toast";
 interface Member extends User {
   person?: Person | null;
   badges?: Badge[];
-  emailDriftDetectedAt?: string | null;
-  emailDriftPersonEmail?: string | null;
-  emailDriftAdminDismissedAt?: string | null;
-  blockedAt?: string | null;
-  blockedBy?: number | null;
-  blockReason?: string | null;
 }
 
 interface MembersResponse {

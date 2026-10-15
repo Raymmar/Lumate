@@ -41,8 +41,8 @@ export default function SubscriptionSuccessPage() {
     enabled: !!sessionId,
     retry: 3,
     retryDelay: 1000,
-    refetchInterval: (data) => {
-      return !data || data.status !== 'complete' ? 2000 : false;
+    refetchInterval: (query) => {
+      return query.state.data?.status !== 'complete' ? 2000 : false;
     }
   });
 

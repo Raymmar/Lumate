@@ -73,6 +73,7 @@ interface CompanyMember {
     id: number;
     email: string;
     displayName: string | null;
+    slug: string | null;
     avatarUrl: string | null;
     bio: string | null;
     isVerified: boolean;

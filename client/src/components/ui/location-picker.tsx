@@ -41,7 +41,7 @@ export function LocationPicker({ defaultValue, onLocationSelect, className }: Lo
     },
     debounce: 300,
     defaultValue: '',
-    initOnMount: !isInitializing && isGoogleMapsLoaded(),
+    initOnMount: !isInitializing && !!isGoogleMapsLoaded(),
   });
 
   // Set initial value from defaultValue when component mounts or defaultValue changes

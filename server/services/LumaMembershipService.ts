@@ -418,8 +418,8 @@ export class LumaMembershipService {
 
   private static async reconcileStripeStatuses(result: ReconciliationResult): Promise<void> {
     try {
-      interface StaleUserRow { id: number; email: string; subscription_status: string; subscription_id: string | null }
-      const staleUsers = await db.execute(
+      type StaleUserRow = { id: number; email: string; subscription_status: string; subscription_id: string | null };
+      const staleUsers = await db.execute<StaleUserRow>(
         sql`
           SELECT u.id, u.email, u.subscription_status, u.subscription_id
           FROM users u
@@ -434,7 +434,7 @@ export class LumaMembershipService {
         `
       );
 
-      for (const row of staleUsers.rows as StaleUserRow[]) {
+      for (const row of staleUsers.rows) {
         await db
           .update(users)
           .set({ subscriptionStatus: 'inactive' })
@@ -445,8 +445,8 @@ export class LumaMembershipService {
         console.log(`[LumaMembership] Corrected stale Stripe status for ${row.email} (no active subscription in Stripe connector data)`);
       }
 
-      interface MissedActiveRow { id: number; email: string; sub_id: string }
-      const missedActiveResult = await db.execute(
+      type MissedActiveRow = { id: number; email: string; sub_id: string };
+      const missedActiveResult = await db.execute<MissedActiveRow>(
         sql`
           SELECT u.id, u.email, s.id as sub_id
           FROM users u
@@ -456,7 +456,7 @@ export class LumaMembershipService {
         `
       );
 
-      for (const row of missedActiveResult.rows as MissedActiveRow[]) {
+      for (const row of missedActiveResult.rows) {
         await db
           .update(users)
           .set({

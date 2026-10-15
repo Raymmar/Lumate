@@ -444,7 +444,15 @@ export type PostTag = typeof postTags.$inferSelect;
 export type InsertPostTag = z.infer<typeof insertPostTagSchema>;
 
 export const insertEventSchema = createInsertSchema(events);
-export const insertPersonSchema = createInsertSchema(people);
+export const insertPersonSchema = createInsertSchema(people, {
+  stats: z.object({
+    totalEventsAttended: z.number(),
+    lastEventDate: z.string().nullable(),
+    firstEventDate: z.string().nullable(),
+    averageEventsPerYear: z.number().optional(),
+    lastUpdated: z.string(),
+  }).nullable().optional(),
+});
 export const insertUserPeopleLinkSchema = createInsertSchema(userPeopleLinks).omit({
   id: true,
   linkedAt: true,
@@ -460,7 +468,9 @@ export type User = typeof users.$inferSelect & {
   badges?: Badge[];
 };
 // Update insert schema
-export const insertUserSchema = createInsertSchema(users).omit({
+export const insertUserSchema = createInsertSchema(users, {
+  customLinks: z.array(userCustomLink).nullable().optional(),
+}).omit({
   id: true,
   slug: true,
   isVerified: true,
@@ -798,19 +808,28 @@ export const insertIndustrySchema = createInsertSchema(industries).omit({
 });
 
 // Insert schemas
-export const insertCompanySchema = createInsertSchema(companies).omit({
+export const insertCompanySchema = createInsertSchema(companies, {
+  customLinks: z.array(userCustomLink).nullable().optional(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertCompanyMemberSchema = createInsertSchema(companyMembers).omit({
+export const insertCompanyMemberSchema = createInsertSchema(companyMembers, {
+  companyId: z.number().int(),
+  userId: z.number().int(),
+  addedBy: z.number().int(),
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertCompanyTagSchema = createInsertSchema(companyTags).omit({
+export const insertCompanyTagSchema = createInsertSchema(companyTags, {
+  companyId: z.number().int(),
+  tagId: z.number().int(),
+}).omit({
   id: true,
 });
 

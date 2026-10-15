@@ -155,7 +155,7 @@ export function ArticlePage() {
     setLocation("/news");
   };
 
-  const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.includes('publish_content'));
+  const canCreatePosts = Boolean(user?.isAdmin || user?.permissions?.some(permission => permission.name === 'publish_content'));
 
   const canEditPost = (post: Post) => {
     return Boolean(

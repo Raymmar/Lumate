@@ -20,8 +20,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 
 interface EventWithSync extends Event {
-  isSynced: boolean;
-  lastSyncedAt: string | null;
+  isSynced?: boolean;
+  lastSyncedAt?: string | null;
   lastAttendanceSync: string | null;
 }
 
@@ -351,7 +351,7 @@ export function EventsTable() {
 
       // Revert optimistic updates on error
       if (selectedEvent && selectedEvent.api_id === event.api_id) {
-        const currentEvent = await queryClient.fetchQuery({
+        const currentEvent = await queryClient.fetchQuery<EventWithSync>({
           queryKey: [`/api/admin/events/${event.api_id}`],
         });
         setSelectedEvent(currentEvent);

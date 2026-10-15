@@ -232,7 +232,6 @@ export async function syncEventAttendees(
         ticketTypeId: guest.ticketTypeId,
         ticketTypeName: guest.ticketTypeName,
         ticketAmount: guest.ticketAmount,
-        lastSyncedAt: new Date().toISOString(),
       });
       successCount++;
     } catch (error) {

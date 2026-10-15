@@ -8,6 +8,7 @@ import { blockedEmailAddresses, isBlockedEmail } from "./blockedEmails";
 import { sendPasswordResetEmail, sendEmailDriftNotification } from "./email";
 import { generateResetToken, hashPassword } from "./auth";
 import uploadRouter from "./routes/upload";
+import { errorDetails } from "./errorDetails";
 import unsplashRouter from "./routes/unsplash";
 import companiesRouter from "./routes/companies";
 import summitsRouter, { resolveSummitScope, getSummitVisibility } from "./routes/summits";
@@ -16,6 +17,7 @@ import { requireAuth as authenticateUser, requireAdmin } from "./routes/middlewa
 // Company migration import removed
 import {
   insertUserSchema,
+  type InsertCompany,
   people,
   updatePasswordSchema,
   users,
@@ -197,7 +199,9 @@ export async function registerRoutes(app: Express) {
 
   app.post("/api/register", async (req, res) => {
     try {
-      const userData = await insertUserSchema.parseAsync(req.body);
+      const userData = await insertUserSchema.extend({
+        password: z.string().min(1, "Password is required"),
+      }).parseAsync(req.body);
 
       // Reject re-registration of a blocked account
       const existingByEmail = await storage.getUserByEmail(userData.email.toLowerCase());
@@ -1349,10 +1353,13 @@ export async function registerRoutes(app: Express) {
 
       // Check for active Stripe subscription
       if (user.subscriptionId && user.subscriptionStatus === "active") {
+        const subscription = (user.stripeCustomerId
+          ? await storage.getActiveSubscriptionByCustomerId(user.stripeCustomerId)
+          : null) ?? await storage.getActiveSubscriptionByEmail(user.email);
         return res.json({ 
           status: "active",
           source: "stripe",
-          currentPeriodEnd: user.subscriptionCurrentPeriodEnd
+          currentPeriodEnd: subscription?.currentPeriodEnd ?? null
         });
       }
 
@@ -1713,7 +1720,7 @@ export async function registerRoutes(app: Express) {
       const { _ownerUserId, _selectedMembers, customLinks, ...companyData } = req.body;
       
       // Validate the company data - remove metadata fields that aren't part of the schema
-      const validCompanyData = {
+      const validCompanyData: InsertCompany = {
         name: companyData.name || "",
         industry: companyData.industry || null,
         size: companyData.size || null,
@@ -3802,7 +3809,9 @@ export async function registerRoutes(app: Express) {
           featuredImageUrl: userData.featuredImageUrl ?? null,
           companyName: userData.companyName ?? null,
           companyDescription: userData.companyDescription ?? null,
-          address: userData.address ?? null,
+          address: typeof userData.address === "object" && userData.address !== null
+            ? userData.address.formatted_address || userData.address.address
+            : userData.address ?? null,
           phoneNumber: userData.phoneNumber ?? null,
           isPhonePublic: userData.isPhonePublic ?? false,
           isEmailPublic: userData.isEmailPublic ?? false,
@@ -3822,9 +3831,7 @@ export async function registerRoutes(app: Express) {
         console.error("🔴 Profile Update: Processing error", {
           userId: req.session.userId,
           error: {
-            name: processingError.name,
-            message: processingError.message,
-            stack: processingError.stack,
+            ...errorDetails(processingError),
             ...(processingError instanceof z.ZodError && {
               zodErrors: processingError.errors,
             }),
@@ -3835,11 +3842,7 @@ export async function registerRoutes(app: Express) {
       }
     } catch (error) {
       console.error("🔴 Profile Update: Unhandled error", {
-        error: {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-        },
+        error: errorDetails(error),
         userId: req.session?.userId,
         requestBody: JSON.stringify(req.body, null, 2),
         timestamp: new Date().toISOString(),
@@ -3847,7 +3850,7 @@ export async function registerRoutes(app: Express) {
 
       res.status(500).json({
         error: "Failed to update profile",
-        message: error.message,
+        message: errorDetails(error).message,
       });
     }
   });
@@ -6103,12 +6106,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Valid email address required" });
       }
 
-      const post = await storage.getPost ? await storage.getPost(postId) : null;
-      let postData: any = post;
-      if (!postData) {
-        const [dbPost] = await db.select().from(posts).where(eq(posts.id, postId));
-        postData = dbPost;
-      }
+      const [postData] = await db.select().from(posts).where(eq(posts.id, postId));
       if (!postData) return res.status(404).json({ error: "Post not found" });
 
       const result = await sendNewsletterEmail(email, {

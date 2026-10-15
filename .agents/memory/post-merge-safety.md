@@ -13,6 +13,6 @@ Automated post-merge setup restores locked dependencies and re-applies the idemp
 
 **Dependency integrity in forked workspaces:** do not assume an existing dependency tree is complete.
 
-**Why:** A fork contained both truncated executable binaries and missing package entry points. Repairing individual tools hid the broader installation problem and produced misleading version errors.
+**Why:** Forks have contained truncated executable binaries, missing package entry points, and missing bundled TypeScript declarations even when JavaScript was present. Repairing individual tools hid the broader installation problem and produced misleading version and type errors; incremental installs can report success without restoring missing files.
 
-**How to apply:** When unrelated installed tools crash or package files are missing, restore the locked dependency tree before changing application code or dependency versions.
+**How to apply:** When unrelated installed tools crash or package files are missing, confirm package contents and restore the locked dependency tree before changing application code, types, or dependency versions. Do not add untyped module declarations to hide an installation problem.
