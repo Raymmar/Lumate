@@ -83,7 +83,7 @@ export default function SummitHubPage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : featured ? (
-        <SummitHero summit={featured} isPast={isSummitPast(featured) && !featured.isCurrent} showLearnMore />
+        <SummitHero summit={featured} isPast={isSummitPast(featured) && !featured.isCurrent} showLearnMore={featured.showLearnMore ?? true} />
       ) : (
         <PageContainer className="max-w-3xl py-24 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight mb-4">Sarasota Tech Summit</h1>

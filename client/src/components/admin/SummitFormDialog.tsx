@@ -83,6 +83,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
   const [year, setYear] = useState(String(suggestedYear));
   const [text, setText] = useState<TextFields>(emptyText);
   const [isPublished, setIsPublished] = useState(false);
+  const [showLearnMore, setShowLearnMore] = useState(true);
   const [links, setLinks] = useState<SummitLink[]>([]);
   const [highlights, setHighlights] = useState<SummitHighlight[]>([]);
   const [gallery, setGallery] = useState<SummitGalleryImage[]>([]);
@@ -106,6 +107,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
       setYear(String(summit.year));
       setText(textFromSummit(summit));
       setIsPublished(summit.isPublished);
+      setShowLearnMore(summit.showLearnMore ?? true);
       setLinks(summit.links ?? []);
       setHighlights(summit.highlights ?? []);
       setGallery(summit.galleryImages ?? []);
@@ -116,6 +118,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
       setYear(String(suggestedYear));
       setText({ ...emptyText(), title: "Sarasota Tech Summit" });
       setIsPublished(false);
+      setShowLearnMore(true);
       setLinks([]);
       setHighlights([]);
       setGallery([]);
@@ -134,6 +137,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
         ...Object.fromEntries(TEXT_FIELD_KEYS.map((k) => [k, text[k].trim() || null])),
         title: text.title.trim(),
         isPublished,
+        showLearnMore,
         links: links.filter((l) => l.label.trim() && l.url.trim()),
         highlights: highlights.filter((h) => h.title.trim()),
         galleryImages: gallery.filter((g) => g.src.trim()),
@@ -332,6 +336,20 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             {field("venueAddress", "Venue address")}
             {field("venueMapUrl", "Map link", { kind: "url", placeholder: "https://..." })}
             {field("ticketUrl", "Ticket / event link", { kind: "url", placeholder: "https://..." })}
+            <div className="sm:col-span-2 flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="summit-show-learn-more">Show Learn more button</Label>
+                <p className="text-sm text-muted-foreground">
+                  Link to this year's annual page from the main Summit page. Turn off for a save-the-date.
+                </p>
+              </div>
+              <Switch
+                id="summit-show-learn-more"
+                checked={showLearnMore}
+                onCheckedChange={setShowLearnMore}
+                data-testid="switch-summit-show-learn-more"
+              />
+            </div>
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="summit-presenting-sponsor">Presenting sponsor</Label>
               <SponsorPicker

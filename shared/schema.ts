@@ -220,6 +220,7 @@ export const summits = pgTable("summits", {
   venueAddress: varchar("venue_address", { length: 500 }),
   venueMapUrl: varchar("venue_map_url", { length: 500 }),
   ticketUrl: varchar("ticket_url", { length: 500 }),
+  showLearnMore: boolean("show_learn_more").notNull().default(true),
   photosUrl: varchar("photos_url", { length: 500 }),
   videoEmbedUrl: varchar("video_embed_url", { length: 500 }),
   heroImage: varchar("hero_image", { length: 500 }),
