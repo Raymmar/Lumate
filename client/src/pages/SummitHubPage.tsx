@@ -83,17 +83,7 @@ export default function SummitHubPage() {
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : featured ? (
-        <>
-          <SummitHero summit={featured} isPast={isSummitPast(featured) && !featured.isCurrent} />
-          <PageContainer className="max-w-7xl pt-8">
-            <Button size="lg" asChild>
-              <Link href={`/summit/${featured.year}`} data-testid="button-featured-summit">
-                Explore the {featured.year} Summit
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </PageContainer>
-        </>
+        <SummitHero summit={featured} isPast={isSummitPast(featured) && !featured.isCurrent} showLearnMore />
       ) : (
         <PageContainer className="max-w-3xl py-24 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight mb-4">Sarasota Tech Summit</h1>

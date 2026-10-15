@@ -1,4 +1,5 @@
 import { Calendar, ExternalLink, MapPin } from "lucide-react";
+import { Link } from "wouter";
 import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { formatSummitDate } from "@/hooks/use-summits";
@@ -6,10 +7,11 @@ import { formatSummitDate } from "@/hooks/use-summits";
 interface SummitHeroProps {
   summit: Summit;
   isPast: boolean;
+  showLearnMore?: boolean;
 }
 
 /** Split hero: event imagery on the left, summit details and ticket link on the right. */
-export function SummitHero({ summit, isPast }: SummitHeroProps) {
+export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHeroProps) {
   const ticketLabel = isPast ? "Event Page" : "Get Tickets";
   // The linked sponsor's current name and link; the old text fields only when none is linked
   const sponsor = summit.presentingSponsor;
@@ -83,14 +85,23 @@ export function SummitHero({ summit, isPast }: SummitHeroProps) {
               <p className="text-lg text-muted-foreground mb-8 whitespace-pre-line">{summit.description}</p>
             )}
 
-            {summit.ticketUrl && (
-              <div>
-                <a href={summit.ticketUrl} target="_blank" rel="noopener noreferrer" className="inline-block w-full sm:w-auto">
-                  <Button size="lg" className="text-base w-full sm:w-auto sm:min-w-[300px] px-12" data-testid="button-summit-tickets">
-                    {ticketLabel}
-                    <ExternalLink className="ml-2 h-4 w-4" />
+            {(summit.ticketUrl || showLearnMore) && (
+              <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+                {summit.ticketUrl && (
+                  <Button asChild size="lg" className="text-base w-full sm:w-auto" data-testid="button-summit-tickets">
+                    <a href={summit.ticketUrl} target="_blank" rel="noopener noreferrer">
+                      {ticketLabel}
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </a>
                   </Button>
-                </a>
+                )}
+                {showLearnMore && (
+                  <Button asChild variant="outline" size="lg" className="text-base w-full sm:w-auto">
+                    <Link href={`/summit/${summit.year}`} data-testid="button-summit-learn-more">
+                      Learn more
+                    </Link>
+                  </Button>
+                )}
               </div>
             )}
 
