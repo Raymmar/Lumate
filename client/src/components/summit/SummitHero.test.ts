@@ -70,3 +70,33 @@ test("Learn more is available even when no ticket link is configured", () => {
   assert.match(html, /Learn more/);
   assert.doesNotMatch(html, /Get Tickets/);
 });
+
+test("a site ticket link opens the Memberships offer in the same tab", () => {
+  const html = renderHero({ summit: { ...summit, ticketUrl: "/memberships" }, isPast: false });
+  assert.match(html, /href="\/memberships"/);
+  assert.match(html, /Get Tickets/);
+  assert.doesNotMatch(html, /target="_blank"[^>]*>Get Tickets/);
+  assert.doesNotMatch(html, /href="\/memberships"[^>]*target=/);
+});
+
+test("external ticket links, including Luma, still open in a new tab", () => {
+  for (const ticketUrl of ["https://luma.com/sts27", "https://lu.ma/abc?coupon=X"]) {
+    const html = renderHero({ summit: { ...summit, ticketUrl }, isPast: false });
+    const anchor = html.match(/<a[^>]*data-testid="button-summit-tickets"[^>]*>/)?.[0] ?? "";
+    assert.match(anchor, /target="_blank"/);
+    assert.match(anchor, /rel="noopener noreferrer"/);
+  }
+});
+
+test("internalPath only treats this site's links as internal", async () => {
+  const { internalPath } = await import("../../lib/links");
+  const origin = "https://sarasota.tech";
+  assert.equal(internalPath("/memberships", origin), "/memberships");
+  assert.equal(internalPath(" /memberships?ref=summit ", origin), "/memberships?ref=summit");
+  assert.equal(internalPath("https://sarasota.tech/memberships#ticket", origin), "/memberships#ticket");
+  assert.equal(internalPath("https://luma.com/sts27", origin), null);
+  assert.equal(internalPath("//evil.example/memberships", origin), null);
+  assert.equal(internalPath("", origin), null);
+  assert.equal(internalPath(null, origin), null);
+  assert.equal(internalPath("https://sarasota.tech/memberships"), null, "no origin known: treat absolute links as external");
+});

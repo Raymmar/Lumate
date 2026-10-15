@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users, Infinity, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Ticket, Plus, Copy, Check, RefreshCw, Search, X, UserPlus, ChevronDown, ChevronRight, Filter, Users, Infinity, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, Pencil } from "lucide-react";
 import { SearchInput } from "@/components/admin/SearchInput";
 import { SEO } from "@/components/ui/seo";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,24 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { Coupon } from "@shared/schema";
+import type { AutoCouponEvent, Coupon } from "@shared/schema";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const AUTO_COUPON_RULES_KEY = ["/api/admin/auto-coupons?all=true"];
+
+interface BackfillResult {
+  issued: number;
+  skipped: number;
+  failed: number;
+  lumaRetried: number;
+  lumaRetryFailed: number;
+  errors: string[];
+}
 
 interface SearchablePerson {
   id: number;
@@ -100,6 +117,8 @@ export default function AdminCouponsPage() {
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [sortField, setSortField] = useState<'code' | 'recipient' | 'discount' | 'status' | 'remaining' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  // Set when the Generate Coupons form is reopened to edit an event's existing coupon settings
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
   const { data: couponsData, isLoading: isLoadingCoupons } = useQuery<{ coupons: Coupon[]; stats: CouponStats[] }>({
     queryKey: ["/api/admin/coupons"],
@@ -108,6 +127,14 @@ export default function AdminCouponsPage() {
   const { data: eventsData, isLoading: isLoadingEvents } = useQuery<{ events: FutureEvent[] }>({
     queryKey: ["/api/admin/coupons/eligible-events"],
   });
+
+  // Saved "also invite future premium members" settings by event
+  const { data: rulesData } = useQuery<{ events: AutoCouponEvent[] }>({ queryKey: AUTO_COUPON_RULES_KEY });
+  const ruleByEvent = useMemo(
+    () => new Map((rulesData?.events ?? []).map((rule) => [rule.eventApiId, rule])),
+    [rulesData],
+  );
+  const upcomingEventIds = useMemo(() => new Set((eventsData?.events ?? []).map((e) => e.api_id)), [eventsData]);
 
   const { data: ticketTypesData, isLoading: isLoadingTicketTypes, refetch: refetchTicketTypes, isFetching: isFetchingTicketTypes } = useQuery<{ ticketTypes: TicketType[]; source: string; event: any }>({
     queryKey: ["/api/admin/events", selectedEventId, "ticket-types"],
@@ -151,8 +178,14 @@ export default function AdminCouponsPage() {
     willReceive: number; 
     alreadyHaveCoupons: number; 
   }>({
-    queryKey: ["/api/admin/coupons/preview", selectedEventId, recipientMode, selectedPeopleIds],
+    queryKey: ["/api/admin/coupons/preview", selectedEventId, recipientMode, selectedPeopleIds, editingEventId],
     queryFn: async () => {
+      if (editingEventId) {
+        const response = await fetch(`/api/admin/auto-coupons/${encodeURIComponent(editingEventId)}/backfill-preview`);
+        if (!response.ok) throw new Error("Failed to load preview");
+        const data = await response.json();
+        return { total: data.total, willReceive: data.willReceive, alreadyHaveCoupons: data.alreadyHave };
+      }
       if (recipientMode === 'general') {
         return { total: 0, willReceive: 0, alreadyHaveCoupons: 0 };
       }
@@ -211,6 +244,7 @@ export default function AdminCouponsPage() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/coupons"] });
+      queryClient.invalidateQueries({ queryKey: AUTO_COUPON_RULES_KEY });
       const skippedMessage = data.results?.skipped > 0 
         ? ` (${data.results.skipped} skipped - already had coupons)`
         : '';
@@ -222,17 +256,7 @@ export default function AdminCouponsPage() {
         description: `Successfully created ${data.results?.created || 0} coupons${skippedMessage}.${autoCouponMessage}`,
       });
       setIsCreateOpen(false);
-      setSelectedEventId("");
-      setSelectedTicketTypeId("");
-      setDiscountType('percent');
-      setDiscountPercent(100);
-      setDollarOff(10);
-      setRecipientMode('allPremium');
-      setSelectedPeople([]);
-      setPeopleSearchQuery("");
-      setCustomCode("");
-      setMaxUses(10);
-      setEnableAutoCoupon(false);
+      resetForm();
     },
     onError: (error: Error) => {
       toast({
@@ -243,7 +267,88 @@ export default function AdminCouponsPage() {
     },
   });
 
+  const resetForm = () => {
+    setEditingEventId(null);
+    setSelectedEventId("");
+    setSelectedTicketTypeId("");
+    setDiscountType('percent');
+    setDiscountPercent(100);
+    setDollarOff(10);
+    setRecipientMode('allPremium');
+    setSelectedPeople([]);
+    setPeopleSearchQuery("");
+    setCustomCode("");
+    setMaxUses(10);
+    setEnableAutoCoupon(false);
+  };
+
+  // Reopens the form with the event's saved settings (or its latest member coupon's settings)
+  const openEditCoupons = (eventApiId: string) => {
+    const rule = ruleByEvent.get(eventApiId);
+    const latest = couponsData?.coupons.find(
+      (c) => c.eventApiId === eventApiId && c.couponType === 'targeted' && c.source !== 'luma',
+    );
+    const source = rule ?? latest;
+    resetForm();
+    setEditingEventId(eventApiId);
+    setSelectedEventId(eventApiId);
+    setSelectedTicketTypeId(source?.ticketTypeId || 'all');
+    setDiscountType(source?.discountType === 'dollars' ? 'dollars' : 'percent');
+    setDiscountPercent(source?.discountPercent ?? 100);
+    setDollarOff(source?.centsOff ? source.centsOff / 100 : 10);
+    setEnableAutoCoupon(rule?.isActive ?? false);
+    setIsCreateOpen(true);
+  };
+
+  const saveCouponSettingsMutation = useMutation({
+    mutationFn: async () => {
+      const ticketTypeId = selectedTicketTypeId && selectedTicketTypeId !== 'all' ? selectedTicketTypeId : null;
+      const ticketTypeName = ticketTypeId
+        ? ticketTypesData?.ticketTypes?.find((t) => t.id === ticketTypeId)?.name
+          ?? ruleByEvent.get(editingEventId!)?.ticketTypeName
+          ?? null
+        : null;
+      return apiRequest<{ backfill: BackfillResult | null }>(
+        `/api/admin/auto-coupons/${encodeURIComponent(editingEventId!)}`,
+        "PUT",
+        {
+          isActive: enableAutoCoupon,
+          ticketTypeId,
+          ticketTypeName,
+          discountType,
+          ...(discountType === 'percent' ? { discountPercent } : { dollarOff }),
+        },
+      );
+    },
+    onSuccess: ({ backfill }) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/coupons"] });
+      queryClient.invalidateQueries({ queryKey: AUTO_COUPON_RULES_KEY });
+      if (backfill) {
+        const parts = [`Sent ${backfill.issued} new ${backfill.issued === 1 ? 'coupon' : 'coupons'}`];
+        if (backfill.skipped) parts.push(`${backfill.skipped} already had one`);
+        if (backfill.failed) parts.push(`${backfill.failed} failed (save again to retry)`);
+        toast({
+          title: "Coupon settings saved",
+          description: `Future premium members will get a coupon. ${parts.join(', ')}.`,
+          variant: backfill.failed ? "destructive" : "default",
+        });
+      } else {
+        toast({ title: "Coupon settings saved", description: "Future premium members will no longer get a coupon." });
+      }
+      setIsCreateOpen(false);
+      resetForm();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to save coupon settings", variant: "destructive" });
+    },
+  });
+
   const handleGenerateCoupons = () => {
+    if (editingEventId) {
+      saveCouponSettingsMutation.mutate();
+      return;
+    }
+
     if (!selectedEventId) {
       toast({
         title: "Error",
@@ -494,25 +599,33 @@ export default function AdminCouponsPage() {
               <h1 className="text-2xl font-bold">Member Coupons</h1>
             </div>
             
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <Dialog
+              open={isCreateOpen}
+              onOpenChange={(open) => {
+                setIsCreateOpen(open);
+                if (!open && editingEventId) resetForm();
+              }}
+            >
               <DialogTrigger asChild>
-                <Button data-testid="button-create-coupons">
+                <Button data-testid="button-create-coupons" onClick={() => editingEventId && resetForm()}>
                   <Plus className="h-4 w-4 mr-2" />
                   Generate Coupons
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>Generate Coupons</DialogTitle>
+                  <DialogTitle>{editingEventId ? "Edit Coupons" : "Generate Coupons"}</DialogTitle>
                   <DialogDescription>
-                    Create discount coupons for members or general use
+                    {editingEventId
+                      ? "Change the coupon settings for this event's premium members"
+                      : "Create discount coupons for members or general use"}
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
                     <Label htmlFor="event">Select Event</Label>
-                    <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                    <Select value={selectedEventId} onValueChange={setSelectedEventId} disabled={!!editingEventId}>
                       <SelectTrigger id="event" data-testid="select-event">
                         <SelectValue placeholder="Choose an upcoming event" />
                       </SelectTrigger>
@@ -534,6 +647,12 @@ export default function AdminCouponsPage() {
 
                   {selectedEventId && (
                     <>
+                      {editingEventId ? (
+                        <div className="space-y-1">
+                          <Label>Recipients</Label>
+                          <p className="text-sm">All Premium Members ({premiumCountData?.count || 0} people)</p>
+                        </div>
+                      ) : (
                       <div className="space-y-2">
                         <Label>Recipients</Label>
                         <RadioGroup
@@ -577,6 +696,7 @@ export default function AdminCouponsPage() {
                             : 'Send individual coupons to specific recipients via email'}
                         </p>
                       </div>
+                      )}
 
                       {recipientMode === 'allPremium' && (
                         <div className="flex items-center space-x-2">
@@ -846,7 +966,7 @@ export default function AdminCouponsPage() {
                     </div>
                   )}
 
-                  {selectedEventId && recipientMode !== 'general' && (recipientMode === 'allPremium' || selectedPeople.length > 0) && (
+                  {selectedEventId && recipientMode !== 'general' && (recipientMode === 'allPremium' || selectedPeople.length > 0) && (!editingEventId || enableAutoCoupon) && (
                     <div className="rounded-lg border bg-muted/50 p-4 space-y-2" data-testid="coupon-preview">
                       <div className="text-sm font-medium">Preview</div>
                       {isLoadingPreview ? (
@@ -873,9 +993,33 @@ export default function AdminCouponsPage() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsCreateOpen(false);
+                      if (editingEventId) resetForm();
+                    }}
+                  >
                     Cancel
                   </Button>
+                  {editingEventId ? (
+                    <Button
+                      onClick={handleGenerateCoupons}
+                      disabled={saveCouponSettingsMutation.isPending || (enableAutoCoupon && isLoadingPreview)}
+                      data-testid="button-save-coupon-settings"
+                    >
+                      {saveCouponSettingsMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Saving...
+                        </>
+                      ) : enableAutoCoupon && previewData && previewData.willReceive > 0 ? (
+                        `Save and send ${previewData.willReceive} ${previewData.willReceive === 1 ? 'coupon' : 'coupons'}`
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                  ) : (
                   <Button
                     onClick={handleGenerateCoupons}
                     disabled={
@@ -899,6 +1043,7 @@ export default function AdminCouponsPage() {
                       `Generate ${previewData?.willReceive ?? ''} Coupons`
                     )}
                   </Button>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
@@ -1005,7 +1150,32 @@ export default function AdminCouponsPage() {
                                 </CardDescription>
                               </div>
                             </div>
-                            <div className="flex gap-4 text-sm">
+                            <div className="flex flex-wrap items-center justify-end gap-4 text-sm">
+                              {upcomingEventIds.has(eventGroup.eventApiId) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => e.stopPropagation()}
+                                      aria-label={`Actions for ${eventGroup.eventTitle}`}
+                                      data-testid={`button-coupon-actions-${eventGroup.eventApiId}`}
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuItem
+                                      onSelect={() => openEditCoupons(eventGroup.eventApiId)}
+                                      data-testid={`menu-edit-coupons-${eventGroup.eventApiId}`}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Edit coupons
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                               <div className="flex items-center gap-1.5">
                                 <div className="h-2 w-2 rounded-full bg-blue-500" />
                                 <span className="text-muted-foreground">{eventGroup.issued} issued</span>

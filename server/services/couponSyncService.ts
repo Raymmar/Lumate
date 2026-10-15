@@ -20,7 +20,7 @@ interface LumaCouponsResponse {
   next_cursor: string | null;
 }
 
-async function fetchAllLumaCouponsForEvent(eventApiId: string): Promise<LumaCoupon[]> {
+export async function fetchAllLumaCouponsForEvent(eventApiId: string): Promise<LumaCoupon[]> {
   const allCoupons: LumaCoupon[] = [];
   let hasMore = true;
   let cursor: string | undefined;

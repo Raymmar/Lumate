@@ -6,6 +6,13 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### October 15, 2026 - Summit Tickets Sold Through Premium Membership
+- **Ticket offer**: `/memberships` shows a ticket-styled offer for the current (upcoming) summit above the pricing cards (`client/src/components/memberships/SummitTicketOffer.tsx`, background `client/src/assets/summit-ticket-background.png`). It is plain Premium checkout (same price and flow) and is shown whenever the current summit is upcoming; it has no connection to the coupon automation.
+- **Site ticket links**: a summit ticket link like `/memberships` (or a full URL on this site) opens in the same tab (`client/src/lib/links.ts`); external links (Luma) still open a new tab. The summit dialog has a "Sell tickets through membership" shortcut that overrides the Luma ticket link.
+- **New-member coupons**: an upcoming event's coupon group header has a "..." menu → "Edit coupons", which reopens the existing Generate Coupons form in edit mode (prefilled from the saved rule or latest member coupon). The "Also invite future premium members" checkbox there turns the rule on/off. Saving with it on backfills every active, unblocked Premium member without a coupon for that event and retries site coupons missing a Luma coupon (same code, no new email). `PUT /api/admin/auto-coupons/:eventApiId`, preview at `/backfill-preview`.
+- **One coupon per member per event**: all issuance (manual batches, new subscribers, backfill) goes through `issueMemberCoupon` in `server/services/memberCoupons.ts`, which holds a Postgres advisory lock and skips anyone with any coupon (any status) for the event. If Luma fails nothing is saved or emailed, so the next backfill retries.
+- **No per-coupon editing**: the owner only wants to edit an event's coupon settings, not individual members' coupons. Backfill rules and tests: `server/services/couponRules.ts` (`npx tsx --test server/services/couponRules.test.ts`).
+
 ### October 15, 2026 - Faster Page Loading and Lighter Startup
 - **Pages load on demand**: `client/src/App.tsx` lazy-loads every page except Home and Not Found; admin screens are separate chunks public visitors never download. In-app navigation keeps the current page visible while the next page's code loads (routing uses a location updated inside a React transition); a small delayed spinner (`PageLoader`) shows only on fresh loads.
 - **Startup no longer waits on Stripe**: schema migrations still run before listening (local DB work); webhook setup and the backfill run afterwards in `server/services/stripeStartupSync.ts`. The backfill runs only when `cache_metadata.last_stripe_backfill` is older than 24h (checked hourly); webhooks keep data current in between.

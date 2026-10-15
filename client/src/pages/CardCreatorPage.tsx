@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { internalPath } from "@/lib/links";
 import { isSummitPast, useCurrentSummit } from "@/hooks/use-summits";
 import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -67,6 +68,7 @@ export default function CardCreatorPage() {
   // Link straight to tickets while the current summit is upcoming, otherwise to the summit page
   const summitTicketUrl =
     currentSummit?.ticketUrl && !isSummitPast(currentSummit) ? currentSummit.ticketUrl : null;
+  const summitTicketPath = internalPath(summitTicketUrl);
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.isAdmin === true;
@@ -689,7 +691,13 @@ export default function CardCreatorPage() {
                 Explore Speakers
               </Button>
             </Link>
-            {summitTicketUrl ? (
+            {summitTicketPath ? (
+              <Link href={summitTicketPath}>
+                <Button size="sm" className="text-xs sm:text-sm" data-testid="button-summit-tickets">
+                  Get Summit Tickets
+                </Button>
+              </Link>
+            ) : summitTicketUrl ? (
               <a href={summitTicketUrl} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" className="text-xs sm:text-sm" data-testid="button-summit-tickets">
                   Get Summit Tickets

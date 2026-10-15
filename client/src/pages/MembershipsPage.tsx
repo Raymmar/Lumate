@@ -16,6 +16,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { ClaimProfileDialog } from "@/components/ClaimProfileDialog";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 import { useQuery } from "@tanstack/react-query";
+import { isSummitPast, useCurrentSummit } from "@/hooks/use-summits";
+import { SummitTicketOffer } from "@/components/memberships/SummitTicketOffer";
 
 interface PlanFeature {
   text: string;
@@ -60,6 +62,22 @@ export default function MembershipsPage() {
 
   const displayPrice = isPriceLoading ? "..." : (premiumPrice?.formattedPrice || "$199");
   const priceInterval = premiumPrice?.interval || "year";
+
+  // The current summit's ticket is sold as a Premium membership purchase
+  const { data: currentSummit } = useCurrentSummit();
+  const ticketSummit = currentSummit && !isSummitPast(currentSummit) ? currentSummit : null;
+
+  const buyTicket = async () => {
+    try {
+      await (isLoggedIn ? startSubscription() : startGuestSubscription());
+    } catch (error) {
+      toast({
+        title: "Couldn't start checkout",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSponsorInquiry = () => {
     window.location.href = generateSponsorInquiryEmail();
@@ -145,6 +163,17 @@ export default function MembershipsPage() {
                 Choose the membership tier that's right for you and take your place in Sarasota's growing tech ecosystem.
               </p>
             </div>
+
+            {ticketSummit && (
+              <SummitTicketOffer
+                summit={ticketSummit}
+                price={premiumPrice?.formattedPrice ?? null}
+                interval={priceInterval}
+                isPremium={!!isPremium}
+                onBuy={buyTicket}
+                disabled={isLoading}
+              />
+            )}
 
             {/* Pricing Plans */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-8">

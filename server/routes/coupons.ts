@@ -6,15 +6,9 @@ import { eq, and, sql, inArray } from "drizzle-orm";
 import { requireAdmin, requireAuth } from "./middleware";
 import { lumaApiRequest } from "../routes";
 import { z } from "zod";
-import { sendCouponNotificationEmail } from "../email";
+import { issueMemberCoupon, getEventByApiId, previewCouponBackfill, runRuleBackfill } from "../services/memberCoupons";
 
 const router = Router();
-
-function generateCouponCode(eventPrefix: string, recipientId: number): string {
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const code = `${eventPrefix}-${recipientId}-${random}`;
-  return code.substring(0, 20);
-}
 
 function sanitizeCustomCode(code: string): string {
   return code.toUpperCase().replace(/[^A-Z0-9\-_]/g, '').substring(0, 50);
@@ -115,10 +109,6 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
     }
     
     const eventData = event[0];
-    const eventPrefix = eventData.title
-      .replace(/[^a-zA-Z0-9]/g, '')
-      .substring(0, 6)
-      .toUpperCase();
 
     const isGeneralCoupon = validatedData.couponType === 'general';
     const discountType = validatedData.discountType || 'percent';
@@ -299,100 +289,34 @@ router.post("/api/admin/coupons/generate", requireAdmin, async (req, res) => {
     };
     
     const createdCoupons = [];
+    const spec = {
+      eventApiId: validatedData.eventApiId,
+      eventTitle: eventData.title,
+      eventUrl: eventData.url || null,
+      ticketTypeId: validatedData.ticketTypeId || null,
+      ticketTypeName: validatedData.ticketTypeName || null,
+      discountType,
+      discountPercent: discountPercent ?? null,
+      centsOff,
+      validStartAt: validatedData.validStartAt || null,
+      validEndAt: validatedData.validEndAt || null,
+      issuedByUserId: adminUserId,
+    };
     
     for (const recipient of recipients) {
       try {
-        const couponCode = generateCouponCode(eventPrefix, recipient.id);
-        
-        const discount: any = discountType === 'percent'
-          ? { discount_type: "percent", percent_off: discountPercent }
-          : { discount_type: "cents", cents_off: centsOff };
-        
-        const lumaPayload: any = {
-          code: couponCode,
-          event_api_id: validatedData.eventApiId,
-          remaining_count: 1,
-          discount,
-        };
-        
-        if (validatedData.ticketTypeId) {
-          lumaPayload.ticket_api_ids = [validatedData.ticketTypeId];
-        }
-        
-        if (validatedData.validStartAt) {
-          lumaPayload.valid_start_at = validatedData.validStartAt;
-        }
-        if (validatedData.validEndAt) {
-          lumaPayload.valid_end_at = validatedData.validEndAt;
-        }
-        
-        console.log(`Creating Luma coupon for ${recipient.email}:`, couponCode);
-        
-        const lumaResponse = await lumaApiRequest("event/create-coupon", undefined, {
-          method: "POST",
-          body: JSON.stringify(lumaPayload),
+        // Re-checks for an existing coupon under a lock, so concurrent sends can't duplicate
+        const outcome = await issueMemberCoupon(spec, {
+          email: recipient.email,
+          userId: recipient.userId,
+          personId: recipient.personId,
+          codeId: recipient.id,
         });
-        
-        const lumaCouponApiId = lumaResponse?.coupon?.api_id || null;
-        
-        const couponData = {
-          eventApiId: validatedData.eventApiId,
-          eventTitle: eventData.title,
-          eventUrl: eventData.url || null,
-          ticketTypeId: validatedData.ticketTypeId || null,
-          ticketTypeName: validatedData.ticketTypeName || null,
-          code: couponCode,
-          lumaCouponApiId,
-          recipientUserId: recipient.userId,
-          recipientPersonId: recipient.personId,
-          recipientEmail: recipient.email,
-          discountPercent,
-          centsOff,
-          discountType,
-          couponType: 'targeted' as const,
-          maxUses: 1,
-          remainingCount: 1,
-          validStartAt: validatedData.validStartAt || null,
-          validEndAt: validatedData.validEndAt || null,
-          status: 'issued',
-          issuedByUserId: adminUserId,
-        };
-        
-        const createdCoupon = await storage.createCoupon(couponData);
-        createdCoupons.push(createdCoupon);
-        results.created++;
-        
-        if (eventData.url && couponCode) {
-          const registrationLink = `${eventData.url}?coupon=${couponCode}`;
-          try {
-            const emailInfo: {
-              eventTitle: string;
-              discountPercent?: number;
-              dollarOff?: number;
-              registrationLink: string;
-              expirationDate?: string;
-            } = {
-              eventTitle: eventData.title,
-              registrationLink,
-              expirationDate: validatedData.validEndAt,
-            };
-            
-            if (discountType === 'percent' && discountPercent) {
-              emailInfo.discountPercent = discountPercent;
-            } else if (centsOff) {
-              emailInfo.dollarOff = centsOff / 100;
-            }
-            
-            await sendCouponNotificationEmail(recipient.email, {
-              eventTitle: eventData.title,
-              discountPercent: discountPercent || 0,
-              registrationLink,
-              expirationDate: validatedData.validEndAt,
-            });
-            console.log(`Coupon notification email sent to ${recipient.email}`);
-          } catch (emailError) {
-            console.error(`Failed to send coupon email to ${recipient.email}:`, emailError);
-          }
+        if (outcome.status === 'created') {
+          createdCoupons.push(outcome.coupon);
+          results.created++;
+        } else {
+          results.skipped++;
         }
         
         await new Promise(resolve => setTimeout(resolve, 200));
@@ -633,14 +557,92 @@ router.post("/api/admin/coupons/preview", requireAdmin, async (req, res) => {
 });
 
 // Auto-coupon events management endpoints
+// ?all=true includes turned-off rules and past events (for the Coupons page settings)
 router.get("/api/admin/auto-coupons", requireAdmin, async (req, res) => {
   try {
-    const activeEvents = await storage.getActiveAutoCouponEvents();
-    res.json({ events: activeEvents });
+    const rules = req.query.all === "true"
+      ? await db.select().from(autoCouponEvents)
+      : await storage.getActiveAutoCouponEvents();
+    res.json({ events: rules });
   } catch (error) {
     console.error("Failed to fetch auto-coupon events:", error);
     res.status(500).json({
       error: "Failed to fetch auto-coupon events",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.get("/api/admin/auto-coupons/:eventApiId/backfill-preview", requireAdmin, async (req, res) => {
+  try {
+    res.json(await previewCouponBackfill(req.params.eventApiId));
+  } catch (error) {
+    console.error("Failed to preview coupon backfill:", error);
+    res.status(500).json({
+      error: "Failed to preview coupon backfill",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+const newMemberRuleSchema = z.object({
+  isActive: z.boolean(),
+  ticketTypeId: z.string().min(1).nullable().optional(),
+  ticketTypeName: z.string().nullable().optional(),
+  discountType: z.enum(['percent', 'dollars']).default('percent'),
+  discountPercent: z.number().int().min(1).max(100).optional(),
+  dollarOff: z.number().min(0.01).optional(),
+}).refine(
+  (data) => !data.isActive || (data.discountType === 'percent' ? data.discountPercent !== undefined : data.dollarOff !== undefined),
+  { message: "Discount value is required and must be valid for the selected discount type" },
+);
+
+/**
+ * Turns the new-member coupon rule for an event on or off, or saves its settings. Whenever the
+ * saved rule is active, every active Premium member still missing a coupon gets one.
+ */
+router.put("/api/admin/auto-coupons/:eventApiId", requireAdmin, async (req, res) => {
+  try {
+    const adminUserId = req.session!.userId!;
+    const { eventApiId } = req.params;
+    const data = newMemberRuleSchema.parse(req.body);
+    const existing = await storage.getAutoCouponEventByEventApiId(eventApiId);
+
+    if (!data.isActive) {
+      const rule = existing ? await storage.updateAutoCouponEvent(existing.id, { isActive: false }) : null;
+      return res.json({ rule, backfill: null });
+    }
+
+    const event = await getEventByApiId(eventApiId);
+    if (!event) return res.status(404).json({ error: "Event not found" });
+    if (!event.startTime || new Date(event.startTime).getTime() <= Date.now()) {
+      return res.status(400).json({ error: "New-member coupons can only be turned on for upcoming events" });
+    }
+
+    const settings = {
+      eventTitle: event.title,
+      eventUrl: event.url || null,
+      eventStartTime: event.startTime,
+      ticketTypeId: data.ticketTypeId || null,
+      ticketTypeName: data.ticketTypeId ? data.ticketTypeName || null : null,
+      discountType: data.discountType,
+      discountPercent: data.discountType === 'percent' ? data.discountPercent! : null,
+      centsOff: data.discountType === 'dollars' ? Math.round(data.dollarOff! * 100) : null,
+      isActive: true,
+    };
+    const rule = existing
+      ? await storage.updateAutoCouponEvent(existing.id, settings)
+      : await storage.createAutoCouponEvent({ ...settings, eventApiId, createdByUserId: adminUserId });
+
+    const backfill = await runRuleBackfill(rule, event, adminUserId);
+    res.json({ rule, backfill });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: "Validation error", message: error.errors[0]?.message, details: error.errors });
+    }
+    console.error("Failed to save new-member coupon rule:", error);
+    res.status(500).json({
+      error: "Failed to save new-member coupon setting",
       message: error instanceof Error ? error.message : String(error),
     });
   }

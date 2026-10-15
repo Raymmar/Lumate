@@ -6,3 +6,4 @@
 - [Sponsorships](sponsorships.md) — one global sponsor + yearly sponsorships; no per-year logo; legacy year/tier columns dropped only in a later stage.
 - [Luma API quirks](luma-api-quirks.md) — list-events omits description; created_after ignored (people sort by created_at desc works); geo fields.
 - [Stripe webhook endpoints](stripe-webhooks.md) — dev key is live; dev must never create endpoints (16 limit); stale dev endpoints need owner OK to delete.
+- [Member event coupons](member-coupons.md) — one coupon per member per event (any status); dev issuance is real; Luma create vs update endpoints differ.

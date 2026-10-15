@@ -50,6 +50,9 @@ const TEXT_FIELD_KEYS: (keyof TextFields)[] = [
   "seoImage",
 ];
 
+/** Site page that sells Summit tickets through Premium membership. */
+const MEMBERSHIP_TICKET_PATH = "/memberships";
+
 function emptyText(): TextFields {
   return Object.fromEntries(TEXT_FIELD_KEYS.map((k) => [k, ""])) as TextFields;
 }
@@ -185,6 +188,14 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
     // Start a new override from the Luma value rather than an empty box
     const lumaValue = luma.values?.[key];
     if (overridden && lumaValue && !text[key].trim()) setText((t) => ({ ...t, [key]: lumaValue }));
+  };
+
+  // The ticket link visitors get: Luma's unless overridden on a linked summit
+  const ticketFromLuma = luma.values != null && !lumaOverrides.includes("ticketUrl");
+  const effectiveTicketUrl = ticketFromLuma ? (luma.values?.ticketUrl ?? "") : text.ticketUrl;
+  const applyMembershipTickets = () => {
+    if (ticketFromLuma) setLumaOverrides((current) => [...current, "ticketUrl"]);
+    setText((t) => ({ ...t, ticketUrl: MEMBERSHIP_TICKET_PATH }));
   };
 
   const unlinkLuma = (copyValues: boolean) => {
@@ -335,7 +346,24 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             {field("venueName", "Venue name")}
             {field("venueAddress", "Venue address")}
             {field("venueMapUrl", "Map link", { kind: "url", placeholder: "https://..." })}
-            {field("ticketUrl", "Ticket / event link", { kind: "url", placeholder: "https://..." })}
+            <div className="space-y-1">
+              {field("ticketUrl", "Ticket / event link", {
+                placeholder: "https://... or /memberships",
+                hint: "Use /memberships to sell tickets through Premium membership. Site links open in the same tab.",
+              })}
+              {effectiveTicketUrl.trim() !== MEMBERSHIP_TICKET_PATH && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs"
+                  onClick={applyMembershipTickets}
+                  data-testid="button-summit-ticket-memberships"
+                >
+                  Sell tickets through membership
+                </Button>
+              )}
+            </div>
             <div className="sm:col-span-2 flex items-center justify-between gap-4">
               <div>
                 <Label htmlFor="summit-show-learn-more">Show Learn more button</Label>

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { formatSummitDate } from "@/hooks/use-summits";
+import { internalPath } from "@/lib/links";
 
 interface SummitHeroProps {
   summit: Summit;
@@ -13,6 +14,8 @@ interface SummitHeroProps {
 /** Split hero: event imagery on the left, summit details and ticket link on the right. */
 export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHeroProps) {
   const ticketLabel = isPast ? "Event Page" : "Get Tickets";
+  // A site link (e.g. the Memberships ticket offer) stays in this tab; external links open a new one
+  const ticketPath = internalPath(summit.ticketUrl);
   // The linked sponsor's current name and link; the old text fields only when none is linked
   const sponsor = summit.presentingSponsor;
   const linked = summit.presentingSponsorId != null;
@@ -89,10 +92,14 @@ export function SummitHero({ summit, isPast, showLearnMore = false }: SummitHero
               <div className="flex flex-col sm:flex-row flex-wrap gap-3">
                 {summit.ticketUrl && (
                   <Button asChild size="lg" className="text-base w-full sm:w-auto" data-testid="button-summit-tickets">
-                    <a href={summit.ticketUrl} target="_blank" rel="noopener noreferrer">
-                      {ticketLabel}
-                      <ExternalLink className="ml-2 h-4 w-4" />
-                    </a>
+                    {ticketPath ? (
+                      <Link href={ticketPath}>{ticketLabel}</Link>
+                    ) : (
+                      <a href={summit.ticketUrl} target="_blank" rel="noopener noreferrer">
+                        {ticketLabel}
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </a>
+                    )}
                   </Button>
                 )}
                 {showLearnMore && (
