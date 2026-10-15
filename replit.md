@@ -6,6 +6,12 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 
 ## Recent Changes
 
+### October 4, 2026 - Summit Pages Linked to Luma Events
+- **Link**: `summits.luma_event_api_id` (stable Luma `api_id`, set by admins in the summit dialog; IDs differ between dev and prod) and `summits.luma_overrides` (Luma-supplied fields where the summit's own value wins). Luma-supplied fields: start/end date (in the event timezone), description, venue name/address/map link, ticket link, social share image (cover).
+- **Merge on read**: `server/services/summitLuma.ts` fills those fields from the synced `events` row on every summit read (public + admin + Open Graph). Nothing Luma-derived is saved into the summit unless the admin picks "Copy Luma values" when unlinking. Missing event = falls back to the summit's own values; admins get a broken-link warning via `lumaLink`.
+- **Sync**: Luma's event list has no description, so the regular sync fetches `event/get` for summit-linked events only; the list upsert keeps an existing description. Venue name is stored as `events.location.venue_name`.
+- **Shared UI**: `EventSelect` (admin events list dropdown) is used by the summit dialog, newsletter event filter and badge rule form.
+
 ### October 4, 2026 - Global Sponsors with Yearly Sponsorships
 - **Model**: `sponsors` is one record per sponsor (name, logo, url, logo padding, linked company; IDs preserved). Years and tiers live in the new `sponsorships` table (one active row per sponsor per year). No per-year logo by design: editing a sponsor updates every year.
 - **Legacy columns**: `sponsors.year` / `sponsors.tier` are nullable and no longer written. They stay until production has run the conversion; drop them in a separate, later change.

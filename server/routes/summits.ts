@@ -2,6 +2,7 @@ import { Request, Response, Router } from "express";
 import { storage, type SummitScope } from "../storage";
 import { insertSummitSchema, type Summit } from "@shared/schema";
 import { requireAdmin } from "./middleware";
+import { lumaValuesFromEvent, oneWithLumaValues, withLumaValues } from "../services/summitLuma";
 
 const router = Router();
 
@@ -10,6 +11,14 @@ async function validatePresentingSponsor(res: Response, sponsorId: number | null
   if (sponsorId == null) return true;
   if (await storage.getSponsorById(sponsorId)) return true;
   res.status(400).json({ error: "Presenting sponsor not found" });
+  return false;
+}
+
+/** Responds 400 and returns false when the Luma event to link isn't in the synced events. */
+async function validateLumaEvent(res: Response, apiId: string | null | undefined): Promise<boolean> {
+  if (apiId == null) return true;
+  if (await storage.getEventByApiId(apiId)) return true;
+  res.status(400).json({ error: "Luma event not found. Run a Luma sync and try again." });
   return false;
 }
 
@@ -73,7 +82,7 @@ router.get("/", async (req: Request, res: Response) => {
   try {
     const isAdmin = await isAdminRequest(req);
     const summits = await storage.getSummits({ includeUnpublished: isAdmin });
-    res.json({ summits });
+    res.json({ summits: await withLumaValues(summits, { isAdmin }) });
   } catch (error) {
     console.error("Failed to fetch summits:", error);
     res.status(500).json({ error: "Failed to fetch summits" });
@@ -84,7 +93,7 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/current", async (req: Request, res: Response) => {
   try {
     const summit = await storage.getCurrentSummit();
-    res.json({ summit });
+    res.json({ summit: await oneWithLumaValues(summit, { isAdmin: await isAdminRequest(req) }) });
   } catch (error) {
     console.error("Failed to fetch current summit:", error);
     res.status(500).json({ error: "Failed to fetch current summit" });
@@ -98,13 +107,31 @@ router.get("/:year", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid year" });
     }
     const summit = await storage.getSummitByYear(year);
-    if (!summit || (!summit.isPublished && !(await isAdminRequest(req)))) {
+    const isAdmin = await isAdminRequest(req);
+    if (!summit || (!summit.isPublished && !isAdmin)) {
       return res.status(404).json({ error: "Summit not found" });
     }
-    res.json({ summit });
+    res.json({ summit: await oneWithLumaValues(summit, { isAdmin }) });
   } catch (error) {
     console.error("Failed to fetch summit:", error);
     res.status(500).json({ error: "Failed to fetch summit" });
+  }
+});
+
+// Values a synced Luma event would supply, so the admin form can preview a new link before saving
+router.get("/luma-preview/:apiId", requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const event = await storage.getEventByApiId(req.params.apiId);
+    if (!event) {
+      return res.status(404).json({ error: "Luma event not found" });
+    }
+    res.json({
+      event: { title: event.title, startTime: event.startTime, timezone: event.timezone, url: event.url },
+      values: lumaValuesFromEvent(event),
+    });
+  } catch (error) {
+    console.error("Failed to preview Luma event:", error);
+    res.status(500).json({ error: "Failed to preview Luma event" });
   }
 });
 
@@ -118,12 +145,13 @@ router.post("/", requireAdmin, async (req: Request, res: Response) => {
       return res.status(409).json({ error: `A summit for ${result.data.year} already exists` });
     }
     if (!(await validatePresentingSponsor(res, result.data.presentingSponsorId))) return;
+    if (!(await validateLumaEvent(res, result.data.lumaEventApiId))) return;
     // The presenting sponsor is also a sponsor of that summit's year
     if (result.data.presentingSponsorId != null) {
       await storage.ensureSponsorship(result.data.presentingSponsorId, result.data.year);
     }
     const summit = await storage.createSummit(result.data);
-    res.status(201).json({ summit });
+    res.status(201).json({ summit: await oneWithLumaValues(summit, { isAdmin: true }) });
   } catch (error) {
     console.error("Failed to create summit:", error);
     res.status(500).json({ error: "Failed to create summit" });
@@ -150,6 +178,10 @@ router.patch("/:id", requireAdmin, async (req: Request, res: Response) => {
     }
     const data = { ...result.data };
     if (!(await validatePresentingSponsor(res, data.presentingSponsorId))) return;
+    // Only check a newly chosen event; keeping an existing (possibly broken) link is allowed
+    if (data.lumaEventApiId !== undefined && data.lumaEventApiId !== existing.lumaEventApiId) {
+      if (!(await validateLumaEvent(res, data.lumaEventApiId))) return;
+    }
     // Clearing the presenting sponsor also empties the old "Presented by" text fallback
     if ("presentingSponsorId" in data && data.presentingSponsorId === null) {
       data.presentedByName = null;
@@ -162,7 +194,7 @@ router.patch("/:id", requireAdmin, async (req: Request, res: Response) => {
       await storage.ensureSponsorship(presentingSponsorId, year);
     }
     const summit = await storage.updateSummit(id, data);
-    res.json({ summit });
+    res.json({ summit: await oneWithLumaValues(summit, { isAdmin: true }) });
   } catch (error) {
     console.error("Failed to update summit:", error);
     res.status(500).json({ error: "Failed to update summit" });
@@ -177,7 +209,7 @@ router.post("/:id/current", requireAdmin, async (req: Request, res: Response) =>
       return res.status(404).json({ error: "Summit not found" });
     }
     const summit = await storage.setCurrentSummit(id);
-    res.json({ summit });
+    res.json({ summit: await oneWithLumaValues(summit, { isAdmin: true }) });
   } catch (error) {
     console.error("Failed to set current summit:", error);
     res.status(500).json({ error: "Failed to set current summit" });

@@ -40,6 +40,7 @@ export const events = pgTable("events", {
     latitude?: string;
     longitude?: string;
     full_address?: string;
+    venue_name?: string;
   }>(),
   visibility: varchar("visibility", { length: 50 }),
   meetingUrl: varchar("meeting_url", { length: 255 }),
@@ -199,6 +200,13 @@ export type SummitLink = {
   url: string;
 };
 
+/** Summit fields that a linked Luma event can supply. */
+export const LUMA_SUMMIT_FIELDS = [
+  "startDate", "endDate", "description", "venueName", "venueAddress", "venueMapUrl", "ticketUrl", "seoImage",
+] as const;
+export type LumaSummitField = (typeof LUMA_SUMMIT_FIELDS)[number];
+export type LumaSummitValues = Record<LumaSummitField, string | null>;
+
 export const summits = pgTable("summits", {
   id: serial("id").primaryKey(),
   year: integer("year").notNull().unique(),
@@ -222,6 +230,10 @@ export const summits = pgTable("summits", {
   presentedByUrl: varchar("presented_by_url", { length: 500 }),
   // Linked presenting sponsor; the presentedBy* text columns are only a fallback
   presentingSponsorId: integer("presenting_sponsor_id").references((): AnyPgColumn => sponsors.id, { onDelete: "set null" }),
+  // Linked Luma event (stable Luma api_id). Luma-supplied fields come from it unless overridden.
+  lumaEventApiId: varchar("luma_event_api_id", { length: 255 }),
+  // Luma-supplied fields where the summit's own saved value is used instead
+  lumaOverrides: json("luma_overrides").$type<LumaSummitField[]>().notNull().default([]),
   galleryImages: json("gallery_images").$type<SummitGalleryImage[]>().notNull().default([]),
   highlights: json("highlights").$type<SummitHighlight[]>().notNull().default([]),
   links: json("links").$type<SummitLink[]>().notNull().default([]),
@@ -266,6 +278,8 @@ export const insertSummitSchema = createInsertSchema(summits, {
   galleryImages: z.array(summitGalleryImageSchema).optional(),
   highlights: z.array(summitHighlightSchema).optional(),
   links: z.array(summitLinkSchema).optional(),
+  lumaEventApiId: z.string().trim().min(1).max(255).nullable().optional(),
+  lumaOverrides: z.array(z.enum(LUMA_SUMMIT_FIELDS)).optional(),
 }).omit({
   id: true,
   isCurrent: true,
@@ -278,7 +292,25 @@ export type InsertSummit = z.infer<typeof insertSummitSchema>;
 
 /** The linked presenting sponsor's current details, as included in summit responses. */
 export type SummitPresentingSponsor = { id: number; name: string; url: string | null; logo: string };
-export type SummitWithSponsor = Summit & { presentingSponsor: SummitPresentingSponsor | null };
+/**
+ * Admin-only details of a summit's Luma link. Summit responses already carry the
+ * effective values (Luma unless overridden); `own` holds the summit's saved values
+ * so the admin form never writes Luma values back into the summit.
+ */
+export type SummitLumaLink = {
+  apiId: string;
+  /** Null when the linked event is missing (broken link) */
+  event: { title: string; startTime: string; timezone: string | null; url: string | null } | null;
+  broken: boolean;
+  /** Values Luma supplies (empty when broken) */
+  values: LumaSummitValues | null;
+  own: LumaSummitValues;
+};
+export type SummitWithSponsor = Summit & {
+  presentingSponsor: SummitPresentingSponsor | null;
+  /** Only present in admin responses for linked summits */
+  lumaLink?: SummitLumaLink;
+};
 
 // Add membersOnly field to posts table definition
 export const posts = pgTable("posts", {

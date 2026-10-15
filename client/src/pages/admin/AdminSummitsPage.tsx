@@ -5,6 +5,7 @@ import { CalendarRange, ExternalLink, Pencil, Plus, Star } from "lucide-react";
 import type { SummitWithSponsor as Summit } from "@shared/schema";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SummitFormDialog } from "@/components/admin/SummitFormDialog";
+import { useAdminEvents } from "@/components/admin/EventSelect";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,8 @@ export default function AdminSummitsPage() {
   const { toast } = useToast();
   const { data: summits = [], isLoading } = useSummits();
   const [editing, setEditing] = useState<Summit | null>(null);
+  // Load the Luma events list up front so the summit dialog's event picker is ready when opened
+  useAdminEvents();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const suggestedYear = summits.length > 0 ? Math.max(...summits.map((s) => s.year)) + 1 : new Date().getFullYear();

@@ -89,7 +89,7 @@ export function SummitLinksCard({ summit, otherSummits, showSponsorCta, wide = f
             <div className="relative w-full max-w-full overflow-hidden" style={{ paddingBottom: "56.25%" }}>
               <iframe
                 className="absolute top-0 left-0 w-full h-full rounded-lg"
-                src={summit.videoEmbedUrl}
+                src={toEmbedUrl(summit.videoEmbedUrl)}
                 title={`${summit.title} ${summit.year} video`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
@@ -101,4 +101,19 @@ export function SummitLinksCard({ summit, otherSummits, showSponsorCta, wide = f
       </CardContent>
     </Card>
   );
+}
+
+/** Turns a YouTube watch or short link into an embed link; other links are used as-is. */
+function toEmbedUrl(link: string): string {
+  try {
+    const url = new URL(link);
+    const id = url.hostname.endsWith("youtu.be")
+      ? url.pathname.slice(1)
+      : url.hostname.includes("youtube.com") && url.pathname === "/watch"
+        ? url.searchParams.get("v")
+        : null;
+    return id ? `https://www.youtube.com/embed/${id}` : link;
+  } catch {
+    return link;
+  }
 }

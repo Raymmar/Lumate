@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EventSelect } from "@/components/admin/EventSelect";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -69,11 +70,6 @@ export function SendNewsletterModal({ open, onOpenChange, post, onViewAnalytics 
 
   const { data: badgesData } = useQuery<{ badges: Array<{ id: number; name: string; icon: string }> }>({
     queryKey: ["/api/admin/badges-list"],
-    enabled: open,
-  });
-
-  const { data: eventsData } = useQuery<{ events: Array<{ apiId: string; title: string; startTime: string }> }>({
-    queryKey: ["/api/admin/events-list"],
     enabled: open,
   });
 
@@ -308,29 +304,13 @@ export function SendNewsletterModal({ open, onOpenChange, post, onViewAnalytics 
 
                 <div className="space-y-2">
                   <Label className="text-sm">Filter by Event Attendance</Label>
-                  <Select
-                    value={selectedEventApiIds.length === 1 ? selectedEventApiIds[0] : "none"}
-                    onValueChange={(val) => {
-                      if (val === "none") {
-                        setSelectedEventApiIds([]);
-                      } else {
-                        setSelectedEventApiIds([val]);
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="text-xs">
-                      <SelectValue placeholder="No event filter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No event filter</SelectItem>
-                      {eventsData?.events?.map(event => (
-                        <SelectItem key={event.apiId} value={event.apiId}>
-                          <span className="truncate">{event.title}</span>
-                          <span className="text-muted-foreground ml-1">({new Date(event.startTime).toLocaleDateString()})</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EventSelect
+                    value={selectedEventApiIds.length === 1 ? selectedEventApiIds[0] : null}
+                    onChange={(apiId) => setSelectedEventApiIds(apiId ? [apiId] : [])}
+                    noneLabel="No event filter"
+                    enabled={open}
+                    className="text-xs"
+                  />
                 </div>
 
                 <Separator />

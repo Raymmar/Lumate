@@ -241,6 +241,8 @@ export class CacheService extends EventEmitter {
         }
       }
 
+      await this.syncSummitEventDetails();
+
       if (people.length > 0) {
         this.logSync(`Processing ${people.length} people in batches...`);
         this.emitProgress(`Processing ${people.length} people...`, 80);
@@ -514,6 +516,32 @@ export class CacheService extends EventEmitter {
     return allPeople;
   }
 
+  /**
+   * Luma's event list omits descriptions, so fetch them for events linked to a
+   * summit page. Failures are logged and don't stop the sync.
+   */
+  private async syncSummitEventDetails(): Promise<void> {
+    try {
+      const linked = await db.execute(
+        sql`SELECT DISTINCT luma_event_api_id AS api_id FROM summits WHERE luma_event_api_id IS NOT NULL`,
+      );
+      for (const row of linked.rows as { api_id: string }[]) {
+        try {
+          const response = await lumaApiRequest('event/get', { api_id: row.api_id });
+          const event = response?.event;
+          if (!event) continue;
+          await db.execute(
+            sql`UPDATE events SET description = ${event.description || null} WHERE api_id = ${row.api_id}`,
+          );
+        } catch (error) {
+          this.logSync(`Failed to fetch details for summit event ${row.api_id}:`, error);
+        }
+      }
+    } catch (error) {
+      this.logSync('Failed to sync summit event details:', error);
+    }
+  }
+
   private async batchInsertEvents(events: any[]): Promise<void> {
     if (events.length === 0) return;
 
@@ -529,6 +557,8 @@ export class CacheService extends EventEmitter {
             latitude: eventData.geo_latitude,
             longitude: eventData.geo_longitude,
             full_address: eventData.geo_address_json.full_address,
+            // Luma's place name, e.g. "Mote Science Education Aquarium (SEA)"
+            venue_name: eventData.geo_address_json.address || undefined,
           } : null;
 
           const query = sql`
@@ -554,7 +584,8 @@ export class CacheService extends EventEmitter {
             )
             ON CONFLICT (api_id) DO UPDATE SET
               title = EXCLUDED.title,
-              description = EXCLUDED.description,
+              -- The list endpoint has no description; keep the one fetched for summit-linked events
+              description = COALESCE(EXCLUDED.description, events.description),
               start_time = EXCLUDED.start_time,
               end_time = EXCLUDED.end_time,
               cover_url = EXCLUDED.cover_url,

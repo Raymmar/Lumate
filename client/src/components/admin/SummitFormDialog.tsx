@@ -1,9 +1,16 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Plus, Trash2, Loader2 } from "lucide-react";
-import type { SummitWithSponsor as Summit, SummitGalleryImage, SummitHighlight, SummitLink } from "@shared/schema";
+import {
+  LUMA_SUMMIT_FIELDS,
+  type LumaSummitField,
+  type SummitWithSponsor as Summit,
+  type SummitGalleryImage,
+  type SummitHighlight,
+  type SummitLink,
+} from "@shared/schema";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +20,10 @@ import { useToast } from "@/hooks/use-toast";
 import { SponsorPicker } from "@/components/sponsors/SponsorPicker";
 import { SponsorModal } from "@/components/sponsors/SponsorModal";
 import { apiErrorMessage } from "@/components/sponsors/sponsorApi";
+import { LumaFieldHeader, SummitLumaLinkSection, useLumaEventInfo } from "@/components/admin/SummitLumaLink";
+import { SUMMITS_QUERY_KEY } from "@/hooks/use-summits";
+import { ImageUploadInput } from "@/components/admin/ImageUploadInput";
+import { DatePickerInput } from "@/components/admin/DatePickerInput";
 
 type TextFields = {
   title: string;
@@ -43,8 +54,19 @@ function emptyText(): TextFields {
   return Object.fromEntries(TEXT_FIELD_KEYS.map((k) => [k, ""])) as TextFields;
 }
 
+/** The summit's own saved values. Linked summits arrive merged with Luma, so use `lumaLink.own` for those fields. */
 function textFromSummit(summit: Summit): TextFields {
-  return Object.fromEntries(TEXT_FIELD_KEYS.map((k) => [k, summit[k] ?? ""])) as TextFields;
+  const own = summit.lumaLink?.own;
+  return Object.fromEntries(
+    TEXT_FIELD_KEYS.map((k) => {
+      const value = own && isLumaField(k) ? own[k] : summit[k];
+      return [k, value ?? ""];
+    }),
+  ) as TextFields;
+}
+
+function isLumaField(key: string): key is LumaSummitField {
+  return (LUMA_SUMMIT_FIELDS as readonly string[]).includes(key);
 }
 
 interface SummitFormDialogProps {
@@ -68,6 +90,10 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
   // Old free-text "Presented by" (shown only when no sponsor is linked); can be cleared
   const [legacyPresenterCleared, setLegacyPresenterCleared] = useState(false);
   const [newSponsorName, setNewSponsorName] = useState<string | null>(null);
+  const [lumaEventApiId, setLumaEventApiId] = useState<string | null>(null);
+  const [lumaOverrides, setLumaOverrides] = useState<LumaSummitField[]>([]);
+  const savedLumaLink = summit?.lumaLink;
+  const luma = useLumaEventInfo(lumaEventApiId, savedLumaLink);
   const initialPresentingSponsorId = summit?.presentingSponsorId ?? null;
   const legacyPresenter =
     summit && !summit.presentingSponsorId && summit.presentedByName && !legacyPresenterCleared
@@ -84,6 +110,8 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
       setHighlights(summit.highlights ?? []);
       setGallery(summit.galleryImages ?? []);
       setPresentingSponsorId(summit.presentingSponsorId ?? null);
+      setLumaEventApiId(summit.lumaEventApiId ?? null);
+      setLumaOverrides(summit.lumaOverrides ?? []);
     } else {
       setYear(String(suggestedYear));
       setText({ ...emptyText(), title: "Sarasota Tech Summit" });
@@ -92,6 +120,8 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
       setHighlights([]);
       setGallery([]);
       setPresentingSponsorId(null);
+      setLumaEventApiId(null);
+      setLumaOverrides([]);
     }
     setLegacyPresenterCleared(false);
     setNewSponsorName(null);
@@ -107,6 +137,8 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
         links: links.filter((l) => l.label.trim() && l.url.trim()),
         highlights: highlights.filter((h) => h.title.trim()),
         galleryImages: gallery.filter((g) => g.src.trim()),
+        lumaEventApiId,
+        lumaOverrides: lumaEventApiId ? lumaOverrides : [],
         // Only send the presenting sponsor when it changed; null also clears the old text fallback
         ...(presentingSponsorId !== initialPresentingSponsorId
           ? { presentingSponsorId }
@@ -115,10 +147,18 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             : {}),
       };
       return summit
-        ? apiRequest(`/api/summits/${summit.id}`, "PATCH", payload)
-        : apiRequest("/api/summits", "POST", payload);
+        ? apiRequest<{ summit: Summit }>(`/api/summits/${summit.id}`, "PATCH", payload)
+        : apiRequest<{ summit: Summit }>("/api/summits", "POST", payload);
     },
-    onSuccess: () => {
+    onSuccess: ({ summit: saved }) => {
+      // Put the saved summit (with its Luma link details) in the cache right away so
+      // reopening the dialog shows it without waiting for the refetch
+      queryClient.setQueryData<{ summits: Summit[] }>(SUMMITS_QUERY_KEY, (old) => {
+        if (!old) return old;
+        const others = old.summits.filter((s) => s.id !== saved.id);
+        return { summits: [...others, saved].sort((a, b) => b.year - a.year) };
+      });
+      queryClient.setQueryData(["/api/summits", saved.year], saved);
       queryClient.invalidateQueries({ queryKey: ["/api/summits"] });
       // Choosing a presenting sponsor may have added them to that year's sponsors
       queryClient.invalidateQueries({
@@ -136,44 +176,130 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
     },
   });
 
-  const field = (key: keyof TextFields, label: string, opts: { placeholder?: string; multiline?: boolean } = {}) => (
-    <div className="space-y-1">
-      <Label htmlFor={`summit-${key}`}>{label}</Label>
-      {opts.multiline ? (
-        <Textarea
-          id={`summit-${key}`}
-          value={text[key]}
-          placeholder={opts.placeholder}
-          onChange={(e) => setText((t) => ({ ...t, [key]: e.target.value }))}
-          rows={3}
-        />
-      ) : (
-        <Input
-          id={`summit-${key}`}
-          value={text[key]}
-          placeholder={opts.placeholder}
-          onChange={(e) => setText((t) => ({ ...t, [key]: e.target.value }))}
-          data-testid={`input-summit-${key}`}
-        />
-      )}
-    </div>
-  );
+  const setOverride = (key: LumaSummitField, overridden: boolean) => {
+    setLumaOverrides((current) => (overridden ? [...current, key] : current.filter((k) => k !== key)));
+    // Start a new override from the Luma value rather than an empty box
+    const lumaValue = luma.values?.[key];
+    if (overridden && lumaValue && !text[key].trim()) setText((t) => ({ ...t, [key]: lumaValue }));
+  };
+
+  const unlinkLuma = (copyValues: boolean) => {
+    if (copyValues && luma.values) {
+      const values = luma.values;
+      setText((t) => {
+        const next = { ...t };
+        for (const key of LUMA_SUMMIT_FIELDS) {
+          if (!lumaOverrides.includes(key)) next[key] = values[key] ?? "";
+        }
+        return next;
+      });
+    }
+    setLumaEventApiId(null);
+    setLumaOverrides([]);
+  };
+
+  const field = (
+    key: keyof TextFields,
+    label: string,
+    opts: { placeholder?: string; multiline?: boolean; hint?: string; kind?: "image" | "date" | "url" } = {},
+  ) => {
+    const id = `summit-${key}`;
+    // Luma supplies this field: show its value read-only unless overridden
+    const fromLuma = isLumaField(key) && luma.values != null;
+    const overridden = isLumaField(key) && lumaOverrides.includes(key);
+    const readOnly = fromLuma && !overridden;
+    const value = readOnly ? (luma.values![key as LumaSummitField] ?? "") : text[key];
+    const placeholder = readOnly ? "Not set in Luma" : opts.placeholder;
+    const onChange = (v: string) => setText((t) => ({ ...t, [key]: v }));
+    return (
+      <div className="space-y-1">
+        {fromLuma ? (
+          <LumaFieldHeader
+            htmlFor={id}
+            label={label}
+            overridden={overridden}
+            onOverrideChange={(next) => setOverride(key as LumaSummitField, next)}
+            testId={key}
+          />
+        ) : (
+          <Label htmlFor={id}>{label}</Label>
+        )}
+        {opts.kind === "image" ? (
+          <ImageUploadInput
+            id={id}
+            value={value}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className={readOnly ? "bg-muted text-muted-foreground" : undefined}
+            onChange={onChange}
+            data-testid={`input-summit-${key}`}
+          />
+        ) : opts.kind === "date" ? (
+          <DatePickerInput
+            id={id}
+            value={value}
+            placeholder={readOnly ? placeholder : undefined}
+            readOnly={readOnly}
+            className={readOnly ? "bg-muted text-muted-foreground" : undefined}
+            onChange={onChange}
+            data-testid={`input-summit-${key}`}
+          />
+        ) : opts.multiline ? (
+          <Textarea
+            id={id}
+            value={value}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className={readOnly ? "bg-muted text-muted-foreground" : undefined}
+            onChange={(e) => onChange(e.target.value)}
+            rows={3}
+            data-testid={`input-summit-${key}`}
+          />
+        ) : (
+          <Input
+            id={id}
+            type={opts.kind === "url" ? "url" : undefined}
+            value={value}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className={readOnly ? "bg-muted text-muted-foreground" : undefined}
+            onChange={(e) => onChange(e.target.value)}
+            data-testid={`input-summit-${key}`}
+          />
+        )}
+        {opts.hint && <p className="text-xs text-muted-foreground">{opts.hint}</p>}
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      {/* Only the form body scrolls, so the Save button stays visible */}
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>{summit ? `Edit ${summit.year} Summit` : "New Summit Year"}</DialogTitle>
+          <DialogDescription>Details, images and content for this year's summit page.</DialogDescription>
         </DialogHeader>
 
         <form
-          className="space-y-6"
+          className="flex min-h-0 flex-1 flex-col"
           onSubmit={(e) => {
             e.preventDefault();
             saveMutation.mutate();
           }}
         >
+          <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-1 pb-2">
+          <SummitLumaLinkSection
+            apiId={lumaEventApiId}
+            info={luma}
+            savedTitle={savedLumaLink?.event?.title}
+            enabled={open}
+            onLink={setLumaEventApiId}
+            onUnlink={unlinkLuma}
+          />
+
           <section className="grid gap-4 sm:grid-cols-2">
+            <h3 className="sm:col-span-2 font-semibold">Event details</h3>
             <div className="space-y-1">
               <Label htmlFor="summit-year">Year</Label>
               <Input
@@ -187,20 +313,25 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             </div>
             {field("title", "Title")}
             {field("tagline", "Tagline", { placeholder: "One Day Mini-Conf & Startup Fair" })}
-            {field("dateLabel", "Date label (optional)", { placeholder: "January 15th, 2026" })}
-            {field("startDate", "Start date", { placeholder: "YYYY-MM-DD" })}
-            {field("endDate", "End date (optional)", { placeholder: "YYYY-MM-DD" })}
+            {field("startDate", "Start date", { kind: "date" })}
+            {field("endDate", "End date (optional)", { kind: "date" })}
+            <div className="sm:col-span-2">
+              {field("dateLabel", "Date label (optional)", {
+                placeholder: "January 15th, 2026",
+                hint: luma.values
+                  ? "Replaces the displayed dates. Leave empty to show the Luma dates."
+                  : "Replaces the displayed dates. Leave empty to show the dates above.",
+              })}
+            </div>
             <div className="sm:col-span-2">{field("description", "Description", { multiline: true })}</div>
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2">
-            <h3 className="sm:col-span-2 font-semibold">Venue & links</h3>
+            <h3 className="sm:col-span-2 font-semibold">Venue & tickets</h3>
             {field("venueName", "Venue name")}
             {field("venueAddress", "Venue address")}
-            {field("venueMapUrl", "Map link")}
-            {field("ticketUrl", "Ticket / event link")}
-            {field("photosUrl", "Photo album link")}
-            {field("videoEmbedUrl", "Video embed URL", { placeholder: "https://www.youtube.com/embed/..." })}
+            {field("venueMapUrl", "Map link", { kind: "url", placeholder: "https://..." })}
+            {field("ticketUrl", "Ticket / event link", { kind: "url", placeholder: "https://..." })}
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="summit-presenting-sponsor">Presenting sponsor</Label>
               <SponsorPicker
@@ -238,10 +369,26 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
 
           <section className="grid gap-4 sm:grid-cols-2">
             <h3 className="sm:col-span-2 font-semibold">Images</h3>
-            {field("heroImage", "Hero image URL")}
-            {field("logoImage", "Logo overlay URL")}
-            {field("dateBlockImage", "Date block image URL")}
-            {field("seoImage", "Social share image URL")}
+            {field("heroImage", "Hero image", { kind: "image", hint: "Fills the left side of the page header." })}
+            {field("seoImage", "Social share image", { kind: "image", hint: "Shown when the page link is shared." })}
+            {field("logoImage", "Logo overlay (optional)", {
+              kind: "image",
+              hint: "Placed over the top-left of the hero image. Not shown if empty.",
+            })}
+            {field("dateBlockImage", "Date block image (optional)", {
+              kind: "image",
+              hint: "Decorative graphic at the bottom-right of the hero image. Not shown if empty.",
+            })}
+          </section>
+
+          <section className="grid gap-4 sm:grid-cols-2">
+            <h3 className="sm:col-span-2 font-semibold">Page content</h3>
+            {field("photosUrl", "Photo album link", { kind: "url", placeholder: "https://..." })}
+            {field("videoEmbedUrl", "Video link", {
+              kind: "url",
+              placeholder: "https://www.youtube.com/watch?v=...",
+              hint: "A YouTube link or embed link.",
+            })}
           </section>
 
           <RowListEditor
@@ -274,18 +421,20 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             onChange={setGallery}
             empty={{ src: "", alt: "", title: "" }}
             columns={[
-              { key: "src", placeholder: "Image URL" },
+              { key: "src", placeholder: "Image URL", image: true },
               { key: "alt", placeholder: "Alt text" },
               { key: "title", placeholder: "Caption" },
             ]}
           />
 
-          <div className="flex items-center gap-3">
-            <Switch id="summit-published" checked={isPublished} onCheckedChange={setIsPublished} data-testid="switch-summit-published" />
-            <Label htmlFor="summit-published">Published (visible to the public)</Label>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="items-center gap-2 border-t pt-4 sm:justify-between">
+            <div className="flex items-center gap-3 mr-auto">
+              <Switch id="summit-published" checked={isPublished} onCheckedChange={setIsPublished} data-testid="switch-summit-published" />
+              <Label htmlFor="summit-published">Published (visible to the public)</Label>
+            </div>
+            <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
@@ -293,6 +442,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
               {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {summit ? "Save changes" : "Create summit"}
             </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -313,7 +463,7 @@ interface RowListEditorProps<T extends Record<string, string | undefined>> {
   rows: T[];
   onChange: (rows: T[]) => void;
   empty: T;
-  columns: { key: keyof T & string; placeholder: string; multiline?: boolean }[];
+  columns: { key: keyof T & string; placeholder: string; multiline?: boolean; image?: boolean }[];
 }
 
 function RowListEditor<T extends Record<string, string | undefined>>({ title, rows, onChange, empty, columns }: RowListEditorProps<T>) {
@@ -333,7 +483,15 @@ function RowListEditor<T extends Record<string, string | undefined>>({ title, ro
         <div key={index} className="flex gap-2 items-start border rounded-md p-2">
           <div className="grid gap-2 flex-1 sm:grid-cols-2">
             {columns.map((col) =>
-              col.multiline ? (
+              col.image ? (
+                <div key={col.key} className="sm:col-span-2">
+                  <ImageUploadInput
+                    value={row[col.key] ?? ""}
+                    placeholder={col.placeholder}
+                    onChange={(url) => update(index, col.key, url)}
+                  />
+                </div>
+              ) : col.multiline ? (
                 <Textarea
                   key={col.key}
                   className="sm:col-span-2"

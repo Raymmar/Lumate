@@ -36,4 +36,7 @@ CREATE INDEX IF NOT EXISTS time_blocks_summit_idx ON time_blocks (summit_id);
 CREATE INDEX IF NOT EXISTS presentations_summit_idx ON presentations (summit_id);
 -- Linked presenting sponsor (presented_by_* text stays as a fallback)
 ALTER TABLE summits ADD COLUMN IF NOT EXISTS presenting_sponsor_id integer REFERENCES sponsors(id) ON DELETE SET NULL;
+-- Linked Luma event (by stable Luma api_id) and the Luma-supplied fields the summit overrides
+ALTER TABLE summits ADD COLUMN IF NOT EXISTS luma_event_api_id varchar(255);
+ALTER TABLE summits ADD COLUMN IF NOT EXISTS luma_overrides json NOT NULL DEFAULT '[]'::json;
 COMMIT;

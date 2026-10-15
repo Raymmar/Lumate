@@ -2,6 +2,7 @@ import { db } from "../db";
 import { posts, postTags, tags, companies, people } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage";
+import { oneWithLumaValues } from "../services/summitLuma";
 
 interface OpenGraphData {
   title: string;
@@ -382,7 +383,9 @@ const DEFAULT_SUMMIT_OG_IMAGE =
  * built from the summit record. Unpublished summits fall back to generic data.
  */
 export async function fetchSummitForOpenGraph(year: number | null): Promise<OpenGraphData> {
-  const summit = year !== null ? await storage.getSummitByYear(year) : await storage.getCurrentSummit();
+  const stored = year !== null ? await storage.getSummitByYear(year) : await storage.getCurrentSummit();
+  // Effective values, so a linked Luma event's date and cover are used
+  const summit = await oneWithLumaValues(stored, { isAdmin: false });
   const visible = summit && summit.isPublished ? summit : null;
   const path = year !== null ? `/summit/${year}` : "/summit";
   if (!visible) {

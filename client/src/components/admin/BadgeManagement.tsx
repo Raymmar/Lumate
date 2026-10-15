@@ -32,6 +32,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { getBadgeIcon } from "@/lib/badge-icons";
+import { EventSelect, useAdminEvents, type AdminEventOption } from "@/components/admin/EventSelect";
 import {
   Shield,
   Plus,
@@ -62,11 +63,7 @@ interface BadgeRule {
   createdAt: string;
 }
 
-interface EventOption {
-  apiId: string;
-  title: string;
-  startTime: string;
-}
+type EventOption = AdminEventOption;
 
 const ICON_OPTIONS = [
   { value: "sprout", label: "Sprout" },
@@ -171,16 +168,7 @@ export default function BadgeManagement() {
     },
   });
 
-  const { data: eventsData } = useQuery<EventOption[]>({
-    queryKey: ["/api/admin/events-list"],
-    queryFn: async () => {
-      const response = await fetch("/api/admin/events-list");
-      const data = await response.json();
-      return data.events;
-    },
-  });
-
-  const events = eventsData || [];
+  const { data: events = [] } = useAdminEvents();
 
   const { data: rulesData } = useQuery<BadgeRule[]>({
     queryKey: ["/api/admin/badges", expandedBadge, "rules"],
@@ -813,23 +801,11 @@ export default function BadgeManagement() {
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label className="text-right">Event</Label>
                 <div className="col-span-3">
-                  <Select
-                    value={newRule.eventApiId}
-                    onValueChange={(value) =>
-                      setNewRule({ ...newRule, eventApiId: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select an event..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {events.map((evt) => (
-                        <SelectItem key={evt.apiId} value={evt.apiId}>
-                          {evt.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <EventSelect
+                    value={newRule.eventApiId || null}
+                    onChange={(apiId) => setNewRule({ ...newRule, eventApiId: apiId ?? "" })}
+                    placeholder="Select an event..."
+                  />
                 </div>
               </div>
             )}
