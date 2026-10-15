@@ -3,6 +3,8 @@ import PeopleDirectory from "@/components/people/PeopleDirectory";
 import EventList from "@/components/events/EventList";
 import { NavBar } from "@/components/NavBar";
 import { PageContainer } from "./PageContainer";
+import { useLocation } from "wouter";
+import { CurrentSummitTicket } from "@/components/memberships/CurrentSummitTicket";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -11,6 +13,8 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, hideSidebar = false, aboveLayout }: DashboardLayoutProps) {
+  const [location] = useLocation();
+  const showTicket = ["/", "/companies", "/news", "/speakers"].includes(location);
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-57px)]">
       <div className="p-4 space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -43,7 +47,9 @@ export default function DashboardLayout({ children, hideSidebar = false, aboveLa
       </div>
 
       <PageContainer>
-        {aboveLayout}
+        {aboveLayout ?? (showTicket ? (
+          <div className="px-2 sm:px-4"><CurrentSummitTicket /></div>
+        ) : null)}
         <div className="flex">
           {!hideSidebar && (
             <aside className="hidden lg:block sticky top-[57px] h-[calc(100vh-57px)] w-[350px] border-r bg-background">

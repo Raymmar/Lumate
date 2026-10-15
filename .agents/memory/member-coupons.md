@@ -23,12 +23,15 @@ description: Rules for issuing Summit/event coupons to Premium members, backfill
 - Premium access without a recurring membership must NOT suppress the ticket/membership purchase CTA, including on account settings.
   **Why:** The owner explicitly corrected this on 2026-10-15: last year's ticket can grant Premium without a recurring membership, and the goal is to sell that person a recurring membership for this year's ticket.
   **How to apply:** Offer “Get your ticket” to people without a usable current-event coupon or an active recurring subscription, even if they have Premium/admin/granted access. Keep actual coupon holders on the claim action.
-- The home-page ticket belongs below the main navigation, above the entire core grid, and follows Memberships' active/current and not-past Summit visibility.
-  **Why:** The owner explicitly selected this placement and date gating for the home CTA on 2026-10-15; it is not meant to appear on every dashboard-layout page.
-  **How to apply:** Share the existing Memberships visibility rule; keep this home-only placement outside the feed/sidebar grid.
+- The shared ticket belongs below the main navigation, above page content on home, directory, news, About, and Speakers; exclude Summit pages.
+  **Why:** The owner expanded the home-only placement to persist across these public pages on 2026-10-15, explicitly excluding Summit pages.
+  **How to apply:** Keep the full-width placement outside the feed/sidebar grid and reuse existing active/not-past visibility and personalized claim logic. Do not add it indiscriminately to all layouts.
 - Reuse the exact full-width Memberships ticket on home and the member dashboard/account area; never substitute a compact card.
   **Why:** The owner corrected the compact-card plan on 2026-10-15 and explicitly requires the same prominent ticket, spanning full width even in the dashboard.
-  **How to apply:** Keep the same responsive ticket design above the page columns. A possible dismiss control is not permission to shrink or redesign it. Claim eligibility comes from the linked event's usable coupon, not membership status. Luma synchronization confirms redemption, never a claim click.
-- The home ticket must align with the core grid's horizontal content padding without changing its vertical spacing.
+  **How to apply:** Keep the same responsive ticket design above the page columns. A dismiss control is not permission to shrink or redesign it. Claim eligibility comes from the linked event's usable coupon, not membership status. Luma synchronization confirms redemption, never a claim click.
+- Shared public-page tickets must preserve the home ticket's horizontal content padding and vertical spacing.
   **Why:** The owner explicitly corrected the wider home ticket on 2026-10-15 and specified left/right padding only.
-  **How to apply:** Apply the grid's responsive horizontal inset only on home; keep the full-width ticket above both columns and leave other placements unchanged.
+  **How to apply:** Preserve the home grid's responsive horizontal inset in the newly requested public-page placements; keep the full-width ticket above both columns and leave Memberships/account placements unchanged.
+- Ticket dismissal is a browser-level promotional preference, not a change to coupon ownership or membership access. Leave the primary Memberships offer accessible after dismissal.
+  **Why:** The owner wants to reduce repeated advertising while exploring the site, not remove the ability to deliberately buy or claim a ticket.
+  **How to apply:** Share dismissal across banner placements, scope it to the advertised Summit, and keep the main Memberships offer independent.

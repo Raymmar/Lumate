@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SiLinkedin } from "react-icons/si";
 import { NavBar } from "@/components/NavBar";
 import { JoinUsCard } from "@/components/JoinUsCard";
+import { CurrentSummitTicket } from "@/components/memberships/CurrentSummitTicket";
 import { SocialLinks } from "@/components/ui/social-links";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -392,6 +393,10 @@ export default function AboutPage() {
           <NavBar />
         </PageContainer>
       </div>
+
+      <PageContainer>
+        <div className="px-2 sm:px-4"><CurrentSummitTicket /></div>
+      </PageContainer>
 
       <div className="flex-1">
         <div className="relative py-12 overflow-hidden">
