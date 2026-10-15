@@ -15,6 +15,12 @@ Unique constraints need validation against existing production records before pu
 
 **How to apply:** Inspect production read-only before tightening constraints. If historical records conflict, defer the constraint and keep application writes compatible unless the owner explicitly approves a record-preserving cleanup plan. Never replace production data with development data to bypass validation.
 
+Historical duplicate badge awards must be preserved, not automatically removed.
+
+**Why:** The owner explicitly chose publishing with no data loss over enforcing uniqueness on old badge records. Duplicate prevention is less important than preserving live data.
+
+**How to apply:** Prevent new duplicate awards without requiring historical cleanup. Any future deduplication needs separate, explicit approval.
+
 **Package firewall blocks:** the package firewall can start blocking a version pinned in the lockfile (e.g. a new critical CVE). `npm ci` deletes node_modules before failing, so the app breaks on its next restart. Fix by bumping that package within its existing semver range (`npm update <pkg>`), then re-run post-merge setup. Seen 2026-10-15 with proxy-addr 2.0.7 → 2.0.8.
 
 **Dependency integrity in forked workspaces:** do not assume an existing dependency tree is complete.

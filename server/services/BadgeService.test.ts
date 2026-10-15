@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { createRequire } from "node:module";
 import { build } from "esbuild";
 import { getTableName } from "drizzle-orm";
-import { getTableConfig } from "drizzle-orm/pg-core";
+import { getTableConfig, PgDialect } from "drizzle-orm/pg-core";
 import { userBadges } from "../../shared/schema";
 import { readFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -143,14 +143,11 @@ test("a timestamp write failure is surfaced rather than reported as success", as
   await assert.rejects(service.runDailyBadgeAssignment(), /metadata write failed/);
 });
 
-test("awards have a unique database index on the user/badge pair", () => {
+test("historical awards do not require a unique user/badge index", () => {
   const index = getTableConfig(userBadges).indexes.find(
     index => index.config.name === "user_badges_user_badge_unique",
   );
-  assert.ok(index?.config.unique);
-  assert.deepEqual(index.config.columns.map(column => "name" in column ? column.name : null), [
-    "user_id", "badge_id",
-  ]);
+  assert.equal(index, undefined);
 });
 
 // Each pass reads the same empty snapshot before either can insert.
@@ -177,7 +174,46 @@ function overlappingFixture(options: { insertError?: boolean; expiredMetadata?: 
   let attempts = 0;
   let release!: () => void;
   const bothRead = new Promise<void>(resolve => { release = resolve; });
+  let transactionTail = Promise.resolve();
   const db = {
+    transaction: async (callback: (tx: any) => Promise<any>) => {
+      const previous = transactionTail;
+      let unlock!: () => void;
+      transactionTail = new Promise<void>(resolve => { unlock = resolve; });
+      await previous;
+      let badgeId: number;
+      try {
+        return await callback({
+          execute: async (statement: any) => {
+            const query = new PgDialect().sqlToQuery(statement);
+            assert.match(query.sql, /pg_advisory_xact_lock/);
+            assert.equal(query.params[0], user.id);
+            badgeId = query.params[1] as number;
+            attempts++;
+          },
+          select: () => ({
+            from: () => ({
+              where: () => ({
+                limit: async () => awards.has(badgeId) ? [awards.get(badgeId)] : [],
+              }),
+            }),
+          }),
+          insert: () => ({
+            values: (row: any) => ({
+              returning: async () => {
+                if (options.insertError) throw new Error("database unavailable");
+                assert.equal(row.badgeId, badgeId);
+                const award = { id: awards.size + 1, ...row };
+                awards.set(row.badgeId, award);
+                return [award];
+              },
+            }),
+          }),
+        });
+      } finally {
+        unlock();
+      }
+    },
     select: () => ({
       from: (table: any) => {
         const name = getTableName(table);
@@ -207,20 +243,6 @@ function overlappingFixture(options: { insertError?: boolean; expiredMetadata?: 
         onConflictDoUpdate: async () => {
           assert.equal(getTableName(table), "cache_metadata");
           completions.push(row);
-        },
-        onConflictDoNothing: ({ target }: any) => {
-          assert.equal(getTableName(table), "user_badges");
-          assert.deepEqual(target.map((column: any) => column.name), ["user_id", "badge_id"]);
-          return {
-            returning: async () => {
-              attempts++;
-              if (options.insertError) throw new Error("database unavailable");
-              if (awards.has(row.badgeId)) return [];
-              const award = { id: awards.size + 1, ...row };
-              awards.set(row.badgeId, award);
-              return [award];
-            },
-          };
         },
       }),
     }),
@@ -274,7 +296,7 @@ test("real insert failures are not hidden as duplicate conflicts", async () => {
   assert.equal(completions.length, 0);
 });
 
-test("PostgreSQL migration preserves original awards and concurrent inserts are idempotent", {
+test("PostgreSQL preserves every historical award and serializes new awards without a unique index", {
   // Point this only at a disposable local test database, never application data.
   skip: !process.env.BADGE_TEST_DATABASE_URL,
 }, async () => {
@@ -308,22 +330,20 @@ test("PostgreSQL migration preserves original awards and concurrent inserts are 
     const migration = await readFile("server/migrations/user-badges-unique.sql", "utf8");
     await pool.query(migration);
     await pool.query(migration); // Safe to reapply during post-merge setup.
-    const retained = await pool.query("SELECT id, user_id, assigned_by FROM user_badges ORDER BY id");
-    assert.deepEqual(retained.rows, [
-      { id: 2, user_id: 1, assigned_by: 2 },
-      { id: 4, user_id: 2, assigned_by: null },
-    ]);
+    const retained = await pool.query("SELECT * FROM user_badges ORDER BY id");
+    assert.equal(retained.rows.length, 4, "all historical duplicates are retained");
     const manual = createService(drizzle(pool));
     const background = createService(drizzle(pool));
     const results = await Promise.all(Array.from({ length: 40 }, (_, i) =>
       (i % 2 ? manual : background).assignBadge(1, 2),
     ));
     assert.equal(results.filter(Boolean).length, 1);
-    assert.equal((await pool.query("SELECT count(*)::int AS count FROM user_badges")).rows[0].count, 3);
+    assert.equal((await pool.query("SELECT count(*)::int AS count FROM user_badges")).rows[0].count, 5);
     assert.equal(await manual.assignBadge(1, 1), undefined);
-    const original = await pool.query("SELECT id, assigned_by FROM user_badges WHERE user_id = 1 AND badge_id = 1");
-    assert.deepEqual(original.rows, [{ id: 2, assigned_by: 2 }]);
+    const original = await pool.query("SELECT * FROM user_badges WHERE id <= 4 ORDER BY id");
+    assert.deepEqual(original.rows, retained.rows, "attribution and timestamps remain unchanged");
     await assert.rejects(manual.assignBadge(999, 2), /foreign key constraint/);
+    assert.ok(await manual.assignBadge(2, 2), "a failed award releases its transaction lock");
   } finally {
     await pool.end();
     await admin.query(`DROP SCHEMA IF EXISTS ${schema} CASCADE`);

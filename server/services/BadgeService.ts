@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { sql } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 import { eq } from "drizzle-orm";
 import { users, attendance, badges, userBadges, badgeRules, cacheMetadata } from "@shared/schema";
 
@@ -52,20 +52,26 @@ export class BadgeService {
     return existingBadges.some(b => b.badgeId === badgeId);
   }
 
-  private async assignBadge(userId: number, badgeId: number) {
+  public async assignBadge(userId: number, badgeId: number) {
     try {
-      const [assignment] = await db
-        .insert(userBadges)
-        .values({
+      return await db.transaction(async (tx) => {
+        // Serialize awards for this pair across workers without requiring a
+        // unique index or removing any historical duplicate assignments.
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(${userId}::integer, ${badgeId}::integer)`);
+        const [existing] = await tx.select().from(userBadges).where(and(
+          eq(userBadges.userId, userId),
+          eq(userBadges.badgeId, badgeId),
+        )).limit(1);
+
+        if (existing) return undefined;
+
+        const [assignment] = await tx.insert(userBadges).values({
           userId,
           badgeId,
           assignedAt: new Date().toISOString(),
-        })
-        // Another pass may have awarded this badge since getExistingBadges.
-        .onConflictDoNothing({ target: [userBadges.userId, userBadges.badgeId] })
-        .returning();
-
-      return assignment;
+        }).returning();
+        return assignment;
+      });
     } catch (error) {
       console.error('Failed to assign badge:', {
         userId,

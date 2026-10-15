@@ -2080,15 +2080,7 @@ export async function registerRoutes(app: Express) {
 
         try {
           // Assign the badge
-          const [insertedBadge] = await db
-            .insert(userBadgesTable)
-            .values({
-              userId: userId,
-              badgeId: badge[0].id,
-              assignedAt: new Date().toISOString(),
-            })
-            .onConflictDoNothing({ target: [userBadgesTable.userId, userBadgesTable.badgeId] })
-            .returning();
+          const insertedBadge = await badgeService.assignBadge(userId, badge[0].id);
           if (insertedBadge) {
             console.log("Successfully inserted badge assignment:", insertedBadge);
           } else {
