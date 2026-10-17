@@ -7,6 +7,8 @@ import { SponsorGrid, SingleSponsor, SponsorCard } from "@/components/sponsors";
 import { Sparkles, GraduationCap, Building2, Rocket, Calendar } from "lucide-react";
 import { SEO } from "@/components/ui/seo";
 import { getAnnualSponsorYear } from "@shared/sponsorYear";
+import { useSponsorTiers, SPONSOR_PRESENTATIONS } from "@/components/sponsors/sponsorConfig";
+import { TierCatalogStatus } from "@/components/sponsors/TierCatalogStatus";
 import {
   Select,
   SelectContent,
@@ -18,6 +20,10 @@ import {
 export default function SponsorShowcasePage() {
   const currentYear = getAnnualSponsorYear();
   const [selectedYear, setSelectedYear] = useState(currentYear);
+  const catalog = useSponsorTiers();
+  const premiumKeys = catalog.tiers.filter((tier) => tier.presentation === "hero").map((tier) => tier.key);
+  const supporterKeys = catalog.tiers.filter((tier) => tier.presentation === "pair" || tier.presentation === "standard").map((tier) => tier.key);
+  const communityKeys = catalog.tiers.filter((tier) => tier.presentation === "community").map((tier) => tier.key);
   
   const { data: user, isLoading } = useQuery({
     queryKey: ["/api/auth/me"],
@@ -44,6 +50,7 @@ export default function SponsorShowcasePage() {
       />
       <PageContainer>
         <div className="max-w-7xl mx-auto space-y-8">
+          <TierCatalogStatus />
           <div className="border-b pb-6">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
               <div>
@@ -104,7 +111,7 @@ export default function SponsorShowcasePage() {
             />
           </section>
 
-          {/* Filtered Grid - Series A Only */}
+          {/* Filtered Grid - Hero presentation */}
           <section className="space-y-4">
             <div>
               <h2 className="text-2xl font-semibold mb-2">2. Filtered Grid - Premium Sponsors Only</h2>
@@ -112,12 +119,12 @@ export default function SponsorShowcasePage() {
                 Use the <code className="bg-muted px-2 py-1 rounded">tiers</code> prop to show only specific sponsor tiers
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={${selectedYear}} tiers={["Series A"]} title="Premier Sponsors" />`}
+                {`<SponsorGrid year={${selectedYear}} tiers={${JSON.stringify(premiumKeys)}} title="Premier Sponsors" />`}
               </code>
             </div>
             <SponsorGrid 
               year={selectedYear}
-              tiers={["Series A"]}
+              tiers={premiumKeys}
               title="Premier Sponsors"
               icon={<Building2 className="h-5 w-5" />}
               showBecomeSponsorCTA={false}
@@ -132,12 +139,12 @@ export default function SponsorShowcasePage() {
                 Show multiple specific tiers - great for themed sections
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={${selectedYear}} tiers={["Seed", "MVP", "Prototype"]} title="Startup Supporters" />`}
+                {`<SponsorGrid year={${selectedYear}} tiers={${JSON.stringify(supporterKeys)}} title="Startup Supporters" />`}
               </code>
             </div>
             <SponsorGrid 
               year={selectedYear}
-              tiers={["Seed", "MVP", "Prototype"]}
+              tiers={supporterKeys}
               title="Startup Supporters"
               icon={<Rocket className="h-5 w-5" />}
             />
@@ -151,12 +158,12 @@ export default function SponsorShowcasePage() {
                 Perfect for education or community partnership pages
               </p>
               <code className="block bg-muted p-3 rounded text-sm mb-4">
-                {`<SponsorGrid year={${selectedYear}} tiers={["Nonprofit"]} title="Nonprofit Partners" />`}
+                {`<SponsorGrid year={${selectedYear}} tiers={${JSON.stringify(communityKeys)}} title="Nonprofit Partners" />`}
               </code>
             </div>
             <SponsorGrid 
               year={selectedYear}
-              tiers={["Nonprofit"]}
+              tiers={communityKeys}
               title="Nonprofit Partners"
               icon={<GraduationCap className="h-5 w-5" />}
             />
@@ -289,12 +296,7 @@ export default function SponsorShowcasePage() {
                 <div>
                   <h4 className="font-semibold mb-2">Available Tier Keys</h4>
                   <div className="bg-muted p-3 rounded text-sm space-y-1">
-                    <div>• "Series A" - Large premium sponsors (1 column)</div>
-                    <div>• "Seed" - Medium sponsors (2 columns)</div>
-                    <div>• "MVP" - Small sponsors (3 columns)</div>
-                    <div>• "Prototype" - Micro sponsors (4 columns)</div>
-                    <div>• "Nonprofit" - Nonprofit organizations</div>
-                    <div>• "Education" - Educational institutions</div>
+                    {catalog.tiers.map((tier) => <div key={tier.key}>{tier.name} — {SPONSOR_PRESENTATIONS[tier.presentation].label}; filter key: {tier.key}</div>)}
                   </div>
                 </div>
               </CardContent>

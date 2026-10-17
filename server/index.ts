@@ -156,6 +156,11 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
     console.error("[Server] Summit backfill failed (is the summits schema applied?):", error);
   }
 
+  // Data only, after both legacy and Summit imports have supplied historical tier strings.
+  // Fail startup explicitly if configuration cannot be initialized; never use stale defaults.
+  const { initializeSponsorTiers } = await import("./services/sponsorTiers");
+  await initializeSponsorTiers();
+
   // Link summits' "Presented by" text to the matching sponsor (after summits exist)
   try {
     const linkedPresenters = await sponsorshipMigration.linkPresentingSponsors();

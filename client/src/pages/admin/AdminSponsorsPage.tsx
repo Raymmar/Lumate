@@ -3,6 +3,7 @@ import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { SponsorGrid } from "@/components/sponsors";
 import { AllSponsorsList } from "@/components/sponsors/AllSponsorsList";
+import { SponsorTiersAdmin } from "@/components/sponsors/SponsorTiersAdmin";
 import { Building2, Calendar } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SEO } from "@/components/ui/seo";
@@ -17,7 +18,7 @@ import {
 export default function AdminSponsorsPage() {
   const currentYear = getAnnualSponsorYear();
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
-  const [view, setView] = useState<"year" | "all">("year");
+  const [view, setView] = useState<"year" | "all" | "tiers">("year");
   const activeYear = selectedYear ?? currentYear;
   
   // Include the selected year even when it is outside the usual range.
@@ -75,10 +76,11 @@ export default function AdminSponsorsPage() {
             </ul>
           </div>
 
-          <Tabs value={view} onValueChange={(v) => setView(v as "year" | "all")}>
+          <Tabs value={view} onValueChange={(v) => setView(v as "year" | "all" | "tiers")}>
             <TabsList>
               <TabsTrigger value="year" data-testid="tab-sponsors-year">{activeYear} sponsors</TabsTrigger>
               <TabsTrigger value="all" data-testid="tab-sponsors-all">All sponsors</TabsTrigger>
+              <TabsTrigger value="tiers" data-testid="tab-sponsor-tiers">Tiers</TabsTrigger>
             </TabsList>
             <TabsContent value="year" className="mt-4">
               <SponsorGrid 
@@ -91,6 +93,7 @@ export default function AdminSponsorsPage() {
             <TabsContent value="all" className="mt-4">
               <AllSponsorsList />
             </TabsContent>
+            <TabsContent value="tiers" className="mt-4"><SponsorTiersAdmin /></TabsContent>
           </Tabs>
         </div>
       </AdminLayout>

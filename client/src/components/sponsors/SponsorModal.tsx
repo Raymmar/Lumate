@@ -20,7 +20,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Sponsor } from "@shared/schema";
-import { SPONSOR_TIERS } from "./sponsorConfig";
+import { useSponsorTiers, tiersWithHistoricalValues } from "./sponsorConfig";
+import { TierCatalogStatus } from "./TierCatalogStatus";
 import { apiErrorMessage, invalidateSponsorQueries } from "./sponsorApi";
 
 /** The global sponsor fields this form edits. */
@@ -50,14 +51,18 @@ export function SponsorModal({
   onClose,
   initialName = "",
   year,
-  defaultTier = "Series A",
+  defaultTier,
   onSaved,
 }: SponsorModalProps) {
   const { toast } = useToast();
+  const catalog = useSponsorTiers();
   const isNew = !sponsor;
   const showTier = isNew && year !== undefined;
   const [name, setName] = useState(sponsor?.name || initialName);
-  const [tier, setTier] = useState(defaultTier);
+  const [selectedTier, setTier] = useState(defaultTier ?? "");
+  const tier = selectedTier || catalog.defaultTier;
+  const tierOptions = tiersWithHistoricalValues(catalog.tiers, defaultTier ? [defaultTier] : []);
+  const validTier = catalog.ready && tierOptions.some((t) => t.key === tier);
   const [logo, setLogo] = useState(sponsor?.logo || "");
   const [url, setUrl] = useState(sponsor?.url || "");
   const [companyId, setCompanyId] = useState<number | null>(
@@ -161,7 +166,7 @@ export function SponsorModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name.trim() || !logo || (showTier && !tier)) {
+    if (!name.trim() || !logo || (showTier && !validTier)) {
       toast({
         title: "Validation Error",
         description: showTier ? "Name, tier, and logo are required" : "Name and logo are required",
@@ -210,7 +215,8 @@ export function SponsorModal({
             <Label htmlFor="sponsor-tier" className="text-sm font-medium">
               {year} Tier *
             </Label>
-            <Select value={tier} onValueChange={setTier}>
+            <TierCatalogStatus />
+            <Select value={tier} onValueChange={setTier} disabled={!catalog.ready}>
               <SelectTrigger
                 id="sponsor-tier"
                 data-testid="select-sponsor-tier"
@@ -218,7 +224,7 @@ export function SponsorModal({
                 <SelectValue placeholder="Select a tier" />
               </SelectTrigger>
               <SelectContent>
-                {SPONSOR_TIERS.map((t) => (
+                {tierOptions.map((t) => (
                   <SelectItem key={t.key} value={t.key}>
                     {t.name}
                   </SelectItem>
@@ -351,7 +357,7 @@ export function SponsorModal({
             </Button>
             <Button
               type="submit"
-              disabled={saveMutation.isPending || uploadingImage}
+              disabled={saveMutation.isPending || uploadingImage || (showTier && !validTier)}
               data-testid="button-save-sponsor"
             >
               {saveMutation.isPending ? "Saving..." : "Save"}

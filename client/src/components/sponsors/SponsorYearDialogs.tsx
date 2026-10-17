@@ -15,24 +15,29 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { SPONSOR_TIERS } from "./sponsorConfig";
+import { useSponsorTiers, tiersWithHistoricalValues, resolveSponsorTier } from "./sponsorConfig";
+import { TierCatalogStatus } from "./TierCatalogStatus";
 import { SponsorPicker } from "./SponsorPicker";
 import { apiErrorMessage, invalidateSponsorQueries } from "./sponsorApi";
 
 function TierSelect({ id, value, onChange }: { id: string; value: string; onChange: (tier: string) => void }) {
+  const catalog = useSponsorTiers();
   return (
-    <Select value={value} onValueChange={onChange}>
+    <>
+    <TierCatalogStatus />
+    <Select value={value} onValueChange={onChange} disabled={!catalog.ready}>
       <SelectTrigger id={id} data-testid="select-sponsorship-tier">
         <SelectValue placeholder="Select a tier" />
       </SelectTrigger>
       <SelectContent>
-        {SPONSOR_TIERS.map((t) => (
+        {tiersWithHistoricalValues(catalog.tiers, value ? [value] : []).map((t) => (
           <SelectItem key={t.key} value={t.key}>
             {t.name}
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
+    </>
   );
 }
 
@@ -52,13 +57,15 @@ interface AddSponsorToYearDialogProps {
  */
 export function AddSponsorToYearDialog({ year, open, onClose, presetTier, onCreateNew }: AddSponsorToYearDialogProps) {
   const { toast } = useToast();
+  const catalog = useSponsorTiers();
   const [sponsor, setSponsor] = useState<SponsorWithHistory | null>(null);
-  const [tier, setTier] = useState(presetTier ?? "Series A");
+  const [selectedTier, setTier] = useState(presetTier ?? "");
+  const tier = selectedTier || catalog.defaultTier;
 
   useEffect(() => {
     if (open) {
       setSponsor(null);
-      setTier(presetTier ?? "Series A");
+      setTier(presetTier ?? "");
     }
   }, [open, presetTier]);
 
@@ -66,7 +73,7 @@ export function AddSponsorToYearDialog({ year, open, onClose, presetTier, onCrea
     mutationFn: () => apiRequest("/api/sponsorships", "POST", { sponsorId: sponsor!.id, year, tier }),
     onSuccess: async () => {
       await invalidateSponsorQueries();
-      toast({ title: "Sponsor added", description: `${sponsor!.name} added to ${year} as ${tier}` });
+      toast({ title: "Sponsor added", description: `${sponsor!.name} added to ${year} as ${resolveSponsorTier(catalog.tiers, tier).name}` });
       onClose();
     },
     onError: (error) => {
@@ -81,7 +88,7 @@ export function AddSponsorToYearDialog({ year, open, onClose, presetTier, onCrea
   const handlePick = (picked: SponsorWithHistory | null) => {
     setSponsor(picked);
     // Default to the sponsor's last tier unless the admin started from a tier slot
-    if (picked && !presetTier) setTier(picked.sponsorships[0]?.tier ?? "Series A");
+    if (!presetTier) setTier(picked ? [...picked.sponsorships].sort((a, b) => b.year - a.year)[0]?.tier ?? "" : "");
   };
 
   return (
@@ -97,7 +104,7 @@ export function AddSponsorToYearDialog({ year, open, onClose, presetTier, onCrea
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            if (sponsor) addMutation.mutate();
+            if (sponsor && catalog.ready && tier) addMutation.mutate();
           }}
         >
           <div className="space-y-2">
@@ -106,7 +113,7 @@ export function AddSponsorToYearDialog({ year, open, onClose, presetTier, onCrea
               id="add-sponsor-picker"
               value={sponsor?.id ?? null}
               onChange={handlePick}
-              onCreateNew={(name) => onCreateNew(name, presetTier)}
+              onCreateNew={(name) => onCreateNew(name, tier || undefined)}
               disabledReason={(s) => (s.sponsorships.some((sp) => sp.year === year) ? `Already a ${year} sponsor` : null)}
             />
           </div>
@@ -118,7 +125,7 @@ export function AddSponsorToYearDialog({ year, open, onClose, presetTier, onCrea
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={!sponsor || addMutation.isPending} data-testid="button-add-sponsorship">
+            <Button type="submit" disabled={!sponsor || addMutation.isPending || !catalog.ready || !tier} data-testid="button-add-sponsorship">
               {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Add to {year}
             </Button>
@@ -137,7 +144,8 @@ interface ChangeTierDialogProps {
 /** Changes one year's tier for a sponsor; other years are untouched. */
 export function ChangeTierDialog({ sponsorship, onClose }: ChangeTierDialogProps) {
   const { toast } = useToast();
-  const [tier, setTier] = useState(sponsorship?.tier ?? "Series A");
+  const catalog = useSponsorTiers();
+  const [tier, setTier] = useState(sponsorship?.tier ?? "");
 
   useEffect(() => {
     if (sponsorship) setTier(sponsorship.tier);
@@ -147,7 +155,7 @@ export function ChangeTierDialog({ sponsorship, onClose }: ChangeTierDialogProps
     mutationFn: () => apiRequest(`/api/sponsorships/${sponsorship!.sponsorshipId}`, "PATCH", { tier }),
     onSuccess: async () => {
       await invalidateSponsorQueries();
-      toast({ title: "Tier updated", description: `${sponsorship!.name} is now ${tier} for ${sponsorship!.year}` });
+      toast({ title: "Tier updated", description: `${sponsorship!.name} is now ${resolveSponsorTier(catalog.tiers, tier).name} for ${sponsorship!.year}` });
       onClose();
     },
     onError: (error) => {
@@ -172,7 +180,7 @@ export function ChangeTierDialog({ sponsorship, onClose }: ChangeTierDialogProps
           className="space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
-            mutation.mutate();
+            if (catalog.ready && tier && sponsorship) mutation.mutate();
           }}
         >
           <TierSelect id="change-sponsor-tier" value={tier} onChange={setTier} />
@@ -180,7 +188,7 @@ export function ChangeTierDialog({ sponsorship, onClose }: ChangeTierDialogProps
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={mutation.isPending} data-testid="button-save-tier">
+            <Button type="submit" disabled={mutation.isPending || !catalog.ready || !tier} data-testid="button-save-tier">
               {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save
             </Button>

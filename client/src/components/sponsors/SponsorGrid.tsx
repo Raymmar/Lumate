@@ -10,7 +10,8 @@ import type { YearSponsor } from "@shared/schema";
 import { SponsorCard } from "./SponsorCard";
 import { SponsorModal, type SponsorDetails } from "./SponsorModal";
 import { AddSponsorToYearDialog, ChangeTierDialog } from "./SponsorYearDialogs";
-import { SPONSOR_TIERS } from "./sponsorConfig";
+import { useSponsorTiers, tiersWithHistoricalValues, SPONSOR_PRESENTATIONS } from "./sponsorConfig";
+import { TierCatalogStatus } from "./TierCatalogStatus";
 import { apiErrorMessage, invalidateSponsorQueries } from "./sponsorApi";
 import { generateSponsorInquiryEmail } from "@/lib/sponsorUtils";
 import { getAnnualSponsorYear } from "@shared/sponsorYear";
@@ -39,6 +40,7 @@ export function SponsorGrid({
   tiers,
 }: SponsorGridProps) {
   const { toast } = useToast();
+  const catalog = useSponsorTiers();
   const [dialog, setDialog] = useState<AdminDialog>(null);
   const [changingTier, setChangingTier] = useState<YearSponsor | null>(null);
 
@@ -77,7 +79,7 @@ export function SponsorGrid({
     }
   };
 
-  if (isLoading) {
+  if (isLoading || catalog.isLoading) {
     return (
       <Card className="border w-full max-w-full">
         <CardHeader className="p-3 md:p-4">
@@ -132,8 +134,11 @@ export function SponsorGrid({
           </div>
         </CardHeader>
         <CardContent className="p-3 md:p-4 space-y-8">
-          {SPONSOR_TIERS.filter((tier) => !tiers || tiers.includes(tier.key)).map((tier) => {
+          <TierCatalogStatus />
+          {catalog.ready && tiersWithHistoricalValues(catalog.tiers, sponsors.map((s) => s.tier)).filter((tier) => !tiers || tiers.includes(tier.key)).map((tier) => {
             const tierSponsors = sponsors.filter((s) => s.tier === tier.key);
+            const presentation = SPONSOR_PRESENTATIONS[tier.presentation];
+            if (!isAdmin && tierSponsors.length === 0) return null;
 
             return (
               <div key={tier.key} className="space-y-4">
@@ -164,13 +169,11 @@ export function SponsorGrid({
                 ) : (
                   <div
                     className={`grid gap-4 ${
-                      tier.cols === 1
+                      presentation.cols === 1
                         ? "grid-cols-1"
-                        : tier.cols === 2
+                        : presentation.cols === 2
                           ? "grid-cols-1 sm:grid-cols-2"
-                          : tier.cols === 3
-                            ? "grid-cols-2 md:grid-cols-3"
-                            : tier.cols === 4
+                          : presentation.cols === 4
                               ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                               : "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
                     }`}
@@ -187,7 +190,7 @@ export function SponsorGrid({
                       />
                     ))}
 
-                    {tier.key === "Seed" && tierSponsors.length % 2 === 1 && showBecomeSponsorCTA && (
+                    {presentation.inquiryFiller && tierSponsors.length % 2 === 1 && showBecomeSponsorCTA && (
                       <a
                         href={generateSponsorInquiryEmail()}
                         className="block"

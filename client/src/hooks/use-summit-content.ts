@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { Post, Sponsor } from "@shared/schema";
 import { presentationsQueryOptions, timeBlocksQueryOptions } from "@/components/agenda/agendaQueries";
 import { PUBLIC_POSTS_QUERY_KEY } from "@/components/bulletin/PublicPostsTable";
-import { SPONSOR_TIERS } from "@/components/sponsors/sponsorConfig";
 
 /**
  * Whether a summit year has agenda items, linked news posts and sponsors.
@@ -25,10 +24,9 @@ export function useSummitContent(year: number | null, summitId: number | undefin
     (timeBlocks.data?.timeBlocks.length ?? 0) > 0 || (presentations.data?.presentations.length ?? 0) > 0;
   const hasNews =
     summitId !== undefined && (posts.data?.posts ?? []).some((post) => post.summitId === summitId);
-  // Match what the sponsor grid can actually display
-  const hasSponsors = (sponsors.data?.sponsors ?? []).some((sponsor) =>
-    SPONSOR_TIERS.some((tier) => tier.key === sponsor.tier),
-  );
+  // The grid renders historical unknown tiers too. Keep its section visible on
+  // catalog failure so that its retry/error state is not silently hidden.
+  const hasSponsors = (sponsors.data?.sponsors.length ?? 0) > 0;
 
   const isLoading =
     enabled && (timeBlocks.isLoading || presentations.isLoading || posts.isLoading || sponsors.isLoading);

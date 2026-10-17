@@ -19,6 +19,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { SponsorPicker } from "@/components/sponsors/SponsorPicker";
 import { SponsorModal } from "@/components/sponsors/SponsorModal";
+import { useSponsorTiers } from "@/components/sponsors/sponsorConfig";
+import { TierCatalogStatus } from "@/components/sponsors/TierCatalogStatus";
 import { apiErrorMessage } from "@/components/sponsors/sponsorApi";
 import { LumaFieldHeader, SummitLumaLinkSection, useLumaEventInfo } from "@/components/admin/SummitLumaLink";
 import { SUMMITS_QUERY_KEY } from "@/hooks/use-summits";
@@ -83,6 +85,7 @@ interface SummitFormDialogProps {
 
 export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: SummitFormDialogProps) {
   const { toast } = useToast();
+  const tierCatalog = useSponsorTiers();
   const [year, setYear] = useState(String(suggestedYear));
   const [text, setText] = useState<TextFields>(emptyText);
   const [isPublished, setIsPublished] = useState(false);
@@ -135,6 +138,9 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (presentingSponsorId !== null && !tierCatalog.ready) {
+        throw new Error("Load sponsorship tiers before saving a presenting sponsor.");
+      }
       const payload = {
         year: parseInt(year, 10),
         ...Object.fromEntries(TEXT_FIELD_KEYS.map((k) => [k, text[k].trim() || null])),
@@ -380,6 +386,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             </div>
             <div className="space-y-1 sm:col-span-2">
               <Label htmlFor="summit-presenting-sponsor">Presenting sponsor</Label>
+              <TierCatalogStatus />
               <SponsorPicker
                 id="summit-presenting-sponsor"
                 value={presentingSponsorId}
@@ -387,7 +394,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
                   setPresentingSponsorId(sponsor?.id ?? null);
                   if (!sponsor) setLegacyPresenterCleared(true);
                 }}
-                onCreateNew={(name) => setNewSponsorName(name)}
+                onCreateNew={tierCatalog.ready && Number.isInteger(Number(year)) && Number(year) > 0 ? (name) => setNewSponsorName(name) : undefined}
                 allowClear
                 placeholder="No presenting sponsor"
               />
@@ -484,7 +491,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={saveMutation.isPending} data-testid="button-save-summit">
+            <Button type="submit" disabled={saveMutation.isPending || (presentingSponsorId !== null && !tierCatalog.ready)} data-testid="button-save-summit">
               {saveMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {summit ? "Save changes" : "Create summit"}
             </Button>
@@ -496,6 +503,7 @@ export function SummitFormDialog({ summit, open, onOpenChange, suggestedYear }: 
         <SponsorModal
           sponsor={null}
           initialName={newSponsorName}
+          // Create only the identity here; Summit save adds participation for the final year.
           onClose={() => setNewSponsorName(null)}
           onSaved={(sponsor) => setPresentingSponsorId(sponsor.id)}
         />

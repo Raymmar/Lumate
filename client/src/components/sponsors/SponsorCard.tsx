@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Layers, MoreVertical, Pencil, Trash2 } from "lucide-react";
 import type { YearSponsor } from "@shared/schema";
+import { useSponsorTiers, resolveSponsorTier, SPONSOR_PRESENTATIONS } from "./sponsorConfig";
+import { TierCatalogStatus } from "./TierCatalogStatus";
 
 /** The fields a sponsor card needs; `tier` decides the logo's aspect ratio. */
 export type SponsorCardData = Pick<YearSponsor, "id" | "name" | "logo" | "url" | "logoPadding" | "companyId"> & {
@@ -35,6 +37,9 @@ export function SponsorCard<T extends SponsorCardData>({
   onRemove,
   removeLabel = "Remove from this year",
 }: SponsorCardProps<T>) {
+  const catalog = useSponsorTiers();
+  if (!catalog.ready) return <TierCatalogStatus />;
+  const presentation = SPONSOR_PRESENTATIONS[resolveSponsorTier(catalog.tiers, sponsor.tier ?? "").presentation];
   return (
     <a
       href={sponsor.url || undefined}
@@ -45,7 +50,7 @@ export function SponsorCard<T extends SponsorCardData>({
     >
       <div className="flex flex-col h-full w-full max-w-full border border-border rounded-lg p-3">
         <div 
-          className={`mb-3 bg-white dark:bg-white rounded-lg flex items-center justify-center ${sponsor.tier !== "Series A" ? "aspect-square" : ""}`}
+          className={`mb-3 bg-white dark:bg-white rounded-lg flex items-center justify-center ${presentation.squareLogo ? "aspect-square" : ""}`}
           style={{ padding: `${sponsor.logoPadding ?? 16}px` }}
         >
           <img

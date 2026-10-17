@@ -16,6 +16,7 @@ import companiesRouter from "./routes/companies";
 import summitsRouter, { resolveSummitScope, getSummitVisibility } from "./routes/summits";
 import { resendVerification } from "./routes/admin/resendVerification";
 import { requireAuth as authenticateUser, requireAdmin } from "./routes/middleware";
+import { createSponsorTier, createSponsorTierSchema, DuplicateSponsorTierError, getSponsorTiers, InvalidSponsorTierError, resolveAssignmentTier, updateSponsorTier, updateSponsorTierSchema } from "./services/sponsorTiers";
 // Company migration import removed
 import {
   insertUserSchema,
@@ -507,6 +508,46 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/sponsor-tiers", async (_req, res) => {
+    try {
+      res.json({ tiers: await getSponsorTiers() });
+    } catch (error) {
+      console.error("Failed to load sponsor tiers:", error);
+      res.status(503).json({ error: "Sponsorship tier configuration is unavailable. Please retry." });
+    }
+  });
+
+  app.post("/api/sponsor-tiers", requireAdmin, async (req, res) => {
+    const parsed = createSponsorTierSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid sponsorship tier", details: parsed.error.format() });
+    }
+    try {
+      // Do not add configuration to an uninitialized catalog.
+      await getSponsorTiers();
+      res.status(201).json({ tier: await createSponsorTier(parsed.data) });
+    } catch (error) {
+      if (error instanceof DuplicateSponsorTierError) return res.status(409).json({ error: error.message });
+      console.error("Failed to create sponsor tier:", error);
+      res.status(500).json({ error: "Failed to save sponsorship tier" });
+    }
+  });
+
+  app.patch("/api/sponsor-tiers/:key", requireAdmin, async (req, res) => {
+    const parsed = updateSponsorTierSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid tier options. Only description, position and presentation may be edited.", details: parsed.error.format() });
+    }
+    try {
+      const tier = await updateSponsorTier(req.params.key, parsed.data);
+      if (!tier) return res.status(404).json({ error: "Sponsorship tier not found" });
+      res.json({ tier });
+    } catch (error) {
+      console.error("Failed to update sponsor tier:", error);
+      res.status(500).json({ error: "Failed to save sponsorship tier" });
+    }
+  });
+
   // Public: one year's sponsors (global sponsor details + that year's tier)
   app.get("/api/sponsors", async (req, res) => {
     try {
@@ -567,6 +608,8 @@ export async function registerRoutes(app: Express) {
           return res.status(400).json({ error: "Invalid sponsorship", details: parsedSponsorship.error.format() });
         }
         sponsorship = parsedSponsorship.data;
+        // Validate before creating the global record, so a bad tier cannot leave an orphan.
+        sponsorship.tier = await resolveAssignmentTier(sponsorship.tier);
       }
       const sponsor = await storage.createSponsor(parsed.data);
       const createdSponsorship = sponsorship
@@ -575,6 +618,7 @@ export async function registerRoutes(app: Express) {
       res.status(201).json({ sponsor, sponsorship: createdSponsorship });
     } catch (error) {
       console.error("Failed to create sponsor:", error);
+      if (error instanceof InvalidSponsorTierError) return res.status(400).json({ error: error.message });
       res.status(500).json({ error: "Failed to create sponsor" });
     }
   });
@@ -629,6 +673,7 @@ export async function registerRoutes(app: Express) {
       res.status(201).json({ sponsorship });
     } catch (error) {
       console.error("Failed to add sponsorship:", error);
+      if (error instanceof InvalidSponsorTierError) return res.status(400).json({ error: error.message });
       res.status(500).json({ error: "Failed to add sponsor to year" });
     }
   });
@@ -648,6 +693,7 @@ export async function registerRoutes(app: Express) {
       res.json({ sponsorship });
     } catch (error) {
       console.error("Failed to update sponsorship:", error);
+      if (error instanceof InvalidSponsorTierError) return res.status(400).json({ error: error.message });
       res.status(500).json({ error: "Failed to update sponsorship" });
     }
   });

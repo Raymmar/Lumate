@@ -3,6 +3,7 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { sql } from "drizzle-orm";
+import type { SponsorPresentation } from "./sponsorTiers";
 
 // Add validation for phone numbers
 export const phoneRegex = /^\+?[0-9\-\s()]+$/;
@@ -849,6 +850,18 @@ export type CompanyTag = typeof companyTags.$inferSelect;
 export type InsertCompanyTag = z.infer<typeof insertCompanyTagSchema>;
 export type CompanyIndustry = typeof companyIndustries.$inferSelect;
 export type InsertCompanyIndustry = z.infer<typeof insertCompanyIndustrySchema>;
+
+// Shared classification catalog with immutable identities; no foreign key on historical tier strings.
+export const sponsorTiers = pgTable("sponsor_tiers", {
+  key: varchar("key", { length: 50 }).primaryKey(),
+  name: varchar("name", { length: 80 }).notNull(),
+  description: text("description"),
+  position: integer("position").notNull(),
+  presentation: varchar("presentation", { length: 20 }).$type<SponsorPresentation>().notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+}, (table) => [
+  uniqueIndex("sponsor_tiers_single_default_idx").on(table.isDefault).where(sql`${table.isDefault} = true`),
+]);
 
 // One record per sponsor. Name, logo and link are global: editing them updates every year.
 export const sponsors = pgTable("sponsors", {

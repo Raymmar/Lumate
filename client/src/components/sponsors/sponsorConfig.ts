@@ -1,35 +1,30 @@
-export interface SponsorTier {
-  name: string;
-  key: string;
-  cols: number;
-  description?: string;
+import { useQuery } from "@tanstack/react-query";
+import {
+  sortSponsorTiers,
+  tiersWithHistoricalValues,
+  resolveSponsorTier,
+  SPONSOR_PRESENTATIONS,
+  type SponsorTierDefinition,
+} from "@shared/sponsorTiers";
+
+export const SPONSOR_TIERS_QUERY_KEY = ["/api/sponsor-tiers"] as const;
+
+/** One catalog for admin forms and public displays; never substitute an old tier list. */
+export function useSponsorTiers() {
+  const query = useQuery<{ tiers: SponsorTierDefinition[] }>({
+    queryKey: SPONSOR_TIERS_QUERY_KEY,
+    // Pick up additions made by another admin when returning to an open tab/form.
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const tiers = sortSponsorTiers(query.data?.tiers ?? []);
+  return {
+    ...query,
+    tiers,
+    defaultTier: tiers.find((tier) => tier.isDefault)?.key ?? "",
+    ready: query.isSuccess && !query.isError,
+  };
 }
 
-export const SPONSOR_TIERS: SponsorTier[] = [
-  {
-    name: "Series A",
-    key: "Series A",
-    cols: 1,
-  },
-  {
-    name: "Seed",
-    key: "Seed",
-    cols: 2,
-  },
-  {
-    name: "Angel",
-    key: "Angel",
-    cols: 4,
-  },
-  {
-    name: "Friends & Family",
-    key: "Friends & Family",
-    cols: 5,
-  },
-  {
-    name: "501c3/.edu",
-    key: "501c3/.edu",
-    cols: 7,
-    description: "Nonprofit & education sponsors",
-  },
-];
+export { tiersWithHistoricalValues, resolveSponsorTier, SPONSOR_PRESENTATIONS };
+export type { SponsorTierDefinition };

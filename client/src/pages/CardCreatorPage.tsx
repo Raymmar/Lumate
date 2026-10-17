@@ -32,7 +32,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { CARD_OVERLAYS, getDefaultOverlay, type CardOverlay } from "@/config/cardOverlays";
-import { SPONSOR_TIERS } from "@/components/sponsors/sponsorConfig";
+import { useSponsorTiers, tiersWithHistoricalValues } from "@/components/sponsors/sponsorConfig";
+import { TierCatalogStatus } from "@/components/sponsors/TierCatalogStatus";
 import type { Speaker, YearSponsor as Sponsor } from "@shared/schema";
 
 const CANVAS_SIZE = 1080;
@@ -111,6 +112,7 @@ export default function CardCreatorPage() {
 
   const speakers = speakersData?.speakers || [];
   const sponsors = sponsorsData?.sponsors || [];
+  const tierCatalog = useSponsorTiers();
 
   const filteredSpeakers = speakers.filter(
     (s) =>
@@ -854,16 +856,17 @@ export default function CardCreatorPage() {
                 </TabsContent>
 
                 <TabsContent value="sponsors" className="mt-0">
+                  <TierCatalogStatus />
                   <ScrollArea className="h-[300px]">
-                    {loadingSponsors ? (
+                    {loadingSponsors || tierCatalog.isLoading ? (
                       <div className="flex items-center justify-center h-20">
                         <Loader2 className="h-5 w-5 animate-spin" />
                       </div>
-                    ) : filteredSponsors.length === 0 ? (
+                    ) : !tierCatalog.ready ? null : filteredSponsors.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-4">No sponsors found</p>
                     ) : (
                       <div className="space-y-4">
-                        {SPONSOR_TIERS.map((tier) => {
+                        {tiersWithHistoricalValues(tierCatalog.tiers, sponsors.map((s) => s.tier)).map((tier) => {
                           const tierSponsors = filteredSponsors.filter((s) => s.tier === tier.key);
                           if (tierSponsors.length === 0) return null;
                           return (

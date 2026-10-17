@@ -12,7 +12,7 @@ const bundle = await build({
   plugins: [{
     name: "read-only-display-db",
     setup(builder) {
-      builder.onResolve({ filter: /^\.\/db$/ }, () => ({ path: "db", namespace: "fixture" }));
+      builder.onResolve({ filter: /^\.\.?\/db$/ }, () => ({ path: "db", namespace: "fixture" }));
       builder.onLoad({ filter: /.*/, namespace: "fixture" }, () => ({
         contents: "export const db = fixtureDb;", loader: "js",
       }));
@@ -50,6 +50,11 @@ function fixture(date = "2026-10-15T00:00:00Z", summits = summitRows) {
     const where = compile(query.condition);
     const conditions = [where, ...query.joins.map((j: any) => compile(j.condition))];
     const year = conditions.flatMap(c => c.params).find((p: any) => typeof p === "number" && p >= 2000);
+    if (query.table === "sponsor_tiers") return [
+      { key: "Series A", position: 100, isDefault: true },
+      { key: "Seed", position: 200, isDefault: false },
+      { key: "Angel", position: 300, isDefault: false },
+    ];
     if (query.table === "summits") return summits.filter(s => s.isCurrent);
     if (query.table === "sponsors") return sponsorRows.filter(s => !s.deletedAt);
     if (query.table === "companies") return [

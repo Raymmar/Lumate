@@ -36,7 +36,7 @@ import {
   posts, tags, postTags, verificationTokens, eventRsvpStatus, attendance, cacheMetadata,
   badges, userBadges as userBadgesTable, companies, companyMembers, companyTags, sponsors, sponsorships, emailInvitations, timelineEvents, coupons, autoCouponEvents,
   agendaTracks, agendaSessionTypes, timeBlocks, presentations, speakers, presentationSpeakers,
-  userBlockEvents, UserBlockEvent, summits
+  userBlockEvents, UserBlockEvent, summits, sponsorTiers
 } from "@shared/schema";
 import { db } from "./db";
 import { sql, eq, and, or, isNull, desc, inArray, getTableColumns } from "drizzle-orm";
@@ -45,6 +45,8 @@ import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import crypto from "crypto";
 import { getAnnualSponsorYear } from "@shared/sponsorYear";
 import { orderSummitSpeakers } from "@shared/speakerOrder";
+import { getSponsorTiers, resolveAssignmentTier } from "./services/sponsorTiers";
+import { tiersWithHistoricalValues } from "@shared/sponsorTiers";
 
 // The public featured-member endpoint deliberately selects only public user fields.
 type FeaturedMember = Omit<Person, "user"> & {
@@ -2670,8 +2672,7 @@ export class PostgresStorage implements IStorage {
     };
   }> {
     try {
-      // Define sponsor tier order (highest to lowest)
-      const TIER_ORDER = ['Series A', 'Seed', 'Angel', 'Friends & Family', '501c3/.edu'];
+      const tierCatalog = await getSponsorTiers();
       // General company lists and sponsor counts follow the annual calendar year.
       const sponsorYear = year ?? getAnnualSponsorYear();
 
@@ -2681,16 +2682,7 @@ export class PostgresStorage implements IStorage {
       if (filter === 'sponsors') {
         // Only fetch companies that are sponsors for this year, sorted by tier
         // Query companies with sponsor data
-        const tierOrderExpr = sql<number>`
-          CASE ${sponsorships.tier}
-            WHEN 'Series A' THEN 0
-            WHEN 'Seed' THEN 1
-            WHEN 'Angel' THEN 2
-            WHEN 'Friends & Family' THEN 3
-            WHEN '501c3/.edu' THEN 4
-            ELSE 999
-          END
-        `;
+        const tierOrderExpr = sql<number>`coalesce(${sponsorTiers.position}, 2147483647)`;
         
         const result = await db
           .select({
@@ -2707,7 +2699,8 @@ export class PostgresStorage implements IStorage {
             eq(sponsorships.year, sponsorYear),
             isNull(sponsorships.deletedAt)
           ))
-          .orderBy(tierOrderExpr, companies.name);
+          .leftJoin(sponsorTiers, eq(sponsorTiers.key, sponsorships.tier))
+          .orderBy(tierOrderExpr, sponsorships.tier, companies.name);
 
         // Extract just the company objects (once each, at their best tier)
         const seenCompanyIds = new Set<number>();
@@ -2752,21 +2745,9 @@ export class PostgresStorage implements IStorage {
         }
       });
 
-      const knownTierCounts = TIER_ORDER
-        .filter(tier => sponsorTierCounts[tier] > 0)
-        .map(tier => ({
-          name: tier,
-          count: sponsorTierCounts[tier]
-        }));
-
-      const unknownTierCounts = Object.entries(sponsorTierCounts)
-        .filter(([tier]) => !TIER_ORDER.includes(tier))
-        .map(([tier, count]) => ({
-          name: tier,
-          count
-        }));
-
-      const tierCounts = [...knownTierCounts, ...unknownTierCounts];
+      const tierCounts = tiersWithHistoricalValues(tierCatalog, Object.keys(sponsorTierCounts))
+        .filter(tier => sponsorTierCounts[tier.key] > 0)
+        .map(tier => ({ name: tier.key, count: sponsorTierCounts[tier.key] }));
 
       // Get total unique sponsor company count
       const totalSponsorsResult = await db
@@ -3333,9 +3314,10 @@ export class PostgresStorage implements IStorage {
 
   /** Adds a sponsor to a year. Returns null when it already sponsors that year. */
   async addSponsorship(data: InsertSponsorship): Promise<Sponsorship | null> {
+    const tier = await resolveAssignmentTier(data.tier, await this.getLastSponsorshipTier(data.sponsorId));
     if (await this.getActiveSponsorship(data.sponsorId, data.year)) return null;
     try {
-      const [row] = await db.insert(sponsorships).values(data).returning();
+      const [row] = await db.insert(sponsorships).values({ ...data, tier }).returning();
       return row;
     } catch (error: any) {
       // Unique index on (sponsor, year) for active rows: lost a race with another add
@@ -3348,12 +3330,16 @@ export class PostgresStorage implements IStorage {
   async ensureSponsorship(sponsorId: number, year: number): Promise<Sponsorship> {
     const existing = await this.getActiveSponsorship(sponsorId, year);
     if (existing) return existing;
-    const tier = (await this.getLastSponsorshipTier(sponsorId)) ?? 'Series A';
+    const previousTier = await this.getLastSponsorshipTier(sponsorId);
+    const tier = await resolveAssignmentTier(previousTier ?? undefined, previousTier);
     const created = await this.addSponsorship({ sponsorId, year, tier });
     return created ?? (await this.getActiveSponsorship(sponsorId, year))!;
   }
 
   async updateSponsorshipTier(id: number, tier: string): Promise<Sponsorship | null> {
+    const existing = await this.getSponsorshipById(id);
+    if (!existing) return null;
+    tier = await resolveAssignmentTier(tier, existing.tier);
     const [row] = await db
       .update(sponsorships)
       .set({ tier, updatedAt: new Date().toISOString() })

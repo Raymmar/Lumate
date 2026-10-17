@@ -17,6 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { SponsorModal, type SponsorDetails } from "./SponsorModal";
+import { useSponsorTiers, resolveSponsorTier } from "./sponsorConfig";
+import { TierCatalogStatus } from "./TierCatalogStatus";
 import { apiErrorMessage, invalidateSponsorQueries, useAllSponsors } from "./sponsorApi";
 
 /**
@@ -25,6 +27,7 @@ import { apiErrorMessage, invalidateSponsorQueries, useAllSponsors } from "./spo
  */
 export function AllSponsorsList() {
   const { toast } = useToast();
+  const catalog = useSponsorTiers();
   const { data, isLoading } = useAllSponsors();
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<SponsorDetails | null>(null);
@@ -97,11 +100,12 @@ export function AllSponsorsList() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {isLoading ? (
+          <TierCatalogStatus />
+          {isLoading || catalog.isLoading ? (
             <div className="p-4">
               <Skeleton className="h-32 w-full" />
             </div>
-          ) : sponsors.length === 0 ? (
+          ) : !catalog.ready ? null : sponsors.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">
               {search ? `No sponsors match "${search}".` : "No sponsors yet."}
             </p>
@@ -143,8 +147,8 @@ export function AllSponsorsList() {
                           {[...sponsor.sponsorships]
                             .sort((a, b) => a.year - b.year)
                             .map((s) => (
-                              <Badge key={s.id} variant="outline" className="font-normal" title={s.tier}>
-                                {s.year} · {s.tier}
+                              <Badge key={s.id} variant="outline" className="font-normal" title={resolveSponsorTier(catalog.tiers, s.tier).name}>
+                                {s.year} · {resolveSponsorTier(catalog.tiers, s.tier).name}
                               </Badge>
                             ))}
                         </div>

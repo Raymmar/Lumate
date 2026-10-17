@@ -14,6 +14,15 @@ description: Decisions behind global sponsors with yearly sponsorships, the lega
 - Sponsor records are intended to evolve into CRM records for fundraising and other actions; the owner wants configurable sponsorship categories as the tightly scoped first phase.
   **Why:** The owner wants versatile sponsor identities and future event-only sponsorships without requiring annual sponsorship or a tier.
   **How to apply:** Keep sponsor identity separate from sponsorship participation and tier classification. Do not expand category work into CRM features or event sponsorship implementation without approval.
-- The first configurable-tier phase prioritizes adding new tiers for this year's sponsorships, not modifying or removing old tiers; reuse existing sponsor/company links.
-  **Why:** The owner clarified that adding tiers is the immediate need and asked for minimal implementation and only explicitly necessary tests identified during the build.
-  **How to apply:** Preserve existing tiers/history, investigate all affected consumers, and avoid bundling broad regression suites or speculative CRM/event infrastructure into this phase.
+- Tier descriptions, display positions and presentation options may be edited globally, including on past Summit pages; names, stable keys and the automatic default remain locked.
+  **Why:** On 2026-10-17 the owner expanded the initial add-only scope and confirmed that changes applying everywhere are the whole point of unifying tiers, not an unwanted side effect.
+  **How to apply:** Explain the all-years effect in the editor; preserve history and existing sponsor/company links. Keep tests focused, not a broad regression suite or speculative CRM/event work.
+- Tier administration must reuse the existing admin table and right-side panel patterns for both creating and editing.
+  **Why:** The owner explicitly requested the established Posts/table-and-panel experience rather than an inline tier form or a separate sponsor-system rewrite.
+  **How to apply:** Inspect and reuse existing admin components; do not introduce parallel sponsor/company editors.
+- Tier editing should show only editable options, not redundant locked name/key inputs, and describe layouts by column count rather than preset nicknames.
+  **Why:** The owner found immutable fields cluttered the editor and names such as “Compact” did not explain the layout.
+  **How to apply:** Identify the tier in the panel heading, hide internal keys, keep the name input for creation, and label columns by actual sponsors per row.
+- Tier display priority must remain independent of the automatic assignment default, and tier creation must never imply annual participation.
+  **Why:** The owner needs higher-ranked tiers without silently reclassifying presenting sponsors, changing historical assignments, or adding empty sections to past Summit pages.
+  **How to apply:** Keep the existing automatic default explicit; use actual annual sponsorship rows, not catalog membership, to decide public section visibility.
