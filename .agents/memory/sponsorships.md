@@ -14,3 +14,6 @@ description: Decisions behind global sponsors with yearly sponsorships, the lega
 - Sponsor records are intended to evolve into CRM records for fundraising and other actions; the owner wants configurable sponsorship categories as the tightly scoped first phase.
   **Why:** The owner wants versatile sponsor identities and future event-only sponsorships without requiring annual sponsorship or a tier.
   **How to apply:** Keep sponsor identity separate from sponsorship participation and tier classification. Do not expand category work into CRM features or event sponsorship implementation without approval.
+- The first configurable-tier phase prioritizes adding new tiers for this year's sponsorships, not modifying or removing old tiers; reuse existing sponsor/company links.
+  **Why:** The owner clarified that adding tiers is the immediate need and asked for minimal implementation and only explicitly necessary tests identified during the build.
+  **How to apply:** Preserve existing tiers/history, investigate all affected consumers, and avoid bundling broad regression suites or speculative CRM/event infrastructure into this phase.
