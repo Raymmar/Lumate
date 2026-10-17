@@ -1,0 +1,86 @@
+/* Original app semantic palette, scoped to this extraction (Tailwind 4 reads
+   the same hsl triplets that the Tailwind 3 application used). */
+.community-home {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  font-family: var(--font-sans, Inter, sans-serif);
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
+.dark .community-home,
+.community-home.dark {
+  --background: 0 0% 13%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 11%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 11%;
+  --popover-foreground: 0 0% 98%;
+  --border: 0 0% 23%;
+  --input: 0 0% 23%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 0 0% 11%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 11%;
+  --muted-foreground: 0 0% 63.9%;
+  --accent: 0 0% 11%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 0 0% 23%;
+}
+
+.community-home [cmdk-input-wrapper] {
+  overflow: visible !important;
+  border-radius: inherit !important;
+}
+
+.community-home [cmdk-root] {
+  overflow: visible !important;
+}
+
+.community-home .rounded-inherit {
+  border-radius: inherit;
+}
+
+.community-home a:not([class]),
+.community-home .text-link {
+  color: hsl(var(--foreground));
+  text-underline-offset: 4px;
+  transition: color 150ms;
+}
+
+.community-home a:not([class]):hover,
+.community-home .text-link:hover {
+  color: hsl(var(--foreground) / 0.8);
+  text-decoration-line: underline;
+}
+
+.community-home nav a,
+.community-home .sidebar a {
+  color: hsl(var(--foreground));
+  transition: color 150ms;
+}
+
+.community-home nav a:hover,
+.community-home .sidebar a:hover {
+  color: hsl(var(--foreground) / 0.8);
+}

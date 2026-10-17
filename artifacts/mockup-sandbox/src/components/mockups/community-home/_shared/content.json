@@ -1,0 +1,2254 @@
+{
+  "capturedAt": "2026-10-17T22:45:56.451169",
+  "events": [
+    {
+      "id": 275396,
+      "api_id": "evt-Mpx7izGBadAFxTC",
+      "title": "March Tech JAM - Rite Technology (Office Tech & Cybersecurity)",
+      "description": null,
+      "startTime": "2026-03-19 21:00:00",
+      "endTime": "2026-03-19 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/6d/a237010a-3418-4df8-83b0-444248243dd5.png",
+      "url": "https://luma.com/mbnjj6kp",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3706648",
+        "longitude": "-82.5350133",
+        "venue_name": "RITE Technology",
+        "full_address": "RITE Technology, 1744 Independence Blvd, Sarasota, FL 34234, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 275397,
+      "api_id": "evt-3NA6GCmlKTHvBBq",
+      "title": "April Tech JAM - Sarasota Paradise \u26bd\ufe0f (SPORTS & TECH)",
+      "description": null,
+      "startTime": "2026-04-16 21:00:00",
+      "endTime": "2026-04-16 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/7g/4d7e0bea-7ddd-49a0-988b-55d3b1ee75ab.jpg",
+      "url": "https://luma.com/6j54c41d",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Lakewood Ranch",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.434836599999997",
+        "longitude": "-82.3822272",
+        "venue_name": "Premier Sports Campus at Lakewood Ranch",
+        "full_address": "Premier Sports Campus at Lakewood Ranch, 5895 Post Blvd, Lakewood Ranch, FL 34211, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 347348,
+      "api_id": "evt-cXgxsrs44Hx5Wtn",
+      "title": "Goalmaxxing with AI",
+      "description": null,
+      "startTime": "2026-07-15 21:30:00",
+      "endTime": "2026-07-16 00:00:00",
+      "coverUrl": "https://images.lumacdn.com/uploads/ti/0d57d52c-7cb2-4bda-827d-477f683a3336.png",
+      "url": "https://luma.com/5rm78hj5",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3346765",
+        "longitude": "-82.54012709999999",
+        "venue_name": "Northern Trust",
+        "full_address": "Northern Trust, 1515 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "members-only"
+    },
+    {
+      "id": 352825,
+      "api_id": "evt-q6sodexmvsLVN8V",
+      "title": "Making the Most of Tech Transfer",
+      "description": null,
+      "startTime": "2026-08-13 21:30:00",
+      "endTime": "2026-08-14 00:00:00",
+      "coverUrl": "https://images.lumacdn.com/uploads/el/b1a6e7c2-35cc-469f-900b-15679c4b7893.jpg",
+      "url": "https://luma.com/c4cccc8j",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3367123",
+        "longitude": "-82.5425487",
+        "venue_name": "Williams Parker Attorneys at Law",
+        "full_address": "Williams Parker Attorneys at Law, 50 Central Ave Eighth Floor, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 354270,
+      "api_id": "evt-PNoKFe8Fp1FWxt0",
+      "title": "September Tech JAM - Rosemary District",
+      "description": null,
+      "startTime": "2026-09-17 21:00:00",
+      "endTime": "2026-09-17 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/uploads/ow/a7d9bbb9-9a4b-4146-90d2-08ee8bca0d1f.png",
+      "url": "https://luma.com/2jolpnrt",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.341481299999998",
+        "longitude": "-82.542214",
+        "venue_name": "1413 Boulevard of the Arts",
+        "full_address": "1413 Boulevard of the Arts, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 356924,
+      "api_id": "evt-BYjAGcM65nTiNWP",
+      "title": "November Tech JAM - Mote Marine City Island",
+      "description": null,
+      "startTime": "2026-11-19 22:00:00",
+      "endTime": "2026-11-20 00:30:00",
+      "coverUrl": "/__mockup/images/community-00.img",
+      "url": "https://luma.com/umilc84w",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.333343499999998",
+        "longitude": "-82.5789107",
+        "venue_name": "1599 Ken Thompson Pkwy",
+        "full_address": "1599 Ken Thompson Pkwy, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 275590,
+      "api_id": "evt-hf0QWytwQM5XL0d",
+      "title": "May Tech JAM - Aloft Downtown SRQ",
+      "description": null,
+      "startTime": "2026-05-21 21:00:00",
+      "endTime": "2026-05-21 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/cy/e86a9bc4-29f0-487b-bb33-6b8765b14e4b.jpg",
+      "url": "https://luma.com/e0x6upgb",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.334016199999997",
+        "longitude": "-82.54104629999999",
+        "venue_name": "Aloft by Marriott Sarasota",
+        "full_address": "Aloft by Marriott Sarasota, 1401 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 341228,
+      "api_id": "evt-Czm6TPQWtB9DzFJ",
+      "title": "June Tech JAM - The Bay Sarasota",
+      "description": null,
+      "startTime": "2026-06-18 21:00:00",
+      "endTime": "2026-06-18 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/uploads/9n/d4c9f010-d1aa-4aa6-91ca-e6828a4c0fb6.jpg",
+      "url": "https://luma.com/sarasota-4tm6",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3416391",
+        "longitude": "-82.5477418",
+        "venue_name": "Sarasota Garden Club",
+        "full_address": "Sarasota Garden Club, 1131 Boulevard of the Arts, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 356923,
+      "api_id": "evt-y8mlaDDel6WmUbT",
+      "title": "October Tech JAM - New College",
+      "description": null,
+      "startTime": "2026-10-15 21:00:00",
+      "endTime": "2026-10-15 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/uploads/qf/3deec435-5b50-404b-a5ce-326d3dedbaa7.png",
+      "url": "https://luma.com/9x1cnnkh",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3847953",
+        "longitude": "-82.5645373",
+        "venue_name": "351 College Dr",
+        "full_address": "351 College Dr, Sarasota, FL 34243, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 4,
+      "api_id": "evt-C1AWCRN0nScneOw",
+      "title": "#3 - Sarasota Tech",
+      "description": null,
+      "startTime": "2023-11-09 22:00:00",
+      "endTime": "2023-11-10 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/hr/f4aefac8-4a2e-42e7-971c-f5fb516e8e92",
+      "url": "https://luma.com/mrtiq504",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.340691",
+        "longitude": "-82.542806",
+        "venue_name": "513 Central Ave",
+        "full_address": "513 Central Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 5,
+      "api_id": "evt-9fEhQTaYUNvMDwt",
+      "title": "#4 - Sarasota Tech - Holiday Happy Hour",
+      "description": null,
+      "startTime": "2023-12-06 22:00:00",
+      "endTime": "2023-12-07 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/hr/f4aefac8-4a2e-42e7-971c-f5fb516e8e92",
+      "url": "https://luma.com/mk5c1eqv",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.340334",
+        "longitude": "-82.540299",
+        "venue_name": "Mandeville Beer Garden",
+        "full_address": "Mandeville Beer Garden, 428 N Lemon Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 8,
+      "api_id": "evt-7R59tRufoKPoQDW",
+      "title": "March Tech JAM",
+      "description": null,
+      "startTime": "2024-03-21 21:00:21.498",
+      "endTime": "2024-03-21 23:30:21.498",
+      "coverUrl": "https://images.lumacdn.com/event-covers/ak/89cd9e9e-3700-407a-97e0-5da4c9678d5a",
+      "url": "https://luma.com/jkdsj0i3",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.407831",
+        "longitude": "-82.553183",
+        "venue_name": "Robrady Design",
+        "full_address": "Robrady Design, 1040 Commerce Blvd N, Sarasota, FL 34243, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 2,
+      "api_id": "evt-LArNIZtsDO3shT7",
+      "title": "Sarasota Tech",
+      "description": null,
+      "startTime": "2023-08-10 21:00:00",
+      "endTime": "2023-08-10 23:00:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/hr/f4aefac8-4a2e-42e7-971c-f5fb516e8e92",
+      "url": "https://luma.com/w763tjyr",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.340656",
+        "longitude": "-82.541629",
+        "venue_name": "1451 5th St",
+        "full_address": "1451 5th St, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 9,
+      "api_id": "evt-GcICnXdxDsOdSJo",
+      "title": "April Tech JAM @ S-One",
+      "description": null,
+      "startTime": "2024-04-18 21:00:21.498",
+      "endTime": "2024-04-18 23:30:21.498",
+      "coverUrl": "https://images.lumacdn.com/event-covers/pq/b36f944e-a2fc-4a18-a4c9-8af133809001",
+      "url": "https://luma.com/k3xqdztf",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.285539",
+        "longitude": "-82.531879",
+        "venue_name": "S-One",
+        "full_address": "S-One, 4728 S Tamiami Trail, Sarasota, FL 34231, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 100967,
+      "api_id": "evt-ca4Bm7NoWk0g6sO",
+      "title": "Season 3 Launch @ Ringling Museum",
+      "description": null,
+      "startTime": "2025-09-18 21:00:00",
+      "endTime": "2025-09-18 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/9s/2eb4ae19-f159-418f-8e26-41924a84707f",
+      "url": "https://luma.com/ffp50g4e",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3815477",
+        "longitude": "-82.56057160000002",
+        "venue_name": "The John and Mable Ringling Museum of Art",
+        "full_address": "The John and Mable Ringling Museum of Art, 5401 Bay Shore Rd, Sarasota, FL 34243, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 6,
+      "api_id": "evt-MuvQEDql1Gs8eAg",
+      "title": "Sarasota Tech - January Social",
+      "description": null,
+      "startTime": "2024-01-18 22:00:00",
+      "endTime": "2024-01-19 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/od/64db942e-709d-4cd0-9bce-c3924f649584",
+      "url": "https://luma.com/w2u6fjn3",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.340334",
+        "longitude": "-82.540299",
+        "venue_name": "Mandeville Beer Garden",
+        "full_address": "Mandeville Beer Garden, 428 N Lemon Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 12,
+      "api_id": "evt-l2Q7GOBwpxapEmw",
+      "title": "We're back! August Tech JAM!",
+      "description": null,
+      "startTime": "2024-08-15 21:00:00",
+      "endTime": "2024-08-15 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/y3/dc0c403e-31e2-4548-9027-12b02cb8feab",
+      "url": "https://luma.com/vki20ult",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.336051",
+        "longitude": "-82.543358",
+        "venue_name": "The Fat Rabbit Pub",
+        "full_address": "The Fat Rabbit Pub, 1359 Main St, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 1,
+      "api_id": "evt-KUEx5csMUv6otHD",
+      "title": "Drinky Thinky",
+      "description": null,
+      "startTime": "2023-05-18 22:00:00",
+      "endTime": "2023-05-19 00:00:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/71/057943f7-1e16-4a7e-9bbb-682fac17fe6d",
+      "url": "https://luma.com/pvhaae4j",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.33588",
+        "longitude": "-82.539904",
+        "venue_name": "State Street Eating House + Cocktails",
+        "full_address": "State Street Eating House + Cocktails, 1533 State St, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 3,
+      "api_id": "evt-t8pRapBHvNlNw1L",
+      "title": "#2 - Sarasota Tech",
+      "description": null,
+      "startTime": "2023-09-26 21:00:00.55",
+      "endTime": "2023-09-26 23:00:00.55",
+      "coverUrl": "https://images.lumacdn.com/event-covers/hr/f4aefac8-4a2e-42e7-971c-f5fb516e8e92",
+      "url": "https://luma.com/t9tzizvi",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.340652",
+        "longitude": "-82.542007",
+        "venue_name": "1421 5th St",
+        "full_address": "1421 5th St, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 140779,
+      "api_id": "evt-QcdPxGBDGBs0JAb",
+      "title": "Sarasota Tech Summit 2.0",
+      "description": null,
+      "startTime": "2026-01-15 15:00:00",
+      "endTime": "2026-01-16 03:00:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/n9/7fd2b244-407d-44c3-892a-e7227b8ee453.png",
+      "url": "https://luma.com/sts26",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3804755",
+        "longitude": "-82.451898",
+        "venue_name": "Mote Science Education Aquarium (SEA)",
+        "full_address": "Mote Science Education Aquarium (SEA), 225 University Town Center Dr, Sarasota, FL 34243, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 7,
+      "api_id": "evt-ShXE4rAEDePltYZ",
+      "title": "Tech JAM 2024",
+      "description": null,
+      "startTime": "2024-02-15 22:00:00",
+      "endTime": "2024-02-16 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/ak/89cd9e9e-3700-407a-97e0-5da4c9678d5a",
+      "url": "https://luma.com/fz9nvl6b",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.334016",
+        "longitude": "-82.541046",
+        "venue_name": "Aloft Sarasota",
+        "full_address": "Aloft Sarasota, 1401 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 13,
+      "api_id": "evt-96fo8ip52QpqSHq",
+      "title": "September Tech JAM",
+      "description": null,
+      "startTime": "2024-09-19 21:00:00",
+      "endTime": "2024-09-19 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/sc/32662be9-f6ec-4d23-90e5-3b8c3e0e07f4",
+      "url": "https://luma.com/nj619h5o",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.341567",
+        "longitude": "-82.542916",
+        "venue_name": "Arts & Central",
+        "full_address": "Arts & Central, 611 Central Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 18,
+      "api_id": "evt-g2bYH7gDFKhfXB7",
+      "title": "February Tech JAM",
+      "description": null,
+      "startTime": "2025-02-20 22:00:00",
+      "endTime": "2025-02-21 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/gi/ba6abac4-aca0-4318-835e-7879b496752f",
+      "url": "https://luma.com/gxo1mf8a",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.334016",
+        "longitude": "-82.541046",
+        "venue_name": "Aloft Sarasota",
+        "full_address": "Aloft Sarasota, 1401 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 25291,
+      "api_id": "evt-3Uq2MxYeiRMFbMA",
+      "title": "May Tech Jam @ Bar Hana",
+      "description": null,
+      "startTime": "2025-05-15 21:00:00",
+      "endTime": "2025-05-15 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/0y/a8945e34-4603-4a8d-bd8f-795257c1f4c3.png",
+      "url": "https://luma.com/xwbqmgr2",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.336033",
+        "longitude": "-82.544198",
+        "venue_name": "Bar Hana",
+        "full_address": "Bar Hana, 1289 N Palm Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 25313,
+      "api_id": "evt-ESp5vSQAUbFkjt2",
+      "title": "June Tech JAM",
+      "description": null,
+      "startTime": "2025-06-19 21:00:00",
+      "endTime": "2025-06-19 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/42/3637b293-3d29-47d0-ba33-b8ba928f5d57.jpg",
+      "url": "https://luma.com/9m6n1h0f",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.345204",
+        "longitude": "-82.545017",
+        "venue_name": "Turmeric Indian Bar & Grill",
+        "full_address": "Turmeric Indian Bar & Grill, 1001 Cocoanut Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 10,
+      "api_id": "evt-NEUgBRupCWpEHyC",
+      "title": "May Tech JAM ",
+      "description": null,
+      "startTime": "2024-05-16 21:00:21.498",
+      "endTime": "2024-05-16 23:30:21.498",
+      "coverUrl": "https://images.lumacdn.com/event-covers/pq/b36f944e-a2fc-4a18-a4c9-8af133809001",
+      "url": "https://luma.com/ac2pjm2x",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.334016",
+        "longitude": "-82.541046",
+        "venue_name": "Aloft Sarasota",
+        "full_address": "Aloft Sarasota, 1401 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 323934,
+      "api_id": "evt-0ltkyyhApOAf2O8",
+      "title": "What is Agentic AI (OpenClaw, etc) and how can I use it?",
+      "description": null,
+      "startTime": "2026-04-02 21:30:00",
+      "endTime": "2026-04-03 00:00:00",
+      "coverUrl": "https://images.lumacdn.com/gallery-images/zj/9de264a9-b2b5-47dd-bf24-fa9a3880e2b3.png",
+      "url": "https://luma.com/68hel8ng",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3367123",
+        "longitude": "-82.5425487",
+        "venue_name": "Williams Parker Attorneys at Law",
+        "full_address": "Williams Parker Attorneys at Law, 50 Central Ave Eighth Floor, Sarasota, FL 34236, USA"
+      },
+      "visibility": "members-only"
+    },
+    {
+      "id": 331110,
+      "api_id": "evt-FbE6nm1GDHByCXV",
+      "title": "Build Your MVP in an Hour with Replit",
+      "description": null,
+      "startTime": "2026-05-07 21:30:00",
+      "endTime": "2026-05-08 00:00:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/5g/3e73ef15-1a70-4b04-9f2f-7004c17783fd.png",
+      "url": "https://luma.com/hkfoa3ps",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.3346765",
+        "longitude": "-82.54012709999999",
+        "venue_name": "Northern Trust",
+        "full_address": "Northern Trust, 1515 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "members-only"
+    },
+    {
+      "id": 15,
+      "api_id": "evt-8Bnns2qsApt7WL5",
+      "title": "October Tech JAM",
+      "description": null,
+      "startTime": "2024-10-24 21:00:00",
+      "endTime": "2024-10-24 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/sc/32662be9-f6ec-4d23-90e5-3b8c3e0e07f4",
+      "url": "https://luma.com/em8wuojh",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.337123",
+        "longitude": "-82.543926",
+        "venue_name": "Rose & Ivy - Steak, Sushi, Cocktails",
+        "full_address": "Rose & Ivy - Steak, Sushi, Cocktails, 1296 1st St, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 16,
+      "api_id": "evt-haHxmDLdqzSlr2Y",
+      "title": "November Tech JAM",
+      "description": null,
+      "startTime": "2024-11-14 22:00:00",
+      "endTime": "2024-11-15 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/gi/ba6abac4-aca0-4318-835e-7879b496752f",
+      "url": "https://luma.com/bn9qj2ep",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.370665",
+        "longitude": "-82.535013",
+        "venue_name": "RITE Technology",
+        "full_address": "RITE Technology, 1744 Independence Blvd, Sarasota, FL 34234, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 17,
+      "api_id": "evt-7mHZuVCKYfqARWL",
+      "title": "Sarasota Tech Summit",
+      "description": null,
+      "startTime": "2025-01-09 22:00:00",
+      "endTime": "2025-01-10 03:00:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/23/09dc9221-b9eb-4c3a-a578-96332a1b8910",
+      "url": "https://luma.com/r21g3q5c",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.336606",
+        "longitude": "-82.544881",
+        "venue_name": "Art Ovation Hotel, Autograph Collection",
+        "full_address": "Art Ovation Hotel, Autograph Collection, 1255 N Palm Ave, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 11,
+      "api_id": "evt-htTKQHZHD1z8iRx",
+      "title": "Summer JAM 2024",
+      "description": null,
+      "startTime": "2024-06-20 23:00:21.498",
+      "endTime": "2024-06-21 01:30:21.498",
+      "coverUrl": "https://images.lumacdn.com/event-covers/sc/32662be9-f6ec-4d23-90e5-3b8c3e0e07f4",
+      "url": "https://luma.com/ct0jckzv",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": null,
+        "latitude": "27.341449",
+        "longitude": "-82.543575",
+        "venue_name": "Cafe Arts",
+        "full_address": "Cafe Arts, 1355 Boulevard of the Arts, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 14,
+      "api_id": "evt-0haSN5I8MYNEbIq",
+      "title": "STS - Planning meeting",
+      "description": null,
+      "startTime": "2024-10-14 21:00:00",
+      "endTime": "2024-10-14 22:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/9s/2eb4ae19-f159-418f-8e26-41924a84707f",
+      "url": "https://luma.com/e1t0iuno",
+      "timezone": "America/New_York",
+      "location": null,
+      "visibility": "public"
+    },
+    {
+      "id": 100965,
+      "api_id": "evt-k1WAYm0CGLLOgCR",
+      "title": "October Tech JAM",
+      "description": null,
+      "startTime": "2025-10-16 21:00:00",
+      "endTime": "2025-10-16 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/wn/fd2706ac-f335-441f-b69f-b0f38cbbbc50.jpg",
+      "url": "https://luma.com/2z3om7nl",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.334016199999997",
+        "longitude": "-82.54104629999999",
+        "venue_name": "Aloft Sarasota",
+        "full_address": "Aloft Sarasota, 1401 Ringling Blvd, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 19,
+      "api_id": "evt-Ui4boHxesQL0aBs",
+      "title": "March Tech JAM",
+      "description": null,
+      "startTime": "2025-03-20 21:00:00",
+      "endTime": "2025-03-20 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/pq/b36f944e-a2fc-4a18-a4c9-8af133809001",
+      "url": "https://luma.com/ho738qgq",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.341628",
+        "longitude": "-82.543068",
+        "venue_name": "Origin Pizza Cafe & craft beer: Rosemary District",
+        "full_address": "Origin Pizza Cafe & craft beer: Rosemary District, 1371 Boulevard of the Arts Unit 4, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 20,
+      "api_id": "evt-DvHUdC5xFAgf1ka",
+      "title": "April Tech JAM",
+      "description": null,
+      "startTime": "2025-04-17 21:00:00",
+      "endTime": "2025-04-17 23:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/uk/1a49c39e-f398-4e92-96f1-c0181d839e24.jpg",
+      "url": "https://luma.com/mokgcbvm",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.384789",
+        "longitude": "-82.56453",
+        "venue_name": "351 College Dr",
+        "full_address": "351 College Dr, Sarasota, FL 34243, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 246313,
+      "api_id": "evt-l0xeDP11H30Gxz8",
+      "title": "February Tech JAM - Sarasota Memorial Hospital (MedTech)",
+      "description": null,
+      "startTime": "2026-02-19 22:00:00",
+      "endTime": "2026-02-20 00:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/g5/a1abf681-4362-4473-88d3-c5b912e4964e.png",
+      "url": "https://luma.com/6ohsna12",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.317145",
+        "longitude": "-82.53217389999999",
+        "venue_name": "Kolschowsky Research and Education Institute",
+        "full_address": "Kolschowsky Research and Education Institute, 1880 Arlington St, Sarasota, FL 34239, USA"
+      },
+      "visibility": "public"
+    },
+    {
+      "id": 140778,
+      "api_id": "evt-UXnxnIPRQeCrsFE",
+      "title": "Creative Town Hall - Art + Media+ Tech",
+      "description": null,
+      "startTime": "2025-11-20 22:00:00",
+      "endTime": "2025-11-21 01:30:00",
+      "coverUrl": "https://images.lumacdn.com/event-covers/07/b972a813-480f-4e4d-8d34-424a0fefac7b.png",
+      "url": "https://luma.com/qfyon1gi",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.341481299999998",
+        "longitude": "-82.542214",
+        "venue_name": "1413 Boulevard of the Arts",
+        "full_address": "1413 Boulevard of the Arts, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    }
+  ],
+  "upcomingEvents": [
+    {
+      "id": 356924,
+      "api_id": "evt-BYjAGcM65nTiNWP",
+      "title": "November Tech JAM - Mote Marine City Island",
+      "description": null,
+      "startTime": "2026-11-19 22:00:00",
+      "endTime": "2026-11-20 00:30:00",
+      "coverUrl": "/__mockup/images/community-00.img",
+      "url": "https://luma.com/umilc84w",
+      "timezone": "America/New_York",
+      "location": {
+        "city": "Sarasota",
+        "region": "Florida",
+        "country": "US",
+        "latitude": "27.333343499999998",
+        "longitude": "-82.5789107",
+        "venue_name": "1599 Ken Thompson Pkwy",
+        "full_address": "1599 Ken Thompson Pkwy, Sarasota, FL 34236, USA"
+      },
+      "visibility": "public"
+    }
+  ],
+  "posts": [
+    {
+      "id": 59,
+      "title": "Call for Speakers: Your idea belongs at the Sarasota Tech Summit",
+      "summary": "Share your domain expertise, discuss a hard-won lesson, lead a hands-on session, or show what you are building. Submit your idea for the February 18, 2027 Summit at Mote SEA. ",
+      "body": "<p><strong>You know something this community could use!</strong></p><p>A technology you understand. A problem you solved. A product you built. A lesson that would have saved you six months. Bring it to the <strong>Sarasota Tech Summit on February 18, 2027 at Mote SEA.</strong></p><p>We are inviting people from our community to share what they know, show what they are building, and lead conversations that help others move forward. First-time presenters are welcome.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasotatech.notion.site/555dbf14b6074e4bb2f5be67783af538\"><strong>\u2192 Submit your presentation idea</strong></a></p><h2>What could you help someone do better?</h2><p>We want practical content attendees can put to work. That could mean:</p><ul><li><p><strong>Build with technology:</strong> AI, cybersecurity, robotics, manufacturing, materials science, healthcare, oceanography, and other fields where new ideas are becoming real.</p></li><li><p><strong>Start or grow a business:</strong> finding customers, hiring, product design, going to market, and lessons from scaling a company.</p></li><li><p><strong>Try something firsthand:</strong> a working demo, hands-on training, or a discussion that helps people tackle a shared challenge.</p></li></ul><h2>Choose the format that fits your idea</h2><p>Give a focused talk, go deeper with a full presentation, bring different perspectives together on a panel, teach a workshop, guide a roundtable, or host a demo station. The expanded space at Mote SEA gives us more ways to learn from one another. Our January event attracted over 500 people - we expect even more in 2027.</p><h2>Start with the idea</h2><p>Give it a working title, choose your format, and tell us what attendees will learn, experience, or take away. Complete the questions that apply to your session. You can refine the title later.</p><p>We will review proposals for relevance, practical value, and fit with the overall program. Submitting does not guarantee selection. Selected presenters need to attend in person.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasotatech.notion.site/555dbf14b6074e4bb2f5be67783af538\"><strong>\u2192 Submit your presentation idea</strong></a></p><p>The next useful connection in Sarasota could start with something you share.</p><p><strong>P.S.</strong> <strong>Know someone whose work deserves a room? Please share this invitation.</strong></p>",
+      "featuredImage": "/__mockup/images/community-01.img",
+      "tags": [],
+      "ctaLink": "https://sarasotatech.notion.site/555dbf14b6074e4bb2f5be67783af538",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2026-09-13 21:22:21.199+00",
+      "updatedAt": "2026-10-15 05:36:03.784+00"
+    },
+    {
+      "id": 58,
+      "title": "Your Private Invite to build the 2027 Sarasota Tech Summit",
+      "summary": "The Sarasota Tech Summit returns Thursday, February 18th, 2027 - and before we book a single speaker or schedule a session, you can tell us what you want in the room.",
+      "body": "<p><strong>The 2027 Summit agenda starts with you.</strong></p><p>The Sarasota Tech Summit returns <strong>Thursday, February 18th, 2027</strong>&nbsp;- and before we book a single speaker or schedule a session, you can tell us what <em>you</em> want in the room.</p><p><strong>\u2192 </strong><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasotatech.notion.site/42b063832a9c4f94b84759e1c03a3844\"><strong>Take the 2-minute survey</strong></a></p><p>Here's why your input carries more weight this year:</p><p>The last Summit sold out at 500+ tickets. For 2027, we're back at <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://mote.org/visit/\">Mote SEA</a> with a much bigger footprint - the main conference space plus multiple classrooms and a large meeting room. That unlocks parallel tracks, hands-on workshops, roundtables, live demos, and a higher ticket cap.</p><p>More space means more decisions: Which topics get a track? Talks or workshops? Who should be up front? Your answers decide.</p><p>The survey takes about <strong>3&nbsp;minutes</strong>&nbsp;mostly multiple choice. It closes <strong>September 15th </strong>-&nbsp;after that, the planning team incorporates your feedback into the agenda.</p><p><strong>\u2192 </strong><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasotatech.notion.site/42b063832a9c4f94b84759e1c03a3844\"><strong>Tell us what you want</strong></a></p><p><em>Everyone who completes the survey gets first access to early-bird incentives before they open to the public.</em></p><p>Over the coming weeks we'll send out a call for speakers and instructors, sponsorship info, volunteer sign-ups, and ticket sales. But the survey comes first - everything else gets built on what you tell us.</p><p>Thanks for making the last Summit what it was. With your input, we're making Sarasota the best place to live, work, and be tech.</p><p><strong>P.S.</strong> 2 minutes now = a February 18th Summit built around what you actually want. <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasotatech.notion.site/42b063832a9c4f94b84759e1c03a3844\"><strong>Survey link</strong></a>&nbsp;- closes September 15th.</p>",
+      "featuredImage": "/__mockup/images/community-02.img",
+      "tags": [],
+      "ctaLink": "https://sarasotatech.notion.site/42b063832a9c4f94b84759e1c03a3844",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2026-08-26 21:45:37.609+00",
+      "updatedAt": "2026-10-15 05:35:55.479+00"
+    },
+    {
+      "id": 57,
+      "title": "August Community Updates",
+      "summary": "As the summer wraps up, we have a few exciting events to highlight over the next month!",
+      "body": "<p>Hello Sarasota community! We hope you are having a wonderful summer. At Sarasota Tech, we put together the best opportunities for our community to meet, learn and collaborate. Check out these upcoming events in August and September.</p><h3><strong>Special Interest Group - Making the Most of Tech Transfer</strong><br>Thursday, August 13th</h3><p>Have you ever wondered how novel scientific discoveries get commercialized by the private sector? This <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/c4cccc8j\">Special Interest Group</a> will dive into the ins and outs of tech transfer. We have assembled an expert panel representing all parties in a typical licensing transaction - the IP providers, the commercial operators and the lawyers. The University of Florida is one of the most active <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://innovate.research.ufl.edu/\">tech licensing programs</a> in the country. Mote Marine Laboratory has over 45 PHD-level scientists performing unique <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://mote.org/research/\">research</a> in ocean technologies and sea-derived products. Leaders from both of these institutions will be on our panel to dive into what tech is available and how licensing typically works.</p><p>Come learn how ground-breaking research is commercialized into new business ventures. The event will have limited capacity, so be sure to <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/c4cccc8j\">register</a> soon.</p><h3><strong>The Shipyard Weekend Hackathon</strong><br>Friday, September 4th - Sunday, September 6th</h3><p>We know that Sarasota has talent. We want to get it out and build! This weekend hackathon is targeted at our younger population (ages 16 to 25). Participants will spend the Labor Day weekend collaborating on teams to create working software. We will inspire the teams with project ideas from local non-profits. After everything is built, the teams will present their work to a live audience and a panel of judges. Of course there will be prizes, but more importantly, we will showcase what the Sarasota community can produce!</p><p>Check out The Shipyard <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.shipyardsarasota.com/\">website</a> for more program information. The event will kick off the evening of Friday, September 4th and end on Sunday afternoon, September 6th. All activities will be hosted at Ringling College.</p><p>There are multiple ways to participate:</p><ul><li><p><strong>Contestant.</strong> Open to young people ages 16-25 who want to spend the weekend hacking out software.</p></li><li><p><strong>Mentor</strong>. We will pair each team with an experienced mentor, who will help guide the process.</p></li><li><p><strong>Non-profit Idea</strong>. To keep the community focus, we will seed the project ideas with input from local organizations. Non-profits can submit ideas for software that will supercharge their mission!</p></li><li><p><strong>Public Viewing</strong>. The Friday evening kick-off and Sunday afternoon demos will be open to the public. Business leaders, investors, hiring managers, community supporters and Sarasota lovers are all welcome to attend. Who knows? You might find your next team member or start-up founder amongst the contestants.</p></li></ul><p>Registration forms for the various roles are available on the event <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.shipyardsarasota.com/upcoming\">program page</a>. There are also <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.shipyardsarasota.com/get-involved\">sponsorship opportunities</a> for organizations that want to get more involved and show their support.</p><h3><strong>September Tech JAM - The Rosemary</strong><br>Thursday, September 17th</h3><p>After a summer break, our next Tech JAM will be in the Rosemary district. The event is open for <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/2jolpnrt\">registration</a> now. Exact location and format will be announced as the date approaches. Join the area's best networking event for tech professionals!</p><h3><strong>Summit 2027 - Coming Soon!</strong></h3><p>Sarasota Tech will be back at <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://mote.org/visit/\">Mote SEA</a> in February 2027 for an even bigger and better Summit conference! Look for upcoming announcements with event information. Similar to our prior conference in January, we want to showcase the best of the Sarasota community. There will be many opportunities to get involved, as speakers, instructors, volunteers and sponsors. We will be sending out more information and calls to action soon.</p>",
+      "featuredImage": "/__mockup/images/community-03.img",
+      "tags": [],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2026-08-08 19:49:54.693+00",
+      "updatedAt": "2026-08-10 14:42:05.918+00"
+    },
+    {
+      "id": 56,
+      "title": "Attend Goalmaxxing with AI and Special Interest Groups (SIGs)",
+      "summary": "Our next Special Interest Group lands Wednesday, July 15: learn to direct AI agents to do real work. Included with premium membership, along with every SIG and the annual Summit.",
+      "body": "<p>The <strong>biggest productivity gain</strong> in tech right now comes from a new skill: <strong>directing AI agents</strong> to do work you used to grind through yourself.</p><p>That skill is the focus of our next Special Interest Group, <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/5rm78hj5\">Goalmaxxing with AI</a>, on Wednesday, July 15. In one session you'll learn how to hand an agent the coding or research you'd normally do alone, structure its output as clear goals, and keep it producing at full capacity. That last part is the craft we call Goalmaxxing. You'll walk out with an approach you can apply to your own work the next morning.</p><p>Sarasota Tech Premium members can <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/5rm78hj5\">register now</a>.</p><p>If you've been to a Tech JAM, you know we can fill a room. Several hundred of you show up on the third Thursday of every month to meet, trade ideas, and find collaborators. The JAMs aren't going anywhere. But many of you asked for a second track: fewer name tags, more depth, and a skill you can use on Monday. So we created <strong>Special Interest Groups</strong>.</p><p>The first two proved the format. <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/hkfoa3ps\">Vibe Coding</a> and <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/68hel8ng\">Agentic AI</a> earned some of the strongest feedback we've collected for any event, and attendees are already applying what they learned in their day jobs. <strong>Goalmaxxing</strong> is the third, and it goes straight at the question we hear most: how do I actually get an agent to do useful work for me?</p><h2>One membership, every SIG, plus the Summit</h2><p>Premium membership is what keeps all of this running. For $250 a year (renews annually), you get:</p><ul><li><p>A seat at every Special Interest Group we run, starting with Goalmaxxing on July 15</p></li><li><p>A ticket to our annual <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/summit\">Summit</a> conference in February 2027</p></li></ul><p>Your membership also covers the event costs and overhead that keep Sarasota Tech going, which is why we created the tier in the first place. More than 350 community members have already joined. Between a year of SIGs and a Summit ticket, the math is easy.</p><p><strong>Already a premium member?</strong> <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/5rm78hj5\">Register for Goalmaxxing now</a>.</p><p><strong>Not yet?</strong> <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/memberships\">Join today</a> and Goalmaxxing is included, along with every SIG that follows and the Summit in February.</p><p>Three years ago, Sarasota Tech started with a simple observation: this city has plenty of tech talent, it's just spread across isolated teams and remote desks. Everything above is what happens when it gets connected.</p><p>As always, thank you for your support and your ideas. They shape what we build next. See you on the 15th.</p>",
+      "featuredImage": "/__mockup/images/community-04.img",
+      "tags": [],
+      "ctaLink": "https://sarasota.tech/memberships",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2026-07-03 19:40:20.417+00",
+      "updatedAt": "2026-07-06 15:03:48.389+00"
+    },
+    {
+      "id": 54,
+      "title": "May Community Updates",
+      "summary": "Here is what the Sarasota Tech community is up to this month. ",
+      "body": "<p>Hello Sarasota Tech friends \ud83d\udc4b\ud83c\udffd. </p><h2>May Tech JAM</h2><p>Our <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/e0x6upgb\">next Tech JAM</a> will be on May 21st at Aloft in downtown Sarasota. This venue is always a crowd favorite.&nbsp; You can look forward to light bites, cold drinks and a live DJ.&nbsp; We will share a special announcement about one of our founding board members and a few updates about our evolving leadership structure.&nbsp;</p><p>Be sure to <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://luma.com/e0x6upgb\">register</a>, so that we know you are coming. Registrations are already approaching 200 people, so it should be a great event.&nbsp; Don\u2019t miss out on some of the best networking in Sarasota!</p><h2>April Recap:</h2><p>Last month we moved outdoors to see the latest developments in SportsTech. We held our event at the new Sarasota Paradise facility in Lakewood Ranch.  If you aren\u2019t familiar with the Paradise, they are our own professional soccer team here in Sarasota. </p><p>Attendees had the opportunity to network and later take a tour of the sports complex.  The primary presentation was delivered by Head Coach Mika Elovaara.  Mika walked us through how the Sarasota Paradise collects hundreds of data points on each player\u2019s performance during games. They then correlate the player data to actual game outcomes. This allows the coaching staff to work with players to optimize their performance.</p><p>For example, if a forward player spends more time in a particular zone around the opposing goal, that usually results in a higher score rate for that player. This seems like a simple observation, but can have a significant outcome on game scores. This methodology is applied across all player types, whether forwards, mid-fielders, defenders and even the goalie. The magnitude of data collection is significant and the Paradise has a unique relationship with a proprietary platform for processing it, called <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"http://Playmaker.AI\">Playmaker.AI</a>.</p><p>Thanks again to the Sarasota Paradise leadership team for hosting us!  If you are a soccer fan, their games are a lot of fun. You can view the team\u2019s schedule on the club\u2019s website.  They host games through the summer and fall.</p>",
+      "featuredImage": "/__mockup/images/community-05.img",
+      "tags": [
+        "community",
+        "update"
+      ],
+      "ctaLink": "https://luma.com/e0x6upgb",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2026-05-12 17:25:22.851+00",
+      "updatedAt": "2026-05-12 17:25:22.851+00"
+    },
+    {
+      "id": 53,
+      "title": "2026 Giving Challenge: Support the Nonprofits that Support Us",
+      "summary": "Mark your calendar for the upcoming 2026 Giving Challenge!",
+      "body": "<p>Our Sarasota Tech community includes several nonprofit and education organizations whose support is vital to our success. Now we have an opportunity to show them our support during the <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/\">2026 Giving Challenge</a>.&nbsp;</p><p>This 24-hour fundraising event is a great way to give back. Your online donation of $25 to $100 will be matched 1:1 between noon April 15 and noon April 16, 2026.&nbsp;</p><p>We\u2019re excited to shine a spotlight on the nonprofits that are participating in this important local fundraising event. Click on the nonprofit name to visit their fundraising page, and set a reminder to donate starting at noon April 15.&nbsp;</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/funducation-inc\"><strong>FUNducation</strong></a><strong>:</strong> Led by Sarasota.Tech board member Neirda Thompson-Pemberton, FUNducation is on a mission to expose, engage, and inspire our youth to be the innovators of tomorrow through education in Science, Technology, Engineering, Arts, and Mathematics (STEAM). They are bringing Boston Dynamics and Spot to two events you can attend on April 15. <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://docs.google.com/forms/d/e/1FAIpQLScvLqr1BKPC0mfhSXYGJB0MSxoxQ_Z3zRTtZAqs00LQiEq4_Q/viewform\">RSVP</a>&nbsp;</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/mote-marine-laboratory\"><strong>Mote Marine Laboratory</strong></a><strong>:</strong> Mote is working to protect and restore our precious marine resources. Mote science is leading to new discoveries, and Mote is translating that science to promote greater understanding of and appreciation for the marine environment.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/new-college-foundation-incorporated\"><strong>New College Foundation</strong></a><strong> (Applied Data Science Program):</strong> New College\u2019s Master\u2019s in Applied Data Science program is a rigorous exploration of Databases &amp; Computing, Data Visualization &amp; Statistics and Machine Learning &amp; AI.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/ringling-college-of-art-and-design\"><strong>Ringling College of Art and Design</strong></a><strong>:</strong> For 95 years, Ringling College of Art and Design has been where talent, innovation, and imagination come alive. Every day, our students, faculty, and alumni use their creativity to shape industries, strengthen communities, and enrich lives.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/greater-sarasota-chamber-of-commerce-foundation-inc\"><strong>Sarasota Chamber Foundation</strong></a><strong>:</strong> The purpose of the Greater Sarasota Chamber of Commerce Foundation is to conduct workforce, educational training, and leadership development programs, all while being a voice for the business community and community as a whole.&nbsp;</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.thegivingpartner.org/organizations/state-college-of-florida-foundation-inc\"><strong>State College of Florida Foundation</strong></a><strong>: </strong>Our mission is to connect donors\u2019 passions and regional partners with State College of Florida\u2019s outstanding students, faculty, programs, and community.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/suncoastscience\"><strong>Suncoast Science Center/Faulhaber Fab Lab</strong></a><strong>:</strong> Fab Lab\u2019s high school student instructors create hands-on STEAM experiences that build confidence, curiosity, and real-world skills through near-peer mentorship.</p><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.givingchallenge.org/organizations/usf-university-of-south-florida-foundation-inc\"><strong>University of South Florida Foundation</strong></a><strong> (Muma College of Business):</strong> The Giving Challenge is hosted by the Community Foundation of Sarasota County, with giving strengthened by The Patterson Foundation.</p><p>Shoutout to all the other nonprofit and education organizations in the Sarasota Tech community, including the City of Sarasota, Florida High Tech Corridor, and University of Florida.</p><p><br></p>",
+      "featuredImage": "/__mockup/images/community-06.img",
+      "tags": [
+        "community",
+        "nonprofit",
+        "giving challenge"
+      ],
+      "ctaLink": "https://www.givingchallenge.org/organizations/funducation-inc",
+      "videoUrl": "https://www.youtube.com/watch?v=bSF_ymlTLKA",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2026-04-13 20:37:07.434+00",
+      "updatedAt": "2026-04-17 15:24:29.927+00"
+    },
+    {
+      "id": 52,
+      "title": "Platform Updates - March 2026 ",
+      "summary": "Overview of recent updates to the Sarasota Tech Membership Platform",
+      "body": "<p>Updates made in March of 2026 to the ST member directory.</p><ul><li><p>Simplified user settings page for clarity and ease of use.</p></li><li><p>Simplified user account creation for new annual members to allow for direct account creation before claiming or connecting a Luma profile.</p></li><li><p>Users can now link multiple Luma accounts to their Sarasota Tech profile.</p></li><li><p>Cleaned up old Stripe web-hooks to clear up warnings and unused code.</p></li><li><p>ST directory now syncs bi-directionally with Luma membership data for members-only events and small group ticketing.</p></li><li><p>Fixed problem where sometimes event attendees would be deleted from the database before a new sync finished. This means sync'd events will no longer show 0 attendees when RSVP's exist.</p></li><li><p>Added drift detection to notify admins and members when emails are out of sync between Luma and our internal member portal.</p></li><li><p>Users can now self serve update their email in Luma and our system will re-sync daily to catch those changes. If a profile is out of sync, the member will be prompted to select which email to retain.</p></li><li><p>Multiple bug fixes and platform optimizations. </p></li></ul>",
+      "featuredImage": "/__mockup/images/community-07.img",
+      "tags": [
+        "update",
+        "platform"
+      ],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2026-03-08 01:45:09.368+00",
+      "updatedAt": "2026-03-19 03:38:56.62+00"
+    },
+    {
+      "id": 51,
+      "title": "Check out our new interactive Speaker Page",
+      "summary": "Explore the profiles and bio's of our speakers for the upcoming Sarasota Tech Summit. ",
+      "body": "<p>Explore our 2026 Speaker lineup on our our new interactive speaker page </p>",
+      "featuredImage": "/__mockup/images/community-08.img",
+      "tags": [
+        "update",
+        "summit 2026"
+      ],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2026-01-07 04:03:43.523+00",
+      "updatedAt": "2026-02-09 20:10:55.914+00"
+    },
+    {
+      "id": 50,
+      "title": "Platform Updates December 2025",
+      "summary": "Membership platform updates and misc bug fixes. ",
+      "body": "<ul><li><p>Feature updates</p><ul><li><p>Added speaker <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/card-creator\">card creator</a></p></li><li><p>Added <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/speakers\">speaker page</a></p></li></ul></li><li><p>Admin updates</p><ul><li><p>Added the ability to save drafts and delete posts</p></li><li><p>Added the ability to redirect posts to internal or external URL's</p></li><li><p>Coupon system now allows for % and $ based discounts</p></li><li><p>Events can be set to allow auto creation of coupons for all premium members as well as future premium members.</p></li><li><p>Coupons created for members are emailed to the user and show up in the users settings page with a easy to use one click link for claiming the coupon</p></li><li><p>Coupons can be tracked sorted and searched in the admin panel</p></li><li><p>Added ability to add unlimited coupon uses for any new coupon</p></li></ul></li><li><p>Bug fixes</p><ul><li><p>Fixed a bug where annual memberships created from Luma tickets did not always grant access to create a company profile.</p></li><li><p>Fixed a bug where Stripe subscriptions might not reflect current state if user clicks purchase button multiple times before the transaction has finalized.</p></li><li><p>Improved stripe sync functionality to make sure active members are cross referenced across stripe data to make sure they always have the most current subscription status.</p></li><li><p>Fixed an bug where the system was automatically sending users a ticket to our next event, even if the event was paid.</p></li><li><p>Fixed a bug where coupons could not be created for $ values</p></li></ul></li></ul>",
+      "featuredImage": "https://images.unsplash.com/photo-1498050108023-c5249f4df085?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MTY4ODR8MHwxfHNlYXJjaHwyMXx8dGVjaG5vbG9neXxlbnwwfHx8fDE3NjcxODU1MjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "tags": [
+        "update",
+        "platform"
+      ],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2025-12-31 12:55:55.448+00",
+      "updatedAt": "2026-01-09 04:47:13.996+00"
+    },
+    {
+      "id": 49,
+      "title": "The Sarasota Tech Summit Agenda Is Live \u2014 Here\u2019s What to Expect",
+      "summary": "The agenda for the Sarasota Tech Summit is officially live, and it\u2019s shaping up to be one of the most energizing tech events in Florida.",
+      "body": "<p>This isn\u2019t a conference built around buzzwords or surface-level AI talks. The Sarasota Tech Summit is designed for founders, operators, technologists, marketers, students, and community leaders who want real insight into how technology is being built, applied, and scaled <strong>right now</strong>\u2014and where it\u2019s headed over the next few years.</p><h3>What\u2019s on the Agenda</h3><p>The day is intentionally structured to balance <strong>inspiration, education, and connection</strong>:</p><ul><li><p><strong>Keynotes from builders and operators</strong> who are actively scaling companies</p></li><li><p><strong>Panels that go beyond the basics</strong>, including honest conversations around AI\u2019s upside, risks, and real-world impact</p></li><li><p><strong>Breakout-style sessions</strong> focused on execution, not theory</p></li><li><p><strong>Student and early-career perspectives</strong> alongside seasoned founders and executives</p></li><li><p><strong>Plenty of networking time</strong> with people actually building in the region</p></li></ul><h3>Hands on Workshops</h3><p><strong>Startup School</strong></p><p>Experts in venture capital, software development, branding, business formation, intellectual property rights, accounting, finance + more will be on site running small group breakouts and interactive workshops.</p><p><strong>Quick Pitch</strong></p><p>Are you looking for financing or feedback on your startup? Sign up for our Quick Pitch to put your concepts to the test in a fast paced competition with real time feedback from a panel of experienced investors.</p><p><strong>Demo Stations</strong></p><p>Are you working on something interesting and want to show it off? A robotics project, new software, game, 3D print or hardware? Fill out the form below and we might invite you to demo it live at the Summit.</p><p>What to participate in the Startup School, Quick Pitch and/or Demo Station? <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://airtable.com/applDXoTdj4LPUUVc/pag3NvdulUOPTQ5SX/form\">Fill out this form</a>.</p><h3>Why This Summit Is Different</h3><p>What makes the Sarasota Tech Summit unique is its <strong>community-first approach</strong>. It brings together local and national voices while staying rooted in real operator experience. You\u2019ll hear what\u2019s working, what\u2019s broken, and what leaders would do differently if they were starting again today.</p><p>Whether you\u2019re running a company, thinking about starting one, leading technology inside an organization, or exploring what a career in tech could look like, this agenda is built to meet you where you are.</p><h3>Don\u2019t Wait</h3><p>Tickets are already moving quickly, and once they\u2019re gone, they\u2019re gone. Last year sold out with a waiting list\u2014and this year\u2019s agenda raises the bar even higher.</p><p>You can view the full agenda and secure your spot here:<br>\ud83d\udc49 <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/summit\">https://sarasota.tech/summit</a></p><p>If you care about where technology, business, and community intersect in Florida, this is a day worth putting on your calendar.</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1766527372235-Thumbnail-Vlad.png",
+      "tags": [
+        "event",
+        "summit 2026"
+      ],
+      "ctaLink": "https://sarasota.tech/summit",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2025-12-23 21:12:55.991+00",
+      "updatedAt": "2025-12-23 22:02:54.051+00"
+    },
+    {
+      "id": 48,
+      "title": "Platform Updates November 2025",
+      "summary": "We're improving the directory regularly with features that make the platform easier to use and more valuable for our members. Here is what we have been up to since our last release. ",
+      "body": "<ul><li><p><strong>Update</strong> - Upgraded profile pages for paid members</p><ul><li><p>Paid accounts now get a LinkTree style profile page which displays the main call to action and custom links from their company profile with a link to view the full profile.</p></li></ul></li><li><p><strong>New</strong> - Sponsor components + linked company records</p><ul><li><p>There is a new \u201cSponsor Grid\u201d component (on summit page, home page, and sponsors section in the admin) which shows sponsors and allows admins to add/edit sponsor details.</p></li><li><p>Also have the ability to highlight sponsors from any tier across the site as needed.</p></li></ul></li><li><p><strong>New</strong> - UI/UX optimization flows -</p><ul><li><p>New subscribers/attendees are automatically sent a link to set a password.</p></li><li><p>No more manual \u201cclaim your account\u201d process or email search. Just click the link in your email, set a password, then log in. (will be rolling out incrementally)</p></li><li><p>New workflow sends regular reminders until a user claims their account or 90 days passes.</p></li><li><p>Old workflow still works as a fallback if needed</p></li></ul></li><li><p><strong>Update</strong> - Simplified company creation + member management in admin section</p><ul><li><p>It is now much easier to create a company record and manage members of an org in the directory</p><ul><li><p><strong>Owner</strong> - Internal label. Grants super-admin rights for the directory company account. Can manage admins and members.</p></li><li><p><strong>Admin</strong> - Can manage users and edit public company details</p></li><li><p><strong>User</strong> - Listed publicly in directory as member of the company and has access to member directory</p></li></ul></li></ul></li><li><p><strong>New</strong> - Batch invite system</p><ul><li><p>Added a system to invite unclaimed accounts to set a password and bypass manual claim account process.</p></li></ul></li><li><p><strong>Update</strong> - Desktop and mobile navigation refinements</p><ul><li><p>Updated menu and navigation to make it easier to explore full directory and summit pages across the application as well as navigate and search members with ease on desktop and mobile devices. </p></li></ul></li></ul>",
+      "featuredImage": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MTY4ODR8MHwxfHNlYXJjaHw1fHxjb2RlfGVufDB8fHx8MTc2MjQwNjkyMnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "tags": [
+        "update",
+        "platform"
+      ],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2025-11-06 05:29:21.12+00",
+      "updatedAt": "2025-11-07 19:44:45.408+00"
+    },
+    {
+      "id": 47,
+      "title": "Apply to speak at the 2026 Sarasota Tech Summit (Applications closed)",
+      "summary": "Applications are now open for potential speakers at our next summit where we expect more than 500 attendees. ",
+      "body": "<p>Apply to speak and you might end up on the main stage. We're looking for breakout stories, interesting uses of AI, deep tech, hardware, robotics, 3D printing, digital media or vibe code.</p><p>We want to hear from you if you have an interesting story and are tinkering with tech. We're looking for local, regional and national speakers so take your best shot!</p>",
+      "featuredImage": "https://images.unsplash.com/photo-1527261834078-9b37d35a4a32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3MTY4ODR8MHwxfHNlYXJjaHw3fHxzdGFnZXxlbnwwfHx8fDE3NjE1ODQxNjh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "tags": [
+        "summit 2026"
+      ],
+      "ctaLink": "https://airtable.com/applDXoTdj4LPUUVc/shrzIM9RcYBek4C0k",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2025-10-27 16:56:38.489+00",
+      "updatedAt": "2025-12-18 03:18:48.554+00"
+    },
+    {
+      "id": 45,
+      "title": "2026 Tech Summit - Preview ",
+      "summary": "The second annual Sarasota Tech Summit will take January 15, 2026, at the brand-new Mote SEA (Science Education Aquarium)",
+      "body": "<h2>Startup Sarasota</h2><h3>Tech Summit &amp; Startup Fair</h3><p>This years <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/summit\">Tech Summit</a> will feature a world-class expo hall, interactive labs, breakout sessions, panel discussions and a VIP afterparty. We're expecting more than <strong>500 attendees</strong>, up from 350 at the inaugural summit in January of 2025.</p><p>Programming will include:</p><ul><li><p><strong>Startup School</strong> - Experts in venture capital, software development, branding, business formation, intellectual property rights, accounting, finance + more will be on site for small group <strong>breakouts and interactive workshops</strong>.</p></li><li><p><strong>Main Stage</strong> - Apply to speak and you might end up on the main stage. We're looking for breakout stories, interesting uses of AI, deep tech, hardware, robotics, 3D printing, digital media or vibe code.</p></li><li><p><strong>Keynotes &amp; Panels</strong> - Stay tuned as we announce our full agenda. Expect a mix of keynote speakers and expert panelists discussing how AI and modern tech trends will impact the world through the lens of Florida's Gulf Coast.</p></li><li><p><strong>Demo Booths </strong>- Get hands on with companies giving product &amp; software demos + showing off experimental tech.</p></li><li><p><strong>Networking &amp; Afterparty</strong> - VIP afterparty &amp; world class networking</p></li></ul><h3>Membership and Sponsorship Opportunities</h3><p><strong>Memberships:</strong></p><p>Sarasota Tech recently launched a new <strong>member directory and online platform</strong> to help connect attendees. Members can create profiles and <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/memberships\">upgrade</a> to an <strong>annual membership ($250)</strong>, which includes a corporate listing in the new directory as well as a ticket to the annual summit (regularly $150).</p><p><strong>Sponsorships:</strong></p><p>Sponsorship opportunities are now open for the 2026 Tech Summit. Last year\u2019s event sold out, and this year\u2019s expanded venue offers sponsors even greater visibility in front of a fast-growing network of entrepreneurs, technologists, and investors.</p><h3>About Sarasota Tech</h3><p>Sarasota Tech is a community-led nonprofit dedicated to building Sarasota into a premier hub for technology and innovation. Through monthly meetups, annual summits, and ongoing programming, Sarasota Tech connects founders, developers, investors, and operators to accelerate the region\u2019s entrepreneurial ecosystem.</p><p>For sponsorships, speaking opportunities, or membership inquiries, reach out to <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"mailto:info@sarasota.tech\">info@sarasota.tech</a> or visit <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"http://Sarasota.tech\">Sarasota.tech</a></p><blockquote><p>Check out a video overview from last years summit</p></blockquote>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1761566824349-Mote---Date-block.png",
+      "tags": [
+        "summit 2026"
+      ],
+      "ctaLink": "https://sarasota.tech/summit",
+      "videoUrl": "https://youtu.be/z2wyOGwpUHg",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2025-10-27 12:08:13.908+00",
+      "updatedAt": "2025-12-23 21:16:06.063+00"
+    },
+    {
+      "id": 44,
+      "title": "Platform updates September 2025",
+      "summary": "Updates and feature enhancements to the Sarasota Tech member platform",
+      "body": "<p>Minor improvements we're made to the platform today to enhance the directory.</p><ul><li><p>Created a dedicated News page to match our existing directory page</p></li><li><p>Added full page template for news articles so users can share a post URL directly </p></li><li><p>Open Graph page level details for Company Profiles, User Profiles, and News Pages. When you share a URL's on social media you should now see a preview of the page content rather than a generic <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"http://Sarasota.tech\">Sarasota.tech</a> preview.</p></li><li><p>Improved page layout and mobile navigation in various parts of the app</p></li><li><p>Various improvements to admin section and features</p></li><li><p>Post editing / publishing from admin dashboard</p></li><li><p>Bulk account confirmation from admin dashboard</p></li><li><p>Misc UI updates and improvements.</p></li></ul><p>Feel free to reach out with any suggested updates or improvements. info@sarasota.tech</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1758657339281-image-2.png",
+      "tags": [
+        "update"
+      ],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2025-09-23 19:56:50.462+00",
+      "updatedAt": "2025-10-27 21:44:20.456+00"
+    },
+    {
+      "id": 43,
+      "title": "Kicking off Season 3 of Sarasota Tech",
+      "summary": "Sarasota Tech Announces New Board Members, Reveals 2026 Tech Summit Plans, and Expands Community Programming",
+      "body": "<p><strong>Sarasota, FL \u2014 September 2025</strong> \u2014 Sarasota Tech, the grassroots organization fueling the growth of Sarasota\u2019s innovation ecosystem, announced three new board members and unveiled details for its highly anticipated 2026 Tech Summit. The announcements mark the beginning of Sarasota Tech\u2019s third year of monthly meetups and community-driven programming.</p><p>Founded in 2023 by a small group of local entrepreneurs, Sarasota Tech has grown from a few friends in a bar to hundreds of tech professionals gathering at different locations around town each month. With no marketing budget or paid advertising, the group has expanded purely through word-of-mouth, hosting 31 events with more than 3,000 attendees over the last two years. The group is making waves as one of Florida\u2019s fastest growing tech communities, drawing attendees from as far as Tampa, Orlando and Miami.</p><blockquote><p>\u201cWhat started with six of us in a bar has now become a network of thousands,\u201d said Raymmar Tirado, Sarasota Tech co-founder. \u201cAs we enter our third year, we\u2019re excited to bring new energy to the board, expand our programming, and double down on putting Sarasota on the map as a place for technological innovation\u201d</p></blockquote><p>Joining the founding board are <strong>Neirda Pemberton</strong>, <strong>Jennifer Jensen</strong>, and <strong>Peter Offringa</strong>, who will help shape Sarasota Tech\u2019s next phase of growth. Together with co-founders Raymmar Tirado, Pete Petersen, Toli Marchuk and Vlad Ljesevic, the board will focus on expanding community events, preparing for the annual Tech Summit, and using technology to connect the community.</p><h3>Sarasota Tech Summit 2026</h3><p>The second annual <strong>Sarasota Tech Summit</strong> will take <strong>January 15, 2026</strong>, at the brand-new <strong>Mote SEA</strong> (Science Education Aquarium). The event will feature a world-class expo hall, interactive labs, breakout sessions, panel discussions and a rooftop VIP party. Organizers expect more than <strong>500 attendees</strong>, up from 350 at the inaugural summit earlier this year.</p><p>Programming will include:</p><ul><li><p><strong>Daytime Workshops &amp; Labs</strong> \u2014 Pitch deck coaching, investor meetups and founder networking along with other hands-on sessions.</p></li><li><p><strong>Evening Keynotes &amp; Panels</strong> \u2014 Spotlighting the regions most innovative founders, technologists, and investors.</p></li><li><p><strong>Networking &amp; Afterparty</strong> \u2014 Rooftop reception &amp; VIP afterparty</p></li></ul><p>\u201cThis summit isn\u2019t just about Sarasota,\u201d said <strong>Pete Petersen</strong>, Sarasota Tech co-founder. \u201cWe want to position this city as a marquee destination for tech professionals in Florida. The goal is to grow into a multi-day conference that brings thousands of people here\u2014founders, builders, and innovators from across the state.\u201d</p><h3>Membership and Sponsorship Opportunities</h3><p>Sarasota Tech recently launched a new <strong>member directory and online platform</strong> to help connect attendees. Members can create profiles and upgrade to an <strong>annual membership ($200)</strong>, which includes a corporate listing in the new directory as well as a ticket to the annual summit (regularly $250).</p><p>Sponsorship opportunities are now open for the 2026 Tech Summit. Last year\u2019s event sold out, and this year\u2019s expanded venue offers sponsors even greater visibility in front of a fast-growing network of entrepreneurs, technologists, and investors.</p><h3>About Sarasota Tech</h3><p>Sarasota Tech is a community-led nonprofit dedicated to building Sarasota into a premier hub for technology and innovation. Through monthly meetups, annual summits, and ongoing programming, Sarasota Tech connects founders, developers, investors, and operators to accelerate the region\u2019s entrepreneurial ecosystem.</p><p>For sponsorships, speaking opportunities, or membership inquiries, reach out to <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"mailto:info@sarasota.tech\">info@sarasota.tech</a> or visit <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"http://Sarasota.tech\">Sarasota.tech</a></p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1758561359016-STBoard.jpeg",
+      "tags": [
+        "summit 2026"
+      ],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2025-09-22 17:11:28.823+00",
+      "updatedAt": "2025-10-27 00:07:19.956+00"
+    },
+    {
+      "id": 42,
+      "title": "Season 3 Preview - Sarasota Tech",
+      "summary": "Get a sneak peek at what we are working on and what comes next with Sarasota Tech. ",
+      "body": "<p>This August marks two years since we hosted our first official Sarasota Tech event and it has been one hell of a ride. If I am being honest, I don\u2019t think any of us who were there in the early days expected this group to evolve into what it is today.</p><p>What <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://sarasota.tech/about\">started as a small meetup in a local bar</a> has become a thriving community and captured the attention of our entire region.</p><p>Over the last two years we have:</p><ul><li><p>Hosted 22 events drawing close to 3,000 attendees!</p></li><li><p>Sold out our first Tech Summit with 300+ attendees</p></li><li><p>Formed a 501c6 and became an official nonprofit</p></li><li><p>Raised more than $70,000 from founding members, ticket sales &amp; sponsors</p></li></ul><p>And the crazy part? We did this all with $0 spent on marketing or advertisings along the way.</p><p>The growth of this organization has been 100% word-of-mouth which means you are as much a part of this success as we are.</p><p>These early numbers make it clear that there is a significant demand for this type of community in our region and we plan to keep pushing the limits of what this organization can become.</p><p>But before we move forward full steam ahead we want to take a step back and make sure we lay a proper foundation for <strong>Season 3 of Sarasota Tech</strong>.</p><p>A new chapter focused on scaling impact, deepening relationships, and creating stronger systems to support our momentum.</p><p>Here\u2019s a snapshot of what\u2019s ahead:</p><h3><strong>1. Expanding the Board</strong></h3><p>We\u2019ve officially expanded our board with three new members who we will announce before our next event. Each brings a unique perspective and network that aligns with our trajectory and we\u2019re excited to invite them into our strategic planning.</p><h3><strong>2. Evolving the Format</strong></h3><p>We\u2019re using the summer to pause large public events and focus on internal strategy. Instead of our typical July or August meetup, we\u2019re planning a <strong>Season 3 launch in September</strong>. Expect a revamped cadence of events, improved planning, and more intentional programming with a focus on small groups and more intimate connections.</p><h3><strong>3. Empowering the Community</strong></h3><p>We\u2019re building out our infrastructure to support more <strong>community-led initiatives</strong> including small group meetups, interest-driven events, and invite-only gatherings. Our aim is to create a platform that other community leaders can plug into, while we focus on coordination, amplification, and content distribution.</p><h3><strong>4. Sarasota Tech Summit: January 2026</strong></h3><p>Planning has already begun for our next flagship event. Targeting <strong>500+ attendees</strong>, we're exploring exciting new venues and sponsorship opportunities. If you\u2019re interested in sponsoring or collaborating, now\u2019s the time to get involved.</p><h3><strong>5. Platform &amp; Comms</strong></h3><p>We\u2019re thinking about how to improve internal systems to better support member communication, onboarding, and access control. This includes:</p><ul><li><p>A new public newsletter and board updates via our website</p></li><li><p>Better tooling for small group leaders to connect with members</p></li><li><p>More organized documentation and processes for community contributors</p></li></ul><p>Thank you for your patience as we take some time to properly set ourselves up for long term success.</p><p>We will likely share a survey soon asking for more specific feedback but for now you can share any thoughts you might have about the group by replying to this message or sending an email to <a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"mailto:info@sarasota.tech\">info@sarasota.tech</a>.</p><p>If you're part of the community and want to get more involved, now\u2019s a great time to raise your hand. We\u2019re only as strong as the people who show up to help us build and there is much left to build.</p><p>Raymmar Tirado<br>Chairman, Sarasota Tech</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1752596117663--2---ST---CMPSE.jpeg",
+      "tags": [],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2025-07-15 16:16:04.022+00",
+      "updatedAt": "2025-07-15 16:16:04.022+00"
+    },
+    {
+      "id": 39,
+      "title": "Meet the all new Sarasota Tech member directory",
+      "summary": "We've been teasing this for a while but it's finally here. ",
+      "body": "",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1741618637661-STS_Jan'25-136%20compressed.jpeg",
+      "tags": [],
+      "ctaLink": "",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": true,
+      "createdAt": "2025-03-10 14:56:23.662+00",
+      "updatedAt": "2025-03-10 21:18:51.372+00"
+    },
+    {
+      "id": 31,
+      "title": "A Resounding Success: Highlights from Our Recent Tech Summit",
+      "summary": "With more than 300 attendees, our first sold-out tech summit surpassed all expectations.",
+      "body": "<p>Jan 9, 2025 we hosted our highly anticipated Tech Summit, and the results surpassed all expectations. The standing room only event left no doubt about the appetite for innovation and connection in our local tech community.</p><p>Here are a few write-ups from the community about the event:</p><ul><li><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.bizjournals.com/tampabay/inno/stories/news/2025/01/14/sarasota-tech-summit.html\">Writeup from the Tampa Bay Business Journal</a></p></li><li><p><a target=\"_blank\" rel=\"noopener noreferrer nofollow\" class=\"text-primary underline decoration-primary cursor-pointer\" href=\"https://www.linkedin.com/feed/update/urn:li:activity:7283546759061012482/\">Writeup on linkedIn</a></p></li></ul><p>Rave Reviews from Attendees</p><p>The event was electric from start to finish with back to back sessions ranging from is Sarasota Investable, to Emerging Tech Trends along with insights on what it takes to move the city forward.</p><blockquote><p>Great event! I\u2019ve been to events in another city and it was never about building up the community/tech scene. People here seem to genuinely want to help each other where in other places it was more about \u201cwhat can you do for me?\u201d</p></blockquote><blockquote><p>\"Your team was incredible, loved the insights from all the panelists. Excited for what\u2019s happening now.\"</p></blockquote><blockquote><p>\"Great event! Congratulations to all of you for putting this together and thanks for your hard work.\"</p></blockquote><blockquote><p>\"Great turn out. Great energy. Kudos to... the founders for an amazing event. Surpassed expectations.\"</p></blockquote><p>The success of this summit wouldn\u2019t have been possible without the incredible support from our Sponsors and general community.</p><p>From the attendees who brought their energy and curiosity, to the speakers who generously shared their expertise, to our dedicated team who worked tirelessly behind the scenes\u2014this was truly a collective effort.</p><p>Looking Ahead</p><p>While we\u2019re still riding high from the success of this summit, we\u2019re already thinking about how to make the next one even better. Your passion fuels our mission to create impactful events, and we can\u2019t wait to continue this journey with you.</p><p>Thank you to everyone who joined us and made this event unforgettable. Stay tuned for more exciting announcements\u2014the best is yet to come!</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1741641434434-6786d2fa7bf90a73e6449855_IMG_5488%20Large-p-500.jpg",
+      "tags": [
+        "tech",
+        "summit"
+      ],
+      "ctaLink": "https://www.dropbox.com/scl/fo/tx5vb725ywzytkfog1iv1/AGfyY_yWKWKsnOn64QjCXiA?rlkey=ue2nlaso4lrb3ug59memgqqmh&dl=0",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2025-03-08 04:31:07.667+00",
+      "updatedAt": "2025-03-10 21:17:51.742+00"
+    },
+    {
+      "id": 30,
+      "title": "Tech Summit Press Kit",
+      "summary": "Press release and media assets",
+      "body": "<p>Download the full press kit with marketing assets, press release and intro videos. Keep it bookmarked as it will update over time with additional resources.</p><p>\u200d</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1741408072747-Thumbnail%20%20Main.png",
+      "tags": [],
+      "ctaLink": "https://raymmar.notion.site/Tech-Summit-Media-Kit-15a7f5136ac1802cb40ace12a0cf01a2",
+      "videoUrl": "",
+      "isPinned": false,
+      "membersOnly": false,
+      "createdAt": "2025-03-08 04:29:18.499+00",
+      "updatedAt": "2025-03-08 04:29:18.499+00"
+    },
+    {
+      "id": 29,
+      "title": "Sarasota Tech Summit 2025",
+      "summary": "Can Sarasota Become a \u201cTech Town\"?",
+      "body": "<p><strong>Sarasota, FL</strong> \u2014 Sarasota Tech is excited to announce the inaugural <strong><em>Sarasota Tech Summit</em></strong> in collaboration with the Economic Development Corporation of Sarasota County and the Truist Foundation.&nbsp;</p><p>The event is set to take place on January 9, 2025, from 5:00 PM to 10:00 PM at the Art Ovation Hotel in downtown Sarasota. This premier event aims to bring together over 200 tech professionals, investors, and thought leaders from across the region, to explore pivotal topics shaping the future of technology.</p><p>Attendees will engage in discussions on subjects such as the investability of Sarasota startups, the multifaceted impacts of artificial intelligence, and the potential for Sarasota to emerge as a leading tech hub. The summit will also feature a Tech Town Hall, providing an open forum for community dialogue.</p><p>General admission includes a taco bar, cash bar, display area, networking opportunities with top regional tech professionals and investors, along with insights into current tech trends. VIP ticket holders will enjoy all general admission benefits, a VIP meet-and-greet before the event as well as entry to a rooftop afterparty with a complimentary drink ticket.</p><p>Early bird discounts are available through December 20, offering 25% off any ticket purchase with the code EARLY25.&nbsp;</p><p>Tickets can be purchased at https://lu.ma/r21g3q5c?coupon=EARLY25&nbsp;</p><p>The Sarasota Tech Summit is made possible by the generous support of sponsors such as the Economic Development Corporation of Sarasota County and the Truist Foundation, along with numerous startup and advisory sponsors.</p><p>For more information or to inquire about bulk ticket discounts please reach out to the contact listed below.&nbsp;</p><p><strong>About Sarasota Tech</strong></p><p>Sarasota Tech is a grassroots community initiative dedicated to connecting Sarasota's tech community and driving the city forward.</p><p><strong>Media Contact:</strong></p><p>Raymmar Tirado<br>me@raymmar.com</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1741407871857-STS_Jan'25-109%20compressed.jpeg",
+      "tags": [],
+      "ctaLink": "https://www.dropbox.com/scl/fo/tx5vb725ywzytkfog1iv1/AGfyY_yWKWKsnOn64QjCXiA?rlkey=ue2nlaso4lrb3ug59memgqqmh&dl=0",
+      "videoUrl": "https://www.dropbox.com/s/lewewtv3phegpo8/Sarasota%20Tech%20Summit%20Full%20recording%2001-09-2025_v3.mp4?dl=0",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2025-03-08 04:26:04.191+00",
+      "updatedAt": "2025-03-08 05:50:58.864+00"
+    },
+    {
+      "id": 28,
+      "title": "Sarasota Tech Intro",
+      "summary": "Welcome to Sarasota Tech",
+      "body": "<p>We're on a mission to connect the local tech community and push Sarasota forward.</p><h3><strong>3rd Thursday</strong></h3><p>We meet on the third Thursday of every month.</p><p>\ud83d\uddd3\ufe0f - Check the \u200bEvent Calendar\u200b and join us for our next event.</p><h2><strong>What to Expect</strong></h2><p>We bounce around to different locations every month.</p><p>Sometimes we meet at a bar/restaurant, sometimes at a local business HQ. Either way it's always a blast!</p><p>Our events are intended to be casual and dynamic so bring your A-game as you connect with Sarasota's top tech professionals.</p>",
+      "featuredImage": "https://file-upload.replit.app/api/storage/images%2F1742363648248-LAS-105%201.png",
+      "tags": [
+        "about us"
+      ],
+      "ctaLink": "https://www.sarasota.tech/updates/explore-photos-from-our-feb-tech-jam",
+      "videoUrl": "https://www.youtube.com/watch?v=JMy4CmxWMlE",
+      "isPinned": true,
+      "membersOnly": false,
+      "createdAt": "2025-03-08 04:20:39.876+00",
+      "updatedAt": "2025-03-19 05:54:10.158+00"
+    }
+  ],
+  "people": [
+    {
+      "id": 53,
+      "api_id": "peter-offringa",
+      "userName": "Peter Offringa",
+      "fullName": "Peter Offringa",
+      "avatarUrl": "/__mockup/images/community-09.img",
+      "bio": "Software development exec in San Francisco until 2015. Now focused on angel investing and building Sarasota's start-up ecosystem.",
+      "slug": "peter-offringa",
+      "isVerified": true,
+      "eventCount": 32,
+      "stats": {
+        "totalEventsAttended": 32
+      }
+    },
+    {
+      "id": 4,
+      "api_id": "raymmar",
+      "userName": "Raymmar",
+      "fullName": "Raymmar",
+      "avatarUrl": "/__mockup/images/community-10.img",
+      "bio": "\ud83d\udc4b\ud83c\udffd Welcome to our new member portal for the Sarasota Tech community. ",
+      "slug": "raymmar",
+      "isVerified": true,
+      "eventCount": 29,
+      "stats": {
+        "totalEventsAttended": 29
+      }
+    },
+    {
+      "id": 8,
+      "api_id": "lou-franco",
+      "userName": "Lou Franco",
+      "fullName": "Lou Franco",
+      "avatarUrl": "/__mockup/images/community-11.img",
+      "bio": "Software product development veteran with experience delivering software for financial institutions, enterprise companies, and startups.",
+      "slug": "lou-franco",
+      "isVerified": true,
+      "eventCount": 28,
+      "stats": {
+        "totalEventsAttended": 28
+      }
+    },
+    {
+      "id": 14,
+      "api_id": "pete",
+      "userName": "Pete Petersen",
+      "fullName": "Pete Petersen",
+      "avatarUrl": "/__mockup/images/community-12.img",
+      "bio": "Father of 3 // CEO, investor, advisor // coFounder Sarasota Tech ",
+      "slug": "pete",
+      "isVerified": true,
+      "eventCount": 25,
+      "stats": {
+        "totalEventsAttended": 25
+      }
+    },
+    {
+      "id": 5,
+      "api_id": "toli",
+      "userName": "Toli",
+      "fullName": "Toli",
+      "avatarUrl": "/__mockup/images/community-13.img",
+      "bio": "Founder, Father.",
+      "slug": "toli",
+      "isVerified": true,
+      "eventCount": 25,
+      "stats": {
+        "totalEventsAttended": 25
+      }
+    },
+    {
+      "id": 435,
+      "api_id": "allan-mackinnon",
+      "userName": "Allan MacKinnon",
+      "fullName": "Allan MacKinnon",
+      "avatarUrl": "/__mockup/images/community-14.img",
+      "bio": null,
+      "slug": "allan-mackinnon",
+      "isVerified": true,
+      "eventCount": 25,
+      "stats": {
+        "totalEventsAttended": 25
+      }
+    },
+    {
+      "id": 37,
+      "api_id": "jennifer-jensen",
+      "userName": "Jennifer Jensen",
+      "fullName": "Jennifer Jensen",
+      "avatarUrl": "/__mockup/images/community-15.img",
+      "bio": "I help founders and companies bring physical product ideas to life through design, prototyping, & manufacturing.",
+      "slug": "jennifer-jensen",
+      "isVerified": true,
+      "eventCount": 24,
+      "stats": {
+        "totalEventsAttended": 24
+      }
+    },
+    {
+      "id": 60,
+      "api_id": "josh-murack",
+      "userName": "Josh Murack",
+      "fullName": "Josh Murack",
+      "avatarUrl": "/__mockup/images/community-16.img",
+      "bio": null,
+      "slug": "josh-murack",
+      "isVerified": true,
+      "eventCount": 23,
+      "stats": {
+        "totalEventsAttended": 23
+      }
+    },
+    {
+      "id": 107,
+      "api_id": "travis-priest",
+      "userName": "Travis Priest",
+      "fullName": "Travis Priest",
+      "avatarUrl": "/__mockup/images/community-17.img",
+      "bio": "CEO, Suncoast Venture Studio - \nBuilding Florida's Venture Coast\u2122\ufe0f\n",
+      "slug": "travis-priest",
+      "isVerified": true,
+      "eventCount": 22,
+      "stats": {
+        "totalEventsAttended": 22
+      }
+    },
+    {
+      "id": 34,
+      "api_id": "jason-metnick",
+      "userName": "Jason metnick",
+      "fullName": "Jason metnick",
+      "avatarUrl": "/__mockup/images/community-18.img",
+      "bio": null,
+      "slug": "jason-metnick",
+      "isVerified": false,
+      "eventCount": 22,
+      "stats": {
+        "totalEventsAttended": 22
+      }
+    },
+    {
+      "id": 600,
+      "api_id": "boris-livshutz",
+      "userName": "Boris Livshutz",
+      "fullName": "Boris Livshutz",
+      "avatarUrl": "/__mockup/images/community-19.img",
+      "bio": null,
+      "slug": "boris-livshutz",
+      "isVerified": true,
+      "eventCount": 22,
+      "stats": {
+        "totalEventsAttended": 22
+      }
+    },
+    {
+      "id": 51,
+      "api_id": "dan-forno",
+      "userName": "Dan Forno",
+      "fullName": "Dan Forno",
+      "avatarUrl": "/__mockup/images/community-20.img",
+      "bio": null,
+      "slug": "dan-forno",
+      "isVerified": false,
+      "eventCount": 22,
+      "stats": {
+        "totalEventsAttended": 22
+      }
+    },
+    {
+      "id": 1191,
+      "api_id": "michael-malak",
+      "userName": "Michael Malak",
+      "fullName": "Michael Malak",
+      "avatarUrl": "/__mockup/images/community-21.img",
+      "bio": "Full-time full-remote agentic AI at Oracle.\n\nhttps://linkedin.com/in/michaelmalak",
+      "slug": "michael-malak",
+      "isVerified": true,
+      "eventCount": 20,
+      "stats": {
+        "totalEventsAttended": 20
+      }
+    },
+    {
+      "id": 606,
+      "api_id": "nico-a-marchitello",
+      "userName": "Nico A Marchitello",
+      "fullName": "Nico A Marchitello",
+      "avatarUrl": "/__mockup/images/community-22.img",
+      "bio": null,
+      "slug": "nico-a-marchitello",
+      "isVerified": true,
+      "eventCount": 19,
+      "stats": {
+        "totalEventsAttended": 19
+      }
+    },
+    {
+      "id": 155,
+      "api_id": "dennis-cagan",
+      "userName": "Dennis Cagan",
+      "fullName": "Dennis Cagan",
+      "avatarUrl": "/__mockup/images/community-23.img",
+      "bio": "Shadow CEO\u00ae - supporting early and mid-stage entrepreneurs & private company owners and CEOs in advancing their companies to the next level.",
+      "slug": "dennis-cagan",
+      "isVerified": true,
+      "eventCount": 19,
+      "stats": {
+        "totalEventsAttended": 19
+      }
+    },
+    {
+      "id": 13,
+      "api_id": "vlad-ljesevic",
+      "userName": "Vlad Ljesevic",
+      "fullName": "Vlad Ljesevic",
+      "avatarUrl": "https://images.lumacdn.com/avatars/qj/432ce2ac-587b-4dcd-9d7a-4ae0ca1b4042.png",
+      "bio": "Co-Founder and Managing Partner @ Compose | Investor | Advisor | Co-Founder @ Sarasota.Tech",
+      "slug": "vlad-ljesevic",
+      "isVerified": true,
+      "eventCount": 19,
+      "stats": {
+        "totalEventsAttended": 19
+      }
+    },
+    {
+      "id": 79,
+      "api_id": "lijoy-joy",
+      "userName": "Lijoy Joy",
+      "fullName": "Lijoy Joy",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_42.png",
+      "bio": null,
+      "slug": "lijoy-joy",
+      "isVerified": true,
+      "eventCount": 19,
+      "stats": {
+        "totalEventsAttended": 19
+      }
+    },
+    {
+      "id": 636,
+      "api_id": "brian-anderson",
+      "userName": "Brian Anderson",
+      "fullName": "Brian Anderson",
+      "avatarUrl": "https://images.lumacdn.com/avatars/nq/e5cfdd0a-624b-48c6-bc55-eb64040aefdc.jpg",
+      "bio": null,
+      "slug": "brian-anderson",
+      "isVerified": true,
+      "eventCount": 19,
+      "stats": {
+        "totalEventsAttended": 19
+      }
+    },
+    {
+      "id": 385,
+      "api_id": "peter-macias",
+      "userName": "Peter Macias",
+      "fullName": "Peter Macias",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_8.png",
+      "bio": null,
+      "slug": "peter-macias",
+      "isVerified": true,
+      "eventCount": 19,
+      "stats": {
+        "totalEventsAttended": 19
+      }
+    },
+    {
+      "id": 75,
+      "api_id": "luis-dynia-sanchez",
+      "userName": "Luis Dynia Sanchez",
+      "fullName": "Luis Dynia Sanchez",
+      "avatarUrl": "https://images.lumacdn.com/avatars/rg/038aa364-d908-4f59-8a3d-0e9f660c4eb7.png",
+      "bio": null,
+      "slug": "luis-dynia-sanchez",
+      "isVerified": false,
+      "eventCount": 18,
+      "stats": {
+        "totalEventsAttended": 18
+      }
+    },
+    {
+      "id": 622,
+      "api_id": "kadi-findling",
+      "userName": "Kadi Findling",
+      "fullName": "Kadi Findling",
+      "avatarUrl": "https://images.lumacdn.com/avatars/w6/1f844a12-ed87-4f1c-b150-50d4c4c93070",
+      "bio": null,
+      "slug": "kadi-findling",
+      "isVerified": true,
+      "eventCount": 17,
+      "stats": {
+        "totalEventsAttended": 17
+      }
+    },
+    {
+      "id": 124,
+      "api_id": "aaron-rodriguez",
+      "userName": "Aaron Rodriguez",
+      "fullName": "Aaron Rodriguez",
+      "avatarUrl": "https://images.lumacdn.com/avatars/gt/3af9da67-8ee3-4ed5-a79d-7ffc58897b92.jpg",
+      "bio": "LSU Tiger, Martial Artist, IT Engineer/Business Owner, avid Jet Skier, Porsche aficionado, USAF Veteran... the list goes on & on.  :-)",
+      "slug": "aaron-rodriguez",
+      "isVerified": true,
+      "eventCount": 17,
+      "stats": {
+        "totalEventsAttended": 17
+      }
+    },
+    {
+      "id": 25,
+      "api_id": "jason-graber-1",
+      "userName": "Jason Graber",
+      "fullName": "Jason Graber",
+      "avatarUrl": "https://images.lumacdn.com/avatars/0p/7a6f78d6-c18c-4dc3-a260-7b6dc6db8b12.jpg",
+      "bio": "Husband and Dad to 5 amazing kiddos. CEO at Shed Suite living in sunny Sarasota FL playing as much pickleball as I possibly can \ud83d\ude09",
+      "slug": "jason-graber-1",
+      "isVerified": true,
+      "eventCount": 17,
+      "stats": {
+        "totalEventsAttended": 17
+      }
+    },
+    {
+      "id": 520,
+      "api_id": "darren-frei",
+      "userName": "Darren Frei",
+      "fullName": "Darren Frei",
+      "avatarUrl": "/__mockup/images/community-16.img",
+      "bio": null,
+      "slug": "darren-frei",
+      "isVerified": true,
+      "eventCount": 17,
+      "stats": {
+        "totalEventsAttended": 17
+      }
+    },
+    {
+      "id": 18,
+      "api_id": "david-polimeni",
+      "userName": "David Polimeni",
+      "fullName": "David Polimeni",
+      "avatarUrl": "https://images.lumacdn.com/avatars/ru/6f884544-95ae-4bf4-8e99-4a5b69451c16",
+      "bio": null,
+      "slug": "david-polimeni",
+      "isVerified": true,
+      "eventCount": 17,
+      "stats": {
+        "totalEventsAttended": 17
+      }
+    },
+    {
+      "id": 473,
+      "api_id": "ben-curren",
+      "userName": "Ben Curren",
+      "fullName": "Ben Curren",
+      "avatarUrl": "/__mockup/images/community-19.img",
+      "bio": null,
+      "slug": "ben-curren",
+      "isVerified": true,
+      "eventCount": 17,
+      "stats": {
+        "totalEventsAttended": 17
+      }
+    },
+    {
+      "id": 9,
+      "api_id": "evan-reid",
+      "userName": "Evan Reid",
+      "fullName": "Evan Reid",
+      "avatarUrl": "https://images.lumacdn.com/avatars/nu/fa0131a8-b1ff-413f-b7a0-b368c5b6fa4f",
+      "bio": null,
+      "slug": "evan-reid",
+      "isVerified": true,
+      "eventCount": 16,
+      "stats": {
+        "totalEventsAttended": 16
+      }
+    },
+    {
+      "id": 275,
+      "api_id": "tom-gardner",
+      "userName": "Tom Gardner",
+      "fullName": "Tom Gardner",
+      "avatarUrl": "/__mockup/images/community-16.img",
+      "bio": null,
+      "slug": "tom-gardner",
+      "isVerified": true,
+      "eventCount": 16,
+      "stats": {
+        "totalEventsAttended": 16
+      }
+    },
+    {
+      "id": 70,
+      "api_id": "michael-demassa",
+      "userName": "Michael DeMassa",
+      "fullName": "Michael DeMassa",
+      "avatarUrl": "https://images.lumacdn.com/avatars/9k/8ea82536-019f-4181-9ded-2c93b53e520e.jpg",
+      "bio": "Analytical Problem-Solver for Your Wealth Management Needs",
+      "slug": "michael-demassa",
+      "isVerified": true,
+      "eventCount": 16,
+      "stats": {
+        "totalEventsAttended": 16
+      }
+    },
+    {
+      "id": 115,
+      "api_id": "dr-ray-work",
+      "userName": "Dr. Ray Work",
+      "fullName": "Dr. Ray Work",
+      "avatarUrl": "/__mockup/images/community-14.img",
+      "bio": null,
+      "slug": "dr-ray-work",
+      "isVerified": true,
+      "eventCount": 16,
+      "stats": {
+        "totalEventsAttended": 16
+      }
+    },
+    {
+      "id": 133,
+      "api_id": "nathalie-de-vazeille",
+      "userName": "Nathalie de Vazeille",
+      "fullName": "Nathalie de Vazeille",
+      "avatarUrl": "https://images.lumacdn.com/avatars/2n/6c3a08b6-e940-48e2-beeb-e57892b1041b",
+      "bio": null,
+      "slug": "nathalie-de-vazeille",
+      "isVerified": true,
+      "eventCount": 16,
+      "stats": {
+        "totalEventsAttended": 16
+      }
+    },
+    {
+      "id": 137,
+      "api_id": "jeremiah-smith",
+      "userName": "Jeremiah Smith",
+      "fullName": "Jeremiah Smith",
+      "avatarUrl": "https://images.lumacdn.com/avatars/g3/d6010ec6-0031-47ee-ae7f-d602f08d21b5.jpg",
+      "bio": null,
+      "slug": "jeremiah-smith",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 101,
+      "api_id": "emma-tsuber",
+      "userName": "Emma Tsuber",
+      "fullName": "Emma Tsuber",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_45.png",
+      "bio": null,
+      "slug": "emma-tsuber",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 515,
+      "api_id": "jeff-fugitt",
+      "userName": "Jeff Fugitt",
+      "fullName": "Jeff Fugitt",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_9.png",
+      "bio": null,
+      "slug": "jeff-fugitt",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 84,
+      "api_id": "jose-martinez",
+      "userName": "Jose Martinez",
+      "fullName": "Jose Martinez",
+      "avatarUrl": "https://images.lumacdn.com/avatars/wm/2f888ca1-4f2a-4f4c-95fb-c7a386f4a3fc",
+      "bio": "A management consultant with over 25 years helping Fortune 500 companies with business transformation.",
+      "slug": "jose-martinez",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 72,
+      "api_id": "rudy-poe",
+      "userName": "Rudy Poe",
+      "fullName": "Rudy Poe",
+      "avatarUrl": "https://images.lumacdn.com/avatars/ig/166c1d72-52ab-40cc-99ad-87dbfd4aa4ed.jpg",
+      "bio": null,
+      "slug": "rudy-poe",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 596,
+      "api_id": "rick-schendel",
+      "userName": "Rick Schendel",
+      "fullName": "Rick Schendel",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_38.png",
+      "bio": null,
+      "slug": "rick-schendel",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 430,
+      "api_id": "jon-stuart",
+      "userName": "Jon Stuart",
+      "fullName": "Jon Stuart",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_4.png",
+      "bio": null,
+      "slug": "jon-stuart",
+      "isVerified": true,
+      "eventCount": 15,
+      "stats": {
+        "totalEventsAttended": 15
+      }
+    },
+    {
+      "id": 1071,
+      "api_id": "erik-pendleton",
+      "userName": "Erik Pendleton",
+      "fullName": "Erik Pendleton",
+      "avatarUrl": "https://images.lumacdn.com/avatars/so/6a8f3857-f3a2-47c1-9aac-653bddce8e6b.png",
+      "bio": null,
+      "slug": "erik-pendleton",
+      "isVerified": true,
+      "eventCount": 14,
+      "stats": {
+        "totalEventsAttended": 14
+      }
+    },
+    {
+      "id": 118,
+      "api_id": "john-westerman",
+      "userName": "John Westerman ",
+      "fullName": "John Westerman ",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_35.png",
+      "bio": null,
+      "slug": "john-westerman",
+      "isVerified": true,
+      "eventCount": 14,
+      "stats": {
+        "totalEventsAttended": 14
+      }
+    },
+    {
+      "id": 612,
+      "api_id": "susan-la-sky",
+      "userName": "Susan La Sky",
+      "fullName": "Susan La Sky",
+      "avatarUrl": "https://images.lumacdn.com/avatars/xs/aec4fdb5-868e-464d-a738-ff8d0a8a4847.jpg",
+      "bio": "Silicon Sky Tech Brokers. We bring you business from contact to contract. We aim, point, then shoot, always on target. www.SiliconSky.net",
+      "slug": "susan-la-sky",
+      "isVerified": true,
+      "eventCount": 14,
+      "stats": {
+        "totalEventsAttended": 14
+      }
+    },
+    {
+      "id": 146,
+      "api_id": "jawaid-bazyar",
+      "userName": "Jawaid Bazyar",
+      "fullName": "Jawaid Bazyar",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_9.png",
+      "bio": null,
+      "slug": "jawaid-bazyar",
+      "isVerified": true,
+      "eventCount": 14,
+      "stats": {
+        "totalEventsAttended": 14
+      }
+    },
+    {
+      "id": 58,
+      "api_id": "liz-stamoulis",
+      "userName": "Liz Stamoulis",
+      "fullName": "Liz Stamoulis",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_3.png",
+      "bio": null,
+      "slug": "liz-stamoulis",
+      "isVerified": false,
+      "eventCount": 14,
+      "stats": {
+        "totalEventsAttended": 14
+      }
+    },
+    {
+      "id": 94,
+      "api_id": "will-dolan",
+      "userName": "Will Dolan",
+      "fullName": "Will Dolan",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_3.png",
+      "bio": null,
+      "slug": "will-dolan",
+      "isVerified": true,
+      "eventCount": 14,
+      "stats": {
+        "totalEventsAttended": 14
+      }
+    },
+    {
+      "id": 24,
+      "api_id": "jay-brady",
+      "userName": "Jay Brady",
+      "fullName": "Jay Brady",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_38.png",
+      "bio": "With my extensive network of contacts, and working on commissions, I help your tech company sell its products and services nationally.",
+      "slug": "jay-brady",
+      "isVerified": true,
+      "eventCount": 13,
+      "stats": {
+        "totalEventsAttended": 13
+      }
+    },
+    {
+      "id": 1182,
+      "api_id": "evan-st-lifer",
+      "userName": "Evan St Lifer",
+      "fullName": "Evan St Lifer",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_18.png",
+      "bio": null,
+      "slug": "evan-st-lifer",
+      "isVerified": true,
+      "eventCount": 13,
+      "stats": {
+        "totalEventsAttended": 13
+      }
+    },
+    {
+      "id": 123,
+      "api_id": "suzana",
+      "userName": "Suzana",
+      "fullName": "Suzana",
+      "avatarUrl": "https://images.lumacdn.com/avatars/kn/d56ebb96-5d3a-468e-bf69-5b23f0e6b6db.jpg",
+      "bio": null,
+      "slug": "suzana",
+      "isVerified": true,
+      "eventCount": 13,
+      "stats": {
+        "totalEventsAttended": 13
+      }
+    },
+    {
+      "id": 167,
+      "api_id": "neirda-thompson-pemberton",
+      "userName": "Neirda Thompson Pemberton",
+      "fullName": "Neirda Thompson Pemberton",
+      "avatarUrl": "https://file-upload.replit.app/api/storage/images%2F1792276586932-7414.jpeg",
+      "bio": null,
+      "slug": "neirda-thompson-pemberton",
+      "isVerified": true,
+      "eventCount": 13,
+      "stats": {
+        "totalEventsAttended": 13
+      }
+    },
+    {
+      "id": 594,
+      "api_id": "jim-breton",
+      "userName": "Jim Breton",
+      "fullName": "Jim Breton",
+      "avatarUrl": "https://cdn.lu.ma/avatars-default/avatar_32.png",
+      "bio": null,
+      "slug": "jim-breton",
+      "isVerified": true,
+      "eventCount": 13,
+      "stats": {
+        "totalEventsAttended": 13
+      }
+    },
+    {
+      "id": 162,
+      "api_id": "shalaine-mclaughlin",
+      "userName": "Shalaine McLaughlin",
+      "fullName": "Shalaine McLaughlin",
+      "avatarUrl": "https://images.lumacdn.com/avatars/yk/2dbfadc4-fe2b-4a97-b809-d42fa6d476fd.png",
+      "bio": null,
+      "slug": "shalaine-mclaughlin",
+      "isVerified": true,
+      "eventCount": 12,
+      "stats": {
+        "totalEventsAttended": 12
+      }
+    }
+  ],
+  "peopleTotal": 1304,
+  "featuredMember": {
+    "id": 13399072,
+    "api_id": "usr-IEwserNYXEvd9DC",
+    "userName": "Trevor Ewen",
+    "fullName": null,
+    "avatarUrl": "/__mockup/images/community-59.img",
+    "bio": null,
+    "stats": {
+      "lastUpdated": "2026-10-16T00:09:15.250Z",
+      "lastEventDate": "2026-09-23 14:59:40.439+00",
+      "firstEventDate": "2026-01-05 15:06:05.332+00",
+      "totalEventsAttended": 8
+    }
+  },
+  "sponsors": [
+    {
+      "id": 8,
+      "name": "Suncoast Venture Studio",
+      "logo": "/__mockup/images/community-25.img",
+      "url": "https://suncoast.studio/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": 41
+    },
+    {
+      "id": 11,
+      "name": "S-One Holdings",
+      "logo": "/__mockup/images/community-26.img",
+      "url": "https://sone.com",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": 19
+    },
+    {
+      "id": 6,
+      "name": "Rite Technology",
+      "logo": "/__mockup/images/community-27.img",
+      "url": "https://ritefl.com/",
+      "logoPadding": 16,
+      "tier": "Angel",
+      "year": 2026,
+      "companyId": 31
+    },
+    {
+      "id": 15,
+      "name": "Bridge Angel investors",
+      "logo": "/__mockup/images/community-28.img",
+      "url": "https://www.bridgeangelinvestors.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": 28
+    },
+    {
+      "id": 4,
+      "name": "Williams Parker",
+      "logo": "/__mockup/images/community-29.img",
+      "url": "https://www.williamsparker.com/",
+      "logoPadding": 32,
+      "tier": "Seed",
+      "year": 2026,
+      "companyId": 33
+    },
+    {
+      "id": 13,
+      "name": "RevContent",
+      "logo": "/__mockup/images/community-30.img",
+      "url": "https://www.revcontent.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": 23
+    },
+    {
+      "id": 5,
+      "name": "ROBRADY design + production + capital",
+      "logo": "/__mockup/images/community-31.img",
+      "url": "https://www.robrady.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": 22
+    },
+    {
+      "id": 3,
+      "name": "Rework Capital",
+      "logo": "/__mockup/images/community-32.img",
+      "url": "https://www.rework.capital/",
+      "logoPadding": 16,
+      "tier": "Series A",
+      "year": 2026,
+      "companyId": 46
+    },
+    {
+      "id": 28,
+      "name": "Sarasota Chamber of Commerce",
+      "logo": "/__mockup/images/community-33.img",
+      "url": "https://www.sarasotachamber.com/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 20,
+      "name": "The Florida High Tech Corridor",
+      "logo": "/__mockup/images/community-34.img",
+      "url": "https://floridahightech.com/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 25,
+      "name": "Gulf Coast CEO Forum",
+      "logo": "/__mockup/images/community-35.img",
+      "url": "https://www.gulfcoastceoforum.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 26,
+      "name": "University of Florida",
+      "logo": "/__mockup/images/community-36.img",
+      "url": "https://www.ufl.edu/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 27,
+      "name": "Business Observer",
+      "logo": "/__mockup/images/community-37.img",
+      "url": "https://www.businessobserverfl.com/",
+      "logoPadding": 48,
+      "tier": "Seed",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 39,
+      "name": "Northern Trust",
+      "logo": "/__mockup/images/community-38.img",
+      "url": "https://www.northerntrust.com/united-states/home",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 17,
+      "name": "FUNducation",
+      "logo": "/__mockup/images/community-39.img",
+      "url": "https://funducation.org/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 33,
+      "name": "Economic Development Corporation of Sarasota County",
+      "logo": "/__mockup/images/community-40.img",
+      "url": "http://www.edcsarasotacounty.com",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 31,
+      "name": "CareerSource Suncoast",
+      "logo": "/__mockup/images/community-41.img",
+      "url": "https://careersourcesuncoast.com",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": 66
+    },
+    {
+      "id": 34,
+      "name": "   \t Applied Data Science @New College",
+      "logo": "/__mockup/images/community-42.img",
+      "url": "https://www.ncf.edu/academics/grad-applied-data-science/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 12,
+      "name": "Forza Wealth Management",
+      "logo": "/__mockup/images/community-43.img",
+      "url": "https://www.forzawealth.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 10,
+      "name": "Shumaker Law",
+      "logo": "/__mockup/images/community-44.img",
+      "url": "https://www.shumaker.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 42,
+      "name": "Makschu Productions",
+      "logo": "/__mockup/images/community-45.img",
+      "url": "https://www.makschu.com/",
+      "logoPadding": 16,
+      "tier": "Angel",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 18,
+      "name": "Suncoast Science Center/Faulhaber Fab Lab",
+      "logo": "/__mockup/images/community-46.img",
+      "url": "https://www.suncoastscience.org/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 41,
+      "name": "City of Sarasota",
+      "logo": "/__mockup/images/community-47.img",
+      "url": "https://www.sarasotafl.gov/Home",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 16,
+      "name": "Gulf Coast Community Foundation",
+      "logo": "/__mockup/images/community-48.img",
+      "url": "https://www.gulfcoastcf.org/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 36,
+      "name": "RAZE Fintech",
+      "logo": "/__mockup/images/community-49.img",
+      "url": "https://www.raze.finance/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 40,
+      "name": "State College of Florida",
+      "logo": "/__mockup/images/community-50.img",
+      "url": "",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 23,
+      "name": "NEO",
+      "logo": "/__mockup/images/community-51.img",
+      "url": "https://www.newestateonly.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 43,
+      "name": "Rewired Technologies",
+      "logo": "/__mockup/images/community-52.img",
+      "url": "",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 14,
+      "name": "University of South Florida Muma College of Business, Sarasota-Manatee",
+      "logo": "/__mockup/images/community-53.img",
+      "url": "https://www.usf.edu/business/about/campus-sarasota-manatee.aspx",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 19,
+      "name": "Mote Marine Laboratory",
+      "logo": "/__mockup/images/community-54.img",
+      "url": "https://mote.org/aquarium/sea-visitor-information/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 32,
+      "name": "Sarasota Paradise",
+      "logo": "/__mockup/images/community-55.img",
+      "url": "https://www.sarasotaparadise.us/",
+      "logoPadding": 16,
+      "tier": "Angel",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 9,
+      "name": "Shepherd Insurance",
+      "logo": "/__mockup/images/community-56.img",
+      "url": "https://www.shepherdins.com/",
+      "logoPadding": 16,
+      "tier": "Friends & Family",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 24,
+      "name": "Ringling College of Art + Design",
+      "logo": "/__mockup/images/community-57.img",
+      "url": "https://www.ringling.edu/",
+      "logoPadding": 16,
+      "tier": "501c3/.edu",
+      "year": 2026,
+      "companyId": null
+    },
+    {
+      "id": 7,
+      "name": "Precision Health and Aesthetics",
+      "logo": "/__mockup/images/community-58.img",
+      "url": "https://myprecisionhealth.com/",
+      "logoPadding": 16,
+      "tier": "Angel",
+      "year": 2026,
+      "companyId": null
+    }
+  ],
+  "summit": {
+    "id": 3,
+    "year": 2027,
+    "title": "2027 Sarasota Tech Summit",
+    "tagline": null,
+    "description": "The third annual tech summit will take place at the world-class expo hall at Mote SEA Aquarium.\n\n\u200bThis year we are expanding our offering to include proper classrooms for multiple tracks, an interactive startup fair with breakout sessions, a pitch competition, panel discussions, keynote presentations, VIP afterparty and so much more.",
+    "startDate": "2027-02-18",
+    "endDate": "2027-02-18",
+    "dateLabel": null,
+    "venueName": "Mote SEA Aquarium",
+    "venueAddress": "225 University Town Center Dr, Sarasota, FL 34243, USA",
+    "venueMapUrl": "https://www.google.com/maps/search/?api=1&query=Mote%20Science%20Education%20Aquarium%20(SEA)%2C%20225%20University%20Town%20Center%20Dr%2C%20Sarasota%2C%20FL%2034243%2C%20USA",
+    "ticketUrl": "/memberships",
+    "showLearnMore": true,
+    "photosUrl": null,
+    "videoEmbedUrl": null,
+    "heroImage": "https://file-upload.replit.app/api/storage/images%2F1792276861420-Summit-Tease-centered-large-text.png",
+    "logoImage": null,
+    "dateBlockImage": null,
+    "seoImage": "https://file-upload.replit.app/api/storage/images%2F1792276861420-Summit-Tease-centered-large-text.png",
+    "presentedByName": null,
+    "presentedByUrl": null,
+    "presentingSponsorId": null,
+    "lumaEventApiId": "evt-PCUIl3jYgIldoo5",
+    "lumaOverrides": [
+      "seoImage",
+      "venueName",
+      "description",
+      "ticketUrl"
+    ],
+    "galleryImages": [],
+    "highlights": [],
+    "links": [],
+    "isPublished": true,
+    "isCurrent": true,
+    "createdAt": "2026-10-15 05:21:27.286426+00",
+    "updatedAt": "2026-10-17 22:41:10.76+00",
+    "presentingSponsor": null
+  },
+  "stats": {
+    "events": 43,
+    "totalAttendees": 6868,
+    "uniqueAttendees": 3167,
+    "syncing": false
+  },
+  "logo": "/__mockup/images/sarasota-logo.png"
+}

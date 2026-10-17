@@ -11,3 +11,6 @@ description: Decisions behind global sponsors with yearly sponsorships, the lega
   **Why:** Publish applies schema before the new code's data step runs; dropping them in the same release would lose production's sponsor years.
 - Legacy-row detection is "no sponsorship row in ANY state (incl. removed) for the row's own year", so removing a sponsor from a year is never undone by a restart.
 - Summit "Presented by" links to a sponsor; old text columns are a fallback only when nothing is linked. Clearing the presenting sponsor also empties the text so the data step can't relink it.
+- Sponsor records are intended to evolve into CRM records for fundraising and other actions; the owner wants configurable sponsorship categories as the tightly scoped first phase.
+  **Why:** The owner wants versatile sponsor identities and future event-only sponsorships without requiring annual sponsorship or a tier.
+  **How to apply:** Keep sponsor identity separate from sponsorship participation and tier classification. Do not expand category work into CRM features or event sponsorship implementation without approval.

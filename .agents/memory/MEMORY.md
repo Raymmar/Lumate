@@ -8,3 +8,4 @@
 - [Stripe webhook endpoints](stripe-webhooks.md) — dev key is live; dev must never create endpoints (16 limit); stale dev endpoints need owner OK to delete.
 - [Member event coupons](member-coupons.md) — one coupon per member per event (any status); dev issuance is real; Luma create vs update endpoints differ.
 - [About page board identity](about-page.md) — “Bored of Directors” is intentional wordplay; preserve the heading and badge spelling.
+- [Homepage design constraints](homepage-design.md) — exact published content, existing brand, dense layout; explore hierarchy, not invented copy or rebranding.
