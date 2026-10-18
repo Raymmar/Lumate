@@ -7,6 +7,7 @@ import { users, userPeopleLinks, cacheMetadata } from '@shared/schema';
 import { EventEmitter } from 'events';
 import { LumaMembershipService } from './LumaMembershipService';
 import { syncStatusService } from './SyncStatusService';
+import { automaticSyncsEnabled, shouldStartAutomaticSync } from './automaticSyncPolicy';
 
 interface ExistingUser {
   id: number;
@@ -42,7 +43,9 @@ export class CacheService extends EventEmitter {
   private constructor() {
     super();
     this.logSync('Starting CacheService...');
-    this.startSync({ startup: true });
+    if (shouldStartAutomaticSync('CacheService')) {
+      this.startSync({ startup: true });
+    }
   }
 
   static getInstance() {
@@ -128,6 +131,14 @@ export class CacheService extends EventEmitter {
       this.updateCache(firstRun).catch(err => {
         this.logSync('Initial sync failed:', err);
       });
+
+      // A deliberate admin refresh remains available, but must not opt the
+      // preview into recurring external work as a side effect.
+      if (!automaticSyncsEnabled()) {
+        this.nextSyncAt = null;
+        this.logSync('Manual sync started; recurring sync remains disabled outside production');
+        return;
+      }
 
       this.cacheInterval = setInterval(() => {
         const currentTime = new Date();

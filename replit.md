@@ -466,6 +466,9 @@ This is a full-stack web application built for the Sarasota Tech community, desi
 ## Deployment Strategy
 
 ### Development Environment
+- **Automatic Stripe/Luma sync safety**: `npm run dev` does not start Stripe backfill/reconciliation or managed-webhook setup, Luma cache/member sync, membership-tier lookup, or event-attendance sync. No recurring external-sync timers are created. Production (`NODE_ENV=production`) keeps its existing schedules and freshness checks.
+- **Explicit sync opt-in**: Set `ENABLE_DEV_EXTERNAL_SYNCS=true` only when intentionally testing real integration access and data changes (not a dry run). Only the exact value `true` enables it outside production. Startup logs show each service's decision. This does not enable invitation emails, coupon issuance, or webhook creation; those retain their separate safeguards.
+- **Preview behavior**: Real routes, session authentication, and stored data remain available. Manual admin sync actions and request/webhook-driven operations are not disabled by this startup policy. A manual cache refresh remains a one-off when automatic syncing is disabled.
 - **Local Development**: Vite dev server with Express backend
 - **Hot Reloading**: Full-stack development with automatic refresh
 - **Database**: Development PostgreSQL instance

@@ -1,5 +1,5 @@
 - [User blocking system](user-blocking.md) — block revokes premium persistently (unblock won't restore), canSendTo fail-closed, session-table delete pattern.
-- [Dev startup performance](dev-startup-performance.md) — orphan server after merges; startup syncs throttled via cache_metadata timestamps; lazy routes.
+- [Dev startup performance](dev-startup-performance.md) — orphan servers after merges; keep background work off the pre-listen path.
 - [Development side effects](development-side-effects.md) — dev invitation mailer is env-gated; never enable it casually.
 - [Post-merge safety](post-merge-safety.md) — post-merge restores deps and re-applies idempotent SQL to dev; never drizzle push.
 - [Summit years](summit-years.md) — current flag explicit; schema via dev SQL + Publish; original pages kept until owner approves.

@@ -21,6 +21,7 @@ import { fetchPostForOpenGraph, fetchCompanyForOpenGraph, fetchUserForOpenGraph,
 import { runMigrations } from 'stripe-replit-sync';
 import { startStripeBackgroundSync, stopStripeBackgroundSync } from "./services/stripeStartupSync";
 import { WebhookHandlers } from "./webhookHandlers";
+import { shouldStartAutomaticSync } from "./services/automaticSyncPolicy";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -342,11 +343,13 @@ app.use(blockedSessionGuard(id => storage.getUserById(id)));
 
     try {
       // Resolve Luma membership tier dynamically before sync services start
-      try {
-        const tierId = await LumaMembershipService.resolveTierId();
-        console.log(`[Server] Luma membership tier resolved: ${tierId || 'none found'}`);
-      } catch (tierError) {
-        console.error('[Server] Failed to resolve Luma membership tier (non-fatal):', tierError);
+      if (shouldStartAutomaticSync('LumaMembership')) {
+        try {
+          const tierId = await LumaMembershipService.resolveTierId();
+          console.log(`[Server] Luma membership tier resolved: ${tierId || 'none found'}`);
+        } catch (tierError) {
+          console.error('[Server] Failed to resolve Luma membership tier (non-fatal):', tierError);
+        }
       }
 
       await storage.backfillMissingSlugs();

@@ -3,6 +3,7 @@ import { db } from "../db";
 import { cacheMetadata } from "@shared/schema";
 import { getStripeSecretKey, getStripeSync } from "../stripeClient";
 import { readWebhookSetupEnv, setUpManagedWebhookForEnvironment } from "./stripeWebhookSetup";
+import { shouldStartAutomaticSync } from "./automaticSyncPolicy";
 
 /**
  * Stripe background work that used to block startup: the managed webhook setup
@@ -104,6 +105,8 @@ async function setUpManagedWebhook(): Promise<void> {
 
 /** Starts webhook setup and the backfill schedule. Never throws; call after the server is listening. */
 export function startStripeBackgroundSync(): void {
+  if (!shouldStartAutomaticSync("Stripe")) return;
+
   if (!process.env.DATABASE_URL) {
     console.warn("DATABASE_URL not found, skipping Stripe background sync");
     return;
